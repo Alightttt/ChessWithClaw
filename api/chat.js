@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   
-  const { id, text } = req.body || {};
+  const { id, text, type } = req.body || {};
   if (!id || !text) return res.status(400).json({ error: 'Missing id or text in JSON body' });
 
   let supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
   const newMessage = {
     sender: 'agent',
     text: text,
+    type: type || 'text', // Support special types like 'resign_request'
     timestamp: Date.now()
   };
 

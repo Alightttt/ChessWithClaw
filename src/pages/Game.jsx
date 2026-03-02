@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { toast } from 'sonner';
+import { Settings, X, Pause, Play, Flag } from 'lucide-react';
 import ChessBoard from '../components/chess/ChessBoard';
 import ThinkingPanel from '../components/chess/ThinkingPanel';
 import ChatBox from '../components/chess/ChatBox';
@@ -16,6 +17,10 @@ export default function Game() {
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [gameOver, setGameOver] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [boardTheme, setBoardTheme] = useState('green');
+  const [pieceTheme, setPieceTheme] = useState('merida');
+  const boardRef = useRef(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -159,6 +164,26 @@ export default function Game() {
     }
   };
 
+  const acceptAgentResignation = async () => {
+    if (confirm("Accept the agent's resignation?")) {
+      await supabase.from('games').update({
+        status: 'finished',
+        result: 'white',
+        result_reason: 'resignation'
+      }).eq('id', gameId);
+    }
+  };
+
+  const pauseGame = async () => {
+    await supabase.from('games').update({ status: 'paused' }).eq('id', gameId);
+    toast.success('Game paused');
+  };
+
+  const resumeGame = async () => {
+    await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
+    toast.success('Game resumed');
+  };
+
   const sendMessage = async (text) => {
     const newMessage = { sender: 'human', text, timestamp: Date.now() };
     const newHistory = [...(game.chat_history || []), newMessage];
@@ -200,7 +225,7 @@ export default function Game() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center text-white font-mono">
+      <div className="min-h-screen bg-[#312e2b] flex items-center justify-center text-white font-sans">
         Loading game...
       </div>
     );
@@ -208,15 +233,15 @@ export default function Game() {
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center text-white font-mono">
+      <div className="min-h-screen bg-[#312e2b] flex items-center justify-center text-white font-sans">
         Game not found
       </div>
     );
   }
 
   const chess = new Chess(game.fen);
-  const isMyTurn = game.turn === 'w' && game.agent_connected && game.status !== 'finished';
-  const isAgentTurn = game.turn === 'b' && game.agent_connected && game.status !== 'finished';
+  const isMyTurn = game.turn === 'w' && game.agent_connected && game.status === 'active';
+  const isAgentTurn = game.turn === 'b' && game.agent_connected && game.status === 'active';
   const lastMove = (game.move_history || [])[(game.move_history || []).length - 1] || null;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
@@ -230,46 +255,51 @@ export default function Game() {
   if (game.status === 'finished') {
     if (game.result === 'white') {
       statusMessage = '🏆 CHECKMATE! YOU WIN!';
-      statusColor = '#2dc653';
+      statusColor = '#c62828';
     } else if (game.result === 'black') {
       statusMessage = '💀 CHECKMATE. CLAW WINS.';
-      statusColor = '#e63946';
+      statusColor = '#c62828';
     } else {
       statusMessage = '🤝 DRAW';
-      statusColor = '#c9973a';
+      statusColor = '#c3c3c2';
     }
-    statusBg = '#1c1c1c';
-    statusBorder = '#333';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
+  } else if (game.status === 'paused') {
+    statusMessage = '⏸ GAME PAUSED';
+    statusColor = '#c3c3c2';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
   } else if (!game.agent_connected) {
     statusMessage = '⏳ WAITING FOR CLAW TO JOIN...';
-    statusColor = '#c9973a';
-    statusBg = '#1c1c1c';
-    statusBorder = '#333';
+    statusColor = '#c3c3c2';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
   } else if (isMyTurn) {
     if (chess.inCheck()) {
       statusMessage = '⚠️ YOU ARE IN CHECK! YOUR MOVE (WHITE)';
-      statusColor = '#e63946';
+      statusColor = '#ef5350';
     } else {
       statusMessage = '♟ YOUR TURN — MAKE YOUR MOVE (WHITE)';
-      statusColor = '#2dc653';
+      statusColor = '#c62828';
     }
-    statusBg = '#1a2e1a';
-    statusBorder = '#2dc653';
+    statusBg = '#262421';
+    statusBorder = '#c62828';
   } else if (isAgentTurn) {
     if (chess.inCheck()) {
       statusMessage = '⚠️ CLAW IS IN CHECK — THINKING...';
-      statusColor = '#c9973a';
+      statusColor = '#ef5350';
     } else {
-      statusMessage = '🤖 CLAW IS THINKING...';
-      statusColor = '#a0a0a0';
+      statusMessage = '🦞 CLAW IS THINKING...';
+      statusColor = '#c3c3c2';
     }
-    statusBg = '#1a1a2e';
-    statusBorder = '#a0a0a0';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
   } else {
     statusMessage = 'WAITING...';
-    statusColor = '#666';
-    statusBg = '#1c1c1c';
-    statusBorder = '#333';
+    statusColor = '#c3c3c2';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
   }
 
   const getCapturedPieces = (fen) => {
@@ -294,39 +324,112 @@ export default function Game() {
   const captured = getCapturedPieces(game?.fen);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0d0d0d] via-[#1a1a1a] to-[#0d0d0d] flex flex-col font-mono pb-20">
+    <div className="min-h-screen bg-[#312e2b] flex flex-col font-sans pb-20">
       {/* HEADER */}
-      <div className="bg-[#1c1c1c] border-b border-[#c9973a] px-3 sm:px-6 h-14 sm:h-16 flex justify-between items-center z-10 shrink-0">
+      <div className="bg-[#262421] border-b border-[#403d39] px-3 sm:px-6 h-14 sm:h-16 flex justify-between items-center z-10 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
             alt="Logo" 
-            className="w-10 h-10 rounded-full border border-[#c9973a]"
+            className="w-10 h-10 rounded-full border border-[#c62828]"
           />
-          <h1 className="text-xl sm:text-2xl text-[#c9973a] font-serif" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h1 className="text-xl sm:text-2xl text-[#ffffff] font-bold">
             ChessWithClaw
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          {game.status === 'active' && (
-            <button 
-              onClick={resign}
-              className="text-xs sm:text-sm text-red-400 hover:text-red-300 border border-red-900 hover:border-red-500 px-3 py-1 rounded transition-colors"
-            >
-              Resign
-            </button>
-          )}
-          <button 
-            onClick={copyPgn}
-            className="text-xs sm:text-sm text-[#a0a0a0] hover:text-[#f0f0f0] border border-[#333] hover:border-[#666] px-3 py-1 rounded transition-colors"
-          >
-            Copy PGN
-          </button>
-          <div className="text-[#666] text-xs sm:text-sm hidden sm:block">
+          <div className="text-[#c3c3c2] text-xs sm:text-sm hidden sm:block">
             Room: {gameId.substring(0, 6)}
           </div>
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="text-[#c3c3c2] hover:text-[#ffffff] transition-colors p-2 rounded-full hover:bg-[#403d39]"
+            title="Settings"
+          >
+            <Settings size={24} />
+          </button>
         </div>
       </div>
+
+      {/* SETTINGS MODAL */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#262421] border border-[#403d39] rounded-lg w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-[#403d39]">
+              <h2 className="text-xl font-bold text-[#ffffff] flex items-center gap-2">
+                <Settings size={20} /> Settings
+              </h2>
+              <button onClick={() => setShowSettings(false)} className="text-[#c3c3c2] hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Game Controls */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-[#c3c3c2] tracking-wider uppercase">Game Controls</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {game.status === 'active' ? (
+                    <button onClick={pauseGame} className="flex items-center justify-center gap-2 bg-[#312e2b] hover:bg-[#403d39] text-white py-2 px-4 rounded-lg border-b-[3px] border-[#211f1c] active:border-b-0 active:translate-y-[3px] transition-all">
+                      <Pause size={16} /> Pause
+                    </button>
+                  ) : game.status === 'paused' ? (
+                    <button onClick={resumeGame} className="flex items-center justify-center gap-2 bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-2 px-4 rounded-lg border-b-[3px] border-[#7f0000] active:border-b-0 active:translate-y-[3px] transition-all">
+                      <Play size={16} /> Resume
+                    </button>
+                  ) : (
+                    <button disabled className="flex items-center justify-center gap-2 bg-[#312e2b] text-[#c3c3c2] py-2 px-4 rounded-lg border-b-[3px] border-[#211f1c] cursor-not-allowed">
+                      <Pause size={16} /> Pause
+                    </button>
+                  )}
+                  
+                  <button 
+                    onClick={() => { resign(); setShowSettings(false); }}
+                    disabled={game.status === 'finished'}
+                    className="flex items-center justify-center gap-2 bg-[#7f0000]/30 hover:bg-[#7f0000]/50 text-[#ef5350] border-2 border-[#7f0000] hover:border-[#ef5350] py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Flag size={16} /> Resign
+                  </button>
+                </div>
+              </div>
+
+              {/* Appearance */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-[#c3c3c2] tracking-wider uppercase">Appearance</h3>
+                
+                <div>
+                  <label className="block text-xs text-[#c3c3c2] mb-1">Board Theme</label>
+                  <select 
+                    value={boardTheme} 
+                    onChange={(e) => setBoardTheme(e.target.value)}
+                    className="w-full bg-[#312e2b] border border-[#403d39] text-white rounded p-2 outline-none focus:border-[#c62828]"
+                  >
+                    <option value="green">Green (Default)</option>
+                    <option value="classic">Classic (Red/Cream)</option>
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                    <option value="monochrome">Monochrome</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[#c3c3c2] mb-1">Pieces Design</label>
+                  <select 
+                    value={pieceTheme} 
+                    onChange={(e) => setPieceTheme(e.target.value)}
+                    className="w-full bg-[#312e2b] border border-[#403d39] text-white rounded p-2 outline-none focus:border-[#c62828]"
+                  >
+                    <option value="unicode">Unicode (Classic)</option>
+                    <option value="cburnett">CBurnett (Standard)</option>
+                    <option value="alpha">Alpha</option>
+                    <option value="merida">Merida</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col lg:flex-row p-1.5 sm:p-6 gap-1.5 sm:gap-6 max-w-[1400px] mx-auto w-full pb-16 sm:pb-28">
@@ -350,12 +453,14 @@ export default function Game() {
              <CapturedPieces pieces={captured.white_lost} isWhitePieces={true} />
           </div>
           
-          <div className="w-full" style={{ maxWidth: 'min(100vw - 0.75rem, 100vh - 310px, 480px)' }}>
+          <div className="w-full" style={{ maxWidth: 'min(100vw - 0.75rem, 100vh - 310px, 480px)' }} ref={boardRef}>
             <ChessBoard 
               fen={game.fen} 
               onMove={makeMove} 
               isMyTurn={isMyTurn} 
               lastMove={lastMove} 
+              boardTheme={boardTheme}
+              pieceTheme={pieceTheme}
             />
           </div>
 
@@ -381,6 +486,7 @@ export default function Game() {
             <ChatBox 
               chatHistory={game.chat_history || []} 
               onSendMessage={sendMessage} 
+              onAcceptResignation={acceptAgentResignation}
             />
           </div>
         </div>
@@ -394,65 +500,65 @@ export default function Game() {
         <div className="flex flex-col justify-center h-full">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div 
-              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${isMyTurn ? 'animate-pulse' : ''}`} 
+              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${isMyTurn || !game.agent_connected ? 'animate-pulse' : ''}`} 
               style={{ backgroundColor: statusColor }}
             />
             <span className="font-bold text-[10px] sm:text-base truncate max-w-[160px] sm:max-w-none" style={{ color: statusColor }}>
               {statusMessage}
             </span>
           </div>
-          <span className="text-[9px] sm:text-xs text-[#a0a0a0] mt-0.5">
-            {game.status === 'active' ? 'Match in progress' : 'Match concluded'}
+          <span className="text-[9px] sm:text-xs text-[#c3c3c2] mt-0.5">
+            {game.status === 'waiting' ? 'Waiting for opponent' : game.status === 'active' ? 'Match in progress' : game.status === 'paused' ? 'Match paused' : 'Match concluded'}
           </span>
         </div>
         
-        <div className="flex flex-col items-end justify-center h-full gap-0.5 text-[#a0a0a0]">
+        <div className="flex flex-col items-end justify-center h-full gap-0.5 text-[#c3c3c2]">
           <div className="flex items-center gap-1.5 sm:gap-3 text-[9px] sm:text-sm">
-            <span className="font-mono">Move: {currentMoveNumber}</span>
-            <span className="text-[#333] hidden sm:inline">|</span>
+            <span className="font-sans font-bold">Move: {currentMoveNumber}</span>
+            <span className="text-[#403d39] hidden sm:inline">|</span>
             <div className="flex items-center gap-1" title={game.agent_connected ? "Agent Online" : "Agent Offline"}>
-              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${game.agent_connected ? 'bg-[#2dc653]' : 'bg-red-500'}`} />
+              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${game.agent_connected ? 'bg-[#c62828]' : 'bg-[#c3c3c2]'}`} />
               <span className="font-bold">{game.agent_connected ? 'Online' : 'Offline'}</span>
             </div>
           </div>
-          <span className="text-[8px] sm:text-[10px] text-[#666] font-mono tracking-widest uppercase">Room: {gameId.substring(0, 6)}</span>
+          <span className="text-[8px] sm:text-[10px] text-[#c3c3c2] font-sans tracking-widest uppercase">Room: {gameId.substring(0, 6)}</span>
         </div>
       </div>
 
       {/* GAME OVER MODAL */}
       {gameOver && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1c1c1c] border-4 border-[#c9973a] rounded-xl p-8 max-w-md w-full text-center shadow-2xl transform animate-in fade-in zoom-in duration-300">
+          <div className="bg-[#262421] border-4 border-[#c62828] rounded-lg p-8 max-w-md w-full text-center shadow-2xl transform animate-in fade-in zoom-in duration-300">
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
               alt="Logo" 
-              className="w-20 h-20 mx-auto mb-6 rounded-full border-2 border-[#c9973a]"
+              className="w-20 h-20 mx-auto mb-6 rounded-full border-2 border-[#c62828]"
             />
-            <h2 className="text-3xl font-bold text-[#c9973a] mb-2 font-serif">
+            <h2 className="text-3xl font-bold text-[#ffffff] mb-2 font-sans">
               {game.result === 'white' ? '🏆 You Win!' : game.result === 'black' ? '💀 You Lose' : '🤝 Draw'}
             </h2>
-            <p className="text-[#f0f0f0] mb-6">
+            <p className="text-[#c3c3c2] mb-6">
               {game.result_reason === 'checkmate' ? `Checkmate on move ${currentMoveNumber}` : 
                game.result_reason === 'stalemate' ? 'Stalemate' : 
                'Draw by repetition or insufficient material'}
             </p>
             
-            <hr className="border-[#333] mb-6" />
+            <hr className="border-[#403d39] mb-6" />
             
-            <div className="text-[#a0a0a0] mb-8">
+            <div className="text-[#c3c3c2] mb-8">
               Total Moves: {(game.move_history || []).length}
             </div>
 
             <div className="flex flex-col gap-3">
               <button
                 onClick={playAgain}
-                className="w-full bg-[#c9973a] hover:bg-[#e8b84b] text-black font-bold py-3 px-4 rounded transition-transform hover:scale-105"
+                className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all text-xl shadow-sm"
               >
                 PLAY AGAIN
               </button>
               <button
                 onClick={copyPgn}
-                className="w-full bg-transparent border border-[#333] hover:border-[#666] text-[#a0a0a0] hover:text-[#f0f0f0] font-bold py-3 px-4 rounded transition-colors"
+                className="w-full bg-transparent border-2 border-[#403d39] hover:border-[#c3c3c2] text-[#c3c3c2] hover:text-[#ffffff] font-bold py-3 px-4 rounded-lg transition-colors"
               >
                 COPY PGN
               </button>

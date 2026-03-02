@@ -76,16 +76,19 @@ OPTION B: REAL-TIME API (Server-Sent Events)
 2. Submit your move: POST ${apiUrl}/move
    Body (JSON): {"id": "${gameId}", "move": "e7e5", "reasoning": "Controlling the center"}
 
-OPTION C: IF YOU PREFER WEBHOOKS (Push Notifications)
-1. Register your webhook: POST ${apiUrl}/webhook
-   Body (JSON): {"id": "${gameId}", "webhook_url": "https://your-bot-url.com/chess-webhook"}
-2. We will POST to your URL every time White moves.
-3. Submit your moves using the /move endpoint in Option B.
+OPTION C: FOR LLM AGENTS (Long-Polling - RECOMMENDED)
+If you cannot keep a background SSE stream open, use this method to play seamlessly:
+1. Poll for updates: GET ${apiUrl}/poll?id=${gameId}
+   (This request will wait up to 8 seconds for the human to move or chat, then return the new state. If no change, it returns {"event": "timeout"}. Loop this request!)
+2. Submit your move: POST ${apiUrl}/move
+   Body (JSON): {"id": "${gameId}", "move": "e7e5", "reasoning": "Controlling the center"}
 
-OPTION D: LIVE CHAT (Talk to your human)
+OPTION D: LIVE CHAT & RESIGNATION
 1. Send a chat message: POST ${apiUrl}/chat
    Body (JSON): {"id": "${gameId}", "text": "Good luck!"}
-2. You will receive human chat messages in the SSE stream or Webhook payload under "chat_history".
+2. Request to resign: POST ${apiUrl}/chat
+   Body (JSON): {"id": "${gameId}", "text": "I am completely lost. Do you accept my resignation?", "type": "resign_request"}
+   (This will show an "Accept Resignation" button to the human in the app)
 
 IMPORTANT BEHAVIOR RULES:
 1. You are BLACK. White moves first.
@@ -93,23 +96,23 @@ IMPORTANT BEHAVIOR RULES:
 3. If your user forgets they are playing with you (takes too long to move), inform and remind them using the chat channel you are connected to (Telegram, Discord, Slack, etc.).`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0d0d0d] via-[#1a1a1a] to-[#0d0d0d] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#312e2b] flex items-center justify-center p-4 font-sans transition-all duration-500">
       {gameId === null ? (
-        <div className="bg-[#1c1c1c] border border-[#c9973a] rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
+        <div className="bg-[#262421] border border-[#403d39] rounded-lg p-8 max-w-md w-full text-center shadow-2xl transition-all duration-500">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
             alt="Logo" 
-            className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-6 rounded-full border-2 border-[#c9973a]"
+            className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-6 rounded-full border-2 border-[#c62828] shadow-[0_0_20px_rgba(198,40,40,0.2)]"
           />
-          <h1 className="text-3xl md:text-4xl text-[#c9973a] font-serif mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h1 className="text-3xl md:text-4xl text-[#ffffff] font-bold mb-4">
             ChessWithClaw
           </h1>
-          <p className="text-[#a0a0a0] mb-8">
+          <p className="text-[#c3c3c2] mb-8 text-sm md:text-base">
             Play chess against your AI agent. You are White. Your agent plays Black.
           </p>
           
           {!hasSupabase && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded text-red-400 text-sm text-left">
+            <div className="mb-6 p-4 bg-[#7f0000]/30 border border-[#c62828]/50 rounded-md text-[#ef5350] text-sm text-left">
               <strong>Configuration Missing:</strong> Supabase environment variables are not set. This app requires a Supabase backend to sync real-time game state between the human and the agent.
             </div>
           )}
@@ -117,91 +120,63 @@ IMPORTANT BEHAVIOR RULES:
           <button
             onClick={createGame}
             disabled={creating || !hasSupabase}
-            className="w-full bg-[#c9973a] hover:bg-[#e8b84b] text-black font-bold py-3 px-4 rounded transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all disabled:opacity-50 disabled:active:border-b-[4px] disabled:active:translate-y-0 text-2xl shadow-sm"
           >
-            {creating ? 'CREATING...' : 'CREATE GAME'}
+            {creating ? 'CREATING...' : 'Play Computer'}
           </button>
         </div>
       ) : (
-        <div className="bg-[#1c1c1c] border border-[#2dc653] rounded-lg p-6 md:p-8 max-w-2xl w-full shadow-2xl">
-          <div className="flex items-center gap-4 mb-8">
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-              alt="Logo" 
-              className="w-16 h-16 rounded-full border border-[#2dc653]"
-            />
-            <h2 className="text-2xl md:text-3xl text-[#2dc653] font-bold">✅ Game Created!</h2>
+        <div className="bg-[#262421] border border-[#403d39] rounded-lg p-6 md:p-8 max-w-2xl w-full shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+                alt="Logo" 
+                className="w-12 h-12 rounded-full border border-[#c62828]"
+              />
+              <div>
+                <h2 className="text-xl md:text-2xl text-[#ffffff] font-bold">Game Created</h2>
+                <p className="text-[#c3c3c2] text-sm">Room #{gameId.substring(0, 6).toUpperCase()}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-[#a0a0a0] mb-2 font-bold">YOUR LINK (open this):</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={humanUrl} 
-                  className="flex-1 bg-[#141414] border border-[#333] rounded px-3 py-2 text-[#f0f0f0] font-mono outline-none"
-                />
-                <button 
-                  onClick={() => window.open(humanUrl, '_blank')}
-                  className="bg-[#333] hover:bg-[#444] p-2 rounded flex items-center justify-center transition-colors"
-                  title="Open in new tab"
-                >
-                  <ExternalLink size={20} />
-                </button>
-                <button 
-                  onClick={() => copyToClipboard(humanUrl)}
-                  className="bg-[#333] hover:bg-[#444] p-2 rounded flex items-center justify-center transition-colors"
-                  title="Copy link"
-                >
-                  <Copy size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[#a0a0a0] mb-2 font-bold">AGENT LINK (send to Claw):</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={agentUrl} 
-                  className="flex-1 bg-[#141414] border border-[#333] rounded px-3 py-2 text-[#f0f0f0] font-mono outline-none"
-                />
-                <button 
-                  onClick={() => copyToClipboard(agentUrl)}
-                  className="bg-[#333] hover:bg-[#444] p-2 rounded flex items-center justify-center transition-colors"
-                  title="Copy link"
-                >
-                  <Copy size={20} />
-                </button>
-              </div>
-            </div>
-
-            <hr className="border-[#333] my-6" />
-
-            <div>
-              <h3 className="text-xl text-[#f0f0f0] mb-4 font-bold">How to start:</h3>
-              <ol className="list-decimal list-inside text-[#a0a0a0] space-y-2 mb-6">
-                <li>Click the external link icon next to YOUR LINK to open your game board</li>
-                <li>Copy the AGENT LINK</li>
-                <li>Send it to Claw on Telegram with this message:</li>
-              </ol>
-
-              <div className="bg-[#141414] border border-[#333] rounded p-4 mb-4">
-                <pre className="whitespace-pre-wrap font-mono text-sm text-[#a0a0a0] max-h-48 overflow-y-auto">
-                  {telegramMessage}
-                </pre>
-              </div>
-
-              <button
-                onClick={() => copyToClipboard(telegramMessage)}
-                className="bg-[#333] hover:bg-[#444] text-[#f0f0f0] font-bold py-2 px-4 rounded flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
+          <div className="space-y-8">
+            {/* STEP 1 */}
+            <div className="bg-[#211f1c] border border-[#403d39] rounded-md p-5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#c62828]"></div>
+              <h3 className="text-[#c62828] font-bold mb-1 text-sm uppercase tracking-wider">Step 1</h3>
+              <p className="text-[#ffffff] mb-4 text-lg">Open your chess board</p>
+              <button 
+                onClick={() => window.open(humanUrl, '_blank')}
+                className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all flex items-center justify-center gap-2 text-xl shadow-sm"
               >
-                <Copy size={18} />
-                Copy This Message
+                <ExternalLink size={20} />
+                Open Board in New Tab
               </button>
+            </div>
+
+            {/* STEP 2 */}
+            <div className="bg-[#211f1c] border border-[#403d39] rounded-md p-5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#ef5350]"></div>
+              <h3 className="text-[#ef5350] font-bold mb-1 text-sm uppercase tracking-wider">Step 2</h3>
+              <p className="text-[#ffffff] mb-4 text-lg">Invite your agent</p>
+              
+              <div className="bg-[#1a1917] border border-[#403d39] rounded-lg p-4 mb-4">
+                <p className="text-[#c3c3c2] text-sm mb-2">Copy this message and send it to Claw:</p>
+                <div className="relative">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-[#c3c3c2] max-h-48 overflow-y-auto p-3 bg-[#262421] rounded border border-[#403d39]">
+                    {telegramMessage}
+                  </pre>
+                  <button
+                    onClick={() => copyToClipboard(telegramMessage)}
+                    className="absolute top-2 right-2 bg-[#312e2b] hover:bg-[#403d39] text-white p-2 rounded-md transition-colors shadow-md"
+                    title="Copy Message"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

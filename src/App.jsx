@@ -10,8 +10,18 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Toaster position="top-center" theme="dark" />
-        <Suspense fallback={<div className="min-h-screen bg-[#0d0d0d] text-white flex items-center justify-center font-mono">Loading...</div>}>
+        <Toaster 
+          position="top-center" 
+          theme="dark" 
+          toastOptions={{
+            style: {
+              background: '#262421',
+              border: '1px solid #c62828',
+              color: '#ffffff',
+            },
+          }}
+        />
+        <Suspense fallback={<div className="min-h-screen bg-[#312e2b] text-white flex items-center justify-center font-sans">Loading...</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/Game" element={<Game />} />

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Chess } from 'chess.js';
 
-export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordinates = true, interactive = true }) {
+export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordinates = true, interactive = true, boardTheme = 'classic', pieceTheme = 'unicode' }) {
   const [chess, setChess] = useState(new Chess(fen));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
@@ -64,6 +64,37 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
   const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
   const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && chess.inCheck();
 
+  const themes = {
+    classic: { light: '#ebecd0', dark: '#c62828' },
+    green: { light: '#ebecd0', dark: '#739552' },
+    blue: { light: '#ebecd0', dark: '#8ca2ad' },
+    purple: { light: '#ebecd0', dark: '#6f5c7f' },
+    monochrome: { light: '#e0e0e0', dark: '#a0a0a0' },
+  };
+
+  const currentTheme = themes[boardTheme] || themes.classic;
+
+  const renderPiece = (piece) => {
+    if (!piece) return null;
+    if (pieceTheme === 'unicode') {
+      return (
+        <span
+          className="relative z-10 drop-shadow-md"
+          style={{
+            color: piece.color === 'w' ? '#ffffff' : '#000000',
+            textShadow: piece.color === 'w' ? '0 0 2px #000' : '0 0 2px #fff'
+          }}
+        >
+          {pieceMap[piece.color + piece.type.toUpperCase()]}
+        </span>
+      );
+    } else {
+      const pieceName = `${piece.color}${piece.type.toUpperCase()}`;
+      const url = `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`;
+      return <img src={url} alt={pieceName} className="relative z-10 w-[80%] h-[80%] drop-shadow-md pointer-events-none" />;
+    }
+  };
+
   return (
     <div className={`flex flex-col select-none w-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
       <div className="relative w-full aspect-square border-2 border-[#333]">
@@ -82,29 +113,18 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
               <div
                 key={sq}
                 onClick={() => handleSquareClick(row, col)}
-                className={`relative w-full h-full flex items-center justify-center text-[9vw] sm:text-5xl cursor-pointer
-                  ${isLight(row, col) ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
-                `}
+                className="relative w-full h-full flex items-center justify-center text-[9vw] sm:text-5xl cursor-pointer"
+                style={{ backgroundColor: isLight(row, col) ? currentTheme.light : currentTheme.dark }}
               >
                 {/* Overlays */}
-                {isSelected && <div className="absolute inset-0 bg-yellow-400 opacity-60 z-0" />}
-                {!isSelected && isLast && <div className="absolute inset-0 bg-orange-400 opacity-30 z-0" />}
+                {isSelected && <div className="absolute inset-0 bg-black opacity-20 z-0" />}
+                {!isSelected && isLast && <div className="absolute inset-0 bg-yellow-400 opacity-40 z-0" />}
                 {isCheck && <div className="absolute inset-0 bg-red-600 opacity-50 animate-pulse z-0" />}
-                {isLegal && !isCap && <div className="absolute w-4 h-4 rounded-full bg-green-500 opacity-50 z-0" />}
-                {isLegal && isCap && <div className="absolute inset-0 border-4 border-green-500 opacity-60 z-0" />}
+                {isLegal && !isCap && <div className="absolute w-4 h-4 rounded-full bg-black opacity-20 z-0" />}
+                {isLegal && isCap && <div className="absolute inset-0 border-4 border-black opacity-20 z-0" />}
 
                 {/* Piece */}
-                {piece && (
-                  <span
-                    className="relative z-10 drop-shadow-md"
-                    style={{
-                      color: piece.color === 'w' ? '#ffffff' : '#000000',
-                      textShadow: piece.color === 'w' ? '0 0 2px #000' : '0 0 2px #fff'
-                    }}
-                  >
-                    {pieceMap[piece.color + piece.type.toUpperCase()]}
-                  </span>
-                )}
+                {renderPiece(piece)}
 
                 {/* Coordinates (if showCoordinates is false, show small in corner) */}
                 {!showCoordinates && (
@@ -119,9 +139,9 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
         </div>
       </div>
       {showCoordinates && (
-        <div className="flex w-full h-4 sm:h-6 bg-[#1c1c1c]">
+        <div className="flex w-full h-4 sm:h-6 bg-[#262421]">
           {files.map(file => (
-            <div key={file} className="flex-1 flex items-center justify-center text-[8px] sm:text-xs text-[#666] font-mono">
+            <div key={file} className="flex-1 flex items-center justify-center text-[8px] sm:text-xs text-[#c3c3c2] font-sans font-bold">
               {file}
             </div>
           ))}
