@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { id, last_move_count, last_chat_count } = req.query;
+  let { id, last_move_count, last_chat_count } = req.query;
   if (!id) return res.status(400).json({ error: 'Missing game ID' });
 
   let supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -31,6 +31,15 @@ export default async function handler(req, res) {
 
   // Mark agent as connected
   await supabase.from('games').update({ agent_connected: true }).eq('id', id);
+
+  // Initialize counts if not provided
+  if (last_move_count === undefined || last_chat_count === undefined) {
+    const { data: initialGame } = await supabase.from('games').select('move_history, chat_history').eq('id', id).single();
+    if (initialGame) {
+      if (last_move_count === undefined) last_move_count = initialGame.move_history ? initialGame.move_history.length : 0;
+      if (last_chat_count === undefined) last_chat_count = initialGame.chat_history ? initialGame.chat_history.length : 0;
+    }
+  }
 
   // Long polling logic: wait up to 8 seconds for a change
   const startTime = Date.now();
@@ -69,12 +78,21 @@ export default async function handler(req, res) {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  // Timeout reached, return current counts so the client can poll again
-  const { data: finalGame } = await supabase.from('games').select('move_history, chat_history').eq('id', id).single();
+  // Timeout reached, return current state so the client has the latest data
+  const { data: finalGame } = await supabase.from('games').select('*').eq('id', id).single();
+  const finalChess = new Chess(finalGame.fen);
+  const finalLegalMoves = finalChess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
+
   return res.status(200).json({ 
     event: 'timeout', 
     message: 'No changes. Please poll again.',
-    move_count: finalGame?.move_history?.length || 0,
-    chat_count: finalGame?.chat_history?.length || 0
+    status: finalGame.status,
+    fen: finalGame.fen,
+    current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
+    legal_moves: finalGame.turn === 'b' ? finalLegalMoves : [],
+    move_history: finalGame.move_history || [],
+    chat_history: finalGame.chat_history || [],
+    move_count: finalGame.move_history?.length || 0,
+    chat_count: finalGame.chat_history?.length || 0
   });
 }

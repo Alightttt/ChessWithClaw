@@ -41,10 +41,11 @@ export default async function handler(req, res) {
 
   const chess = new Chess(game.fen);
   
-  // Reconstruct PGN from move history
+  // Reconstruct PGN from move history using a fresh board
+  const pgnChess = new Chess();
   if (game.move_history && game.move_history.length > 0) {
     game.move_history.forEach(m => {
-      try { chess.move(m.san); } catch (e) {}
+      try { pgnChess.move(m.san); } catch (e) {}
     });
   }
   
@@ -81,12 +82,14 @@ export default async function handler(req, res) {
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
     you_are: 'BLACK',
     fen: game.fen,
-    pgn: chess.pgn(),
+    pgn: pgnChess.pgn(),
     ascii_board: chess.ascii(),
     legal_moves: game.turn === 'b' ? legalMoves : [],
     last_move: game.move_history?.length > 0 ? game.move_history[game.move_history.length - 1] : null,
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],
-    chat_history: game.chat_history || []
+    chat_history: game.chat_history || [],
+    move_count: game.move_history?.length || 0,
+    chat_count: game.chat_history?.length || 0
   });
 }

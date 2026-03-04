@@ -88,7 +88,8 @@ export default function Game() {
       const updates = {
         fen: chess.fen(),
         turn: 'b',
-        move_history: newMoveHistory
+        move_history: newMoveHistory,
+        status: 'active'
       };
 
       if (chess.isCheckmate()) {
@@ -109,24 +110,32 @@ export default function Game() {
         updates.status = 'active';
       }
 
+      // Optimistic update for instant feedback
+      setGame(prev => ({ ...prev, ...updates }));
+
       await supabase.from('games').update(updates).eq('id', gameId);
 
       // Trigger webhook if the agent has registered one
-      if (game.webhook_url && updates.status !== 'finished') {
+      if (game.webhook_url) {
         try {
           fetch(game.webhook_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              event: 'your_turn',
+              event: updates.status === 'finished' ? 'game_over' : 'your_turn',
               game_id: gameId,
+              status: updates.status,
+              result: updates.result,
+              result_reason: updates.result_reason,
               fen: updates.fen,
               last_move: {
                 from,
                 to,
                 san: move.san
               },
-              chat_history: game.chat_history || []
+              chat_history: game.chat_history || [],
+              move_count: updates.move_history.length,
+              chat_count: (game.chat_history || []).length
             })
           }).catch(err => console.error('Webhook failed to send:', err));
         } catch (e) {
@@ -136,6 +145,24 @@ export default function Game() {
 
     } catch (e) {
       toast.error('Illegal move');
+    }
+  };
+
+  const triggerWebhook = (event, extraData = {}) => {
+    if (game && game.webhook_url) {
+      try {
+        fetch(game.webhook_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event,
+            game_id: gameId,
+            ...extraData
+          })
+        }).catch(err => console.error('Webhook failed:', err));
+      } catch (e) {
+        console.error('Webhook error:', e);
+      }
     }
   };
 
@@ -152,6 +179,7 @@ export default function Game() {
       chat_history: []
     }).eq('id', gameId);
     setGameOver(false);
+    triggerWebhook('game_restarted');
   };
 
   const resign = async () => {
@@ -161,6 +189,7 @@ export default function Game() {
         result: 'black',
         result_reason: 'resignation'
       }).eq('id', gameId);
+      triggerWebhook('game_over', { status: 'finished', result: 'black', result_reason: 'resignation' });
     }
   };
 
@@ -171,44 +200,36 @@ export default function Game() {
         result: 'white',
         result_reason: 'resignation'
       }).eq('id', gameId);
+      triggerWebhook('game_over', { status: 'finished', result: 'white', result_reason: 'resignation' });
     }
   };
 
   const pauseGame = async () => {
     await supabase.from('games').update({ status: 'paused' }).eq('id', gameId);
     toast.success('Game paused');
+    triggerWebhook('game_paused');
   };
 
   const resumeGame = async () => {
     await supabase.from('games').update({ status: 'active' }).eq('id', gameId);
     toast.success('Game resumed');
+    triggerWebhook('game_resumed');
   };
 
   const sendMessage = async (text) => {
     const newMessage = { sender: 'human', text, timestamp: Date.now() };
-    const newHistory = [...(game.chat_history || []), newMessage];
     
     // Optimistic update
-    setGame(prev => ({ ...prev, chat_history: newHistory }));
+    setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
     
-    await supabase.from('games').update({ chat_history: newHistory }).eq('id', gameId);
-
-    // Trigger webhook if the agent has registered one
-    if (game.webhook_url) {
-      try {
-        fetch(game.webhook_url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: 'chat_message',
-            game_id: gameId,
-            message: newMessage,
-            chat_history: newHistory
-          })
-        }).catch(err => console.error('Webhook failed to send chat:', err));
-      } catch (e) {
-        console.error('Webhook error:', e);
-      }
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: gameId, text, sender: 'human' })
+      });
+    } catch (e) {
+      console.error('Failed to send message:', e);
     }
   };
 
@@ -240,8 +261,8 @@ export default function Game() {
   }
 
   const chess = new Chess(game.fen);
-  const isMyTurn = game.turn === 'w' && game.agent_connected && game.status === 'active';
-  const isAgentTurn = game.turn === 'b' && game.agent_connected && game.status === 'active';
+  const isMyTurn = game.turn === 'w' && (game.status === 'active' || game.status === 'waiting');
+  const isAgentTurn = game.turn === 'b' && (game.status === 'active' || game.status === 'waiting');
   const lastMove = (game.move_history || [])[(game.move_history || []).length - 1] || null;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
@@ -270,11 +291,6 @@ export default function Game() {
     statusColor = '#c3c3c2';
     statusBg = '#262421';
     statusBorder = '#403d39';
-  } else if (!game.agent_connected) {
-    statusMessage = '⏳ WAITING FOR CLAW TO JOIN...';
-    statusColor = '#c3c3c2';
-    statusBg = '#262421';
-    statusBorder = '#403d39';
   } else if (isMyTurn) {
     if (chess.inCheck()) {
       statusMessage = '⚠️ YOU ARE IN CHECK! YOUR MOVE (WHITE)';
@@ -285,6 +301,11 @@ export default function Game() {
     }
     statusBg = '#262421';
     statusBorder = '#c62828';
+  } else if (!game.agent_connected) {
+    statusMessage = '⏳ WAITING FOR CLAW TO JOIN...';
+    statusColor = '#c3c3c2';
+    statusBg = '#262421';
+    statusBorder = '#403d39';
   } else if (isAgentTurn) {
     if (chess.inCheck()) {
       statusMessage = '⚠️ CLAW IS IN CHECK — THINKING...';
@@ -331,7 +352,13 @@ export default function Game() {
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
             alt="Logo" 
-            className="w-10 h-10 rounded-full border border-[#c62828]"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            className="w-10 h-10 rounded-full border border-[#c62828] object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
+            }}
           />
           <h1 className="text-xl sm:text-2xl text-[#ffffff] font-bold">
             ChessWithClaw

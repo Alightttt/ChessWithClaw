@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   
-  const { id, text, type } = req.body || {};
+  const { id, text, type, sender = 'agent' } = req.body || {};
   if (!id || !text) return res.status(400).json({ error: 'Missing id or text in JSON body' });
 
   let supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -31,11 +31,11 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, chat_history').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, chat_history, webhook_url, move_history').eq('id', id).single();
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
 
   const newMessage = {
-    sender: 'agent',
+    sender: sender,
     text: text,
     type: type || 'text', // Support special types like 'resign_request'
     timestamp: Date.now()
@@ -43,11 +43,31 @@ export default async function handler(req, res) {
 
   const newHistory = [...(game.chat_history || []), newMessage];
 
-  // Update chat history and mark agent as connected
-  await supabase.from('games').update({ 
-    chat_history: newHistory,
-    agent_connected: true 
-  }).eq('id', id);
+  const updates = { chat_history: newHistory };
+  if (sender === 'agent') {
+    updates.agent_connected = true;
+  }
+
+  // Update chat history
+  await supabase.from('games').update(updates).eq('id', id);
+
+  // Trigger webhook if human sent it and webhook exists
+  if (sender === 'human' && game.webhook_url) {
+    try {
+      fetch(game.webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'chat_message',
+          game_id: id,
+          message: newMessage,
+          chat_history: newHistory,
+          move_count: (game.move_history || []).length,
+          chat_count: newHistory.length
+        })
+      }).catch(err => console.error('Webhook failed:', err));
+    } catch (e) {}
+  }
 
   res.status(200).json({ 
     success: true, 

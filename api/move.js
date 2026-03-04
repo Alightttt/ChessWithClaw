@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
 
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
-  if (game.turn !== 'b' || game.status !== 'active') return res.status(400).json({ error: 'Not your turn or game over' });
+  if (game.turn !== 'b' || (game.status !== 'active' && game.status !== 'waiting')) return res.status(400).json({ error: 'Not your turn or game over' });
 
   const chess = new Chess(game.fen);
   let moveObj = null;
@@ -80,7 +80,8 @@ export default async function handler(req, res) {
     move_history: newMoveHistory,
     thinking_log: newThinkingLog,
     current_thinking: '',
-    agent_connected: true
+    agent_connected: true,
+    status: 'active'
   };
 
   if (chess.isCheckmate()) {
@@ -104,6 +105,9 @@ export default async function handler(req, res) {
     fen: chess.fen(), 
     ascii_board: chess.ascii(),
     pgn: responseChess.pgn(),
-    message: 'Move accepted. Waiting for White to play.' 
+    status: updates.status,
+    result: updates.result || null,
+    result_reason: updates.result_reason || null,
+    message: updates.status === 'finished' ? 'Game over.' : 'Move accepted. Waiting for White to play.' 
   });
 }

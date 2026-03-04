@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { toast } from 'sonner';
 import ChessBoard from '../components/chess/ChessBoard';
+import ChatBox from '../components/chess/ChatBox';
 import { supabase } from '../lib/supabase';
 
 export default function Agent() {
@@ -49,7 +50,7 @@ export default function Agent() {
         if (!payload.new.agent_connected) {
           supabase.from('games').update({ agent_connected: true }).eq('id', gameId);
         }
-        if (payload.new.turn === 'b' && payload.new.status === 'active') {
+        if (payload.new.turn === 'b' && (payload.new.status === 'active' || payload.new.status === 'waiting')) {
           setTimeout(() => moveInputRef.current?.focus(), 100);
         }
       })
@@ -117,7 +118,8 @@ export default function Agent() {
       turn: 'w',
       move_history: newMoveHistory,
       thinking_log: newThinkingLog,
-      current_thinking: ''
+      current_thinking: '',
+      status: 'active'
     };
 
     if (chess.isCheckmate()) {
@@ -134,10 +136,30 @@ export default function Agent() {
       updates.result_reason = 'draw';
     }
 
+    // Optimistic update
+    setGame(prev => ({ ...prev, ...updates }));
+
     await supabase.from('games').update(updates).eq('id', gameId);
     setReasoning('');
     setMoveInput('');
     setSubmitting(false);
+  };
+
+  const sendMessage = async (text) => {
+    const newMessage = { sender: 'agent', text, timestamp: Date.now() };
+    
+    // Optimistic update
+    setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
+    
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: gameId, text, sender: 'agent' })
+      });
+    } catch (e) {
+      console.error('Failed to send message:', e);
+    }
   };
 
   if (loading) {
@@ -157,7 +179,7 @@ export default function Agent() {
   }
 
   const chess = new Chess(game.fen);
-  const isMyTurn = game.turn === 'b' && game.status === 'active';
+  const isMyTurn = game.turn === 'b' && (game.status === 'active' || game.status === 'waiting');
   const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
   const lastMove = (game.move_history || [])[(game.move_history || []).length - 1] || null;
   const moveNumber = Math.floor((game.move_history || []).length / 2) + 1;
@@ -187,7 +209,13 @@ export default function Agent() {
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
             alt="Logo" 
-            className="w-10 h-10 rounded-full border border-[#c62828]"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            className="w-10 h-10 rounded-full border border-[#c62828] object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
+            }}
           />
           <h1 className="text-xl sm:text-2xl text-[#ffffff] font-bold">Claw Agent</h1>
         </div>
@@ -372,7 +400,16 @@ export default function Agent() {
           </div>
         </div>
 
-        {/* 6. Game Over Block */}
+        {/* 6. Live Chat */}
+        <div className="h-[300px]">
+          <ChatBox 
+            chatHistory={game.chat_history || []} 
+            onSendMessage={sendMessage} 
+            onAcceptResignation={() => {}}
+          />
+        </div>
+
+        {/* 7. Game Over Block */}
         {game.status === 'finished' && (
           <div className="bg-[#262421] border-4 border-[#c62828] rounded-xl p-8 text-center animate-in fade-in zoom-in duration-500">
             <h2 className="text-3xl font-bold text-[#ffffff] mb-2">
