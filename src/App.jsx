@@ -1,10 +1,12 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import Home from './pages/Home';
-import Game from './pages/Game';
-import Agent from './pages/Agent';
 import ErrorBoundary from './components/ErrorBoundary';
+
+const Home = lazy(() => import('./pages/Home'));
+const Game = lazy(() => import('./pages/Game'));
+const Agent = lazy(() => import('./pages/Agent'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
   return (
@@ -26,6 +28,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/Game" element={<Game />} />
             <Route path="/Agent" element={<Agent />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

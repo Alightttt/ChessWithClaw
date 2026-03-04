@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Copy, Activity, Cpu, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Copy, Activity, Cpu, CheckCircle2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ThinkingPanel({ agentConnected, agentUrl, currentThinking, lastThinking, isAgentTurn, isHumanTurn }) {
@@ -11,7 +11,7 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
   };
 
   const getStatusConfig = () => {
-    if (!agentConnected) return { text: 'OFFLINE', color: 'text-[#c3c3c2]', bg: 'bg-[#403d39]/30', border: 'border-[#403d39]', icon: <AlertCircle size={16} className="text-[#c3c3c2]" /> };
+    if (!agentConnected) return { text: 'WAITING FOR AGENT', color: 'text-[#c3c3c2]', bg: 'bg-[#403d39]/30', border: 'border-[#403d39]', icon: <Clock size={16} className="text-[#c3c3c2]" /> };
     if (isAgentTurn) return { text: 'ANALYZING', color: 'text-[#ef5350]', bg: 'bg-[#ef5350]/10', border: 'border-[#ef5350]', icon: <Cpu size={16} className="text-[#ef5350] animate-pulse" /> };
     return { text: 'WAITING', color: 'text-[#c3c3c2]', bg: 'bg-[#c3c3c2]/10', border: 'border-[#c3c3c2]', icon: <CheckCircle2 size={16} className="text-[#c3c3c2]" /> };
   };
@@ -44,20 +44,15 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto pr-1">
         {!agentConnected ? (
-          <div className="space-y-1 sm:space-y-4">
+          <div className="space-y-1 sm:space-y-4 h-full flex flex-col justify-center">
             <p className="text-[#c3c3c2] text-[9px] sm:text-sm leading-tight">Agent disconnected. Share link to connect.</p>
             <div className="flex gap-1.5 sm:gap-2">
-              <input 
-                type="text" 
-                readOnly 
-                value={agentUrl} 
-                className="flex-1 bg-[#312e2b] border border-[#403d39] rounded px-1.5 py-0.5 sm:px-3 sm:py-2 text-[#ffffff] font-mono text-[8px] sm:text-xs outline-none"
-              />
               <button 
                 onClick={() => copyToClipboard(agentUrl)}
-                className="bg-[#403d39] hover:bg-[#c62828] px-1.5 py-0.5 sm:p-2 rounded flex items-center justify-center transition-colors text-white"
+                className="w-full bg-[#312e2b] hover:bg-[#403d39] border border-[#403d39] rounded px-3 py-2 text-[#ffffff] text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors"
               >
-                <Copy size={12} />
+                <Copy size={14} />
+                Copy Agent Invite Link
               </button>
             </div>
           </div>

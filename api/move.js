@@ -4,7 +4,12 @@ import { Chess } from 'chess.js';
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, move_history, thinking_log, chat_history, result, result_reason, created_at, agent_connected').eq('id', id).single();
 
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
   if (game.turn !== 'b' || (game.status !== 'active' && game.status !== 'waiting')) return res.status(400).json({ error: 'Not your turn or game over' });
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
     from: moveObj.from,
     to: moveObj.to,
     san: moveObj.san,
-    uci: moveObj.from + moveObj.to,
+    uci: moveObj.from + moveObj.to + (moveObj.promotion || ''),
     timestamp: Date.now()
   }];
 

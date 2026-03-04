@@ -8,12 +8,40 @@ import chatHandler from './api/chat.js';
 import stateHandler from './api/state.js';
 import webhookHandler from './api/webhook.js';
 
+// Simple in-memory rate limiter
+const rateLimit = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS = 60; // 60 requests per minute
+
+const rateLimiterMiddleware = (req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  const userLimit = rateLimit.get(ip) || { count: 0, startTime: now };
+  
+  if (now - userLimit.startTime > RATE_LIMIT_WINDOW) {
+    userLimit.count = 1;
+    userLimit.startTime = now;
+  } else {
+    userLimit.count++;
+  }
+  
+  rateLimit.set(ip, userLimit);
+  
+  if (userLimit.count > MAX_REQUESTS) {
+    return res.status(429).json({ error: 'Too many requests, please try again later.' });
+  }
+  next();
+};
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(cors());
   app.use(express.json());
+  
+  // Apply rate limiting to all API routes
+  app.use('/api', rateLimiterMiddleware);
 
   // API Routes
   app.get('/api/poll', pollHandler);

@@ -4,7 +4,12 @@ import { Chess } from 'chess.js';
 export default async function handler(req, res) {
   // CORS headers to allow agents to fetch from anywhere
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, move_history, thinking_log, chat_history, result, result_reason, created_at, agent_connected').eq('id', id).single();
 
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
 
@@ -58,8 +63,14 @@ export default async function handler(req, res) {
     if (counts[char] !== undefined) counts[char]++;
   }
   const captured = {
-    white_lost: { P: 8 - counts.P, N: 2 - counts.N, B: 2 - counts.B, R: 2 - counts.R, Q: 1 - counts.Q },
-    black_lost: { p: 8 - counts.p, n: 2 - counts.n, b: 2 - counts.b, r: 2 - counts.r, q: 1 - counts.q }
+    white_lost: { 
+      P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+      B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+    },
+    black_lost: { 
+      p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+      b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+    }
   };
 
   res.status(200).json({

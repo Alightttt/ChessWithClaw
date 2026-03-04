@@ -6,7 +6,12 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
+  }
 
   const { id } = req.query;
   if (!id) {
@@ -40,6 +45,13 @@ export default async function handler(req, res) {
       const chess = new Chess(payload.new.fen);
       const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
       
+      const pgnChess = new Chess();
+      if (payload.new.move_history && payload.new.move_history.length > 0) {
+        payload.new.move_history.forEach(m => {
+          try { pgnChess.move(m.san); } catch (e) {}
+        });
+      }
+      
       // Calculate captured pieces
       const fenBoard = payload.new.fen.split(' ')[0];
       const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
@@ -47,8 +59,14 @@ export default async function handler(req, res) {
         if (counts[char] !== undefined) counts[char]++;
       }
       const captured = {
-        white_lost: { P: 8 - counts.P, N: 2 - counts.N, B: 2 - counts.B, R: 2 - counts.R, Q: 1 - counts.Q },
-        black_lost: { p: 8 - counts.p, n: 2 - counts.n, b: 2 - counts.b, r: 2 - counts.r, q: 1 - counts.q }
+        white_lost: { 
+          P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+          B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+        },
+        black_lost: { 
+          p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+          b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+        }
       };
 
       // Forward the update to the bot without exposing Supabase credentials
@@ -69,6 +87,7 @@ export default async function handler(req, res) {
         },
         captured_pieces: captured,
         fen: payload.new.fen, 
+        pgn: pgnChess.pgn(),
         current_turn: payload.new.turn === 'w' ? 'WHITE' : 'BLACK',
         ascii_board: chess.ascii(),
         legal_moves: payload.new.turn === 'b' ? legalMoves : [],

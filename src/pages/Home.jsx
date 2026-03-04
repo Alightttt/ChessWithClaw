@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Copy, Play, Clock, Twitter, Github, MessageSquare, X } from 'lucide-react';
+import { ExternalLink, Copy, Play, Clock, Twitter, Github, MessageSquare, X, Zap } from 'lucide-react';
 import { supabase, hasSupabase } from '../lib/supabase';
 
 export default function Home() {
@@ -69,6 +69,10 @@ export default function Home() {
         }
         throw error;
       }
+      
+      // Set ownership token in local storage
+      localStorage.setItem(`game_owner_${data.id}`, 'true');
+      
       setGameId(data.id);
     } catch (error) {
       console.error('Create game error:', error);
@@ -83,11 +87,33 @@ export default function Home() {
     toast.success('Copied to clipboard');
   };
 
-  const submitFeedback = () => {
+  const submitFeedback = async () => {
     if (!feedbackText.trim()) return;
-    toast.success('Thank you for your feedback!');
-    setShowFeedback(false);
-    setFeedbackText('');
+    
+    if (!hasSupabase) {
+      toast.error('Cannot submit feedback: Database not configured');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .insert([{ message: feedbackText.trim() }]);
+
+      if (error) {
+        if (error.message && (error.message.includes('Could not find the table') || error.message.includes('relation "feedback" does not exist'))) {
+          throw new Error('Database table "feedback" is missing. Please create it in your Supabase SQL Editor.');
+        }
+        throw error;
+      }
+
+      toast.success('Thank you for your feedback!');
+      setShowFeedback(false);
+      setFeedbackText('');
+    } catch (error) {
+      console.error('Feedback error:', error);
+      toast.error('Failed to submit feedback: ' + (error.message || 'Unknown error'));
+    }
   };
 
   const telegramMessage = `Visit this URL: ${agentUrl}
@@ -100,23 +126,23 @@ OPTION A: IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
 3. Type reasoning in STEP 1, move in STEP 2, and click SUBMIT.
 
 OPTION B: REAL-TIME API (Server-Sent Events)
-1. Connect to stream: GET ${apiUrl}/stream?id=${gameId}
+1. Connect to stream: GET ${apiUrl}/stream?id=<GAME_ID>
    (You will receive a continuous stream of JSON updates when the game changes)
 2. Submit your move: POST ${apiUrl}/move
-   Body (JSON): {"id": "${gameId}", "move": "e7e5", "reasoning": "Controlling the center"}
+   Body (JSON): {"id": "<GAME_ID>", "move": "e7e5", "reasoning": "Controlling the center"}
 
 OPTION C: FOR LLM AGENTS (Long-Polling - RECOMMENDED)
 If you cannot keep a background SSE stream open, use this method to play seamlessly:
-1. Poll for updates: GET ${apiUrl}/poll?id=${gameId}&last_move_count=0&last_chat_count=0
+1. Poll for updates: GET ${apiUrl}/poll?id=<GAME_ID>&last_move_count=0&last_chat_count=0
    (Pass the move_count and chat_count from the previous response. This request will wait up to 8 seconds for the human to move or chat, then return the new state. If no change, it returns {"event": "timeout"}. Loop this request!)
 2. Submit your move: POST ${apiUrl}/move
-   Body (JSON): {"id": "${gameId}", "move": "e7e5", "reasoning": "Controlling the center"}
+   Body (JSON): {"id": "<GAME_ID>", "move": "e7e5", "reasoning": "Controlling the center"}
 
 OPTION D: LIVE CHAT & RESIGNATION
 1. Send a chat message: POST ${apiUrl}/chat
-   Body (JSON): {"id": "${gameId}", "text": "Good luck!"}
+   Body (JSON): {"id": "<GAME_ID>", "text": "Good luck!"}
 2. Request to resign: POST ${apiUrl}/chat
-   Body (JSON): {"id": "${gameId}", "text": "I am completely lost. Do you accept my resignation?", "type": "resign_request"}
+   Body (JSON): {"id": "<GAME_ID>", "text": "I am completely lost. Do you accept my resignation?", "type": "resign_request"}
    (This will show an "Accept Resignation" button to the human in the app)
 
 IMPORTANT BEHAVIOR RULES:
@@ -175,7 +201,7 @@ IMPORTANT BEHAVIOR RULES:
                 alt="ChessWithClaw Logo" 
                 referrerPolicy="no-referrer"
                 crossOrigin="anonymous"
-                className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-6 rounded-full border-2 border-[#c62828] shadow-[0_0_30px_rgba(198,40,40,0.4)] object-cover"
+                className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-6 rounded-full border border-[#403d39] shadow-[0_0_20px_rgba(198,40,40,0.2)] object-cover"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
@@ -185,7 +211,7 @@ IMPORTANT BEHAVIOR RULES:
                 ChessWith<span className="text-[#c62828]">Claw</span>
               </h1>
               <p className="text-lg md:text-xl text-[#c3c3c2] mb-10 max-w-2xl mx-auto">
-                Challenge your OpenClaw AI agent to a real-time game of chess. No complex setup, just pure strategy.
+                Challenge your OpenClaw AI agent to a real-time game of chess. Connect via Telegram and test your strategy.
               </p>
               
               <button
@@ -217,7 +243,7 @@ IMPORTANT BEHAVIOR RULES:
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] transition-colors duration-300 shadow-lg">
                   <div className="w-16 h-16 bg-[#312e2b] rounded-full flex items-center justify-center mb-6 border border-[#403d39] text-[#c62828]">
-                    <Play size={32} />
+                    <Zap size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">1. Click Play Now</h3>
                   <p className="text-[#c3c3c2]">Instantly create a secure, real-time game room for you and your agent.</p>
@@ -252,7 +278,7 @@ IMPORTANT BEHAVIOR RULES:
                   alt="Logo" 
                   referrerPolicy="no-referrer"
                   crossOrigin="anonymous"
-                  className="w-12 h-12 rounded-full border border-[#c62828] object-cover"
+                  className="w-12 h-12 rounded-full border border-[#403d39] object-cover"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";

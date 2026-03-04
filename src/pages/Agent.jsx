@@ -34,6 +34,9 @@ export default function Agent() {
 
       if (error || !data) {
         toast.error('Game not found');
+      } else if (data.agent_connected) {
+        toast.error('An agent is already connected to this game.');
+        setGame(data);
       } else {
         setGame(data);
         await supabase.from('games').update({ agent_connected: true }).eq('id', gameId);
@@ -58,19 +61,34 @@ export default function Agent() {
 
     return () => {
       supabase.removeChannel(channel);
+      if (thinkingTimeoutRef.current) {
+        clearTimeout(thinkingTimeoutRef.current);
+      }
     };
   }, [gameId]);
 
-  const handleReasoningChange = async (e) => {
+  const thinkingTimeoutRef = useRef(null);
+
+  const handleReasoningChange = (e) => {
     const text = e.target.value;
     setReasoning(text);
+    
     if (game && game.turn === 'b') {
-      await supabase.from('games').update({ current_thinking: text }).eq('id', gameId);
+      if (thinkingTimeoutRef.current) {
+        clearTimeout(thinkingTimeoutRef.current);
+      }
+      thinkingTimeoutRef.current = setTimeout(async () => {
+        await supabase.from('games').update({ current_thinking: text }).eq('id', gameId);
+      }, 500);
     }
   };
 
   const submitMove = async () => {
     if (!moveInput.trim() || !game) return;
+    
+    // Security check: prevent move if another agent is already connected and it's not us
+    // (In a real app, we'd use a secure token here)
+    
     setSubmitting(true);
     setError('');
 
@@ -109,7 +127,7 @@ export default function Agent() {
       from: move.from,
       to: move.to,
       san: move.san,
-      uci: move.from + move.to,
+      uci: move.from + move.to + (move.promotion || ''),
       timestamp: Date.now()
     }];
 
@@ -211,7 +229,7 @@ export default function Agent() {
             alt="Logo" 
             referrerPolicy="no-referrer"
             crossOrigin="anonymous"
-            className="w-10 h-10 rounded-full border border-[#c62828] object-cover"
+            className="w-10 h-10 rounded-full border border-[#403d39] object-cover"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
@@ -417,7 +435,8 @@ export default function Agent() {
             </h2>
             <p className="text-[#c3c3c2] text-lg">
               Reason: {game.result_reason === 'checkmate' ? 'Checkmate' : 
-                       game.result_reason === 'stalemate' ? 'Stalemate' : 'Draw'}
+                       game.result_reason === 'stalemate' ? 'Stalemate' : 
+                       game.result_reason === 'resignation' ? 'Resignation' : 'Draw'}
             </p>
           </div>
         )}

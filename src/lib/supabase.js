@@ -6,32 +6,43 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 let client = null;
 let isConfigured = false;
 
-try {
-  // Ensure the URL is valid before creating the client
-  const urlToUse = supabaseUrl.startsWith('http') ? supabaseUrl : (supabaseUrl ? `https://${supabaseUrl}` : 'https://placeholder.supabase.co');
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_url' || supabaseAnonKey === 'your_supabase_anon_key') {
+  console.error('CRITICAL ERROR: Supabase credentials are missing or invalid in environment variables.');
   
-  client = createClient(
-    urlToUse,
-    supabaseAnonKey || 'placeholder'
-  );
+  // Create a dummy client that explicitly throws errors to prevent silent failures
+  const throwError = () => { throw new Error('Supabase is not configured. Please check your .env file.'); };
   
-  if (supabaseUrl && supabaseAnonKey) {
-    isConfigured = true;
-  }
-} catch (error) {
-  console.error('Failed to initialize Supabase client:', error);
-  // Create a dummy client so the app doesn't crash
   client = {
     from: () => ({
-      select: () => ({ eq: () => ({ single: () => ({ data: null, error: new Error('Supabase not configured') }) }) }),
-      insert: () => ({ select: () => ({ single: () => ({ data: null, error: new Error('Supabase not configured') }) }) }),
-      update: () => ({ eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) })
+      select: () => ({ eq: () => ({ single: throwError }) }),
+      insert: () => ({ select: () => ({ single: throwError }) }),
+      update: () => ({ eq: throwError })
     }),
     channel: () => ({
       on: () => ({ subscribe: () => ({}) })
     }),
     removeChannel: () => {}
   };
+} else {
+  try {
+    const urlToUse = supabaseUrl.startsWith('http') ? supabaseUrl : `https://${supabaseUrl}`;
+    client = createClient(urlToUse, supabaseAnonKey);
+    isConfigured = true;
+  } catch (error) {
+    console.error('Failed to initialize Supabase client:', error);
+    const throwError = () => { throw new Error(`Supabase initialization failed: ${error.message}`); };
+    client = {
+      from: () => ({
+        select: () => ({ eq: () => ({ single: throwError }) }),
+        insert: () => ({ select: () => ({ single: throwError }) }),
+        update: () => ({ eq: throwError })
+      }),
+      channel: () => ({
+        on: () => ({ subscribe: () => ({}) })
+      }),
+      removeChannel: () => {}
+    };
+  }
 }
 
 export const hasSupabase = isConfigured;

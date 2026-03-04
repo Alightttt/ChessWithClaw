@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
@@ -34,9 +39,13 @@ export default async function handler(req, res) {
   const { data: game, error } = await supabase.from('games').select('id, chat_history, webhook_url, move_history').eq('id', id).single();
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
 
+  const sanitizeText = (str) => {
+    return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  };
+
   const newMessage = {
     sender: sender,
-    text: text,
+    text: sanitizeText(text),
     type: type || 'text', // Support special types like 'resign_request'
     timestamp: Date.now()
   };

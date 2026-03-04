@@ -53,7 +53,7 @@ export default function Game() {
         if (!payload.new.human_connected) {
           supabase.from('games').update({ human_connected: true }).eq('id', gameId);
         }
-        if (payload.new.status === 'finished' && !gameOver) {
+        if (payload.new.status === 'finished') {
           setGameOver(true);
         }
       })
@@ -66,6 +66,12 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== 'w' || !isMyTurn) return;
+    
+    // Security check: only the creator can play as white
+    if (localStorage.getItem(`game_owner_${gameId}`) !== 'true') {
+      toast.error('You are not the creator of this game.');
+      return;
+    }
 
     const chess = new Chess(game.fen);
     try {
@@ -81,7 +87,7 @@ export default function Game() {
         from,
         to,
         san: move.san,
-        uci: from + to,
+        uci: from + to + (promotion || ''),
         timestamp: Date.now()
       }];
 
@@ -110,10 +116,19 @@ export default function Game() {
         updates.status = 'active';
       }
 
+      // Save previous state for rollback
+      const previousGameState = { ...game };
+
       // Optimistic update for instant feedback
       setGame(prev => ({ ...prev, ...updates }));
 
-      await supabase.from('games').update(updates).eq('id', gameId);
+      const { error: updateError } = await supabase.from('games').update(updates).eq('id', gameId);
+
+      if (updateError) {
+        toast.error('Failed to sync move with server');
+        setGame(previousGameState); // Rollback
+        return;
+      }
 
       // Trigger webhook if the agent has registered one
       if (game.webhook_url) {
@@ -125,8 +140,8 @@ export default function Game() {
               event: updates.status === 'finished' ? 'game_over' : 'your_turn',
               game_id: gameId,
               status: updates.status,
-              result: updates.result,
-              result_reason: updates.result_reason,
+              result: updates.result || null,
+              result_reason: updates.result_reason || null,
               fen: updates.fen,
               last_move: {
                 from,
@@ -217,7 +232,11 @@ export default function Game() {
   };
 
   const sendMessage = async (text) => {
-    const newMessage = { sender: 'human', text, timestamp: Date.now() };
+    const sanitizeText = (str) => {
+      return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    };
+    const sanitizedText = sanitizeText(text);
+    const newMessage = { sender: 'human', text: sanitizedText, timestamp: Date.now() };
     
     // Optimistic update
     setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
@@ -226,7 +245,7 @@ export default function Game() {
       await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: gameId, text, sender: 'human' })
+        body: JSON.stringify({ id: gameId, text: sanitizedText, sender: 'human' })
       });
     } catch (e) {
       console.error('Failed to send message:', e);
@@ -293,25 +312,25 @@ export default function Game() {
     statusBorder = '#403d39';
   } else if (isMyTurn) {
     if (chess.inCheck()) {
-      statusMessage = '⚠️ YOU ARE IN CHECK! YOUR MOVE (WHITE)';
+      statusMessage = '⚠️ IN CHECK! YOUR TURN (WHITE)';
       statusColor = '#ef5350';
     } else {
-      statusMessage = '♟ YOUR TURN — MAKE YOUR MOVE (WHITE)';
+      statusMessage = '♟ YOUR TURN (WHITE)';
       statusColor = '#c62828';
     }
     statusBg = '#262421';
     statusBorder = '#c62828';
   } else if (!game.agent_connected) {
-    statusMessage = '⏳ WAITING FOR CLAW TO JOIN...';
+    statusMessage = '⏳ WAITING FOR AGENT...';
     statusColor = '#c3c3c2';
     statusBg = '#262421';
     statusBorder = '#403d39';
   } else if (isAgentTurn) {
     if (chess.inCheck()) {
-      statusMessage = '⚠️ CLAW IS IN CHECK — THINKING...';
+      statusMessage = '⚠️ AGENT IN CHECK — THINKING...';
       statusColor = '#ef5350';
     } else {
-      statusMessage = '🦞 CLAW IS THINKING...';
+      statusMessage = '🦞 AGENT THINKING...';
       statusColor = '#c3c3c2';
     }
     statusBg = '#262421';
@@ -323,9 +342,9 @@ export default function Game() {
     statusBorder = '#403d39';
   }
 
-  const getCapturedPieces = (fen) => {
-    if (!fen) return { white_lost: {}, black_lost: {} };
-    const fenBoard = fen.split(' ')[0];
+  const captured = useMemo(() => {
+    if (!game?.fen) return { white_lost: {}, black_lost: {} };
+    const fenBoard = game.fen.split(' ')[0];
     const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
     for (let char of fenBoard) {
       if (counts[char] !== undefined) counts[char]++;
@@ -340,9 +359,7 @@ export default function Game() {
         b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
       }
     };
-  };
-
-  const captured = getCapturedPieces(game?.fen);
+  }, [game?.fen]);
 
   return (
     <div className="min-h-screen bg-[#312e2b] flex flex-col font-sans pb-20">
@@ -354,7 +371,7 @@ export default function Game() {
             alt="Logo" 
             referrerPolicy="no-referrer"
             crossOrigin="anonymous"
-            className="w-10 h-10 rounded-full border border-[#c62828] object-cover"
+            className="w-10 h-10 rounded-full border border-[#403d39] object-cover"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
@@ -530,7 +547,7 @@ export default function Game() {
               className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${isMyTurn || !game.agent_connected ? 'animate-pulse' : ''}`} 
               style={{ backgroundColor: statusColor }}
             />
-            <span className="font-bold text-[10px] sm:text-base truncate max-w-[160px] sm:max-w-none" style={{ color: statusColor }}>
+            <span className="font-bold text-[10px] sm:text-base" style={{ color: statusColor }}>
               {statusMessage}
             </span>
           </div>
@@ -559,7 +576,13 @@ export default function Game() {
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
               alt="Logo" 
-              className="w-20 h-20 mx-auto mb-6 rounded-full border-2 border-[#c62828]"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              className="w-20 h-20 mx-auto mb-6 rounded-full border border-[#403d39] object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
+              }}
             />
             <h2 className="text-3xl font-bold text-[#ffffff] mb-2 font-sans">
               {game.result === 'white' ? '🏆 You Win!' : game.result === 'black' ? '💀 You Lose' : '🤝 Draw'}
@@ -567,6 +590,7 @@ export default function Game() {
             <p className="text-[#c3c3c2] mb-6">
               {game.result_reason === 'checkmate' ? `Checkmate on move ${currentMoveNumber}` : 
                game.result_reason === 'stalemate' ? 'Stalemate' : 
+               game.result_reason === 'resignation' ? 'Resignation' :
                'Draw by repetition or insufficient material'}
             </p>
             

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { supabase, hasSupabase } from '../lib/supabase';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,6 +15,22 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error", error, errorInfo);
+    
+    // Log to Supabase if configured
+    if (hasSupabase) {
+      try {
+        supabase.from('error_logs').insert([{
+          error_message: error.toString(),
+          component_stack: errorInfo.componentStack,
+          url: window.location.href,
+          user_agent: navigator.userAgent
+        }]).then(({ error: dbError }) => {
+          if (dbError) console.error("Failed to log error to Supabase:", dbError);
+        });
+      } catch (e) {
+        console.error("Failed to execute error logging:", e);
+      }
+    }
   }
 
   render() {
@@ -29,12 +46,11 @@ class ErrorBoundary extends React.Component {
           </pre>
           <button 
             onClick={() => {
-                localStorage.removeItem('chess_save');
                 window.location.reload();
             }}
             className="mt-8 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           >
-            Clear Save & Reload
+            Reload Page
           </button>
         </div>
       );
