@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Copy, Play, Clock, Twitter, Github, MessageSquare, X, Zap } from 'lucide-react';
+import { ExternalLink, Copy, Play, Twitter, Github, MessageSquare, Zap, Link as LinkIcon, Swords } from 'lucide-react';
 import { supabase, hasSupabase } from '../lib/supabase';
 
 export default function Home() {
@@ -195,35 +195,37 @@ IMPORTANT BEHAVIOR RULES:
           {/* Main Content for Landing */}
           <div className="relative z-10 flex-grow flex flex-col items-center justify-center p-4 md:p-8">
             {/* Hero Section */}
-            <div className="text-center max-w-3xl mx-auto mb-16 mt-8 md:mt-12">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-                alt="ChessWithClaw Logo" 
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-6 rounded-full border border-[#403d39] shadow-[0_0_20px_rgba(198,40,40,0.2)] object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
-                }}
-              />
-              <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
+            <div className="text-center max-w-3xl mx-auto mb-12 mt-4 md:mt-8">
+              <div className="relative inline-block mb-4">
+                <div className="absolute -inset-2 bg-gradient-to-r from-[#c62828] to-[#ef5350] rounded-full blur-md opacity-75 animate-pulse"></div>
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+                  alt="ChessWithClaw Logo" 
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  className="relative w-32 h-32 md:w-40 md:h-40 mx-auto rounded-full border-2 border-[#1a1917] object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
+                  }}
+                />
+              </div>
+              <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-2 tracking-tight">
                 ChessWith<span className="text-[#c62828]">Claw</span>
               </h1>
-              <p className="text-lg md:text-xl text-[#c3c3c2] mb-10 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl text-[#c3c3c2] mb-8 max-w-2xl mx-auto">
                 Challenge your OpenClaw AI agent to a real-time game of chess. Connect via Telegram and test your strategy.
               </p>
               
               <button
                 onClick={createGame}
                 disabled={creating}
-                className="relative group inline-flex items-center justify-center px-8 py-4 text-lg md:text-xl font-bold text-white transition-all duration-300 bg-gradient-to-r from-[#c62828] to-[#ef5350] rounded-full hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                className="relative group inline-flex items-center justify-center px-10 py-5 text-xl md:text-2xl font-bold text-white transition-all duration-300 bg-gradient-to-r from-[#c62828] to-[#ef5350] rounded-full hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_30px_rgba(198,40,40,0.4)] hover:shadow-[0_0_50px_rgba(198,40,40,0.8)]"
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#c62828] to-[#ef5350] rounded-full blur opacity-40 group-hover:opacity-75 transition duration-300"></div>
-                <span className="relative flex items-center gap-2">
+                <span className="relative flex items-center gap-3">
                   {creating ? 'CREATING ROOM...' : (
                     <>
-                      <Play fill="currentColor" size={24} />
+                      <Play fill="currentColor" size={28} />
                       PLAY NOW
                     </>
                   )}
@@ -241,28 +243,28 @@ IMPORTANT BEHAVIOR RULES:
             <div className="max-w-5xl w-full mx-auto mb-16">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-10 text-white">How It Works</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] transition-colors duration-300 shadow-lg">
+                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(198,40,40,0.15)] transition-all duration-300 shadow-lg">
                   <div className="w-16 h-16 bg-[#312e2b] rounded-full flex items-center justify-center mb-6 border border-[#403d39] text-[#c62828]">
                     <Zap size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">1. Click Play Now</h3>
-                  <p className="text-[#c3c3c2]">Instantly create a secure, real-time game room for you and your agent.</p>
+                  <p className="text-[#c3c3c2]">Instantly create a secure, real-time game room.</p>
                 </div>
 
-                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] transition-colors duration-300 shadow-lg">
+                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(198,40,40,0.15)] transition-all duration-300 shadow-lg">
                   <div className="w-16 h-16 bg-[#312e2b] rounded-full flex items-center justify-center mb-6 border border-[#403d39] text-[#c62828]">
-                    <Copy size={32} />
+                    <LinkIcon size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">2. Copy Agent Link</h3>
-                  <p className="text-[#c3c3c2]">Send the generated connection link to your OpenClaw agent on Telegram.</p>
+                  <p className="text-[#c3c3c2]">Send the connection link to your agent.</p>
                 </div>
 
-                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] transition-colors duration-300 shadow-lg">
+                <div className="bg-[#262421] border border-[#403d39] rounded-xl p-6 flex flex-col items-center text-center hover:border-[#c62828] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(198,40,40,0.15)] transition-all duration-300 shadow-lg">
                   <div className="w-16 h-16 bg-[#312e2b] rounded-full flex items-center justify-center mb-6 border border-[#403d39] text-[#c62828]">
-                    <Clock size={32} />
+                    <Swords size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">3. Wait & Play</h3>
-                  <p className="text-[#c3c3c2]">Once Claw connects to the room, make your first move as White and enjoy!</p>
+                  <p className="text-[#c3c3c2]">Make your first move as White and enjoy!</p>
                 </div>
               </div>
             </div>
@@ -298,7 +300,7 @@ IMPORTANT BEHAVIOR RULES:
                 <h3 className="text-[#c62828] font-bold mb-1 text-sm uppercase tracking-wider">Step 1</h3>
                 <p className="text-[#ffffff] mb-4 text-lg">Open your chess board</p>
                 <button 
-                  onClick={() => window.open(humanUrl, '_blank')}
+                  onClick={() => window.open(`${window.location.origin}/Game?id=${gameId}`, '_blank')}
                   className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all flex items-center justify-center gap-2 text-xl shadow-sm"
                 >
                   <ExternalLink size={20} />
@@ -316,7 +318,7 @@ IMPORTANT BEHAVIOR RULES:
                   <p className="text-[#c3c3c2] text-sm mb-2">Copy this message and send it to Claw:</p>
                   <div className="relative">
                     <pre className="whitespace-pre-wrap font-sans text-sm text-[#c3c3c2] max-h-48 overflow-y-auto p-3 bg-[#262421] rounded border border-[#403d39]">
-                      {telegramMessage}
+                      {telegramMessage.replace(gameId, `...${gameId.substring(0, 6).toUpperCase()}`)}
                     </pre>
                     <button
                       onClick={() => copyToClipboard(telegramMessage)}

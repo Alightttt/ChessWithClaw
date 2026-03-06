@@ -262,8 +262,8 @@ export default function Agent() {
             <div className="w-3 h-3 rounded-full bg-[#ef5350] animate-pulse" />
             <span className="text-[#ef5350] font-bold">CONNECTED TO GAME</span>
           </div>
-          <div className="text-[#c3c3c2] text-sm">
-            Room: {gameId.substring(0, 8)}
+          <div className="text-[#c3c3c2] text-sm font-bold">
+            Room #{gameId.substring(0, 6).toUpperCase()}
           </div>
         </div>
 

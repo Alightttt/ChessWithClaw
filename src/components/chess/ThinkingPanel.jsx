@@ -1,10 +1,29 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Activity, Cpu, CheckCircle2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ThinkingPanel({ agentConnected, agentUrl, currentThinking, lastThinking, isAgentTurn, isHumanTurn }) {
+  const [displayedThinking, setDisplayedThinking] = useState('');
+
+  useEffect(() => {
+    if (!currentThinking) {
+      setDisplayedThinking('');
+      return;
+    }
+    
+    // Typewriter effect logic
+    if (currentThinking.length > displayedThinking.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedThinking(currentThinking.substring(0, displayedThinking.length + 1));
+      }, 10); // Fast typing speed
+      return () => clearTimeout(timeout);
+    } else if (currentThinking.length < displayedThinking.length) {
+      // If currentThinking resets or shrinks, sync it immediately
+      setDisplayedThinking(currentThinking);
+    }
+  }, [currentThinking, displayedThinking]);
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
@@ -59,18 +78,25 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
         ) : isAgentTurn ? (
           <div className="space-y-0.5 sm:space-y-2">
             <label className="flex items-center gap-1 sm:gap-1.5 text-[#c3c3c2] text-[8px] sm:text-[10px] font-bold uppercase tracking-wider">
-              <Activity size={8} className="animate-pulse text-[#ef5350]" />
-              Live Thought Process
+              <div className="w-2 h-2 rounded-full bg-[#ef5350] animate-pulse"></div>
+              Claw is thinking
             </label>
             {currentThinking ? (
-              <div className="bg-[#312e2b] border border-[#ef5350]/20 rounded p-1 sm:p-3">
+              <div className="bg-[#312e2b] border border-[#ef5350]/20 rounded p-1 sm:p-3 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]">
                 <pre className="whitespace-pre-wrap font-mono text-[8px] sm:text-xs text-[#ef5350] leading-tight">
-                  {currentThinking}
-                  <span className="animate-pulse">▌</span>
+                  {displayedThinking}
+                  <span className="animate-pulse inline-block w-1.5 h-3 bg-[#ef5350] ml-0.5 align-middle"></span>
                 </pre>
               </div>
             ) : (
-              <p className="text-[#c3c3c2] italic text-[9px] sm:text-sm py-0.5">Evaluating positions...</p>
+              <div className="flex items-center gap-2 py-2">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#ef5350] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#ef5350] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#ef5350] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <p className="text-[#ef5350] italic text-[9px] sm:text-sm font-medium animate-pulse">Claw is analyzing the position...</p>
+              </div>
             )}
           </div>
         ) : (
@@ -78,13 +104,13 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
             <p className="text-[#c3c3c2] text-[9px] sm:text-sm">Agent is waiting for your move.</p>
             {lastThinking && (
               <div>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-[8px] sm:text-[10px] text-[#c3c3c2] uppercase tracking-wider font-bold">Played:</span>
-                  <span className="text-[#ef5350] font-mono text-[9px] sm:text-xs font-bold bg-[#ef5350]/10 px-1 py-0.5 rounded">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[8px] sm:text-[10px] text-[#c3c3c2] uppercase tracking-wider font-bold">Last thought:</span>
+                  <span className="text-[#ef5350] font-mono text-[9px] sm:text-xs font-bold bg-[#ef5350]/10 px-1.5 py-0.5 rounded border border-[#ef5350]/20">
                     {lastThinking.finalMove}
                   </span>
                 </div>
-                <div className="bg-[#312e2b] border border-[#403d39] rounded p-1 sm:p-3">
+                <div className="bg-[#312e2b] border border-[#403d39] rounded p-2 sm:p-3 opacity-70 hover:opacity-100 transition-opacity">
                   <pre className="whitespace-pre-wrap font-mono text-[8px] sm:text-xs text-[#c3c3c2] leading-tight">
                     {lastThinking.text || '(No reasoning provided)'}
                   </pre>

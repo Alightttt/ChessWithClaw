@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { toast } from 'sonner';
-import { Settings, X, Pause, Play, Flag, Share2 } from 'lucide-react';
+import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
 import ThinkingPanel from '../components/chess/ThinkingPanel';
@@ -21,7 +21,114 @@ export default function Game() {
   const [showSettings, setShowSettings] = useState(false);
   const [boardTheme, setBoardTheme] = useState('green');
   const [pieceTheme, setPieceTheme] = useState('merida');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioCtxRef = useRef(null);
+  const prevMoveCountRef = useRef(0);
+  const prevStatusRef = useRef('waiting');
   const boardRef = useRef(null);
+
+  const playSound = (type) => {
+    if (!soundEnabled) return;
+    
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      
+      if (type === 'move') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === 'capture') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        
+        const bufferSize = ctx.sampleRate * 0.1;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.2, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        noise.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start(now);
+        
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'check') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.setValueAtTime(600, now + 0.1);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'gameover') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    } catch (e) {
+      console.error("Audio error:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!game) return;
+    
+    const currentMoveCount = (game.move_history || []).length;
+    const currentStatus = game.status;
+    
+    if (currentMoveCount > prevMoveCountRef.current) {
+      // A move was made
+      const chess = new Chess(game.fen);
+      const lastMove = game.move_history[currentMoveCount - 1];
+      
+      if (chess.inCheck()) {
+        playSound('check');
+      } else if (lastMove && lastMove.san.includes('x')) {
+        playSound('capture');
+      } else {
+        playSound('move');
+      }
+    }
+    
+    if (currentStatus === 'finished' && prevStatusRef.current !== 'finished') {
+      playSound('gameover');
+    }
+    
+    prevMoveCountRef.current = currentMoveCount;
+    prevStatusRef.current = currentStatus;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.move_history, game?.status, game?.fen]);
 
   useEffect(() => {
     if (!gameId) {
@@ -272,8 +379,17 @@ export default function Game() {
     toast.success('PGN copied to clipboard');
   };
 
-  const shareGame = async () => {
+  const shareGame = async (action) => {
     try {
+      const resultText = game.result === 'white' ? 'I beat my OpenClaw agent' : game.result === 'black' ? 'My OpenClaw agent beat me' : 'I drew against my OpenClaw agent';
+      const shareText = `${resultText} in ${currentMoveNumber} moves! 🦞♟️\n\nPlay against it here: ${window.location.origin}`;
+      
+      if (action === 'twitter') {
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        window.open(twitterUrl, '_blank');
+        return;
+      }
+
       toast.info('Generating screenshot...');
       const boardElement = boardRef.current;
       if (!boardElement) throw new Error('Board not found');
@@ -285,30 +401,14 @@ export default function Game() {
       });
       
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const file = new File([blob], 'chess-game.png', { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chesswithclaw-${gameId.substring(0, 6)}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
       
-      const resultText = game.result === 'white' ? 'I beat my OpenClaw agent' : game.result === 'black' ? 'My OpenClaw agent beat me' : 'I drew against my OpenClaw agent';
-      const shareText = `${resultText} in ${currentMoveNumber} moves! 🦞♟️\n\nPlay against it here: ${window.location.origin}`;
-      
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'ChessWithClaw Match',
-          text: shareText,
-          files: [file]
-        });
-        toast.success('Shared successfully!');
-      } else {
-        // Fallback: Download image and copy text
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'chess-game.png';
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        await navigator.clipboard.writeText(shareText);
-        toast.success('Screenshot downloaded and text copied!');
-      }
+      toast.success('Screenshot downloaded!');
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to share game');
@@ -434,8 +534,8 @@ export default function Game() {
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-[#c3c3c2] text-xs sm:text-sm hidden sm:block">
-            Room: {gameId.substring(0, 6)}
+          <div className="text-[#c3c3c2] text-xs sm:text-sm hidden sm:block font-bold">
+            Room #{gameId.substring(0, 6).toUpperCase()}
           </div>
           <button 
             onClick={() => setShowSettings(true)}
@@ -489,10 +589,20 @@ export default function Game() {
                 </div>
               </div>
 
-              {/* Appearance */}
+              {/* Appearance & Sound */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-[#c3c3c2] tracking-wider uppercase">Appearance</h3>
+                <h3 className="text-sm font-bold text-[#c3c3c2] tracking-wider uppercase">Appearance & Sound</h3>
                 
+                <div className="flex items-center justify-between bg-[#312e2b] border border-[#403d39] p-3 rounded-lg mb-3">
+                  <span className="text-sm text-[#ffffff] font-medium">Sound Effects</span>
+                  <button 
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className={`p-2 rounded-md transition-colors ${soundEnabled ? 'bg-[#c62828] text-white' : 'bg-[#403d39] text-[#c3c3c2]'}`}
+                  >
+                    {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs text-[#c3c3c2] mb-1">Board Theme</label>
                   <select 
@@ -617,7 +727,7 @@ export default function Game() {
               <span className="font-bold">{game.agent_connected ? 'Online' : 'Offline'}</span>
             </div>
           </div>
-          <span className="text-[8px] sm:text-[10px] text-[#c3c3c2] font-sans tracking-widest uppercase">Room: {gameId.substring(0, 6)}</span>
+          <span className="text-[8px] sm:text-[10px] text-[#c3c3c2] font-sans tracking-widest font-bold">ROOM #{gameId.substring(0, 6).toUpperCase()}</span>
         </div>
       </div>
 
@@ -653,13 +763,22 @@ export default function Game() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
-                onClick={shareGame}
-                className="w-full bg-[#1da1f2] hover:bg-[#1a91da] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#107ab0] active:border-b-0 active:translate-y-[4px] transition-all text-xl shadow-sm flex items-center justify-center gap-2"
-              >
-                <Share2 size={24} />
-                SHARE RESULT
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => shareGame('download')}
+                  className="flex-1 bg-[#312e2b] hover:bg-[#403d39] text-white font-bold py-3 px-2 rounded-lg border-b-[4px] border-[#211f1c] active:border-b-0 active:translate-y-[4px] transition-all text-sm shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Download size={18} />
+                  Download Image
+                </button>
+                <button
+                  onClick={() => shareGame('twitter')}
+                  className="flex-1 bg-[#000000] hover:bg-[#1a1a1a] text-white font-bold py-3 px-2 rounded-lg border-b-[4px] border-[#333333] active:border-b-0 active:translate-y-[4px] transition-all text-sm shadow-sm flex items-center justify-center gap-2"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  Share on X
+                </button>
+              </div>
               <button
                 onClick={playAgain}
                 className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-3 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all shadow-sm"
