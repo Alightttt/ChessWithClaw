@@ -104,36 +104,6 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
   return (
     <div className={`flex flex-col select-none w-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
       <div className="relative w-full aspect-square border-2 border-[#333]">
-        {promotionMove && (
-          <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="bg-[#262421] p-4 rounded-lg flex gap-4 border border-[#403d39] shadow-2xl">
-              {['q', 'r', 'b', 'n'].map(p => (
-                <button 
-                  key={p} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMove(promotionMove.from, promotionMove.to, p);
-                    setPromotionMove(null);
-                    setSelectedSquare(null);
-                    setLegalMoves([]);
-                  }}
-                  className="w-12 h-12 sm:w-16 sm:h-16 bg-[#312e2b] hover:bg-[#403d39] rounded flex items-center justify-center text-4xl sm:text-5xl border border-[#403d39] hover:border-[#c62828] transition-colors"
-                >
-                  {renderPiece({ type: p, color: chess.turn() })}
-                </button>
-              ))}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPromotionMove(null);
-                }}
-                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#c62828]/20 hover:bg-[#c62828]/40 text-[#ef5350] rounded flex items-center justify-center text-lg font-bold border border-[#c62828]/50 transition-colors"
-              >
-                X
-              </button>
-            </div>
-          </div>
-        )}
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
           files.map((file, col) => {
@@ -173,6 +143,36 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
           })
         )}
         </div>
+        {promotionMove && (
+          <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-[#262421] p-4 rounded-lg flex gap-4 border border-[#403d39] shadow-2xl">
+              {['q', 'r', 'b', 'n'].map(p => (
+                <button 
+                  key={p} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(promotionMove.from, promotionMove.to, p);
+                    setPromotionMove(null);
+                    setSelectedSquare(null);
+                    setLegalMoves([]);
+                  }}
+                  className="w-12 h-12 sm:w-16 sm:h-16 bg-[#312e2b] hover:bg-[#403d39] rounded flex items-center justify-center text-4xl sm:text-5xl border border-[#403d39] hover:border-[#c62828] transition-colors"
+                >
+                  {renderPiece({ type: p, color: chess.turn() })}
+                </button>
+              ))}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPromotionMove(null);
+                }}
+                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#c62828]/20 hover:bg-[#c62828]/40 text-[#ef5350] rounded flex items-center justify-center text-lg font-bold border border-[#c62828]/50 transition-colors"
+              >
+                X
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {showCoordinates && (
         <div className="flex w-full h-4 sm:h-6 bg-[#262421]">

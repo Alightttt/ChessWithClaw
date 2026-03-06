@@ -59,11 +59,18 @@ export default function Agent() {
       })
       .subscribe();
 
+    const handleBeforeUnload = () => {
+      supabase.from('games').update({ agent_connected: false }).eq('id', gameId);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (thinkingTimeoutRef.current) {
         clearTimeout(thinkingTimeoutRef.current);
       }
+      supabase.from('games').update({ agent_connected: false }).eq('id', gameId);
     };
   }, [gameId]);
 

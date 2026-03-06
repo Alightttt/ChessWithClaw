@@ -34,100 +34,110 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Mark agent as connected
-  await supabase.from('games').update({ agent_connected: true }).eq('id', id);
-
-  // Initialize counts if not provided
-  if (last_move_count === undefined || last_chat_count === undefined) {
-    const { data: initialGame } = await supabase.from('games').select('move_history, chat_history').eq('id', id).single();
-    if (initialGame) {
-      if (last_move_count === undefined) last_move_count = initialGame.move_history ? initialGame.move_history.length : 0;
-      if (last_chat_count === undefined) last_chat_count = initialGame.chat_history ? initialGame.chat_history.length : 0;
-    }
+  const { data: initialGame, error } = await supabase.from('games').select('agent_connected, move_history, chat_history, status, fen, turn').eq('id', id).single();
+  
+  if (error || !initialGame) {
+    return res.status(404).json({ error: 'Game not found' });
   }
 
-  // Long polling logic using Supabase Realtime
-  return new Promise((resolve) => {
-    let isResolved = false;
-    let timeoutId;
+  // Mark agent as connected only if not already connected
+  if (!initialGame.agent_connected) {
+    await supabase.from('games').update({ agent_connected: true }).eq('id', id);
+  }
 
-    const channel = supabase.channel(`game-${id}-poll`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${id}` }, (payload) => {
-        if (isResolved) return;
-        
-        const game = payload.new;
-        const currentMoveCount = game.move_history ? game.move_history.length : 0;
-        const currentChatCount = game.chat_history ? game.chat_history.length : 0;
+  const currentMoveCount = initialGame.move_history ? initialGame.move_history.length : 0;
+  const currentChatCount = initialGame.chat_history ? initialGame.chat_history.length : 0;
 
-        if (
-          (last_move_count !== undefined && currentMoveCount > parseInt(last_move_count)) ||
-          (last_chat_count !== undefined && currentChatCount > parseInt(last_chat_count)) ||
-          game.status === 'finished'
-        ) {
-          isResolved = true;
-          clearTimeout(timeoutId);
-          supabase.removeChannel(channel);
+  // If state has changed, return it immediately
+  if (
+    (last_move_count !== undefined && currentMoveCount > parseInt(last_move_count)) ||
+    (last_chat_count !== undefined && currentChatCount > parseInt(last_chat_count)) ||
+    initialGame.status === 'finished'
+  ) {
+    const chess = new Chess(initialGame.fen);
+    const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
+    
+    const pgnChess = new Chess();
+    if (initialGame.move_history && initialGame.move_history.length > 0) {
+      initialGame.move_history.forEach(m => {
+        try { pgnChess.move(m.san); } catch (e) {}
+      });
+    }
+    
+    return res.status(200).json({
+      event: 'update',
+      status: initialGame.status,
+      fen: initialGame.fen,
+      pgn: pgnChess.pgn(),
+      current_turn: initialGame.turn === 'w' ? 'WHITE' : 'BLACK',
+      legal_moves: initialGame.turn === 'b' ? legalMoves : [],
+      move_history: initialGame.move_history || [],
+      chat_history: initialGame.chat_history || [],
+      move_count: currentMoveCount,
+      chat_count: currentChatCount
+    });
+  }
 
-          const chess = new Chess(game.fen);
-          const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
-          
-          const pgnChess = new Chess();
-          if (game.move_history && game.move_history.length > 0) {
-            game.move_history.forEach(m => {
-              try { pgnChess.move(m.san); } catch (e) {}
-            });
-          }
-          
-          resolve(res.status(200).json({
-            event: 'update',
-            status: game.status,
-            fen: game.fen,
-            pgn: pgnChess.pgn(),
-            current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
-            legal_moves: game.turn === 'b' ? legalMoves : [],
-            move_history: game.move_history || [],
-            chat_history: game.chat_history || [],
-            move_count: currentMoveCount,
-            chat_count: currentChatCount
-          }));
-        }
-      })
-      .subscribe();
+  // If no change, wait 3 seconds and check ONE more time to simulate short long-polling
+  // This avoids the while loop that destroys Supabase quota
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Timeout fallback
-    timeoutId = setTimeout(async () => {
-      if (isResolved) return;
-      isResolved = true;
-      supabase.removeChannel(channel);
+  const { data: finalGame } = await supabase.from('games').select('id, fen, turn, status, move_history, chat_history').eq('id', id).single();
+  if (!finalGame) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
 
-      const { data: finalGame } = await supabase.from('games').select('id, fen, turn, status, move_history, chat_history').eq('id', id).single();
-      if (!finalGame) {
-        return resolve(res.status(404).json({ error: 'Game not found' }));
-      }
+  const finalMoveCount = finalGame.move_history ? finalGame.move_history.length : 0;
+  const finalChatCount = finalGame.chat_history ? finalGame.chat_history.length : 0;
 
-      const finalChess = new Chess(finalGame.fen);
-      const finalLegalMoves = finalChess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
+  if (
+    (last_move_count !== undefined && finalMoveCount > parseInt(last_move_count)) ||
+    (last_chat_count !== undefined && finalChatCount > parseInt(last_chat_count)) ||
+    finalGame.status === 'finished'
+  ) {
+    const finalChess = new Chess(finalGame.fen);
+    const finalLegalMoves = finalChess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
 
-      const finalPgnChess = new Chess();
-      if (finalGame.move_history && finalGame.move_history.length > 0) {
-        finalGame.move_history.forEach(m => {
-          try { finalPgnChess.move(m.san); } catch (e) {}
-        });
-      }
+    const finalPgnChess = new Chess();
+    if (finalGame.move_history && finalGame.move_history.length > 0) {
+      finalGame.move_history.forEach(m => {
+        try { finalPgnChess.move(m.san); } catch (e) {}
+      });
+    }
 
-      resolve(res.status(200).json({ 
-        event: 'timeout', 
-        message: 'No changes. Please poll again.',
-        status: finalGame.status,
-        fen: finalGame.fen,
-        pgn: finalPgnChess.pgn(),
-        current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
-        legal_moves: finalGame.turn === 'b' ? finalLegalMoves : [],
-        move_history: finalGame.move_history || [],
-        chat_history: finalGame.chat_history || [],
-        move_count: finalGame.move_history?.length || 0,
-        chat_count: finalGame.chat_history?.length || 0
-      }));
-    }, 8000);
+    return res.status(200).json({
+      event: 'update',
+      status: finalGame.status,
+      fen: finalGame.fen,
+      pgn: finalPgnChess.pgn(),
+      current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
+      legal_moves: finalGame.turn === 'b' ? finalLegalMoves : [],
+      move_history: finalGame.move_history || [],
+      chat_history: finalGame.chat_history || [],
+      move_count: finalMoveCount,
+      chat_count: finalChatCount
+    });
+  }
+
+  // Still no change, return timeout
+  const finalPgnChess = new Chess();
+  if (finalGame.move_history && finalGame.move_history.length > 0) {
+    finalGame.move_history.forEach(m => {
+      try { finalPgnChess.move(m.san); } catch (e) {}
+    });
+  }
+
+  return res.status(200).json({ 
+    event: 'timeout', 
+    message: 'No changes. Please poll again.',
+    status: finalGame.status,
+    fen: finalGame.fen,
+    pgn: finalPgnChess.pgn(),
+    current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
+    legal_moves: finalGame.turn === 'b' ? [] : [],
+    move_history: finalGame.move_history || [],
+    chat_history: finalGame.chat_history || [],
+    move_count: finalMoveCount,
+    chat_count: finalChatCount
   });
 }

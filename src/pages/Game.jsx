@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { toast } from 'sonner';
-import { Settings, X, Pause, Play, Flag } from 'lucide-react';
+import { Settings, X, Pause, Play, Flag, Share2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
 import ThinkingPanel from '../components/chess/ThinkingPanel';
 import ChatBox from '../components/chess/ChatBox';
@@ -39,6 +40,7 @@ export default function Game() {
         toast.error('Game not found');
       } else {
         setGame(data);
+        if (data.status === 'finished') setGameOver(true);
         await supabase.from('games').update({ human_connected: true }).eq('id', gameId);
       }
       setLoading(false);
@@ -59,8 +61,15 @@ export default function Game() {
       })
       .subscribe();
 
+    const handleBeforeUnload = () => {
+      supabase.from('games').update({ human_connected: false }).eq('id', gameId);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      supabase.from('games').update({ human_connected: false }).eq('id', gameId);
     };
   }, [gameId]); // Removed gameOver from deps to avoid re-subscribing
 
@@ -263,6 +272,68 @@ export default function Game() {
     toast.success('PGN copied to clipboard');
   };
 
+  const shareGame = async () => {
+    try {
+      toast.info('Generating screenshot...');
+      const boardElement = boardRef.current;
+      if (!boardElement) throw new Error('Board not found');
+      
+      const canvas = await html2canvas(boardElement, {
+        backgroundColor: '#312e2b',
+        scale: 2,
+        useCORS: true
+      });
+      
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const file = new File([blob], 'chess-game.png', { type: 'image/png' });
+      
+      const resultText = game.result === 'white' ? 'I beat my OpenClaw agent' : game.result === 'black' ? 'My OpenClaw agent beat me' : 'I drew against my OpenClaw agent';
+      const shareText = `${resultText} in ${currentMoveNumber} moves! 🦞♟️\n\nPlay against it here: ${window.location.origin}`;
+      
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'ChessWithClaw Match',
+          text: shareText,
+          files: [file]
+        });
+        toast.success('Shared successfully!');
+      } else {
+        // Fallback: Download image and copy text
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chess-game.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Screenshot downloaded and text copied!');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to share game');
+    }
+  };
+
+  const captured = useMemo(() => {
+    if (!game?.fen) return { white_lost: {}, black_lost: {} };
+    const fenBoard = game.fen.split(' ')[0];
+    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
+    for (let char of fenBoard) {
+      if (counts[char] !== undefined) counts[char]++;
+    }
+    return {
+      white_lost: { 
+        P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+        B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+      },
+      black_lost: { 
+        p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+        b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+      }
+    };
+  }, [game?.fen]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#312e2b] flex items-center justify-center text-white font-sans">
@@ -341,25 +412,6 @@ export default function Game() {
     statusBg = '#262421';
     statusBorder = '#403d39';
   }
-
-  const captured = useMemo(() => {
-    if (!game?.fen) return { white_lost: {}, black_lost: {} };
-    const fenBoard = game.fen.split(' ')[0];
-    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
-    for (let char of fenBoard) {
-      if (counts[char] !== undefined) counts[char]++;
-    }
-    return {
-      white_lost: { 
-        P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
-        B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
-      },
-      black_lost: { 
-        p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
-        b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
-      }
-    };
-  }, [game?.fen]);
 
   return (
     <div className="min-h-screen bg-[#312e2b] flex flex-col font-sans pb-20">
@@ -602,8 +654,15 @@ export default function Game() {
 
             <div className="flex flex-col gap-3">
               <button
+                onClick={shareGame}
+                className="w-full bg-[#1da1f2] hover:bg-[#1a91da] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#107ab0] active:border-b-0 active:translate-y-[4px] transition-all text-xl shadow-sm flex items-center justify-center gap-2"
+              >
+                <Share2 size={24} />
+                SHARE RESULT
+              </button>
+              <button
                 onClick={playAgain}
-                className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-4 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all text-xl shadow-sm"
+                className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-3 px-4 rounded-lg border-b-[4px] border-[#7f0000] active:border-b-0 active:translate-y-[4px] transition-all shadow-sm"
               >
                 PLAY AGAIN
               </button>

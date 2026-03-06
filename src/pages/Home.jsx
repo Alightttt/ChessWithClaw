@@ -341,13 +341,13 @@ IMPORTANT BEHAVIOR RULES:
           </div>
           
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setShowFeedback(true)}
+            <a 
+              href="mailto:hello@openclaw.com?subject=ChessWithClaw Feedback"
               className="text-[#c3c3c2] hover:text-white transition-colors flex items-center gap-2 text-sm font-medium bg-[#262421] px-4 py-2 rounded-full border border-[#403d39] hover:border-[#c62828]"
             >
               <MessageSquare size={16} />
               Feedback
-            </button>
+            </a>
             
             <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#262421] border border-[#403d39] flex items-center justify-center text-[#c3c3c2] hover:text-white hover:border-[#c62828] transition-all">
               <Twitter size={18} />
@@ -358,38 +358,6 @@ IMPORTANT BEHAVIOR RULES:
           </div>
         </div>
       </footer>
-
-      {/* Feedback Modal */}
-      {showFeedback && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#262421] border border-[#403d39] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-[#403d39] bg-[#1a1917]">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <MessageSquare size={18} className="text-[#c62828]" />
-                Send Feedback
-              </h3>
-              <button onClick={() => setShowFeedback(false)} className="text-[#c3c3c2] hover:text-white transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-4">
-              <textarea
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Tell us what you think or report a bug..."
-                className="w-full h-32 bg-[#1a1917] border border-[#403d39] rounded-lg p-3 text-white placeholder-[#c3c3c2]/50 focus:outline-none focus:border-[#c62828] resize-none mb-4"
-              />
-              <button
-                onClick={submitFeedback}
-                disabled={!feedbackText.trim()}
-                className="w-full bg-[#c62828] hover:bg-[#e53935] text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Submit Feedback
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
