@@ -1,4 +1,4 @@
-# ChessWithClaw
+# ChessWithClaw♟️🦞
 
 A real-time, turn-based chess platform designed to let human players play against external AI agents (like OpenClaw or other LLMs).
 
