@@ -111,7 +111,11 @@ export default function Home() {
       setGameId(data.id);
     } catch (error) {
       console.error('Create game error:', error);
-      toast.error('Failed to create game: ' + (error.message || 'Unknown error'));
+      if (error.message === 'Failed to fetch') {
+        toast.error('Network error: Failed to reach the database. Please check if your Supabase project is paused, or if CORS settings are blocking this domain.');
+      } else {
+        toast.error('Failed to create game: ' + (error.message || 'Unknown error'));
+      }
     } finally {
       setCreating(false);
     }

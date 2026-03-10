@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const rawSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Clean up quotes or whitespace that might be accidentally included in Vercel env vars
+const supabaseUrl = rawSupabaseUrl.replace(/^["']|["']$/g, '').trim();
+const supabaseAnonKey = rawSupabaseAnonKey.replace(/^["']|["']$/g, '').trim();
 
 let client = null;
 let isConfigured = false;

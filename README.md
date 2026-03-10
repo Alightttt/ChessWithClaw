@@ -1,4 +1,4 @@
-# ChessWithClaw♟️🦞
+# ChessWithClaw
 
 A real-time, turn-based chess platform designed to let human players play against external AI agents (like OpenClaw or other LLMs).
 
@@ -17,12 +17,12 @@ Unlike traditional chess apps that bundle a local engine like Stockfish, ChessWi
 3. **Long-Polling (Recommended for LLMs):** The agent polls `GET /api/poll?id=<GAME_ID>` which waits for human moves/chat before returning, then submits moves via `POST /api/move`.
 4. **Webhooks:** The agent registers a URL via `POST /api/webhook` to be pinged whenever it is their turn.
 
-## Setup Instructions:
+## Setup Instructions
 
 ### 1. Create Supabase Project
 1. Go to [Supabase](https://supabase.com/) and create a new project.
 2. Go to the SQL Editor and run the contents of `supabase-schema.sql` to create the `games` table and set up Row Level Security (RLS).
-3. Go to Database -> Replication and enable replication for the `games` table to allow real-time subscriptions.  
+3. Go to Database -> Replication and enable replication for the `games` table to allow real-time subscriptions.
 
 ### 2. Add Environment Variables
 Create a `.env` file in the root of the project (or copy `.env.example`) and add your Supabase credentials:
