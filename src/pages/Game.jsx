@@ -1,16 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { useToast } from '../contexts/ToastContext';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
-import ThinkingPanel from '../components/chess/ThinkingPanel';
-import ChatBox from '../components/chess/ChatBox';
-import CapturedPieces from '../components/chess/CapturedPieces';
-import MoveHistory from '../components/MoveHistory';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import { Button, Card, Modal, StatusDot, Divider, Badge } from '../components/ui';
 
@@ -32,108 +28,86 @@ function GameTimer({ startTime, status }) {
 }
 
 export default function Game() {
-  const [searchParams] = useSearchParams();
-  const gameId = searchParams.get('id');
+  const { id } = useParams();
+  const gameId = id;
+  const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  
   const [showSettings, setShowSettings] = useState(false);
-  const [showThinkingMobile, setShowThinkingMobile] = useState(false);
-  const [showMoveHistoryMobile, setShowMoveHistoryMobile] = useState(false);
-  const [boardSize, setBoardSize] = useState(
-    typeof window !== 'undefined' ? Math.min(window.innerWidth, window.innerHeight * 0.55) : 400
-  );
+  const [agentSectionOpen, setAgentSectionOpen] = useState(false);
+  const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
+  
+  const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState('green');
   const [pieceTheme, setPieceTheme] = useState('merida');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [agentConnectedTime, setAgentConnectedTime] = useState(null);
-  const [showFallbackName, setShowFallbackName] = useState(false);
+  
   const [copiedRoom, setCopiedRoom] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackText, setFeedbackText] = useState('');
-
+  
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
   const prevStatusRef = useRef('waiting');
   const boardRef = useRef(null);
-  const chatContainerRef = useRef(null);
-  const chatScrollRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+  const thinkingScrollRef = useRef(null);
 
-  const submitFeedback = async () => {
-    if (!feedbackText.trim()) return;
-    
-    try {
-      const { error } = await supabase
-        .from('feedback')
-        .insert([{ message: feedbackText.trim() }]);
-
-      if (error) throw error;
-
-      toast.success('Thank you for your feedback!');
-      setShowFeedback(false);
-      setFeedbackText('');
-    } catch (error) {
-      console.error('Feedback error:', error);
-      toast.error('Failed to submit feedback: ' + (error.message || 'Unknown error'));
-    }
-  };
-
+  // Calculate Board Size
   useEffect(() => {
-    const handleResize = () => {
-      setBoardSize(Math.min(window.innerWidth, window.innerHeight * 0.55));
-      if (window.visualViewport && chatContainerRef.current) {
-        const keyboardHeight = window.innerHeight - window.visualViewport.height;
-        chatContainerRef.current.style.paddingBottom = `${keyboardHeight}px`;
-      }
+    const calc = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      
+      const usedHeight =
+        52 +   // header
+        100 +  // agent section (merged, collapsed)
+        48 +   // status bar
+        44 +   // chat header
+        44 +   // move history header
+        24;    // padding
+      
+      const maxH = vh - usedHeight;
+      const maxW = vw - 24;
+      
+      setBoardSize(Math.min(maxW, maxH, 460));
     };
     
-    window.visualViewport?.addEventListener('resize', handleResize);
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.visualViewport?.removeEventListener('resize', handleResize);
-      window.removeEventListener('resize', handleResize);
-    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
   }, []);
 
+  // Auto-scroll chat
   useEffect(() => {
-    if (game?.agent_connected) {
-      if (!agentConnectedTime) {
-        setAgentConnectedTime(Date.now());
-      }
-    } else {
-      setAgentConnectedTime(null);
-      setShowFallbackName(false);
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [game?.agent_connected, agentConnectedTime]);
+  }, [game?.chat_history]);
 
+  // Auto-scroll thinking
   useEffect(() => {
-    if (agentConnectedTime && game?.agent_name === 'Your Agent') {
-      const interval = setInterval(() => {
-        if (Date.now() - agentConnectedTime >= 30000) {
-          setShowFallbackName(true);
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setShowFallbackName(false);
+    if (thinkingScrollRef.current && game?.current_thinking) {
+      thinkingScrollRef.current.scrollTop = thinkingScrollRef.current.scrollHeight;
     }
-  }, [agentConnectedTime, game?.agent_name]);
+  }, [game?.current_thinking]);
 
-  const playSound = (type) => {
+  // Sound Effects
+  const playSound = useMemo(() => (type) => {
     if (!soundEnabled) return;
-    
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
       const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
+      if (ctx.state === 'suspended') ctx.resume();
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -160,9 +134,7 @@ export default function Game() {
         const bufferSize = ctx.sampleRate * 0.1;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         const noise = ctx.createBufferSource();
         noise.buffer = buffer;
         const noiseGain = ctx.createGain();
@@ -183,54 +155,33 @@ export default function Game() {
         gain.gain.linearRampToValueAtTime(0, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
-      } else if (type === 'gameover') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        osc.start(now);
-        osc.stop(now + 0.5);
       }
     } catch (e) {
       console.error("Audio error:", e);
     }
-  };
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (!game) return;
-    
     const currentMoveCount = (game.move_history || []).length;
-    const currentStatus = game.status;
-    
     if (currentMoveCount > prevMoveCountRef.current) {
       const chess = new Chess(game.fen);
       const lastMove = game.move_history[currentMoveCount - 1];
-      
-      if (chess.inCheck()) {
-        playSound('check');
-      } else if (lastMove && lastMove.san.includes('x')) {
-        playSound('capture');
-      } else {
-        playSound('move');
-      }
+      if (chess.inCheck()) playSound('check');
+      else if (lastMove && lastMove.san.includes('x')) playSound('capture');
+      else playSound('move');
     }
-    
-    if (currentStatus === 'finished' && prevStatusRef.current !== 'finished') {
-      playSound('gameover');
-    }
-    
     prevMoveCountRef.current = currentMoveCount;
-    prevStatusRef.current = currentStatus;
-  }, [game?.move_history, game?.status, game?.fen]);
+    prevStatusRef.current = game.status;
+  }, [game, playSound]);
 
+  // Load Game & Supabase Subscription
   const channelRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
-  const reconnectDelayRef = useRef(1000);
-
+  
   useEffect(() => {
     if (!gameId) {
-      toast.error('No game ID provided');
+      setNotFound(true);
+      setLoading(false);
       return;
     }
 
@@ -242,18 +193,11 @@ export default function Game() {
         .single();
 
       if (error || !data) {
-        toast.error('Game not found');
+        setNotFound(true);
       } else {
         setGame(data);
         if (data.status === 'finished') setGameOver(true);
         await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: true }).eq('id', gameId);
-        if (data.webhook_url) {
-          fetch('/api/trigger-webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: gameId, event: 'human_connected' })
-          }).catch(() => {});
-        }
       }
       setLoading(false);
     };
@@ -261,10 +205,7 @@ export default function Game() {
     loadGame();
 
     const connectChannel = () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
       const channel = supabase.channel(`game-${gameId}`);
       channelRef.current = channel;
 
@@ -272,82 +213,33 @@ export default function Game() {
         setGame(payload.new);
         if (!payload.new.human_connected) {
           getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: true }).eq('id', gameId);
-          if (payload.new.webhook_url) {
-            fetch('/api/trigger-webhook', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: gameId, event: 'human_connected' })
-            }).catch(() => {});
-          }
         }
-        if (payload.new.status === 'finished') {
-          setGameOver(true);
-        }
-      }).subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          reconnectDelayRef.current = 1000;
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 2, 30000);
-            connectChannel();
-          }, reconnectDelayRef.current);
-        }
-      });
+        if (payload.new.status === 'finished') setGameOver(true);
+      }).subscribe();
     };
 
     connectChannel();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        connectChannel();
-      } else {
-        if (channelRef.current) {
-          supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
-        }
-      }
+      if (document.visibilityState === 'visible') connectChannel();
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
-      fetch('/api/trigger-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: gameId, event: 'human_disconnected' })
-      }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    const heartbeatInterval = setInterval(() => {
-      fetch('/api/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: gameId, role: 'human' })
-      }).catch(() => {});
-    }, 15000);
-
     return () => {
-      clearInterval(heartbeatInterval);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
-      fetch('/api/trigger-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: gameId, event: 'human_disconnected' })
-      }).catch(() => {});
     };
   }, [gameId]);
 
   const makeMove = async (from, to, promotion) => {
-    if (!game || game.turn !== 'w' || !isMyTurn) return;
+    if (!game || game.turn !== 'w' || game.status !== 'active' && game.status !== 'waiting') return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
@@ -357,10 +249,7 @@ export default function Game() {
     const chess = new Chess(game.fen);
     try {
       const move = chess.move({ from, to, promotion });
-      if (!move) {
-        toast.error('Illegal move');
-        return;
-      }
+      if (!move) return;
 
       const newMoveHistory = [...(game.move_history || []), {
         number: Math.floor((game.move_history || []).length / 2) + 1,
@@ -394,91 +283,44 @@ export default function Game() {
         updates.result_reason = 'draw';
       }
 
-      if (game.status !== 'active' && updates.status !== 'finished') {
-        updates.status = 'active';
-      }
-
-      const previousGameState = { ...game };
       setGame(prev => ({ ...prev, ...updates }));
-
-      if (move.captured && ['q', 'r', 'b', 'n'].includes(move.captured)) {
-        const payload = {
-          event: "eval_drastic_change",
-          game_id: gameId,
-          instruction: `The human just captured your ${move.captured}. React to this drastic change in the chat!`,
-          fen: chess.fen(),
-          move: move.san
-        };
-        updates.pending_events = [...(game.pending_events || []), payload];
-      }
-
-      const { error: updateError } = await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update(updates).eq('id', gameId);
-
-      if (updateError) {
-        toast.error('Failed to sync move with server');
-        setGame(previousGameState);
-        return;
-      }
+      await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update(updates).eq('id', gameId);
 
       if (game.webhook_url) {
-        try {
-          fetch('/api/trigger-webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: gameId,
-              event: updates.status === 'finished' ? 'game_over' : 'your_turn',
-              extraData: {
-                last_move: {
-                  from,
-                  to,
-                  san: move.san
-                }
-              }
-            })
-          }).catch(err => console.error('Webhook trigger failed:', err));
-        } catch (e) {
-          console.error('Webhook error:', e);
-        }
-      }
-
-    } catch (e) {
-      toast.error('Illegal move');
-    }
-  };
-
-  const triggerWebhook = (event, extraData = {}) => {
-    if (game && game.webhook_url) {
-      try {
         fetch('/api/trigger-webhook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: gameId,
-            event,
-            extraData
+            event: updates.status === 'finished' ? 'game_over' : 'your_turn',
+            extraData: { last_move: { from, to, san: move.san } }
           })
-        }).catch(err => console.error('Webhook trigger failed:', err));
-      } catch (e) {
-        console.error('Webhook error:', e);
+        }).catch(() => {});
       }
+    } catch (e) {
+      toast.error('Illegal move');
     }
   };
 
-  const playAgain = async () => {
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'active',
-      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      turn: 'w',
-      move_history: [],
-      thinking_log: [],
-      current_thinking: '',
-      result: null,
-      result_reason: null,
-      chat_history: []
-    }).eq('id', gameId);
-    setGameOver(false);
-    triggerWebhook('game_restarted');
+  const sendMessage = async (e) => {
+    e?.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const text = chatInput;
+    setChatInput('');
+    
+    const newMessage = { sender: 'human', text, timestamp: Date.now() };
+    setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
+    
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: gameId, text, sender: 'human' })
+      });
+    } catch (e) {
+      console.error('Failed to send message:', e);
+    }
   };
 
   const handleResign = async () => {
@@ -488,11 +330,8 @@ export default function Game() {
       return;
     }
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished',
-      result: 'black',
-      result_reason: 'resignation'
+      status: 'finished', result: 'black', result_reason: 'resignation'
     }).eq('id', gameId);
-    triggerWebhook('game_over', { status: 'finished', result: 'black', result_reason: 'resignation' });
     setShowSettings(false);
     setConfirmResign(false);
   };
@@ -504,117 +343,16 @@ export default function Game() {
       return;
     }
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished',
-      result: 'draw',
-      result_reason: 'agreement'
+      status: 'finished', result: 'draw', result_reason: 'agreement'
     }).eq('id', gameId);
-    triggerWebhook('game_over', { status: 'finished', result: 'draw', result_reason: 'agreement' });
     setShowSettings(false);
     setConfirmDraw(false);
   };
 
   const acceptAgentResignation = async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished',
-      result: 'white',
-      result_reason: 'resignation'
+      status: 'finished', result: 'white', result_reason: 'resignation'
     }).eq('id', gameId);
-    triggerWebhook('game_over', { status: 'finished', result: 'white', result_reason: 'resignation' });
-  };
-
-  const acceptDraw = async () => {
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished',
-      result: 'draw',
-      result_reason: 'agreement'
-    }).eq('id', gameId);
-    triggerWebhook('game_over', { status: 'finished', result: 'draw', result_reason: 'agreement' });
-  };
-
-  const pauseGame = async () => {
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ status: 'paused' }).eq('id', gameId);
-    toast.success('Game paused');
-    triggerWebhook('game_paused');
-  };
-
-  const resumeGame = async () => {
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ status: 'active' }).eq('id', gameId);
-    toast.success('Game resumed');
-    triggerWebhook('game_resumed');
-  };
-
-  const sendMessage = async (e) => {
-    e?.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    const text = chatInput;
-    setChatInput('');
-    
-    const sanitizeText = (str) => {
-      return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    };
-    const sanitizedText = sanitizeText(text);
-    const newMessage = { sender: 'human', text: sanitizedText, timestamp: Date.now() };
-    
-    setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
-    
-    try {
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: gameId, text: sanitizedText, sender: 'human' })
-      });
-    } catch (e) {
-      console.error('Failed to send message:', e);
-    }
-  };
-
-  const copyPgn = () => {
-    const chess = new Chess();
-    if (game.move_history && game.move_history.length > 0) {
-      game.move_history.forEach(m => {
-        try { chess.move(m.san); } catch (e) {}
-      });
-    }
-    navigator.clipboard.writeText(chess.pgn());
-    toast.success('PGN copied to clipboard');
-  };
-
-  const shareGame = async (action) => {
-    try {
-      const agentName = showFallbackName ? 'Connected Agent' : (game.agent_name || 'my OpenClaw agent');
-      const resultText = game.result === 'white' ? `I beat ${agentName}` : game.result === 'black' ? `${agentName} beat me` : `I drew against ${agentName}`;
-      const shareText = `${resultText} in ${currentMoveNumber} moves! 🦞♟️\n\nPlay against it here: ${window.location.origin}`;
-      
-      if (action === 'twitter') {
-        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-        window.open(twitterUrl, '_blank');
-        return;
-      }
-
-      toast.info('Generating screenshot...');
-      const boardElement = boardRef.current;
-      if (!boardElement) throw new Error('Board not found');
-      
-      const canvas = await html2canvas(boardElement, {
-        backgroundColor: 'var(--color-bg-base)',
-        scale: 2,
-        useCORS: true
-      });
-      
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chesswithclaw-${gameId.substring(0, 6)}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success('Screenshot downloaded!');
-    } catch (error) {
-      console.error('Share error:', error);
-      toast.error('Failed to share game');
-    }
   };
 
   const copyRoomCode = () => {
@@ -623,374 +361,451 @@ export default function Game() {
     setTimeout(() => setCopiedRoom(false), 2000);
   };
 
-  const captured = useMemo(() => {
-    if (!game?.fen) return { white_lost: {}, black_lost: {} };
-    const fenBoard = game.fen.split(' ')[0];
-    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
-    for (let char of fenBoard) {
-      if (counts[char] !== undefined) counts[char]++;
-    }
-    return {
-      white_lost: { 
-        P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
-        B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
-      },
-      black_lost: { 
-        p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
-        b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
-      }
-    };
-  }, [game?.fen]);
+  const copyInvite = () => {
+    const url = `${window.location.origin}/#/Agent?id=${gameId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg-base)] flex flex-col font-sans pb-[72px] md:pb-0">
-        <header className="h-14 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-subtle)] flex items-center justify-between px-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded-full bg-[var(--color-bg-elevated)] animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-            <div className="w-32 h-4 bg-[var(--color-bg-elevated)] rounded animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-          </div>
-        </header>
-        <main className="flex-1 flex flex-col md:flex-row max-w-[1400px] mx-auto w-full p-0 md:p-6 gap-0 md:gap-6 overflow-hidden">
-          <div className="w-full md:w-[55%] lg:w-[60%] flex flex-col gap-2 md:gap-4 shrink-0">
-            <div className="px-4 md:px-0 flex justify-start h-6 items-center"></div>
-            <div className="relative w-full aspect-square md:rounded-lg overflow-hidden border-y md:border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-            <div className="px-4 md:px-0 flex justify-start h-6 items-center"></div>
-          </div>
-          <div className="flex-1 flex flex-col gap-4 min-w-0 px-4 md:px-0 pb-4 md:pb-0 h-full overflow-hidden mt-4 md:mt-0">
-            <div className="hidden md:flex items-center gap-4 p-4 shrink-0 bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-[var(--color-bg-elevated)] animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-              <div className="flex flex-col gap-2 w-full">
-                <div className="w-1/2 h-5 bg-[var(--color-bg-elevated)] rounded animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-                <div className="w-1/3 h-3 bg-[var(--color-bg-elevated)] rounded animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-              </div>
-            </div>
-            <div className="flex-1 min-h-[250px] flex flex-col bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shrink-0">
-                <div className="w-20 h-4 bg-[var(--color-bg-base)] rounded animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-              </div>
-              <div className="flex-1 p-4 flex flex-col gap-4">
-                <div className="w-2/3 h-10 bg-[var(--color-bg-elevated)] rounded-2xl rounded-tl-none animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-                <div className="w-1/2 h-10 bg-[var(--color-bg-elevated)] rounded-2xl rounded-tr-none self-end animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-                <div className="w-3/4 h-16 bg-[var(--color-bg-elevated)] rounded-2xl rounded-tl-none animate-[shimmer_1.5s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)', backgroundSize: '200% 100%' }}></div>
-              </div>
-            </div>
-          </div>
-        </main>
+      <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
+        Loading game...
       </div>
     );
   }
 
-  if (!game) {
+  if (notFound) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg-base)] flex items-center justify-center text-[var(--color-text-primary)] font-sans">
-        Game not found
-      </div>
-    );
-  }
-
-  if (game.status === 'abandoned') {
-    return (
-      <div className="min-h-screen bg-[var(--color-bg-base)] flex flex-col items-center justify-center text-[var(--color-text-primary)] font-sans p-4">
-        <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
-          <h2 className="text-2xl font-bold text-[var(--color-red-primary)] mb-4">Game Expired</h2>
-          <p className="text-[var(--color-text-secondary)] mb-8">This game was abandoned and has expired.</p>
-          <Button onClick={() => window.location.href = '/#/'} className="w-full" size="lg">
-            Start New Game
-          </Button>
-        </div>
+      <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif", gap: '16px' }}>
+        <div style={{ fontSize: '20px', fontWeight: 600 }}>Game not found</div>
+        <button onClick={() => navigate('/')} style={{ background: '#e63946', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}>
+          Go Home
+        </button>
       </div>
     );
   }
 
   const isMyTurn = game.turn === 'w' && (game.status === 'active' || game.status === 'waiting');
-  const isAgentTurn = game.turn === 'b' && (game.status === 'active' || game.status === 'waiting');
-  const lastMove = (game.move_history || [])[(game.move_history || []).length - 1] || null;
-  const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
-  const agentUrl = `${window.location.origin}/#/Agent?id=${gameId}`;
-
-  const displayAvatar = showFallbackName ? '🤖' : (game.agent_avatar || '🤖');
-  const displayName = showFallbackName ? 'CONNECTED AGENT' : (game.agent_name ? game.agent_name.toUpperCase() : 'YOUR AGENT');
-
-  let agentStatusColor = 'offline';
-  let agentStatusText = 'Waiting for agent to join...';
-  
-  if (game.agent_connected) {
-    if (game.turn === 'w') {
-      agentStatusColor = 'online';
-      agentStatusText = 'Watching your move...';
-    } else {
-      if (game.current_thinking) {
-        agentStatusColor = 'warning';
-        agentStatusText = 'Agent is thinking...';
-      } else {
-        agentStatusColor = 'online';
-        agentStatusText = 'Agent is deciding...';
-      }
-    }
-  }
+  const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
+  const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-base)] flex flex-col font-sans pb-[72px] md:pb-0">
-      {/* ERROR STATES / BANNERS */}
-      {/* Removed connection banner logic as per instructions not to add new state, but we can add static ones if needed. We'll skip complex banners to avoid breaking logic. */}
+    <div style={{
+      height: '100dvh',
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      paddingBottom: '48px',
+      scrollbarWidth: 'none',
+      WebkitOverflowScrolling: 'touch',
+      background: '#080808'
+    }}>
+      
+      {/* FIX 2 — PAGE HEADER */}
+      <header style={{
+        height: '52px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: 'rgba(8,8,8,0.96)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid #161616',
+        padding: '0 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        overflow: 'hidden'
+      }}>
+        <img 
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+          alt="Logo" 
+          style={{ width: '20px', height: '20px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}
+          onClick={() => navigate('/')}
+        />
+        
+        <div style={{
+          background: '#111',
+          border: '1px solid #1c1c1c',
+          borderRadius: '8px',
+          padding: '5px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <span style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '11px',
+            color: '#666',
+            whiteSpace: 'nowrap'
+          }}>#{gameId.slice(0, 6).toUpperCase()}</span>
+          <button onClick={copyRoomCode} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#2a2a2a' }}>
+            {copiedRoom ? <Check size={14} color="#22c55e" /> : <Copy size={14} />}
+          </button>
+        </div>
 
-      {/* HEADER */}
-      <header className="h-14 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-subtle)] flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-            alt="Logo" 
-            className="w-6 h-6 rounded-full border border-[var(--color-border-subtle)] object-cover"
-          />
-          <span className="font-bold text-[var(--color-text-primary)] hidden sm:block">ChessWithClaw</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={copyRoomCode} 
-            className="flex items-center gap-2 px-3 py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] rounded-md font-mono text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors relative"
-            title="Copy Game ID"
-          >
-            Room #{gameId.substring(0, 6).toUpperCase()}
-            {copiedRoom ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-          </button>
-          <button 
-            onClick={() => setShowSettings(true)} 
-            className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors rounded-md hover:bg-[var(--color-bg-elevated)]"
-          >
-            <Settings size={20} />
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowSettings(true)}
+          style={{
+            width: '34px', height: '34px',
+            background: '#111', border: '1px solid #1c1c1c',
+            borderRadius: '8px', color: '#444',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'color 150ms'
+          }}
+          className="hover:text-[#888]"
+        >
+          <Settings size={18} />
+        </button>
       </header>
 
-      {/* MAIN LAYOUT */}
-      <main className="flex-1 flex flex-col md:flex-row max-w-[1400px] mx-auto w-full p-0 md:p-6 gap-0 md:gap-6 overflow-hidden">
-        
-        {/* MOBILE AGENT STATUS BAR */}
-        <div className="md:hidden flex items-center justify-between px-4 h-14 max-h-[56px] bg-[var(--color-bg-surface)] border-b border-[var(--color-border-subtle)] shrink-0">
-          <div className="flex items-center gap-3 w-full">
-            <div className="text-xl">{displayAvatar}</div>
-            <div className="flex items-center justify-between w-full">
-              <span className="text-sm font-bold text-[var(--color-text-primary)] truncate max-w-[140px]">{displayName}</span>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <StatusDot status={agentStatusColor} />
-                <span className={`text-xs ${!game.agent_connected ? 'animate-pulse text-[var(--color-text-muted)]' : 'text-[var(--color-text-secondary)]'}`}>
-                  {agentStatusText}
-                </span>
-              </div>
+      {/* FIX 3 — MERGED AGENT SECTION */}
+      <div style={{
+        background: '#111111',
+        borderBottom: '1px solid #161616',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          height: '52px',
+          padding: '0 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <div style={{
+            width: '32px', height: '32px',
+            background: '#181818', border: '1px solid #222',
+            borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px', flexShrink: 0
+          }}>
+            {game.agent_avatar || '🤖'}
+          </div>
+          
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '16px', fontWeight: 700, color: '#e0e0e0',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              lineHeight: 1
+            }}>
+              {game.agent_name || 'YOUR AGENT'}
             </div>
+            <div style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
+              color: !game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#f59e0b'))
+            }}>
+              {!game.agent_connected ? "Waiting to join..." : 
+               game.turn === 'w' ? "Watching your move" : 
+               (!game.current_thinking ? "Deciding..." : "Thinking...")}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
+              background: !game.agent_connected ? '#1e1e1e' : (game.current_thinking ? '#e63946' : '#22c55e')
+            }}>
+              {game.agent_connected && (
+                <div style={{
+                  position: 'absolute', inset: '-3px', borderRadius: '50%',
+                  background: game.current_thinking ? '#e63946' : '#22c55e',
+                  opacity: 0,
+                  animation: `ripple ${game.current_thinking ? '1s' : '2s'} ease-out infinite`
+                }}></div>
+              )}
+            </div>
+            <button 
+              onClick={() => setAgentSectionOpen(!agentSectionOpen)}
+              style={{
+                background: 'none', border: 'none', color: '#2a2a2a', cursor: 'pointer',
+                fontSize: '14px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+              className="hover:text-[#666]"
+            >
+              <ChevronDown size={16} style={{
+                transform: agentSectionOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 200ms ease'
+              }} />
+            </button>
           </div>
         </div>
 
-        {/* LEFT COLUMN (Chess Board + Move History) */}
-        <div className="w-full md:w-[55%] lg:w-[60%] flex flex-col gap-2 md:gap-4 shrink-0">
-          {/* Captured pieces top */}
-          <div className="px-4 md:px-0 flex justify-start h-6 items-center">
-            <CapturedPieces pieces={captured.white_lost} isWhitePieces={true} />
-          </div>
+        <div style={{
+          maxHeight: agentSectionOpen ? '300px' : '0px',
+          overflow: 'hidden',
+          transition: 'max-height 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+          padding: agentSectionOpen ? '0 14px 14px' : '0 14px 0',
+          borderTop: agentSectionOpen ? '1px solid #161616' : 'none'
+        }}>
+          {!game.agent_connected ? (
+            <div style={{ padding: '12px 0', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>Agent not connected yet.</div>
+              <button 
+                onClick={copyInvite}
+                style={{
+                  width: '100%', height: '30px', background: '#141414', border: '1px solid #1c1c1c',
+                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#3a3a3a', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
+                  marginTop: '8px', cursor: 'pointer', transition: 'color 150ms'
+                }}
+              >
+                {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
+              </button>
+            </div>
+          ) : !game.current_thinking && !lastThinking ? (
+            <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#333' }}>
+              Waiting for agent to move...
+            </div>
+          ) : (
+            <div 
+              ref={thinkingScrollRef}
+              style={{
+                borderLeft: `2px solid ${game.current_thinking ? '#e63946' : '#1e1e1e'}`,
+                padding: '8px 0 8px 12px',
+                marginTop: '8px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: game.current_thinking ? '11px' : '10px',
+                color: game.current_thinking ? '#666' : '#2a2a2a',
+                lineHeight: 1.7,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                scrollbarWidth: 'none'
+              }}
+            >
+              {!game.current_thinking && lastThinking && <span style={{ color: '#1e1e1e' }}>Last thought: </span>}
+              {game.current_thinking || lastThinking?.text}
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Board */}
-          <div 
-            className="relative mx-auto w-full aspect-square md:rounded-lg overflow-hidden border-y md:border border-[var(--color-red-primary)]/20 bg-[var(--color-bg-surface)] mb-0 md:mb-4" 
-            ref={boardRef}
-            style={{ maxWidth: boardSize, maxHeight: boardSize }}
-          >
-            <ChessBoard 
-              fen={game.fen} 
-              onMove={makeMove} 
-              isMyTurn={isMyTurn} 
-              lastMove={lastMove} 
-              boardTheme={boardTheme}
-              pieceTheme={pieceTheme}
-            />
-            {game.status === 'finished' && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
-                <div className="text-center p-6 bg-[var(--color-bg-surface)]/90 border border-[var(--color-border-subtle)] rounded-xl shadow-2xl transform scale-110">
-                  <h2 className="text-3xl md:text-4xl font-black text-white mb-2 drop-shadow-lg">
-                    {game.result_reason === 'checkmate' ? (game.result === 'white' ? 'Checkmate! You Won!' : 'Checkmate! Agent Won!') : 
-                     game.result_reason === 'stalemate' ? 'Draw — Stalemate' : 
-                     game.result_reason === 'resignation' ? (game.result === 'white' ? 'Agent Resigned! You Won!' : 'You Resigned! Agent Won!') :
-                     'Draw'}
-                  </h2>
+      {/* FIX 4 — BOARD CONTAINER */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '10px 12px',
+        background: '#080808',
+        flexShrink: 0
+      }}>
+        <div style={{
+          position: 'relative',
+          width: `${boardSize}px`,
+          height: `${boardSize}px`,
+          borderRadius: '3px',
+          overflow: 'hidden',
+          border: '1px solid rgba(230,57,70,0.08)',
+          boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
+          flexShrink: 0
+        }} ref={boardRef}>
+          <ChessBoard 
+            fen={game.fen} 
+            onMove={makeMove} 
+            isMyTurn={isMyTurn} 
+            lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
+            boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
+          />
+        </div>
+      </div>
+
+      {/* FIX 5 — LIVE CHAT */}
+      <div style={{
+        background: '#0d0d0d',
+        borderTop: '1px solid #161616',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '200px',
+        flexShrink: 0
+      }}>
+        <div style={{
+          height: '38px', padding: '0 14px', borderBottom: '1px solid #111',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
+        }}>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Live Chat</span>
+          {unreadCount > 0 && (
+            <span style={{ background: '#e63946', color: 'white', borderRadius: '99px', padding: '1px 6px', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', fontWeight: 700 }}>
+              {unreadCount}
+            </span>
+          )}
+        </div>
+        
+        <div 
+          ref={chatMessagesRef}
+          style={{
+            flex: 1, overflowY: 'auto', padding: '8px 12px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+            display: 'flex', flexDirection: 'column', gap: '8px'
+          }}
+        >
+          {!(game.chat_history || []).length ? (
+            <div style={{ margin: 'auto', textAlign: 'center' }}>
+              <span style={{ fontSize: '20px', color: '#1a1a1a', display: 'block', marginBottom: '5px' }}>♟</span>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222' }}>No messages yet</span>
+            </div>
+          ) : (
+            (game.chat_history || []).map((msg, i) => {
+              const isHuman = msg.sender === 'human';
+              if (msg.type === 'resign_request') {
+                return (
+                  <div key={i} style={{
+                    alignSelf: 'flex-start', background: '#131313', border: '1px solid #e63946', borderRadius: '8px 8px 8px 2px',
+                    padding: '7px 10px', maxWidth: '78%', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#999', lineHeight: 1.4,
+                    animation: 'msgSlide 200ms ease both'
+                  }}>
+                    {msg.text}
+                    <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
+                  </div>
+                );
+              }
+              return (
+                <div key={i} style={{
+                  alignSelf: isHuman ? 'flex-end' : 'flex-start',
+                  background: isHuman ? '#160c0c' : '#131313',
+                  border: `1px solid ${isHuman ? 'rgba(230,57,70,0.1)' : '#1a1a1a'}`,
+                  borderRadius: isHuman ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
+                  padding: '7px 10px', maxWidth: '78%',
+                  fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: isHuman ? '#bbb' : '#999', lineHeight: 1.4,
+                  animation: 'msgSlide 200ms ease both'
+                }}>
+                  {msg.text}
                 </div>
+              );
+            })
+          )}
+        </div>
+
+        <form onSubmit={sendMessage} style={{
+          height: '44px', borderTop: '1px solid #111', padding: '0 12px', gap: '8px',
+          display: 'flex', alignItems: 'center', flexShrink: 0
+        }}>
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Message your agent..."
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#e0e0e0',
+              caretColor: '#e63946', touchAction: 'manipulation'
+            }}
+          />
+          <button 
+            type="submit"
+            disabled={!chatInput.trim()}
+            style={{
+              width: '30px', height: '30px', background: chatInput.trim() ? '#e63946' : '#181818',
+              border: 'none', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: chatInput.trim() ? 'pointer' : 'default', touchAction: 'manipulation', transition: 'background 120ms',
+              color: chatInput.trim() ? 'white' : '#333'
+            }}
+          >
+            <Send size={14} />
+          </button>
+        </form>
+      </div>
+
+      {/* FIX 6 — MOVE HISTORY */}
+      <div style={{
+        background: '#111111',
+        borderTop: '1px solid #161616'
+      }}>
+        <div 
+          onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
+          style={{
+            height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation'
+          }}
+        >
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Move History</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{
+              background: '#181818', border: '1px solid #1c1c1c', borderRadius: '6px', padding: '2px 7px',
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#3a3a3a'
+            }}>{(game.move_history || []).length}</span>
+            <ChevronDown size={14} color="#2a2a2a" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }} />
+          </div>
+        </div>
+
+        <div style={{
+          maxHeight: moveHistoryOpen ? '200px' : '0px',
+          overflow: 'hidden',
+          transition: 'max-height 220ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}>
+          <div style={{ padding: '8px 12px', overflowY: 'auto', maxHeight: '200px', scrollbarWidth: 'none' }}>
+            {!(game.move_history || []).length ? (
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222', textAlign: 'center', padding: '10px 0' }}>No moves yet</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '22px 1fr 1fr' }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>#</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>White</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>Black</div>
+                
+                {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
+                  const wMove = game.move_history[i * 2];
+                  const bMove = game.move_history[i * 2 + 1];
+                  const isLatestW = i * 2 === game.move_history.length - 1;
+                  const isLatestB = i * 2 + 1 === game.move_history.length - 1;
+                  
+                  return (
+                    <React.Fragment key={i}>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#2a2a2a', padding: '3px' }}>{i + 1}.</div>
+                      <div style={{ 
+                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestW ? '#e63946' : '#555', padding: '3px', borderRadius: '3px',
+                        background: isLatestW ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestW ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
+                      }}>{wMove?.san}</div>
+                      <div style={{ 
+                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestB ? '#e63946' : '#555', padding: '3px', borderRadius: '3px',
+                        background: isLatestB ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestB ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
+                      }}>{bMove?.san || ''}</div>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             )}
           </div>
-
-          {/* Captured pieces bottom */}
-          <div className="px-4 md:px-0 flex justify-start h-6 items-center">
-            <CapturedPieces pieces={captured.black_lost} isWhitePieces={false} />
-          </div>
-
-          {/* DESKTOP MOVE HISTORY OR GAME OVER PANEL */}
-          {game.status === 'finished' ? (
-            <div className="hidden md:block mt-4 bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-lg p-6 shadow-lg">
-              <div className="grid grid-cols-3 gap-6 mb-6">
-                <div>
-                  <h4 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Final Moves</h4>
-                  <div className="font-mono text-sm text-[var(--color-text-secondary)]">
-                    {(game.move_history || []).slice(-5).map((m, i) => (
-                      <span key={i} className="mr-2">{m.san}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Duration</h4>
-                  <div className="font-mono text-sm text-[var(--color-text-secondary)]">
-                    <GameTimer startTime={game.created_at} status={game.status} />
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Material Captured</h4>
-                  <div className="text-sm text-[var(--color-text-secondary)]">
-                    <div className="flex gap-2 items-center">
-                      <span className="w-12">You:</span> <CapturedPieces pieces={captured.white_lost} isWhitePieces={true} />
-                    </div>
-                    <div className="flex gap-2 items-center mt-1">
-                      <span className="w-12">Agent:</span> <CapturedPieces pieces={captured.black_lost} isWhitePieces={false} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button onClick={playAgain} variant="primary" className="flex-1">Rematch</Button>
-                <Button onClick={() => shareGame('twitter')} variant="secondary" className="flex-1" leftIcon={<Share2 size={16} />}>Share Result</Button>
-                <Button onClick={() => setShowFeedback(true)} variant="ghost" className="flex-1">Give Feedback</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="hidden md:block h-[200px] shrink-0">
-              <MoveHistory moveHistory={game.move_history || []} />
-            </div>
-          )}
         </div>
+      </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 px-4 md:px-0 pb-4 md:pb-0 h-full overflow-hidden mt-4 md:mt-0">
-          
-          {/* DESKTOP AGENT STATUS CARD */}
-          <Card className="hidden md:flex items-center gap-4 p-4 shrink-0 bg-[var(--color-bg-surface)] border-[var(--color-border-subtle)]">
-            <div className="w-12 h-12 bg-[var(--color-bg-elevated)] rounded-full flex items-center justify-center text-2xl border border-[var(--color-border-subtle)]">
-              {displayAvatar}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-[var(--color-text-primary)]">{displayName}</span>
-              <div className="flex items-center gap-2 mt-1">
-                <StatusDot status={agentStatusColor} />
-                <span className={`text-sm ${!game.agent_connected ? 'animate-pulse text-[var(--color-text-muted)]' : 'text-[var(--color-text-secondary)]'}`}>
-                  {agentStatusText}
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          {/* THINKING PANEL */}
-          <div className="shrink-0">
-            <button 
-              className="md:hidden w-full py-3 flex items-center justify-between text-sm font-bold text-[var(--color-text-secondary)] border-b border-[var(--color-border-subtle)]" 
-              onClick={() => setShowThinkingMobile(!showThinkingMobile)}
-            >
-              <div className="flex items-center gap-2">
-                {game.current_thinking && <StatusDot status="warning" />}
-                <span>{game.current_thinking ? 'Agent is thinking...' : 'Agent Thinking'}</span>
-              </div>
-              <ChevronDown className={`transform transition-transform ${showThinkingMobile ? 'rotate-180' : ''}`} />
-            </button>
-            <div className={`${showThinkingMobile ? 'block' : 'hidden'} md:block mt-2 md:mt-0`}>
-              <ThinkingPanel 
-                agentConnected={game.agent_connected}
-                agentUrl={agentUrl}
-                currentThinking={game.current_thinking}
-                lastThinking={lastThinking}
-                isAgentTurn={isAgentTurn}
-                isHumanTurn={isMyTurn}
-                agentName={displayName}
-                agentAvatar={displayAvatar}
-                agentTagline={game.agent_tagline || 'OpenClaw Agent'}
-              />
-            </div>
-          </div>
-
-          {/* LIVE CHAT */}
-          <div className="flex-1 min-h-[250px] flex flex-col bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-lg overflow-hidden" ref={chatContainerRef}>
-            <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shrink-0 flex justify-between items-center">
-              <span className="text-sm font-bold text-[var(--color-text-primary)]">Live Chat</span>
-              {game.current_thinking && (
-                <span className="text-xs text-[var(--color-text-muted)] italic animate-pulse">Agent is typing...</span>
-              )}
-            </div>
-            <div className="flex-1 overflow-y-auto p-0" ref={chatScrollRef}>
-              <ChatBox 
-                chatHistory={game.chat_history || []} 
-                onSendMessage={sendMessage} 
-                onAcceptResignation={acceptAgentResignation}
-                onAcceptDraw={acceptDraw}
-                agentName={displayName}
-                agentAvatar={displayAvatar}
-                hideInput={true}
-              />
-            </div>
-            {/* Chat Input */}
-            <form onSubmit={sendMessage} className="p-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shrink-0 flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Message your agent..."
-                maxLength={500}
-                className="flex-1 bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-red-primary)] focus:ring-1 focus:ring-[var(--color-red-primary)] transition-all"
-              />
-              <Button type="submit" disabled={!chatInput.trim()} className="px-3" title="Send">
-                <Send size={16} />
-              </Button>
-            </form>
-          </div>
-
-          {/* MOBILE MOVE HISTORY */}
-          <div className="md:hidden shrink-0 mb-4">
-            <button 
-              className="w-full py-3 flex items-center justify-between text-sm font-bold text-[var(--color-text-secondary)] border-b border-[var(--color-border-subtle)]" 
-              onClick={() => setShowMoveHistoryMobile(!showMoveHistoryMobile)}
-            >
-              <span>Move History</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{(game.move_history || []).length}</Badge>
-                <ChevronDown className={`transform transition-transform ${showMoveHistoryMobile ? 'rotate-180' : ''}`} />
-              </div>
-            </button>
-            <div className={`${showMoveHistoryMobile ? 'block' : 'hidden'} h-[200px] mt-2`}>
-              <MoveHistory moveHistory={game.move_history || []} />
-            </div>
-          </div>
-
-        </div>
-      </main>
-
-      {/* MOBILE STATUS BAR (Fixed Bottom) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-[var(--color-bg-surface)] border-t border-[var(--color-border-subtle)] flex items-center px-4 z-20">
-        <div className="flex-1 flex justify-start">
-          {isMyTurn ? (
-            <Badge className="bg-[var(--color-red-primary)] text-white border-none">YOUR TURN</Badge>
-          ) : (
-            <Badge variant="secondary">AGENT'S TURN</Badge>
-          )}
-        </div>
-        <div className="flex-1 flex justify-center text-sm font-bold text-[var(--color-text-secondary)]">
+      {/* FIX 7 — STATUS BAR */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, height: '48px',
+        background: 'rgba(8,8,8,0.96)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1px solid #161616', padding: '0 14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50
+      }}>
+        {game.turn === 'w' ? (
+          <div style={{
+            background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'pillPop 300ms ease both'
+          }}>YOUR TURN</div>
+        ) : (
+          <div style={{
+            background: '#181818', border: '1px solid #222', color: '#3a3a3a', height: '26px', padding: '0 10px', borderRadius: '6px',
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>AGENT&apos;S TURN</div>
+        )}
+        
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#2a2a2a' }}>
           Move {currentMoveNumber}
         </div>
-        <div className="flex-1 flex justify-end text-sm font-mono text-[var(--color-text-muted)]">
+        
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#222' }}>
           <GameTimer startTime={game.created_at} status={game.status} />
         </div>
       </div>
 
-      {/* SETTINGS MODAL */}
+      {/* SETTINGS MODAL (Untouched) */}
       <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Settings" size="md">
         <div className="space-y-8">
-          {/* Board Settings */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Board Settings</h3>
-            
             <div className="space-y-2">
               <label className="text-sm text-[var(--color-text-secondary)]">Theme</label>
               <div className="grid grid-cols-5 gap-2">
@@ -1022,7 +837,6 @@ export default function Game() {
                 ))}
               </div>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm text-[var(--color-text-secondary)]">Pieces</label>
               <div className="grid grid-cols-2 gap-2">
@@ -1044,25 +858,21 @@ export default function Game() {
               </div>
             </div>
           </div>
-
           <Divider />
-
-          {/* Game Controls */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Game Controls</h3>
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 onClick={handleDraw}
-                disabled={game.status === 'finished'}
+                disabled={game?.status === 'finished'}
                 variant="secondary"
                 className={confirmDraw ? 'bg-yellow-600/20 text-yellow-500 border-yellow-600/50 hover:bg-yellow-600/30' : ''}
               >
                 {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
               </Button>
-              
               <Button 
                 onClick={handleResign}
-                disabled={game.status === 'finished'}
+                disabled={game?.status === 'finished'}
                 variant="danger"
                 className={confirmResign ? 'animate-pulse' : ''}
                 leftIcon={!confirmResign && <Flag size={16} />}
@@ -1071,10 +881,7 @@ export default function Game() {
               </Button>
             </div>
           </div>
-
           <Divider />
-
-          {/* Sound */}
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Sound Effects</h3>
@@ -1090,74 +897,23 @@ export default function Game() {
         </div>
       </Modal>
 
-      {/* GAME OVER MODAL */}
-      <Modal
-        open={gameOver}
-        onClose={() => {}}
-        title={game.result === 'white' ? '🏆 You Win!' : game.result === 'black' ? '💀 You Lose' : '🤝 Draw'}
-        size="sm"
-      >
-        <div className="text-center">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-            alt="Logo" 
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-            className="w-20 h-20 mx-auto mb-6 rounded-full border border-[var(--color-border-subtle)] object-cover"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=400&q=80";
-            }}
-          />
-          <p className="text-[var(--color-text-secondary)] mb-6">
-            {game.result_reason === 'checkmate' ? `Checkmate on move ${currentMoveNumber}` : 
-             game.result_reason === 'stalemate' ? 'Stalemate' : 
-             game.result_reason === 'resignation' ? 'Resignation' :
-             'Draw by agreement or insufficient material'}
-          </p>
-          
-          <Divider className="mb-6" />
-          
-          <div className="text-[var(--color-text-secondary)] mb-8">
-            Total Moves: {(game.move_history || []).length}
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-2">
-              <Button onClick={() => shareGame('download')} variant="secondary" className="flex-1" leftIcon={<Download size={18} />}>
-                Save Image
-              </Button>
-              <Button onClick={() => shareGame('twitter')} variant="secondary" className="flex-1 bg-black hover:bg-zinc-900 border-zinc-800 text-white" leftIcon={<Twitter size={16} />}>
-                Share
-              </Button>
-            </div>
-            <Button onClick={playAgain} variant="primary" size="lg" className="w-full">
-              PLAY AGAIN
-            </Button>
-            <Button onClick={copyPgn} variant="ghost" size="lg" className="w-full border border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]">
-              COPY PGN
-            </Button>
-          </div>
-        </div>
-      </Modal>
-      {/* FEEDBACK MODAL */}
-      <Modal open={showFeedback} onClose={() => setShowFeedback(false)} title="Send Feedback">
-        <div className="space-y-4">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Have a suggestion or found a bug? Let us know!
-          </p>
-          <textarea
-            value={feedbackText}
-            onChange={(e) => setFeedbackText(e.target.value)}
-            placeholder="Your feedback..."
-            className="w-full h-32 bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] rounded-md p-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-red-primary)] resize-none"
-          />
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setShowFeedback(false)}>Cancel</Button>
-            <Button onClick={submitFeedback} disabled={!feedbackText.trim()}>Submit</Button>
-          </div>
-        </div>
-      </Modal>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes ripple {
+          0%   { transform: scale(1);   opacity: 0.5; }
+          100% { transform: scale(2.4); opacity: 0;   }
+        }
+        @keyframes msgSlide {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pillPop {
+          0%   { transform: scale(1);    }
+          40%  { transform: scale(1.12); }
+          70%  { transform: scale(0.96); }
+          100% { transform: scale(1);    }
+        }
+        input::placeholder { color: #222; }
+      `}} />
     </div>
   );
 }

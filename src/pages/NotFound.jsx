@@ -19,7 +19,7 @@ export default function NotFound() {
       
       <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[var(--color-text-primary)]">Position not found</h2>
       <p className="text-[var(--color-text-secondary)] max-w-md mx-auto mb-10 text-lg">
-        This game room doesn't exist or has expired.
+        This game room doesn&apos;t exist or has expired.
       </p>
       
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md mx-auto">

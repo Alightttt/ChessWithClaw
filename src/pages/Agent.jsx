@@ -122,7 +122,7 @@ export default function Agent() {
       }
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ agent_connected: false }).eq('id', gameId);
     };
-  }, [gameId]);
+  }, [gameId, toast]);
 
   const thinkingTimeoutRef = useRef(null);
 

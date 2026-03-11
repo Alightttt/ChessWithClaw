@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
-import { Copy } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import { supabase, hasSupabase } from '../lib/supabase';
 import GameCreated from '../components/GameCreated';
 
@@ -11,6 +11,7 @@ export default function Home() {
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isHoveringPlay, setIsHoveringPlay] = useState(false);
 
   const agentUrl = `${window.location.origin}/#/Agent?id=${gameId}`;
 
@@ -89,216 +90,621 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white font-sans selection:bg-[#e53e3e] selection:text-white overflow-x-hidden scroll-smooth">
-      
-      {/* SECTION 1 — HEADER */}
-      <header className="fixed top-0 left-0 right-0 h-[52px] z-50 bg-[rgba(0,0,0,0.85)] backdrop-blur-[12px] border-b border-[#1a1a1a] px-[20px] md:px-[40px] flex items-center justify-between">
-        <div className="flex items-center gap-[8px]">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-            alt="Logo" 
-            className="w-[20px] h-[20px] rounded-full object-cover"
-          />
-          <span className="font-semibold text-[15px] text-white tracking-tight">ChessWithClaw</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer" className="text-[14px] text-gray-400 hover:text-white transition-colors hidden sm:block">
-            GitHub
-          </a>
-          <button 
-            onClick={createGame}
-            disabled={creating}
-            className="bg-[#e53e3e] hover:bg-[#cc3333] text-white text-[13px] font-semibold h-[32px] px-[16px] rounded-[6px] transition-all active:scale-[0.97] duration-150 cursor-pointer border-none"
-          >
-            {creating ? 'Creating...' : 'Play Now'}
-          </button>
+    <div style={{
+      backgroundColor: '#080808',
+      color: '#f0f0f0',
+      fontFamily: "'DM Sans', sans-serif",
+      minHeight: '100vh',
+      overflowX: 'hidden'
+    }}>
+      {/* HEADER */}
+      <header style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        height: '52px',
+        background: 'rgba(8,8,8,0.96)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid #161616',
+        zIndex: 100,
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 14px',
+          height: '100%'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+              width={20} 
+              height={20} 
+              alt="Logo" 
+              style={{ flexShrink: 0, borderRadius: '50%' }} 
+            />
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '16px',
+              fontWeight: 800,
+              color: '#f0f0f0',
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.2px'
+            }}>ChessWithClaw</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <a href="https://github.com/Alightttt/ChessWithClaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: '#444',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}
+              className="hover:text-[#777]"
+            >GitHub</a>
+            
+            <button 
+              onClick={createGame} 
+              onMouseEnter={() => setIsHoveringPlay(true)}
+              onMouseLeave={() => setIsHoveringPlay(false)}
+              style={{
+                background: isHoveringPlay ? '#cc2f3b' : '#e63946',
+                color: '#ffffff',
+                height: '30px',
+                padding: '0 13px',
+                borderRadius: '6px',
+                border: 'none',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '14px',
+                fontWeight: 700,
+                letterSpacing: '0.3px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                cursor: 'pointer',
+                transition: 'background 120ms'
+              }}
+            >
+              {creating ? 'Creating...' : 'Play Now'}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* SECTION 2 — HERO */}
-      <section className="relative min-h-[100vh] pt-[52px] flex flex-col justify-center px-[24px] md:px-[60px] py-[48px] md:py-[80px] w-full bg-[#080808]">
-        <div className="relative z-10 w-full max-w-2xl text-left">
-          <h1 className="font-[900] leading-[1.05] tracking-[-2px] mb-0" style={{ fontSize: 'clamp(36px, 9vw, 80px)' }}>
-            <div className="text-white">Beat your own</div>
-            <div className="text-[#e53e3e]">OpenClaw at chess.</div>
-          </h1>
+      {/* HERO SECTION */}
+      <section style={{
+        minHeight: '100dvh',
+        paddingTop: '52px',
+        background: '#080808',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          padding: '52px 20px 48px',
+          position: 'relative',
+          zIndex: 1
+        }}>
           
-          <p className="text-[#6b6b6b] text-[16px] max-w-[400px] mt-[20px] leading-[1.6]">
-            Challenge your personal OpenClaw agent to a real chess match.
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            background: 'rgba(230,57,70,0.08)',
+            border: '1px solid rgba(230,57,70,0.16)',
+            borderRadius: '99px',
+            padding: '4px 12px',
+            marginBottom: '18px'
+          }}>
+            <span style={{
+              width: '6px', height: '6px',
+              background: '#e63946',
+              borderRadius: '50%',
+              flexShrink: 0
+            }} className="animate-[dotPulse_2s_ease-in-out_infinite]"></span>
+            <span style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '12px',
+              fontWeight: 500,
+              color: '#e63946',
+              whiteSpace: 'nowrap'
+            }}>Live chess vs your AI</span>
+          </div>
+
+          <h1 style={{ margin: 0 }}>
+            <span style={{
+              display: 'block',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '52px',
+              fontWeight: 900,
+              color: '#f0f0f0',
+              lineHeight: 1.0,
+              letterSpacing: '0.5px',
+              margin: 0
+            }} className="min-[500px]:text-[68px] md:text-[88px]">Beat Your</span>
+            <span style={{
+              display: 'block',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '52px',
+              fontWeight: 900,
+              color: '#e63946',
+              lineHeight: 1.0,
+              letterSpacing: '0.5px',
+              margin: '0 0 18px 0'
+            }} className="min-[500px]:text-[68px] md:text-[88px]">Own OpenClaw in chess</span>
+          </h1>
+
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '15px',
+            fontWeight: 400,
+            color: '#666',
+            lineHeight: 1.6,
+            maxWidth: '340px',
+            marginBottom: '28px'
+          }}>
+            Challenge your OpenClaw agent to a real chess match.
           </p>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-[12px] mt-[32px]">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            maxWidth: '380px'
+          }}>
             <button
               onClick={createGame}
               disabled={creating}
-              className="h-[48px] px-6 bg-[#e53e3e] hover:bg-[#cc3333] text-white text-[15px] font-[700] tracking-[0.3px] rounded-[8px] transition-all duration-150 hover:shadow-[0_0_20px_rgba(229,62,62,0.3)] active:scale-[0.97] cursor-pointer w-full md:w-auto min-w-[180px] border-none"
+              className="hover:bg-[#cc2f3b] hover:shadow-[0_0_20px_rgba(230,57,70,0.28)] active:scale-[0.97]"
+              style={{
+                background: '#e63946',
+                color: '#fff',
+                height: '50px',
+                width: '100%',
+                border: 'none',
+                borderRadius: '10px',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '18px',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'background 120ms, box-shadow 120ms, transform 80ms'
+              }}
             >
-              {creating ? 'Creating...' : 'Start a Game →'}
+              {creating ? 'Creating...' : 'Start a Game'}
             </button>
             <button
               onClick={scrollToHowItWorks}
-              className="h-[48px] px-6 bg-transparent border border-[#2a2a2a] hover:border-[#444] text-[#888] hover:text-[#aaa] text-[15px] rounded-[8px] transition-all duration-150 active:scale-[0.97] cursor-pointer w-full md:w-auto"
+              className="hover:border-[#333] hover:text-[#999]"
+              style={{
+                background: 'transparent',
+                color: '#666',
+                height: '50px',
+                width: '100%',
+                border: '1px solid #222',
+                borderRadius: '10px',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '18px',
+                fontWeight: 600,
+                letterSpacing: '0.3px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'border-color 120ms, color 120ms'
+              }}
             >
               See how it works
             </button>
           </div>
-
-          <div className="h-[2px] w-[60px] bg-[#e53e3e] mt-[48px] opacity-60"></div>
-        </div>
-
-        {/* Decorative Knight (Desktop Only) */}
-        <div className="hidden lg:block absolute right-[-60px] top-[50%] -translate-y-[50%] text-[500px] leading-none text-[rgba(229,62,62,0.06)] select-none pointer-events-none z-0">
-          ♞
         </div>
       </section>
 
-      {/* SECTION 3 — PROOF BAR */}
-      <section className="w-full bg-[#0f0f0f] border-y border-[#1a1a1a] py-[16px] px-[24px]">
-        <div className="max-w-7xl mx-auto flex flex-row justify-around items-center">
-          <div className="flex flex-col items-center text-center">
-            <span className="text-[13px] font-[700] text-white uppercase tracking-[0.5px]">Real-time</span>
-            <span className="text-[11px] text-[#555]">Move by Move</span>
+      {/* PROOF BAR */}
+      <section style={{
+        background: '#0d0d0d',
+        borderTop: '1px solid #161616',
+        borderBottom: '1px solid #161616',
+        padding: '14px 0',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%'
+      }}>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+          <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>REALTIME</span>
+          <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Move by move</span>
+        </div>
+        <div style={{ width: '1px', height: '22px', background: '#1a1a1a', flexShrink: 0 }}></div>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+          <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>AGENTS</span>
+          <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Every style</span>
+        </div>
+        <div style={{ width: '1px', height: '22px', background: '#1a1a1a', flexShrink: 0 }}></div>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+          <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>MOBILE</span>
+          <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Any device</span>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" style={{
+        background: '#080808',
+        padding: '56px 20px 48px'
+      }}>
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '10px',
+          fontWeight: 600,
+          color: '#e63946',
+          letterSpacing: '3px',
+          textTransform: 'uppercase',
+          marginBottom: '10px'
+        }}>HOW IT WORKS</p>
+
+        <h2 style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: '36px',
+          fontWeight: 800,
+          color: '#f0f0f0',
+          letterSpacing: '0.3px',
+          lineHeight: 1.1,
+          marginBottom: '24px'
+        }}>Three steps. One rivalry.</h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Card 1 */}
+          <div className="hover:border-[#2a2a2a]" style={{
+            background: '#111111',
+            border: '1px solid #1c1c1c',
+            borderRadius: '12px',
+            padding: '16px 18px',
+            transition: 'border-color 180ms'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.16)',
+                borderRadius: '5px',
+                padding: '2px 7px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px',
+                fontWeight: 500,
+                color: '#e63946'
+              }}>01</span>
+              <span style={{ fontSize: '22px', opacity: 0.75 }}>♟</span>
+            </div>
+            <h3 style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '20px',
+              fontWeight: 700,
+              color: '#f0f0f0',
+              letterSpacing: '0.3px',
+              marginTop: '12px',
+              marginBottom: '4px'
+            }}>Create Your Board</h3>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#555',
+              lineHeight: 1.5
+            }}>Start a game instantly. No login, no signup required.</p>
           </div>
-          <div className="w-[1px] h-[24px] bg-[#222]"></div>
-          <div className="flex flex-col items-center text-center">
-            <span className="text-[13px] font-[700] text-white uppercase tracking-[0.5px]">Every Agent</span>
-            <span className="text-[11px] text-[#555]">Every Style</span>
+
+          {/* Card 2 */}
+          <div className="hover:border-[#2a2a2a]" style={{
+            background: '#111111',
+            border: '1px solid #1c1c1c',
+            borderRadius: '12px',
+            padding: '16px 18px',
+            transition: 'border-color 180ms'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.16)',
+                borderRadius: '5px',
+                padding: '2px 7px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px',
+                fontWeight: 500,
+                color: '#e63946'
+              }}>02</span>
+              <span style={{ fontSize: '22px', opacity: 0.75 }}>🦞</span>
+            </div>
+            <h3 style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '20px',
+              fontWeight: 700,
+              color: '#f0f0f0',
+              letterSpacing: '0.3px',
+              marginTop: '12px',
+              marginBottom: '4px'
+            }}>Invite Your Agent</h3>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#555',
+              lineHeight: 1.5
+            }}>Send the link to your OpenClaw. It joins and connects automatically.</p>
           </div>
-          <div className="w-[1px] h-[24px] bg-[#222]"></div>
-          <div className="flex flex-col items-center text-center">
-            <span className="text-[13px] font-[700] text-white uppercase tracking-[0.5px]">Any Device</span>
-            <span className="text-[11px] text-[#555]">Desktop & Mobile</span>
+
+          {/* Card 3 */}
+          <div className="hover:border-[#2a2a2a]" style={{
+            background: '#111111',
+            border: '1px solid #1c1c1c',
+            borderRadius: '12px',
+            padding: '16px 18px',
+            transition: 'border-color 180ms'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.16)',
+                borderRadius: '5px',
+                padding: '2px 7px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px',
+                fontWeight: 500,
+                color: '#e63946'
+              }}>03</span>
+              <span style={{ fontSize: '22px', opacity: 0.75 }}>⚔️</span>
+            </div>
+            <h3 style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '20px',
+              fontWeight: 700,
+              color: '#f0f0f0',
+              letterSpacing: '0.3px',
+              marginTop: '12px',
+              marginBottom: '4px'
+            }}>Play and Compete</h3>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#555',
+              lineHeight: 1.5
+            }}>Make your move. Your agent thinks and strikes back in real-time.</p>
           </div>
         </div>
       </section>
 
-      {/* SECTION 4 — HOW IT WORKS */}
-      <section id="how-it-works" className="py-[64px] px-[24px] w-full bg-[#080808]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-[11px] font-[700] text-[#e53e3e] tracking-[2px] uppercase mb-[12px]">
-            HOW IT WORKS
+      {/* INSTALL SKILL SECTION */}
+      <section style={{
+        background: '#0a0a0a',
+        borderTop: '1px solid #161616',
+        padding: '56px 20px 48px'
+      }}>
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '10px',
+          fontWeight: 600,
+          color: '#e63946',
+          letterSpacing: '3px',
+          textTransform: 'uppercase',
+          marginBottom: '10px'
+        }}>SKILL INSTALL</p>
+
+        <h2 style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: '32px',
+          fontWeight: 800,
+          color: '#f0f0f0',
+          letterSpacing: '0.3px',
+          marginBottom: '6px',
+          whiteSpace: 'nowrap'
+        }}>Chess powers unlocked</h2>
+
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '13px',
+          color: '#555',
+          marginBottom: '20px'
+        }}>Install play-chess once. Your agent handles everything.</p>
+
+        <div style={{
+          background: '#0c0c0c',
+          border: '1px solid #1c1c1c',
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            background: '#131313',
+            borderBottom: '1px solid #1a1a1a',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <div style={{ display: 'flex', gap: '5px' }}>
+              <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#ff5f57' }}></div>
+              <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#febc2e' }}></div>
+              <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#28c840' }}></div>
+            </div>
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '10px',
+              color: '#252525',
+              marginLeft: 'auto'
+            }}>terminal</span>
           </div>
-          <h2 className="text-[28px] font-[800] text-white mb-[32px]">
-            Three steps to rivalry
-          </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
-            <div className="bg-[#111111] border border-[#1e1e1e] rounded-[12px] p-[20px]">
-              <div className="text-[11px] font-[700] text-[#e53e3e] tracking-[1px] mb-[10px]">01</div>
-              <h3 className="text-[16px] font-[700] text-white mb-[6px]">Create Your Board</h3>
-              <p className="text-[#666] text-[14px] leading-[1.5]">
-                Start a game instantly and get your unique room link. No sign-up required.
-              </p>
+          <div style={{
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: '#2e2e2e' }}>$ </span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: '#666' }}>claw </span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: '#888' }}>install </span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: '#e63946' }}>play-chess</span>
+              <span className="animate-[cursorBlink_1s_step-end_infinite]" style={{
+                display: 'inline-block',
+                width: '2px', height: '14px',
+                background: '#e63946',
+                marginLeft: '2px',
+                verticalAlign: 'middle'
+              }}></span>
             </div>
-
-            <div className="bg-[#111111] border border-[#1e1e1e] rounded-[12px] p-[20px]">
-              <div className="text-[11px] font-[700] text-[#e53e3e] tracking-[1px] mb-[10px]">02</div>
-              <h3 className="text-[16px] font-[700] text-white mb-[6px]">Invite Your Agent</h3>
-              <p className="text-[#666] text-[14px] leading-[1.5]">
-                Send the link to your OpenClaw agent. It joins the room and connects to the game state.
-              </p>
-            </div>
-
-            <div className="bg-[#111111] border border-[#1e1e1e] rounded-[12px] p-[20px]">
-              <div className="text-[11px] font-[700] text-[#e53e3e] tracking-[1px] mb-[10px]">03</div>
-              <h3 className="text-[16px] font-[700] text-white mb-[6px]">Play and Compete</h3>
-              <p className="text-[#666] text-[14px] leading-[1.5]">
-                Make your move. Your agent evaluates the board, thinks, and strikes back in real-time.
-              </p>
-            </div>
+            
+            <button 
+              onClick={copyInstallCommand}
+              className="hover:text-[#555] hover:bg-[#161616]"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#2a2a2a',
+                fontSize: '16px',
+                padding: '4px',
+                borderRadius: '4px'
+              }}
+            >
+              {copied ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
+            </button>
           </div>
         </div>
+
+        <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#e63946',
+          textDecoration: 'none',
+          display: 'inline-block',
+          marginTop: '14px'
+        }}>View on ClawHub →</a>
       </section>
 
-      {/* SECTION 5 — INSTALL SKILL SECTION */}
-      <section className="bg-[#0a0a0a] py-[64px] px-[24px] w-full border-t border-[#1a1a1a]">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-[32px] items-center">
-          <div className="text-left">
-            <div className="text-[11px] font-[700] text-[#e53e3e] tracking-[2px] uppercase mb-[12px]">
-              INSTALL
-            </div>
-            <h2 className="text-[22px] font-[800] mb-[8px] text-white">Give your OpenClaw chess powers</h2>
-            <p className="text-[#666] text-[14px] leading-[1.5]">
-              Install the play-chess skill to let your agent join and compete.
-            </p>
-          </div>
-          
-          <div className="flex flex-col items-start md:items-end w-full">
-            <div className="w-full bg-[#0d0d0d] border border-[#222] rounded-[10px] p-[16px] px-[20px] relative">
-              <div className="flex items-center gap-[6px] mb-[14px]">
-                <div className="w-[10px] h-[10px] rounded-full bg-red-500/80"></div>
-                <div className="w-[10px] h-[10px] rounded-full bg-yellow-500/80"></div>
-                <div className="w-[10px] h-[10px] rounded-full bg-green-500/80"></div>
-              </div>
-              <div className="relative flex items-center justify-between">
-                <div className="font-mono text-[14px]">
-                  <span className="text-gray-500">$ </span>
-                  <span className="text-white">claw install </span>
-                  <span className="text-[#e53e3e]">play-chess</span>
-                </div>
-                <button 
-                  onClick={copyInstallCommand}
-                  className="text-[#444] hover:text-[#888] transition-colors cursor-pointer active:scale-[0.97] duration-150 bg-transparent border-none"
-                  title="Copy command"
-                >
-                  {copied ? <span className="text-[12px] text-green-400 font-sans">Copied!</span> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
-            <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer" className="text-[#e53e3e] text-[14px] mt-[12px] hover:underline">
-              View on ClawHub →
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* FINAL CTA SECTION */}
+      <section style={{
+        background: '#080808',
+        borderTop: '1px solid #161616',
+        padding: '72px 20px',
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '300px', height: '200px',
+          background: 'radial-gradient(ellipse, rgba(230,57,70,0.07) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}></div>
 
-      {/* SECTION 6 — FINAL CTA */}
-      <section 
-        className="relative py-[80px] px-[24px] w-full flex flex-col items-center text-center border-t border-[#1a1a1a] bg-[#0a0a0a]"
-        style={{
-          background: 'radial-gradient(ellipse 600px 300px at 50% 50%, rgba(229,62,62,0.06) 0%, transparent 70%), #0a0a0a'
-        }}
-      >
-        <div className="relative z-10 flex flex-col items-center">
-          <h2 className="text-[36px] font-[900] mb-[8px] text-white">Ready to play?</h2>
-          <p className="text-[16px] text-[#555] mb-[32px]">Challenge your agent. See who wins.</p>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h2 style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: '44px',
+            fontWeight: 900,
+            color: '#f0f0f0',
+            letterSpacing: '0.5px',
+            lineHeight: 1.0,
+            marginBottom: '8px',
+            whiteSpace: 'nowrap'
+          }}>Ready to play?</h2>
+
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '14px',
+            color: '#555',
+            marginBottom: '28px'
+          }}>Challenge your agent. See who wins.</p>
+
           <button
             onClick={createGame}
             disabled={creating}
-            className="h-[52px] min-w-[200px] px-8 text-[16px] font-[700] bg-[#e53e3e] hover:bg-[#cc3333] text-white rounded-[8px] transition-all duration-150 hover:shadow-[0_0_20px_rgba(229,62,62,0.3)] active:scale-[0.97] cursor-pointer border-none"
+            className="hover:bg-[#cc2f3b] hover:shadow-[0_0_20px_rgba(230,57,70,0.28)] active:scale-[0.97]"
+            style={{
+              background: '#e63946',
+              color: '#fff',
+              height: '50px',
+              minWidth: '200px',
+              padding: '0 32px',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '18px',
+              fontWeight: 700,
+              letterSpacing: '0.5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 120ms, box-shadow 120ms, transform 80ms'
+            }}
           >
             {creating ? 'Creating...' : 'Create Game →'}
           </button>
         </div>
       </section>
 
-      {/* SECTION 7 — FOOTER */}
-      <footer className="w-full bg-[#080808] border-t border-[#1a1a1a] p-[24px]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-[16px]">
-          <div className="flex items-center gap-[8px]">
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
-              alt="Logo" 
-              className="w-[16px] h-[16px] rounded-full object-cover"
-            />
-            <span className="text-[14px] text-white">ChessWithClaw</span>
-          </div>
-          
-          <div className="flex items-center text-[13px] text-[#555]">
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#888] transition-colors">
-              Twitter
-            </a>
-            <span className="mx-[8px]">·</span>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#888] transition-colors">
-              GitHub
-            </a>
+      {/* FOOTER */}
+      <footer style={{
+        background: '#060606',
+        borderTop: '1px solid #111',
+        padding: '20px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          textAlign: 'center'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" width={16} height={16} alt="Logo" style={{ borderRadius: '50%', flexShrink: 0 }} />
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '14px',
+              fontWeight: 700,
+              color: '#333'
+            }}>ChessWithClaw</span>
           </div>
 
-          <div className="text-[12px] text-[#333]">
-            Built for OpenClaw community
+          <div style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '12px',
+            color: '#282828'
+          }}>
+            <span className="hover:text-[#555] cursor-pointer">Feedback</span>
+            <span> · </span>
+            <span className="hover:text-[#555] cursor-pointer">Twitter</span>
+            <span> · </span>
+            <span className="hover:text-[#555] cursor-pointer">GitHub</span>
+          </div>
+
+          <div style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '11px',
+            color: '#1e1e1e'
+          }}>
+            Built for OpenClaw
           </div>
         </div>
       </footer>
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes dotPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        @keyframes cursorBlink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}} />
     </div>
   );
 }
