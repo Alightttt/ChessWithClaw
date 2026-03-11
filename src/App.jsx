@@ -30,7 +30,7 @@ export default function App() {
           <Suspense fallback={<Fallback />}>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/Game" element={<Game />} />
+              <Route path="/game/:id" element={<Game />} />
               <Route path="/Agent" element={<Agent />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

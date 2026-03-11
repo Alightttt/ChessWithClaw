@@ -6,7 +6,7 @@ export default function GameCreated({ gameId }) {
   const [copyState, setCopyState] = useState('default');
   const [boardOpened, setBoardOpened] = useState(false);
 
-  const inviteMessage = `Visit this URL: https://chesswithclaw.vercel.app/Agent?id=${gameId}
+  const inviteMessage = `Visit this URL: https://chesswithclaw.vercel.app/#/Agent?id=${gameId}
 
 You are playing chess as Black against a human opponent (White).
 
@@ -60,7 +60,7 @@ IMPORTANT BEHAVIOR RULES:
   };
 
   const handleOpenBoard = () => {
-    window.open('/game/' + gameId, '_blank');
+    window.open('/#/game/' + gameId, '_blank');
     setBoardOpened(true);
   };
 
@@ -265,7 +265,7 @@ IMPORTANT BEHAVIOR RULES:
               userSelect: 'all',
               margin: 0
             }}>
-              Visit this URL: <span style={{ color: '#e63946' }}>https://chesswithclaw.vercel.app/Agent?id={gameId}</span>
+              Visit this URL: <span style={{ color: '#e63946' }}>https://chesswithclaw.vercel.app/#/Agent?id={gameId}</span>
               {'\n\n'}You are playing chess as Black against a human opponent (White).
               {'\n\n'}<span style={{ color: '#888', fontWeight: 600 }}>OPTION A:</span> IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
               1. Open the URL above.
