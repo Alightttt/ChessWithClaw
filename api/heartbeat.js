@@ -2,22 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { notifyAgent } from './notify.js';
 import { validateUUID } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders } from './_middleware/headers.js';
+import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
   applyCacheControl(res);
-
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  const origin = req.headers.origin;
-  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  applyCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();

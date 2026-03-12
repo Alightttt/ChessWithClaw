@@ -16,3 +16,15 @@ export function applyRateLimitHeaders(res, limit, remaining, resetTime) {
   res.setHeader('X-RateLimit-Remaining', remaining);
   res.setHeader('X-RateLimit-Reset', Math.floor(resetTime / 1000));
 }
+
+export function applyCorsHeaders(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-game-token');
+}

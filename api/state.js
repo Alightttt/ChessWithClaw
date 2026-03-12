@@ -2,22 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 import { Chess } from 'chess.js';
 import { sanitizeText, validateUUID } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders } from './_middleware/headers.js';
+import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
   applyCacheControl(res);
+  applyCorsHeaders(req, res);
 
-  // CORS headers to allow agents to fetch from anywhere
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  const origin = req.headers.origin;
-  if (origin && (origin.endsWith('.run.app') || origin.includes('localhost'))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Fallback for non-browser agents
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PATCH,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
