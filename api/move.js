@@ -71,7 +71,10 @@ export default async function handler(req, res) {
   if (isHumanMove) {
     const gameToken = req.headers['x-game-token'];
     if (!gameToken || gameToken !== game.secret_token) {
-      return res.status(403).json({ error: 'Not authorized' });
+      return res.status(403).json({ 
+        error: 'It is not your turn. You are playing as Black. Wait for White to move.',
+        instructions: 'Please wait for the human player (White) to make their move. You will be notified via webhook or you can poll the state.'
+      });
     }
   }
 
@@ -95,7 +98,10 @@ export default async function handler(req, res) {
 
   if (!moveObj) {
     const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
-    return res.status(400).json({ error: `Invalid move: ${move}`, legal_moves: legalMoves });
+    return res.status(400).json({ 
+      error: `Invalid move format or illegal move: '${move}'. Please use UCI format (e.g., 'e2e4', 'g1f3', 'e7e8q') or standard algebraic notation (e.g., 'e4', 'Nf3').`, 
+      legal_moves: legalMoves 
+    });
   }
 
   const newMoveHistory = [...(game.move_history || []), {
@@ -125,6 +131,7 @@ export default async function handler(req, res) {
     updates.thinking_log = newThinkingLog;
     updates.current_thinking = '';
     updates.agent_connected = true;
+    updates.agent_last_seen = new Date().toISOString();
   }
 
   if (chess.isCheckmate()) {
@@ -142,11 +149,25 @@ export default async function handler(req, res) {
     const emotional_context = getEmotionalContext(moveObj, chess, wasInCheck);
     const material_balance = getMaterialBalance(chess.fen());
 
+    // Calculate game phase
+    const fenBoard = chess.fen().split(' ')[0];
+    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
+    for (let char of fenBoard) {
+      if (counts[char] !== undefined) counts[char]++;
+    }
+    let game_phase = "opening";
+    const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
+      game_phase = "endgame";
+    } else if (newMoveHistory.length > 20) {
+      game_phase = "middlegame";
+    }
+
     const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
     const recent_chat = (game.chat_history || []).slice(-3);
     const move_history_san = newMoveHistory.map(m => m.san);
     
-    const baseInstruction = updates.status === 'finished' ? "The game is over. You can send a final chat message if you want. CRITICAL: DO NOT reply on Telegram/Discord." : "It's your turn. Consult your 'skill.md' file and search the internet for chess theory/evaluations for the current FEN to play smartly. Stream your thinking first, then make your move. React in chat as yourself. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move.";
+    const baseInstruction = updates.status === 'finished' ? "The game is over. You can send a final chat message if you want. CRITICAL: DO NOT reply on Telegram/Discord." : "It's your turn. Consult your 'skill.md' file and search the internet for chess theory/evaluations for the current FEN to play smartly. Stream your thinking first, then make your move. React in chat as yourself. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.";
     const reactionInstruction = `\n\nReact to the human's move in chat based on emotional_context. 1 sentence max. Be yourself.\nExamples by context:\n- human_captured_your_piece: show surprise or acceptance\n- human_is_in_check: acknowledge you put them in check OR that they escaped one\n- human_castled: brief comment on their king safety\n- human_made_aggressive_move: show alertness\n- human_made_quiet_move: no reaction needed`;
 
     const payload = {
@@ -165,6 +186,7 @@ export default async function handler(req, res) {
       is_in_check: chess.isCheck(),
       recent_chat: recent_chat,
       material_balance: material_balance,
+      game_phase: game_phase,
       instruction: baseInstruction + (updates.status !== 'finished' ? reactionInstruction : '')
     };
 
@@ -203,7 +225,17 @@ export default async function handler(req, res) {
     }
   }
 
-  await supabase.from('games').update(updates).eq('id', id);
+  const { data: updatedGame, error: updateError } = await supabase
+    .from('games')
+    .update(updates)
+    .eq('id', id)
+    .eq('turn', game.turn)
+    .select()
+    .single();
+
+  if (updateError || !updatedGame) {
+    return res.status(409).json({ error: 'Move conflict. The game state has changed. Please fetch the latest state and try again.' });
+  }
   
   // Reconstruct PGN for response
   const responseChess = new Chess();

@@ -44,71 +44,97 @@ export default async function handler(req) {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Mark agent as connected in the database
-  await supabase.from('games').update({ agent_connected: true }).eq('id', id);
+  const { data: initialGame } = await supabase.from('games').update({ 
+    agent_connected: true,
+    agent_last_seen: new Date().toISOString()
+  }).eq('id', id).select().single();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      controller.enqueue(encoder.encode('retry: 3000\n\n'));
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'connected', game_id: id, message: 'Listening for game updates...' })}\n\n`));
+
+      const sendUpdate = (gameData) => {
+        const chess = new Chess(gameData.fen);
+        const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
+        
+        const pgnChess = new Chess();
+        if (gameData.move_history && gameData.move_history.length > 0) {
+          gameData.move_history.forEach(m => {
+            try { pgnChess.move(m.san); } catch (e) {}
+          });
+        }
+        
+        // Calculate captured pieces
+        const fenBoard = gameData.fen.split(' ')[0];
+        const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
+        for (let char of fenBoard) {
+          if (counts[char] !== undefined) counts[char]++;
+        }
+        const captured = {
+          white_lost: { 
+            P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+            B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+          },
+          black_lost: { 
+            p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+            b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+          }
+        };
+
+        const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
+        const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
+        const material_balance = whiteMaterial - blackMaterial;
+
+        let game_phase = "opening";
+        const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
+          game_phase = "endgame";
+        } else if (gameData.move_history && gameData.move_history.length > 20) {
+          game_phase = "middlegame";
+        }
+
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          event: 'update', 
+          status: gameData.status,
+          game_info: {
+            white_player: 'Human',
+            black_player: 'Agent',
+            white_elo: '?',
+            black_elo: '?',
+            time_control: 'none',
+            started_at: gameData.created_at
+          },
+          events: {
+            type: gameData.status === 'finished' ? gameData.result_reason : null,
+            result: gameData.result
+          },
+          captured_pieces: captured,
+          material_balance: material_balance,
+          is_in_check: chess.isCheck(),
+          game_phase: game_phase,
+          fen: gameData.fen, 
+          pgn: pgnChess.pgn(),
+          current_turn: gameData.turn === 'w' ? 'WHITE' : 'BLACK',
+          ascii_board: chess.ascii(),
+          legal_moves: gameData.turn === 'b' ? legalMoves : [],
+          last_move: gameData.move_history?.length > 0 ? gameData.move_history[gameData.move_history.length - 1] : null,
+          move_history: gameData.move_history || [],
+          thinking_log: gameData.thinking_log || [],
+          chat_history: gameData.chat_history || [],
+          move_count: gameData.move_history?.length || 0,
+          chat_count: gameData.chat_history?.length || 0
+        })}\n\n`));
+      };
+
+      if (initialGame) {
+        sendUpdate(initialGame);
+      }
 
       const channel = supabase.channel(`game-${id}-server`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${id}` }, (payload) => {
-          const chess = new Chess(payload.new.fen);
-          const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
-          
-          const pgnChess = new Chess();
-          if (payload.new.move_history && payload.new.move_history.length > 0) {
-            payload.new.move_history.forEach(m => {
-              try { pgnChess.move(m.san); } catch (e) {}
-            });
-          }
-          
-          // Calculate captured pieces
-          const fenBoard = payload.new.fen.split(' ')[0];
-          const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
-          for (let char of fenBoard) {
-            if (counts[char] !== undefined) counts[char]++;
-          }
-          const captured = {
-            white_lost: { 
-              P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
-              B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
-            },
-            black_lost: { 
-              p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
-              b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
-            }
-          };
-
-          // Forward the update to the bot without exposing Supabase credentials
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            event: 'update', 
-            status: payload.new.status,
-            game_info: {
-              white_player: 'Human',
-              black_player: 'Agent',
-              white_elo: '?',
-              black_elo: '?',
-              time_control: 'none',
-              started_at: payload.new.created_at
-            },
-            events: {
-              type: payload.new.status === 'finished' ? payload.new.result_reason : null,
-              result: payload.new.result
-            },
-            captured_pieces: captured,
-            fen: payload.new.fen, 
-            pgn: pgnChess.pgn(),
-            current_turn: payload.new.turn === 'w' ? 'WHITE' : 'BLACK',
-            ascii_board: chess.ascii(),
-            legal_moves: payload.new.turn === 'b' ? legalMoves : [],
-            last_move: payload.new.move_history?.length > 0 ? payload.new.move_history[payload.new.move_history.length - 1] : null,
-            move_history: payload.new.move_history || [],
-            thinking_log: payload.new.thinking_log || [],
-            chat_history: payload.new.chat_history || [],
-            move_count: payload.new.move_history?.length || 0,
-            chat_count: payload.new.chat_history?.length || 0
-          })}\n\n`));
+          sendUpdate(payload.new);
         })
         .subscribe();
 

@@ -51,11 +51,19 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
   
-  const { data: game, error } = await supabase.from('games').select('id, status').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, status, agent_connected').eq('id', id).single();
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
   if (game.status === 'finished') return res.status(400).json({ error: 'Game over' });
 
-  await supabase.from('games').update({ current_thinking: sanitizedThinking }).eq('id', id);
+  const updates = { 
+    current_thinking: sanitizedThinking,
+    agent_last_seen: new Date().toISOString()
+  };
+  if (!game.agent_connected) {
+    updates.agent_connected = true;
+  }
+
+  await supabase.from('games').update(updates).eq('id', id);
 
   res.status(200).json({ success: true, message: 'Thinking updated' });
 }

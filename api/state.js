@@ -51,11 +51,19 @@ export default async function handler(req, res) {
     if (!supabaseUrl.startsWith('http')) supabaseUrl = `https://${supabaseUrl}`;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: game, error } = await supabase.from('games').select('id, status').eq('id', id).single();
+    const { data: game, error } = await supabase.from('games').select('id, status, agent_connected').eq('id', id).single();
     if (error || !game) return res.status(404).json({ error: 'Game not found' });
     if (game.status === 'finished') return res.status(400).json({ error: 'Game over' });
 
-    await supabase.from('games').update({ current_thinking: sanitizedThinking }).eq('id', id);
+    const updates = { 
+      current_thinking: sanitizedThinking,
+      agent_last_seen: new Date().toISOString()
+    };
+    if (!game.agent_connected) {
+      updates.agent_connected = true;
+    }
+
+    await supabase.from('games').update(updates).eq('id', id);
     return res.status(200).json({ success: true, message: 'Thinking updated' });
   }
 
@@ -95,11 +103,12 @@ export default async function handler(req, res) {
 
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
 
-  // If the agent checks the state via API, mark them as connected!
+  const updates = { agent_last_seen: new Date().toISOString() };
   if (!game.agent_connected) {
-    await supabase.from('games').update({ agent_connected: true }).eq('id', id);
+    updates.agent_connected = true;
     game.agent_connected = true;
   }
+  await supabase.from('games').update(updates).eq('id', id);
 
   const chess = new Chess(game.fen);
   
@@ -113,7 +122,7 @@ export default async function handler(req, res) {
   
   const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
 
-  // Calculate captured pieces
+  // Calculate captured pieces and material balance
   const fenBoard = game.fen.split(' ')[0];
   const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
   for (let char of fenBoard) {
@@ -129,9 +138,21 @@ export default async function handler(req, res) {
       b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
     }
   };
+  
+  const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
+  const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
+  const material_balance = whiteMaterial - blackMaterial;
+
+  let game_phase = "opening";
+  const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
+    game_phase = "endgame";
+  } else if (game.move_history && game.move_history.length > 20) {
+    game_phase = "middlegame";
+  }
 
   res.status(200).json({
-    instructions: "You are BLACK. If current_turn is BLACK, choose a move from legal_moves and POST to /api/move. Consult your 'skill.md' and search the internet for chess theory to play smartly. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move.",
+    instructions: "You are BLACK. If current_turn is BLACK, choose a move from legal_moves and POST to /api/move. Consult your 'skill.md' and search the internet for chess theory to play smartly. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
     game_id: id,
     status: game.status,
     game_info: {
@@ -147,6 +168,9 @@ export default async function handler(req, res) {
       result: game.result
     },
     captured_pieces: captured,
+    material_balance: material_balance,
+    is_in_check: chess.isCheck(),
+    game_phase: game_phase,
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
     you_are: 'BLACK',
     fen: game.fen,

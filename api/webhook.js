@@ -37,7 +37,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid game ID format' });
   }
 
-  if (!validateWebhookURL(webhook_url)) {
+  const isValidWebhook = await validateWebhookURL(webhook_url);
+  if (!isValidWebhook) {
     return res.status(400).json({ error: 'Invalid webhook URL' });
   }
 
@@ -72,6 +73,7 @@ export default async function handler(req, res) {
   const updates = { 
     webhook_url: webhook_url,
     agent_connected: true,
+    agent_last_seen: new Date().toISOString(),
     webhook_fail_count: 0,
     webhook_failed: false
   };

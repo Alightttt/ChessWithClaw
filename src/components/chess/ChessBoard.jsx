@@ -2,19 +2,96 @@
 
 import React, { useState, useEffect } from 'react';
 import { Chess } from 'chess.js';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida' }) {
+export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida' }) {
   const [chess, setChess] = useState(new Chess(fen));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
+  const [pieces, setPieces] = useState([]);
 
   useEffect(() => {
-    setChess(new Chess(fen));
+    const newChess = new Chess(fen);
+    setChess(newChess);
     setSelectedSquare(null);
     setLegalMoves([]);
     setPromotionMove(null);
-  }, [fen]);
+    
+    // Generate stable pieces for animation
+    const initialChess = new Chess();
+    const currentPieces = [];
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    
+    for (let r of ranks) {
+      for (let f of files) {
+        const sq = f + r;
+        const p = initialChess.get(sq);
+        if (p) {
+          currentPieces.push({ id: `${p.color}${p.type}-${sq}`, type: p.type, color: p.color, square: sq });
+        }
+      }
+    }
+    
+    if (moveHistory && moveHistory.length > 0) {
+      for (const move of moveHistory) {
+        // Handle capture
+        const isEnPassant = move.san && move.san.includes('x') && !move.san.includes('=') && move.san[0] >= 'a' && move.san[0] <= 'h' && move.to[1] !== (move.color === 'w' ? '8' : '1') && initialChess.get(move.to) === null;
+        let capturedSquare = move.to;
+        if (isEnPassant) {
+          capturedSquare = move.to[0] + move.from[1];
+        }
+        
+        // Remove captured piece if any
+        const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== move.from);
+        if (capturedIndex !== -1) {
+          currentPieces.splice(capturedIndex, 1);
+        }
+        
+        // Update moved piece
+        const pieceIndex = currentPieces.findIndex(p => p.square === move.from);
+        if (pieceIndex !== -1) {
+          currentPieces[pieceIndex].square = move.to;
+          
+          // Handle promotion
+          if (move.uci && move.uci.length > 4) {
+            currentPieces[pieceIndex].type = move.uci[4];
+          }
+          
+          // Handle castling
+          if (move.san === 'O-O' || move.san === 'O-O-O') {
+            let rookFrom, rookTo;
+            if (move.to === 'g1') { rookFrom = 'h1'; rookTo = 'f1'; }
+            else if (move.to === 'c1') { rookFrom = 'a1'; rookTo = 'd1'; }
+            else if (move.to === 'g8') { rookFrom = 'h8'; rookTo = 'f8'; }
+            else if (move.to === 'c8') { rookFrom = 'a8'; rookTo = 'd8'; }
+            
+            const rookIndex = currentPieces.findIndex(p => p.square === rookFrom);
+            if (rookIndex !== -1) {
+              currentPieces[rookIndex].square = rookTo;
+            }
+          }
+        }
+      }
+    } else {
+      // If no move history (e.g. custom FEN), just use the current board state
+      const customPieces = [];
+      for (let r of ranks) {
+        for (let f of files) {
+          const sq = f + r;
+          const p = newChess.get(sq);
+          if (p) {
+            customPieces.push({ id: `${p.color}${p.type}-${sq}`, type: p.type, color: p.color, square: sq });
+          }
+        }
+      }
+      setPieces(customPieces);
+      return;
+    }
+    
+    setPieces(currentPieces);
+  }, [fen, moveHistory]);
 
   const pieceMap = {
     wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -67,7 +144,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
   
   const isLegalDestination = (sq) => legalMoves.some(m => m.to === sq);
   const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
-  const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && chess.inCheck();
+  const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && chess.isCheck();
 
   const themes = {
     green: { light: '#eeeed2', dark: '#769656' },
@@ -129,15 +206,12 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
               >
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 bg-[#e63946]/40 z-0" />}
-                {!isSelected && isLast && <div className="absolute inset-0 bg-[#e63946]/25 z-0" />}
+                {!isSelected && isLast && <div className="absolute inset-0 bg-yellow-400/40 z-0" />}
                 {isCheck && <div className="absolute inset-0 bg-[#e63946] opacity-60 animate-pulse z-0" />}
                 
                 {/* Legal move indicators */}
                 {isLegal && !isCap && <div className="absolute w-[25%] h-[25%] rounded-full bg-[#e63946]/60 z-0" />}
                 {isLegal && isCap && <div className="absolute inset-0 border-[6px] border-[#e63946]/60 opacity-80 z-0" />}
-
-                {/* Piece */}
-                {renderPiece(piece)}
 
                 {/* Coordinates */}
                 {showCoordinates && col === 0 && (
@@ -155,6 +229,28 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, showCoordi
           })
         )}
         </div>
+        
+        {/* Pieces Layer */}
+        {pieces.map((piece) => {
+          const fileIndex = files.indexOf(piece.square[0]);
+          const rankIndex = ranks.indexOf(piece.square[1]);
+          const left = `${(fileIndex / 8) * 100}%`;
+          const top = `${(rankIndex / 8) * 100}%`;
+          
+          return (
+            <motion.div
+              key={piece.id}
+              layout
+              initial={false}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10"
+              style={{ left, top }}
+            >
+              {renderPiece(piece)}
+            </motion.div>
+          );
+        })}
+
         {promotionMove && (
           <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
             <div className="bg-[var(--color-bg-surface)] p-4 rounded-xl flex gap-4 border border-[var(--color-border-subtle)] shadow-2xl">

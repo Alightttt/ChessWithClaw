@@ -52,6 +52,7 @@ export default function Game() {
   const [confirmResign, setConfirmResign] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [isMoving, setIsMoving] = useState(false);
   
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
@@ -59,12 +60,13 @@ export default function Game() {
   const boardRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const thinkingScrollRef = useRef(null);
+  const channelRef = useRef(null);
 
-  // Calculate Board Size
+  // Calculate Board Size and Viewport Height
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
       
       const usedHeight =
         52 +   // header
@@ -78,11 +80,20 @@ export default function Game() {
       const maxW = vw - 24;
       
       setBoardSize(Math.min(maxW, maxH, 460));
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     
     calc();
     window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', calc);
+    }
+    return () => {
+      window.removeEventListener('resize', calc);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', calc);
+      }
+    };
   }, []);
 
   // Auto-scroll chat
@@ -167,7 +178,7 @@ export default function Game() {
     if (currentMoveCount > prevMoveCountRef.current) {
       const chess = new Chess(game.fen);
       const lastMove = game.move_history[currentMoveCount - 1];
-      if (chess.inCheck()) playSound('check');
+      if (chess.isCheck()) playSound('check');
       else if (lastMove && lastMove.san.includes('x')) playSound('capture');
       else playSound('move');
     }
@@ -175,8 +186,34 @@ export default function Game() {
     prevStatusRef.current = game.status;
   }, [game, playSound]);
 
-  // Load Game & Supabase Subscription
-  const channelRef = useRef(null);
+  // Agent Timeout Check
+  const [agentTimeout, setAgentTimeout] = useState(false);
+  useEffect(() => {
+    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === 'w') {
+      setAgentTimeout(false);
+      return;
+    }
+    
+    const checkTimeout = () => {
+      const lastUpdated = new Date(game.agent_last_seen || game.updated_at || game.created_at).getTime();
+      if (Date.now() - lastUpdated > 120000) { // 2 minutes
+        setAgentTimeout(true);
+      } else {
+        setAgentTimeout(false);
+      }
+    };
+    
+    checkTimeout();
+    const interval = setInterval(checkTimeout, 5000);
+    return () => clearInterval(interval);
+  }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at]);
+
+  const handleClaimVictory = async () => {
+    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+      status: 'finished', result: 'white', result_reason: 'abandoned'
+    }).eq('id', gameId);
+    setAgentTimeout(false);
+  };
   
   useEffect(() => {
     if (!gameId) {
@@ -196,7 +233,7 @@ export default function Game() {
         setNotFound(true);
       } else {
         setGame(data);
-        if (data.status === 'finished') setGameOver(true);
+        if (data.status === 'finished' || data.status === 'abandoned') setGameOver(true);
         await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: true }).eq('id', gameId);
       }
       setLoading(false);
@@ -214,7 +251,7 @@ export default function Game() {
         if (!payload.new.human_connected) {
           getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: true }).eq('id', gameId);
         }
-        if (payload.new.status === 'finished') setGameOver(true);
+        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') setGameOver(true);
       }).subscribe();
     };
 
@@ -240,17 +277,22 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== 'w' || game.status !== 'active' && game.status !== 'waiting') return;
+    if (isMoving) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
       return;
     }
 
+    setIsMoving(true);
     const chess = new Chess(game.fen);
     try {
       const moveObj = promotion ? { from, to, promotion } : { from, to };
       const move = chess.move(moveObj);
-      if (!move) return;
+      if (!move) {
+        setIsMoving(false);
+        return;
+      }
 
       const newMoveHistory = [...(game.move_history || []), {
         number: Math.floor((game.move_history || []).length / 2) + 1,
@@ -305,6 +347,8 @@ export default function Game() {
       }
     } catch (e) {
       toast.error('Illegal move or failed to submit');
+    } finally {
+      setIsMoving(false);
     }
   };
 
@@ -406,7 +450,7 @@ export default function Game() {
 
   return (
     <div style={{
-      height: '100dvh',
+      height: 'var(--vh, 100dvh)',
       overflowY: 'auto',
       overflowX: 'hidden',
       paddingBottom: '48px',
@@ -508,18 +552,30 @@ export default function Game() {
             <div style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: !game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#f59e0b'))
+              color: agentTimeout ? '#e63946' : (!game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#f59e0b')))
             }}>
-              {!game.agent_connected ? "Waiting to join..." : 
+              {agentTimeout ? "Agent seems offline" :
+               !game.agent_connected ? "Waiting to join..." : 
                game.turn === 'w' ? "Watching your move" : 
                (!game.current_thinking ? "Deciding..." : "Thinking...")}
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {agentTimeout && game.status === 'active' && (
+              <button 
+                onClick={handleClaimVictory}
+                style={{
+                  background: '#e63946', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px',
+                  fontFamily: "'Barlow Condensed', sans-serif", fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Claim Win
+              </button>
+            )}
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
-              background: !game.agent_connected ? '#1e1e1e' : (game.current_thinking ? '#e63946' : '#22c55e')
+              background: agentTimeout ? '#e63946' : (!game.agent_connected ? '#1e1e1e' : (game.current_thinking ? '#e63946' : '#22c55e'))
             }}>
               {game.agent_connected && (
                 <div style={{
@@ -619,9 +675,23 @@ export default function Game() {
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
             lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
+            moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
           />
+          {(game.status === 'finished' || game.status === 'abandoned') && (
+            <div style={{
+              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10
+            }}>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '32px', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>
+                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
+              </div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#e63946', marginTop: '4px', fontWeight: 600 }}>
+                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === 'white' ? 'You won by ' : 'Agent won by ') + game.result_reason)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -681,9 +751,15 @@ export default function Game() {
                   borderRadius: isHuman ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
                   padding: '7px 10px', maxWidth: '78%',
                   fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: isHuman ? '#bbb' : '#999', lineHeight: 1.4,
-                  animation: 'msgSlide 200ms ease both'
+                  animation: 'msgSlide 200ms ease both',
+                  display: 'flex', flexDirection: 'column', gap: '4px'
                 }}>
-                  {msg.text}
+                  <div>{msg.text}</div>
+                  {msg.timestamp && (
+                    <div style={{ fontSize: '9px', color: '#555', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -789,7 +865,13 @@ export default function Game() {
         borderTop: '1px solid #161616', padding: '0 14px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50
       }}>
-        {game.turn === 'w' ? (
+        {game.status === 'finished' || game.status === 'abandoned' ? (
+          <div style={{
+            background: '#181818', border: '1px solid #222', color: '#e63946', height: '26px', padding: '0 10px', borderRadius: '6px',
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>GAME OVER</div>
+        ) : game.turn === 'w' ? (
           <div style={{
             background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
@@ -888,7 +970,7 @@ export default function Game() {
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 onClick={handleDraw}
-                disabled={game?.status === 'finished'}
+                disabled={game?.status === 'finished' || game?.status === 'abandoned'}
                 variant="secondary"
                 className={confirmDraw ? 'bg-yellow-600/20 text-yellow-500 border-yellow-600/50 hover:bg-yellow-600/30' : ''}
               >
@@ -896,7 +978,7 @@ export default function Game() {
               </Button>
               <Button 
                 onClick={handleResign}
-                disabled={game?.status === 'finished'}
+                disabled={game?.status === 'finished' || game?.status === 'abandoned'}
                 variant="danger"
                 className={confirmResign ? 'animate-pulse' : ''}
                 leftIcon={!confirmResign && <Flag size={16} />}

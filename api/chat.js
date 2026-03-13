@@ -76,6 +76,7 @@ export default async function handler(req, res) {
   const updates = { chat_history: newHistory };
   if (sender === 'agent') {
     updates.agent_connected = true;
+    updates.agent_last_seen = new Date().toISOString();
   }
 
   if (sender === 'human') {

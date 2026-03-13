@@ -59,6 +59,7 @@ export default async function handler(req, res) {
   }
 
   // Mark agent as connected only if not already connected
+  const initialUpdates = { agent_last_seen: new Date().toISOString() };
   if (!initialGame.agent_connected) {
     const payload = {
       event: "game_started",
@@ -67,9 +68,11 @@ export default async function handler(req, res) {
     };
     const enrichedPayload = await notifyAgent(initialGame, payload, supabase);
     const newPendingEvents = [...(initialGame.pending_events || []), enrichedPayload];
-    await supabase.from('games').update({ agent_connected: true, pending_events: newPendingEvents }).eq('id', id);
+    initialUpdates.agent_connected = true;
+    initialUpdates.pending_events = newPendingEvents;
     initialGame.pending_events = newPendingEvents;
   }
+  await supabase.from('games').update(initialUpdates).eq('id', id);
 
   const currentMoveCount = initialGame.move_history ? initialGame.move_history.length : 0;
   const currentChatCount = initialGame.chat_history ? initialGame.chat_history.length : 0;
@@ -91,6 +94,35 @@ export default async function handler(req, res) {
       });
     }
 
+    // Calculate captured pieces
+    const fenBoard = initialGame.fen.split(' ')[0];
+    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
+    for (let char of fenBoard) {
+      if (counts[char] !== undefined) counts[char]++;
+    }
+    const captured = {
+      white_lost: { 
+        P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+        B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+      },
+      black_lost: { 
+        p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+        b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+      }
+    };
+
+    const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
+    const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
+    const material_balance = whiteMaterial - blackMaterial;
+
+    let game_phase = "opening";
+    const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
+      game_phase = "endgame";
+    } else if (initialGame.move_history && initialGame.move_history.length > 20) {
+      game_phase = "middlegame";
+    }
+
     const pendingEvents = initialGame.pending_events || [];
     if (pendingEvents.length > 0) {
       await supabase.from('games').update({ pending_events: [] }).eq('id', id);
@@ -98,12 +130,18 @@ export default async function handler(req, res) {
     
     return res.status(200).json({
       event: 'update',
-      instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move.",
+      instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
       status: initialGame.status,
       fen: initialGame.fen,
       pgn: pgnChess.pgn(),
+      ascii_board: chess.ascii(),
+      is_in_check: chess.isCheck(),
+      captured_pieces: captured,
+      material_balance: material_balance,
+      game_phase: game_phase,
       current_turn: initialGame.turn === 'w' ? 'WHITE' : 'BLACK',
       legal_moves: initialGame.turn === 'b' ? legalMoves : [],
+      last_move: initialGame.move_history?.length > 0 ? initialGame.move_history[initialGame.move_history.length - 1] : null,
       move_history: initialGame.move_history || [],
       chat_history: initialGame.chat_history || [],
       move_count: currentMoveCount,
@@ -128,8 +166,8 @@ export default async function handler(req, res) {
     ).subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         timeoutId = setTimeout(() => {
-          resolve(initialGame); // Timeout after 15s
-        }, 15000);
+          resolve(initialGame); // Timeout after 8s
+        }, 8000);
       }
     });
   });
@@ -149,6 +187,35 @@ export default async function handler(req, res) {
     });
   }
 
+  // Calculate captured pieces
+  const fenBoard = finalGame.fen.split(' ')[0];
+  const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
+  for (let char of fenBoard) {
+    if (counts[char] !== undefined) counts[char]++;
+  }
+  const captured = {
+    white_lost: { 
+      P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
+      B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
+    },
+    black_lost: { 
+      p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
+      b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
+    }
+  };
+
+  const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
+  const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
+  const material_balance = whiteMaterial - blackMaterial;
+
+  let game_phase = "opening";
+  const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
+    game_phase = "endgame";
+  } else if (finalGame.move_history && finalGame.move_history.length > 20) {
+    game_phase = "middlegame";
+  }
+
   const pendingEvents = finalGame.pending_events || [];
   if (pendingEvents.length > 0) {
     await supabase.from('games').update({ pending_events: [] }).eq('id', id);
@@ -163,13 +230,19 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     event: hasChanges ? 'update' : 'timeout',
-    instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move.",
+    instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
     message: hasChanges ? undefined : 'No changes. Please poll again.',
     status: finalGame.status,
     fen: finalGame.fen,
     pgn: finalPgnChess.pgn(),
+    ascii_board: finalChess.ascii(),
+    is_in_check: finalChess.isCheck(),
+    captured_pieces: captured,
+    material_balance: material_balance,
+    game_phase: game_phase,
     current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
     legal_moves: finalGame.turn === 'b' ? finalLegalMoves : [],
+    last_move: finalGame.move_history?.length > 0 ? finalGame.move_history[finalGame.move_history.length - 1] : null,
     move_history: finalGame.move_history || [],
     chat_history: finalGame.chat_history || [],
     move_count: finalMoveCount,
