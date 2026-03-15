@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Github, Link as LinkIcon, Menu, X } from 'lucide-react';
+import { Link as LinkIcon, Menu, X } from 'lucide-react';
 import { Button } from './ui';
 
 export default function AppHeader() {
@@ -44,15 +44,6 @@ export default function AppHeader() {
           {/* Right: Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             <a 
-              href="https://github.com/OpenClaw/OpenClaw" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
-            >
-              <Github size={18} />
-              GitHub
-            </a>
-            <a 
               href="https://clawhub.ai" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -81,16 +72,6 @@ export default function AppHeader() {
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
           <div className="absolute top-[72px] left-0 right-0 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-subtle)] p-4 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-200">
-            <a 
-              href="https://github.com/OpenClaw/OpenClaw" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] font-medium"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Github size={20} />
-              GitHub
-            </a>
             <a 
               href="https://clawhub.ai" 
               target="_blank" 

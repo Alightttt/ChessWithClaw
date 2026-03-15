@@ -138,20 +138,6 @@ export default function Home() {
             }}>ChessWithClaw</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <a href="https://github.com/Alightttt/ChessWithClaw"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '12px',
-                color: '#444',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-              className="hover:text-[#777]"
-            >GitHub</a>
-            
             <button 
               onClick={createGame} 
               onMouseEnter={() => setIsHoveringPlay(true)}
@@ -586,7 +572,7 @@ export default function Home() {
           </div>
         </div>
 
-        <a href="https://github.com/openclaw" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{
+        <a href="https://clawhub.ai" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: '13px',
           fontWeight: 600,
@@ -696,8 +682,6 @@ export default function Home() {
             <span className="hover:text-[#555] cursor-pointer">Feedback</span>
             <span> · </span>
             <span className="hover:text-[#555] cursor-pointer">Twitter</span>
-            <span> · </span>
-            <span className="hover:text-[#555] cursor-pointer">GitHub</span>
           </div>
 
           <div style={{

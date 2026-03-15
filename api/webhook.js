@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { notifyAgent } from './notify.js';
-import { sanitizeText, validateUUID, validateWebhookURL } from './_utils/sanitize.js';
+import { sanitizeText, validateUUID } from './_utils/sanitize.js';
+import { validateWebhookURL } from './_utils/validateWebhook.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
 
