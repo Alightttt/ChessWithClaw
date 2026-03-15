@@ -3,22 +3,130 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ChessWithClaw</title>
-    <meta property="og:title" content="ChessWithClaw — Play Chess With Your AI Agent" />
-    <meta property="og:description" content="Challenge your personal OpenClaw agent to a real-time chess match. Who plays better — you or your AI?" />
-    <meta property="og:image" content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
-    <meta property="og:url" content="https://chesswithclaw.vercel.app" />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ChessWithClaw — Play Chess With Your AI Agent" />
-    <meta name="twitter:description" content="Challenge your personal OpenClaw agent to a real-time chess match. Who plays better — you or your AI?" />
-    <meta name="twitter:image" content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
+    
+    <!-- Title -->
+    <title>ChessWithClaw — Play Chess vs Your AI Agent</title>
+
+    <!-- Primary SEO -->
+    <meta name="description" 
+      content="Challenge your OpenClaw AI agent to a real chess match. Real moves. Real rivalry. No signup required.">
+    <meta name="keywords" 
+      content="chess AI, OpenClaw agent, play chess, AI chess rival, real-time chess">
+    <meta name="author" content="ChessWithClaw">
+    <link rel="canonical" href="https://chesswithclaw.vercel.app">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chesswithclaw.vercel.app">
+    <meta property="og:title" 
+      content="ChessWithClaw — Play Chess vs Your AI Agent">
+    <meta property="og:description" 
+      content="Your OpenClaw is waiting. Real moves. Real rivalry. No signup.">
+    <meta property="og:image" 
+      content="https://chesswithclaw.vercel.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="ChessWithClaw">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" 
+      content="ChessWithClaw — Play Chess vs Your AI Agent">
+    <meta name="twitter:description" 
+      content="Your OpenClaw is waiting. Real moves. Real rivalry.">
+    <meta name="twitter:image" 
+      content="https://chesswithclaw.vercel.app/og-image.png">
+
+    <!-- Mobile/PWA -->
+    <meta name="theme-color" content="#080808">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" 
+      content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ChessWithClaw">
+    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="manifest" href="/manifest.json">
+
     <link rel="icon" type="image/png" sizes="32x32" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet">
+    
+    <style>
+      :root {
+        --bg:       #080808;
+        --surface:  #111111;
+        --elevated: #181818;
+        --border:   #1c1c1c;
+        --red:      #e63946;
+        --green:    #22c55e;
+        --amber:    #f59e0b;
+        --blue:     #3b82f6;
+        --text:     #f0f0f0;
+        --muted:    #555555;
+        --dim:      #2a2a2a;
+        
+        --font-display: 'Barlow Condensed', sans-serif;
+        --font-body:    'DM Sans', sans-serif;
+        --font-mono:    'JetBrains Mono', monospace;
+        
+        --r-sm:  6px;
+        --r-md:  10px;
+        --r-lg:  14px;
+        --r-xl:  20px;
+        
+        --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-out:    cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      *, *::before, *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      html { scroll-behavior: smooth; }
+      
+      body {
+        background: #080808;
+        color: #f0f0f0;
+        font-family: 'DM Sans', sans-serif;
+        overflow-x: hidden;
+      }
+      
+      button, a, [role="button"] { 
+        touch-action: manipulation;
+        user-select: none;
+        cursor: pointer;
+      }
+      
+      button:active { 
+        transform: scale(0.96);
+        transition: transform 80ms ease;
+      }
+      
+      ::-webkit-scrollbar { display: none; }
+      * { scrollbar-width: none; }
+      
+      @keyframes rippleAnim {
+        to { transform: scale(2.5); opacity: 0; }
+      }
+      
+      @keyframes dotPulse {
+        0%,100% { opacity: 1; }
+        50%      { opacity: 0.3; }
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      @keyframes presencePing {
+        0%  { box-shadow: 0 0 0 0 rgba(230,57,70,0.3); }
+        70% { box-shadow: 0 0 0 8px rgba(230,57,70,0); }
+        100%{ box-shadow: 0 0 0 0 rgba(230,57,70,0); }
+      }
+    </style>
   </head>
   <body className="bg-zinc-950 text-white antialiased">
     <div id="root"></div>

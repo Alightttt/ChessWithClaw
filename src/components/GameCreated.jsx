@@ -1,10 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useRipple } from '../hooks/useRipple';
 
 export default function GameCreated({ gameId, agentToken }) {
   const [copyState, setCopyState] = useState('default');
   const [boardOpened, setBoardOpened] = useState(false);
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [isOpeningBoard, setIsOpeningBoard] = useState(false);
+  const createRipple = useRipple();
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    // Initial fetch
+    const fetchGame = async () => {
+      const { data } = await supabase
+        .from('games')
+        .select('agent_connected')
+        .eq('id', gameId)
+        .single();
+      
+      if (data?.agent_connected) {
+        setAgentConnected(true);
+      }
+    };
+    fetchGame();
+
+    // Subscribe to changes
+    const subscription = supabase
+      .channel(`game-${gameId}-created`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'games',
+        filter: `id=eq.${gameId}`
+      }, (payload) => {
+        if (payload.new.agent_connected) {
+          setAgentConnected(true);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [gameId]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const inviteMessage = `Visit this URL: ${origin}/Agent?id=${gameId}&token=${agentToken}
@@ -74,8 +116,12 @@ IMPORTANT BEHAVIOR RULES:
   };
 
   const handleOpenBoard = () => {
-    window.open(`/game/${gameId}`, '_blank');
-    setBoardOpened(true);
+    setIsOpeningBoard(true);
+    setTimeout(() => {
+      window.open(`/game/${gameId}`, '_blank');
+      setBoardOpened(true);
+      setIsOpeningBoard(false);
+    }, 600);
   };
 
   const handleBack = () => {
@@ -131,7 +177,7 @@ IMPORTANT BEHAVIOR RULES:
             color: '#f0f0f0',
             whiteSpace: 'nowrap'
           }}>
-            Game Ready! 🎉
+            Summon Your Agent 🦞
           </div>
 
           <div style={{
@@ -173,10 +219,10 @@ IMPORTANT BEHAVIOR RULES:
               display: 'block', textAlign: 'center', marginTop: '3px',
               fontFamily: "'DM Sans', sans-serif", fontSize: '9px',
               color: '#e63946'
-            }}>Created</span>
+            }}>Ready</span>
           </div>
 
-          <div style={{ flex: 1, height: '1px', marginTop: '13px', background: boardOpened ? '#e63946' : '#1a1a1a' }}></div>
+          <div style={{ flex: 1, height: '1px', marginTop: '13px', background: boardOpened ? '#e63946' : '#1a1a1a', transition: 'background 300ms ease' }}></div>
 
           {/* Step 2: Board */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -198,9 +244,9 @@ IMPORTANT BEHAVIOR RULES:
             }}>Board</span>
           </div>
 
-          <div style={{ flex: 1, height: '1px', marginTop: '13px', background: '#1a1a1a' }}></div>
+          <div style={{ flex: 1, height: '1px', marginTop: '13px', background: boardOpened ? '#e63946' : '#1a1a1a', transition: 'background 300ms ease' }}></div>
 
-          {/* Step 3: Agent */}
+          {/* Step 3: Connection */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{
               width: '26px', height: '26px',
@@ -209,15 +255,17 @@ IMPORTANT BEHAVIOR RULES:
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
               fontFamily: "'DM Sans', sans-serif",
-              background: '#111',
-              border: '1px solid #1c1c1c',
-              color: '#2a2a2a'
-            }}>3</div>
+              background: agentConnected ? '#e63946' : '#111',
+              border: agentConnected ? 'none' : (boardOpened ? '2px solid #e63946' : '1px solid #1c1c1c'),
+              color: agentConnected ? 'white' : (boardOpened ? '#e63946' : '#2a2a2a'),
+              transition: 'all 300ms ease'
+            }}>{agentConnected ? '✓' : '3'}</div>
             <span style={{
               display: 'block', textAlign: 'center', marginTop: '3px',
               fontFamily: "'DM Sans', sans-serif", fontSize: '9px',
-              color: '#2a2a2a'
-            }}>Agent</span>
+              color: agentConnected ? '#e63946' : (boardOpened ? '#777' : '#2a2a2a'),
+              transition: 'color 300ms ease'
+            }}>Connection</span>
           </div>
         </div>
 
@@ -248,7 +296,7 @@ IMPORTANT BEHAVIOR RULES:
             color: '#f0f0f0',
             letterSpacing: '0.3px',
             marginBottom: '5px'
-          }}>Invite Your Agent 🦞</h2>
+          }}>Invite Your OpenClaw 🦞</h2>
           
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -363,7 +411,9 @@ IMPORTANT BEHAVIOR RULES:
           border: '1px solid #1c1c1c',
           borderRadius: '12px',
           padding: '16px',
-          marginBottom: '8px'
+          marginBottom: '8px',
+          opacity: boardOpened ? 0.5 : 1,
+          transition: 'opacity 300ms'
         }}>
           <div style={{
             display: 'inline-block',
@@ -384,7 +434,7 @@ IMPORTANT BEHAVIOR RULES:
             color: '#f0f0f0',
             letterSpacing: '0.3px',
             marginBottom: '5px'
-          }}>Open the Board</h2>
+          }}>Open Your Board</h2>
           
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -395,9 +445,12 @@ IMPORTANT BEHAVIOR RULES:
           }}>Your game board is ready. Open it in a new tab.</p>
 
           <button
-            onClick={handleOpenBoard}
-            className={!boardOpened ? "hover:bg-[#cc2f3b]" : ""}
+            onClick={(e) => { createRipple(e); handleOpenBoard(); }}
+            disabled={boardOpened || isOpeningBoard}
+            className={!boardOpened && !isOpeningBoard ? "hover:bg-[#cc2f3b] active:scale-[0.98]" : ""}
             style={{
+              position: 'relative',
+              overflow: 'hidden',
               background: boardOpened ? 'rgba(34,197,94,0.08)' : '#e63946',
               color: boardOpened ? '#22c55e' : 'white',
               width: '100%',
@@ -408,16 +461,135 @@ IMPORTANT BEHAVIOR RULES:
               fontSize: '16px',
               fontWeight: 700,
               letterSpacing: '0.3px',
-              cursor: boardOpened ? 'default' : 'pointer',
-              transition: 'background 120ms',
-              pointerEvents: boardOpened ? 'none' : 'auto'
+              cursor: boardOpened || isOpeningBoard ? 'default' : 'pointer',
+              transition: 'background 120ms, transform 80ms',
+              pointerEvents: boardOpened || isOpeningBoard ? 'none' : 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            {boardOpened ? '✓ Board Open' : 'OPEN BOARD →'}
+            {isOpeningBoard ? (
+              <>
+                <div className="animate-spin" style={{
+                  width: '14px', height: '14px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#fff',
+                  borderRadius: '50%'
+                }} />
+                Opening...
+              </>
+            ) : boardOpened ? '✓ Arena Open' : 'OPEN BOARD →'}
+          </button>
+        </div>
+
+        {/* CARD 3 — CONNECTION */}
+        <div style={{
+          background: '#111111',
+          border: '1px solid #1c1c1c',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '8px',
+          transition: 'opacity 300ms'
+        }}>
+          <div style={{
+            display: 'inline-block',
+            background: 'rgba(230,57,70,0.1)',
+            border: '1px solid rgba(230,57,70,0.15)',
+            borderRadius: '5px',
+            padding: '2px 7px',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '10px',
+            color: '#e63946',
+            marginBottom: '10px'
+          }}>3</div>
+          
+          <h2 style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#f0f0f0',
+            letterSpacing: '0.3px',
+            marginBottom: '5px'
+          }}>{agentConnected ? 'Connection Established' : 'Waiting for Your OpenClaw'}</h2>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginTop: '16px',
+            padding: '12px',
+            background: agentConnected ? 'rgba(34,197,94,0.05)' : '#0c0c0c',
+            border: `1px solid ${agentConnected ? 'rgba(34,197,94,0.2)' : '#181818'}`,
+            borderRadius: '8px',
+            transition: 'all 300ms ease'
+          }}>
+            <div style={{
+              width: '40px', height: '40px',
+              background: agentConnected ? 'rgba(34,197,94,0.1)' : '#181818', 
+              border: `1px solid ${agentConnected ? 'rgba(34,197,94,0.3)' : '#222'}`,
+              borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '22px', flexShrink: 0,
+              animation: agentConnected ? 'arrive 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' : 'float 3s ease-in-out infinite',
+              transition: 'all 300ms ease'
+            }}>
+              🦞
+            </div>
+            <div>
+              <div style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                fontWeight: 600,
+                color: agentConnected ? '#22c55e' : '#e0e0e0',
+                transition: 'color 300ms ease'
+              }}>{agentConnected ? 'Your OpenClaw is here! ✓' : "Your OpenClaw hasn't arrived yet..."}</div>
+              <div style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: agentConnected ? 'rgba(34,197,94,0.7)' : '#666',
+                marginTop: '2px',
+                transition: 'color 300ms ease'
+              }}>{agentConnected ? 'The game is ready to begin.' : 'Send them the invite above to bring them here.'}</div>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleOpenBoard}
+            className="hover:bg-[#1a1a1a]"
+            style={{
+              background: '#151515',
+              color: '#f0f0f0',
+              width: '100%',
+              height: '42px',
+              borderRadius: '8px',
+              border: '1px solid #222',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '16px',
+              fontWeight: 700,
+              letterSpacing: '0.3px',
+              cursor: 'pointer',
+              transition: 'background 120ms',
+              marginTop: '16px'
+            }}
+          >
+            Go on Chess board →
           </button>
         </div>
 
       </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+          100% { transform: translateY(0px); }
+        }
+        @keyframes arrive {
+          0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+          60% { transform: scale(1.1) translateY(-5px); opacity: 1; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+      `}} />
     </div>
   );
 }

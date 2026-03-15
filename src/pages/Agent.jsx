@@ -210,7 +210,7 @@ export default function Agent() {
         clearTimeout(thinkingTimeoutRef.current);
       }
     };
-  }, [gameId, toast]);
+  }, [gameId, toast, agentToken]);
 
   const thinkingTimeoutRef = useRef(null);
 

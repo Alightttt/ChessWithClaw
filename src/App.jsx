@@ -45,11 +45,11 @@ const Fallback = () => (
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <Routes location={location} key={location.key}>
-      <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-      <Route path="/game/:id" element={<PageTransition><Game /></PageTransition>} />
-      <Route path="/Agent" element={<PageTransition><Agent /></PageTransition>} />
-      <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+    <Routes location={location}>
+      <Route path="/" element={<PageTransition key={location.key}><Home /></PageTransition>} />
+      <Route path="/game/:id" element={<PageTransition key={location.key}><Game /></PageTransition>} />
+      <Route path="/Agent" element={<PageTransition key={location.key}><Agent /></PageTransition>} />
+      <Route path="*" element={<PageTransition key={location.key}><NotFound /></PageTransition>} />
     </Routes>
   );
 }

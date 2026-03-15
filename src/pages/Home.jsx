@@ -1,10 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { Copy, Check } from 'lucide-react';
 import { supabase, hasSupabase } from '../lib/supabase';
 import GameCreated from '../components/GameCreated';
+import { useRipple } from '../hooks/useRipple';
+
+const useFadeIn = (delay = 0) => {
+  const ref = useRef(null)
+  const [vis, setVis] = useState(false)
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setVis(true), delay)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.12 }
+    )
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [delay])
+  
+  const style = {
+    opacity: vis ? 1 : 0,
+    transform: vis ? 'translateY(0)' : 'translateY(22px)',
+    transition: 'opacity 380ms cubic-bezier(0.22,1,0.36,1), ' +
+                'transform 380ms cubic-bezier(0.22,1,0.36,1)',
+    willChange: 'opacity, transform'
+  }
+  
+  return [ref, style]
+}
 
 export default function Home() {
   const [gameId, setGameId] = useState(null);
@@ -13,6 +43,29 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isHoveringPlay, setIsHoveringPlay] = useState(false);
+  const createRipple = useRipple();
+
+  const [scrollPct, setScrollPct] = useState(0)
+
+  useEffect(() => {
+    const handler = () => {
+      const el = document.documentElement
+      const pct = (el.scrollTop / 
+        (el.scrollHeight - el.clientHeight)) * 100
+      setScrollPct(Math.min(pct, 100))
+    }
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
+  const [proofRef, proofStyle] = useFadeIn(0)
+  const [howRef, howStyle] = useFadeIn(0)
+  const [skillRef, skillStyle] = useFadeIn(0)
+  const [ctaRef, ctaStyle] = useFadeIn(0)
+  
+  const [card1Ref, card1Style] = useFadeIn(0)
+  const [card2Ref, card2Style] = useFadeIn(80)
+  const [card3Ref, card3Style] = useFadeIn(160)
 
   const agentUrl = `${window.location.origin}/Agent?id=${gameId}`;
 
@@ -101,6 +154,17 @@ export default function Home() {
       minHeight: '100vh',
       overflowX: 'hidden'
     }}>
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        height: '2px',
+        width: scrollPct + '%',
+        background: '#e63946',
+        boxShadow: '0 0 6px rgba(230,57,70,0.6)',
+        zIndex: 200,
+        pointerEvents: 'none',
+        transition: 'width 60ms linear'
+      }} />
       {/* HEADER */}
       <header style={{
         position: 'fixed',
@@ -139,10 +203,12 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
-              onClick={createGame} 
+              onClick={(e) => { createRipple(e); createGame(); }} 
               onMouseEnter={() => setIsHoveringPlay(true)}
               onMouseLeave={() => setIsHoveringPlay(false)}
               style={{
+                position: 'relative',
+                overflow: 'hidden',
                 background: isHoveringPlay ? '#cc2f3b' : '#e63946',
                 color: '#ffffff',
                 height: '30px',
@@ -173,6 +239,38 @@ export default function Home() {
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* LAYER 1 — Chess grid texture */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.025,
+          backgroundImage: `
+            linear-gradient(45deg,#fff 25%,transparent 25%),
+            linear-gradient(-45deg,#fff 25%,transparent 25%),
+            linear-gradient(45deg,transparent 75%,#fff 75%),
+            linear-gradient(-45deg,transparent 75%,#fff 75%)
+          `,
+          backgroundSize: '40px 40px',
+          backgroundPosition: '0 0, 0 20px, 20px -20px, -20px 0px',
+          pointerEvents: 'none', zIndex: 0
+        }} />
+
+        {/* LAYER 2 — Red glow */}
+        <div style={{
+          position: 'absolute', top: '10%', left: '-5%',
+          width: '280px', height: '200px',
+          background: 'radial-gradient(ellipse, rgba(230,57,70,0.08) 0%, transparent 70%)',
+          filter: 'blur(32px)',
+          pointerEvents: 'none', zIndex: 0
+        }} />
+
+        {/* LAYER 3 — Dim glow */}
+        <div style={{
+          position: 'absolute', bottom: '5%', right: '-10%',
+          width: '220px', height: '160px',
+          background: 'radial-gradient(ellipse, rgba(230,57,70,0.04) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+          pointerEvents: 'none', zIndex: 0
+        }} />
+
         <div style={{
           padding: '52px 20px 48px',
           position: 'relative',
@@ -201,7 +299,7 @@ export default function Home() {
               fontWeight: 500,
               color: '#e63946',
               whiteSpace: 'nowrap'
-            }}>Live chess vs your AI</span>
+            }}>Your OpenClaw is waiting ♟</span>
           </div>
 
           <h1 style={{ margin: 0 }}>
@@ -246,8 +344,61 @@ export default function Home() {
             maxWidth: '380px',
             marginBottom: '36px'
           }}>
-            Challenge your custom OpenClaw agent to a real-time chess match. Test its logic, reasoning, and strategic depth.
+            Your OpenClaw is on the other side. Real moves. Real rivalry.
           </p>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            margin: '18px 0 28px 0'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+              <div style={{
+                width: '40px', height: '40px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid #1e1e1e',
+                borderRadius: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '18px'
+              }}>👤</div>
+              <span style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '10px',
+                color: '#2a2a2a',
+                display: 'block',
+                textAlign: 'center'
+              }}>You</span>
+            </div>
+            
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '13px',
+              fontWeight: 800,
+              color: '#1a1a1a',
+              letterSpacing: '3px',
+              flexShrink: 0,
+              marginBottom: '14px'
+            }}>VS</span>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+              <div className="animate-[presencePing_2.5s_ease-out_infinite]" style={{
+                width: '40px', height: '40px',
+                background: 'rgba(230,57,70,0.06)',
+                border: '1px solid rgba(230,57,70,0.15)',
+                borderRadius: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '18px'
+              }}>🦞</div>
+              <span style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '10px',
+                color: '#e63946',
+                display: 'block',
+                textAlign: 'center'
+              }}>Your OpenClaw</span>
+            </div>
+          </div>
 
           <div style={{
             display: 'flex',
@@ -256,10 +407,12 @@ export default function Home() {
             maxWidth: '380px'
           }}>
             <button
-              onClick={createGame}
+              onClick={(e) => { createRipple(e); createGame(); }}
               disabled={creating}
               className="hover:scale-[1.02] active:scale-[0.98]"
               style={{
+                position: 'relative',
+                overflow: 'hidden',
                 background: 'linear-gradient(135deg, #e63946 0%, #cc2f3b 100%)',
                 color: '#fff',
                 height: '54px',
@@ -297,14 +450,15 @@ export default function Home() {
                 transition: 'all 200ms ease'
               }}
             >
-              See how it works
+              How it works
             </button>
           </div>
         </div>
       </section>
 
       {/* PROOF BAR */}
-      <section style={{
+      <section ref={proofRef} style={{
+        ...proofStyle,
         background: '#0d0d0d',
         borderTop: '1px solid #161616',
         borderBottom: '1px solid #161616',
@@ -316,24 +470,25 @@ export default function Home() {
         justifyContent: 'center',
         width: '100%'
       }}>
-        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 8px' }}>
           <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>REALTIME</span>
           <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Move by move</span>
         </div>
         <div style={{ width: '1px', height: '22px', background: '#1a1a1a', flexShrink: 0 }}></div>
-        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 8px' }}>
           <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>AGENTS</span>
           <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Every style</span>
         </div>
-        <div style={{ width: '1px', height: '22px', background: '#1a1a1a', flexShrink: 0 }}></div>
-        <div style={{ flex: 1, textAlign: 'center', padding: '0 4px' }}>
+        <div className="proof-mobile-hide" style={{ width: '1px', height: '22px', background: '#1a1a1a', flexShrink: 0 }}></div>
+        <div className="proof-mobile-hide" style={{ flex: 1, textAlign: 'center', padding: '0 8px' }}>
           <span style={{ display: 'block', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, color: '#d0d0d0', letterSpacing: '1px', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1 }}>MOBILE</span>
           <span style={{ display: 'block', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', color: '#333', marginTop: '3px', whiteSpace: 'nowrap' }}>Any device</span>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" style={{
+      <section id="how-it-works" ref={howRef} style={{
+        ...howStyle,
         background: '#080808',
         padding: '56px 20px 48px'
       }}>
@@ -359,7 +514,8 @@ export default function Home() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Card 1 */}
-          <div className="hover:border-[#2a2a2a]" style={{
+          <div ref={card1Ref} className="hover:border-[#2a2a2a]" style={{
+            ...card1Style,
             background: '#111111',
             border: '1px solid #1c1c1c',
             borderRadius: '12px',
@@ -397,7 +553,8 @@ export default function Home() {
           </div>
 
           {/* Card 2 */}
-          <div className="hover:border-[#2a2a2a]" style={{
+          <div ref={card2Ref} className="hover:border-[#2a2a2a]" style={{
+            ...card2Style,
             background: '#111111',
             border: '1px solid #1c1c1c',
             borderRadius: '12px',
@@ -425,17 +582,18 @@ export default function Home() {
               letterSpacing: '0.3px',
               marginTop: '12px',
               marginBottom: '4px'
-            }}>Invite Your Agent</h3>
+            }}>Invite Your OpenClaw</h3>
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '13px',
               color: '#555',
               lineHeight: 1.5
-            }}>Send the link to your OpenClaw. It joins and connects automatically.</p>
+            }}>Send the link to your OpenClaw on Telegram or wherever it lives.</p>
           </div>
 
           {/* Card 3 */}
-          <div className="hover:border-[#2a2a2a]" style={{
+          <div ref={card3Ref} className="hover:border-[#2a2a2a]" style={{
+            ...card3Style,
             background: '#111111',
             border: '1px solid #1c1c1c',
             borderRadius: '12px',
@@ -463,7 +621,7 @@ export default function Home() {
               letterSpacing: '0.3px',
               marginTop: '12px',
               marginBottom: '4px'
-            }}>Play and Compete</h3>
+            }}>Play Live Together</h3>
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '13px',
@@ -475,7 +633,8 @@ export default function Home() {
       </section>
 
       {/* INSTALL SKILL SECTION */}
-      <section style={{
+      <section ref={skillRef} style={{
+        ...skillStyle,
         background: '#0a0a0a',
         borderTop: '1px solid #161616',
         padding: '56px 20px 48px'
@@ -505,7 +664,7 @@ export default function Home() {
           fontSize: '13px',
           color: '#555',
           marginBottom: '20px'
-        }}>Install play-chess once. Your agent handles everything.</p>
+        }}>Install once. Your OpenClaw handles every move.</p>
 
         <div style={{
           background: '#0c0c0c',
@@ -584,7 +743,8 @@ export default function Home() {
       </section>
 
       {/* FINAL CTA SECTION */}
-      <section style={{
+      <section ref={ctaRef} style={{
+        ...ctaStyle,
         background: '#080808',
         borderTop: '1px solid #161616',
         padding: '72px 20px',
@@ -619,13 +779,15 @@ export default function Home() {
             fontSize: '14px',
             color: '#555',
             marginBottom: '28px'
-          }}>Challenge your agent. See who wins.</p>
+          }}>Your OpenClaw is ready. Are you?</p>
 
           <button
-            onClick={createGame}
+            onClick={(e) => { createRipple(e); createGame(); }}
             disabled={creating}
             className="hover:bg-[#cc2f3b] hover:shadow-[0_0_20px_rgba(230,57,70,0.28)] active:scale-[0.97]"
             style={{
+              position: 'relative',
+              overflow: 'hidden',
               background: '#e63946',
               color: '#fff',
               height: '50px',
@@ -702,6 +864,11 @@ export default function Home() {
         @keyframes cursorBlink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
+        }
+        @keyframes presencePing {
+          0%  { box-shadow: 0 0 0 0 rgba(230,57,70,0.25) }
+          70% { box-shadow: 0 0 0 8px rgba(230,57,70,0) }
+          100%{ box-shadow: 0 0 0 0 rgba(230,57,70,0) }
         }
       `}} />
     </div>

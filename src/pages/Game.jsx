@@ -9,6 +9,7 @@ import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import { Button, Card, Modal, StatusDot, Divider, Badge } from '../components/ui';
+import { useRipple } from '../hooks/useRipple';
 
 function GameTimer({ startTime, status }) {
   const [elapsed, setElapsed] = useState(0);
@@ -53,14 +54,20 @@ export default function Game() {
   const [confirmDraw, setConfirmDraw] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isMoving, setIsMoving] = useState(false);
+  const [justConnected, setJustConnected] = useState(false);
+  const [agentTimedOut, setAgentTimedOut] = useState(false);
+  const createRipple = useRipple();
   
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
   const prevStatusRef = useRef('waiting');
+  const prevAgentConnected = useRef(false);
   const boardRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const thinkingScrollRef = useRef(null);
   const channelRef = useRef(null);
+  const agentTimerRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Calculate Board Size and Viewport Height
   useEffect(() => {
@@ -84,12 +91,20 @@ export default function Game() {
     };
     
     calc();
-    window.addEventListener('resize', calc);
+
+    const observer = new ResizeObserver(() => {
+      calc();
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', calc);
     }
     return () => {
-      window.removeEventListener('resize', calc);
+      observer.disconnect();
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', calc);
       }
@@ -236,6 +251,54 @@ export default function Game() {
     }).eq('id', gameId);
     setAgentTimeout(false);
   };
+
+  useEffect(() => {
+    if (!game) return;
+    
+    // Clear existing timer
+    if (agentTimerRef.current) {
+      clearTimeout(agentTimerRef.current);
+      agentTimerRef.current = null;
+    }
+
+    // If it's the agent's turn (black) and game is active
+    if (game.turn === 'b' && game.status === 'active') {
+      agentTimerRef.current = setTimeout(() => {
+        setAgentTimedOut(true);
+      }, 90000); // 90 seconds
+    } else {
+      setAgentTimedOut(false);
+    }
+
+    return () => {
+      if (agentTimerRef.current) {
+        clearTimeout(agentTimerRef.current);
+      }
+    };
+  }, [game]);
+
+  useEffect(() => {
+    if (!game) return;
+    const agentName = game.agent_name || 'OpenClaw';
+    if (game.status === 'finished' || game.status === 'abandoned') {
+      document.title = 'Game Over | ChessWithClaw';
+    } else if (game.turn === 'w') {
+      document.title = 'Your Turn | ChessWithClaw';
+    } else {
+      document.title = `${agentName} is thinking... | ChessWithClaw`;
+    }
+  }, [game]);
+
+  useEffect(() => {
+    if (game && prevAgentConnected.current === false && game.agent_connected === true) {
+      toast.success(`${game.agent_name || 'Your OpenClaw'} has arrived!`);
+      setJustConnected(true);
+      setTimeout(() => setJustConnected(false), 1000);
+    }
+    if (game) {
+      prevAgentConnected.current = game.agent_connected;
+    }
+  }, [game, toast]);
   
   useEffect(() => {
     if (!gameId) {
@@ -560,7 +623,7 @@ export default function Game() {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif", gap: '16px' }}>
         <div style={{ fontSize: '20px', fontWeight: 600 }}>Game not found</div>
-        <button onClick={() => navigate('/')} style={{ background: '#e63946', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={(e) => { createRipple(e); navigate('/'); }} className="hover:bg-[#cc2f3b] active:scale-[0.98]" style={{ position: 'relative', overflow: 'hidden', background: '#e63946', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'all 120ms' }}>
           Go Home
         </button>
       </div>
@@ -573,7 +636,9 @@ export default function Game() {
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
 
   return (
-    <div style={{
+    <div 
+      ref={containerRef}
+      style={{
       height: 'var(--vh, 100dvh)',
       overflowY: 'auto',
       overflowX: 'hidden',
@@ -659,9 +724,10 @@ export default function Game() {
             width: '32px', height: '32px',
             background: '#181818', border: '1px solid #222',
             borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', flexShrink: 0
+            fontSize: '18px', flexShrink: 0,
+            animation: justConnected ? 'bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
           }}>
-            {game.agent_avatar || '🤖'}
+            {game.agent_avatar || '🦞'}
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -671,27 +737,30 @@ export default function Game() {
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               lineHeight: 1
             }}>
-              {game.agent_name || 'YOUR AGENT'}
+              {game.agent_name || 'YOUR OPENCLAW'}
             </div>
             <div style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#e63946' : (!game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#f59e0b')))
+              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#e63946')))
             }}>
-              {agentTimeout ? "Agent seems offline" :
-               !game.agent_connected ? "Waiting to join..." : 
-               game.turn === 'w' ? "Watching your move" : 
-               (!game.current_thinking ? "Deciding..." : "Thinking...")}
+              {agentTimeout ? "⏱ Agent delayed" :
+               !game.agent_connected ? (<span>Not here yet... <span style={{color: '#555'}}>Send them the invite link.</span></span>) : 
+               game.turn === 'w' ? "Watching you..." : 
+               (<span>Thinking<span className="animate-pulse">...</span></span>)}
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {agentTimeout && game.status === 'active' && (
               <button 
-                onClick={handleClaimVictory}
+                onClick={(e) => { createRipple(e); handleClaimVictory(); }}
+                className="hover:bg-[#cc2f3b] active:scale-[0.98]"
                 style={{
+                  position: 'relative', overflow: 'hidden',
                   background: '#e63946', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px',
-                  fontFamily: "'Barlow Condensed', sans-serif", fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+                  fontFamily: "'Barlow Condensed', sans-serif", fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  transition: 'all 120ms'
                 }}
               >
                 Claim Win
@@ -699,12 +768,12 @@ export default function Game() {
             )}
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
-              background: agentTimeout ? '#e63946' : (!game.agent_connected ? '#1e1e1e' : (game.current_thinking ? '#e63946' : '#22c55e'))
+              background: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#1e1e1e' : (game.current_thinking ? '#e63946' : '#22c55e'))
             }}>
               {game.agent_connected && (
                 <div style={{
                   position: 'absolute', inset: '-3px', borderRadius: '50%',
-                  background: game.current_thinking ? '#e63946' : '#22c55e',
+                  background: agentTimeout ? '#f59e0b' : (game.current_thinking ? '#e63946' : '#22c55e'),
                   opacity: 0,
                   animation: `ripple ${game.current_thinking ? '1s' : '2s'} ease-out infinite`
                 }}></div>
@@ -737,14 +806,34 @@ export default function Game() {
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>Agent not connected yet.</div>
               <button 
-                onClick={copyInvite}
+                onClick={(e) => { createRipple(e); copyInvite(); }}
+                className="hover:bg-[#1a1a1a] active:scale-[0.98]"
                 style={{
+                  position: 'relative', overflow: 'hidden',
                   width: '100%', height: '30px', background: '#141414', border: '1px solid #1c1c1c',
                   borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#3a3a3a', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
-                  marginTop: '8px', cursor: 'pointer', transition: 'color 150ms'
+                  marginTop: '8px', cursor: 'pointer', transition: 'all 150ms'
                 }}
               >
                 {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
+              </button>
+            </div>
+          ) : agentTimedOut ? (
+            <div style={{ padding: '12px 0', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#d97706', marginBottom: '8px' }}>
+                Agent seems delayed. They might have disconnected or crashed.
+              </div>
+              <button 
+                onClick={(e) => { createRipple(e); copyInvite(); }}
+                className="hover:bg-[#1a1a1a] active:scale-[0.98]"
+                style={{
+                  position: 'relative', overflow: 'hidden',
+                  width: '100%', height: '30px', background: '#141414', border: '1px solid #1c1c1c',
+                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#3a3a3a', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
+                  cursor: 'pointer', transition: 'all 150ms'
+                }}
+              >
+                {copiedInvite ? 'Copied!' : 'Copy Agent Link'}
               </button>
             </div>
           ) : !game.current_thinking && !lastThinking ? (
@@ -832,7 +921,10 @@ export default function Game() {
           height: '38px', padding: '0 14px', borderBottom: '1px solid #111',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
         }}>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Live Chat</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Chat with {game.agent_name || "your agent"}</span>
+            <span style={{ fontSize: '12px' }}>{game.agent_avatar || '🦞'}</span>
+          </div>
           {unreadCount > 0 && (
             <span style={{ background: '#e63946', color: 'white', borderRadius: '99px', padding: '1px 6px', fontFamily: "'DM Sans', sans-serif", fontSize: '10px', fontWeight: 700 }}>
               {unreadCount}
@@ -849,8 +941,8 @@ export default function Game() {
         >
           {!(game.chat_history || []).length ? (
             <div style={{ margin: 'auto', textAlign: 'center' }}>
-              <span style={{ fontSize: '20px', color: '#1a1a1a', display: 'block', marginBottom: '5px' }}>♟</span>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222' }}>No messages yet</span>
+              <span style={{ fontSize: '20px', color: '#1a1a1a', display: 'block', marginBottom: '5px' }}>{game.agent_avatar || '🦞'}</span>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222' }}>{game.agent_name || "Your OpenClaw"} can chat while playing</span>
             </div>
           ) : (
             (game.chat_history || []).map((msg, i) => {
@@ -868,20 +960,25 @@ export default function Game() {
                 );
               }
               return (
-                <div key={i} style={{
-                  alignSelf: isHuman ? 'flex-end' : 'flex-start',
-                  background: isHuman ? '#160c0c' : '#131313',
-                  border: `1px solid ${isHuman ? 'rgba(230,57,70,0.1)' : '#1a1a1a'}`,
-                  borderRadius: isHuman ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
-                  padding: '7px 10px', maxWidth: '78%',
-                  fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: isHuman ? '#bbb' : '#999', lineHeight: 1.4,
-                  animation: 'msgSlide 200ms ease both',
-                  display: 'flex', flexDirection: 'column', gap: '4px'
-                }}>
-                  <div>{msg.text}</div>
-                  {msg.timestamp && (
-                    <div style={{ fontSize: '9px', color: '#555', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', maxWidth: '78%', animation: 'msgSlide 200ms ease both', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{
+                    background: isHuman ? '#160c0c' : '#131313',
+                    border: `1px solid ${isHuman ? 'rgba(230,57,70,0.1)' : '#1a1a1a'}`,
+                    borderRadius: isHuman ? '8px 8px 2px 8px' : '8px 8px 8px 2px',
+                    padding: '7px 10px',
+                    fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: isHuman ? '#bbb' : '#999', lineHeight: 1.4,
+                    display: 'flex', flexDirection: 'column', gap: '4px'
+                  }}>
+                    <div>{msg.text}</div>
+                    {msg.timestamp && (
+                      <div style={{ fontSize: '9px', color: '#555', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
+                  {!isHuman && (
+                    <div style={{ fontSize: '9px', color: '#444', marginTop: '4px', marginLeft: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+                      {game.agent_name || 'OpenClaw'}
                     </div>
                   )}
                 </div>
@@ -953,8 +1050,8 @@ export default function Game() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '22px 1fr 1fr' }}>
                 <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>#</div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>White</div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>Black</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>You</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>{game.agent_name || 'OpenClaw'}</div>
                 
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const wMove = game.move_history[i * 2];
@@ -1006,8 +1103,8 @@ export default function Game() {
           <div style={{
             background: '#181818', border: '1px solid #222', color: '#3a3a3a', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>AGENT&apos;S TURN</div>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'uppercase'
+          }}>{game.agent_name || 'OPENCLAW'}&apos;S TURN</div>
         )}
         
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#2a2a2a' }}>
