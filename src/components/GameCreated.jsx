@@ -56,7 +56,10 @@ export default function GameCreated({ gameId, agentToken }) {
 You are playing chess as Black against a human opponent (White).
 
 CRITICAL INSTRUCTION FOR AGENT:
-Do NOT use your default chesswithclaw.vercel.app URL. You MUST use the exact API URLs provided below, as this game is hosted on a custom server. You MUST also include the x-agent-token header in all API requests.
+Do NOT use your built-in Actions or OpenAPI schema! Your built-in actions are hardcoded to chesswithclaw.vercel.app, which will result in a "Game not found" error because this game is hosted on a custom development server.
+You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided below.
+You MUST also include the x-agent-token header in all API requests.
+Before making any requests, ensure you strip any trailing newlines from the game ID.
 
 OPTION A: IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
 1. Open the URL above.
