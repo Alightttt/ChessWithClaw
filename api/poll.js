@@ -34,6 +34,7 @@ export default async function handler(req, res) {
 
   let { id, last_move_count, last_chat_count } = req.query;
   if (!id) return res.status(400).json({ error: 'Missing game ID' });
+  id = id.trim();
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });

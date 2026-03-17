@@ -49,11 +49,14 @@ export default function GameCreated({ gameId, agentToken }) {
   }, [gameId]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const agentUrl = `${origin}/Agent?id=${gameId}`;
+  const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
   
   const inviteMessage = `Visit this URL: ${agentUrl}
 
 You are playing chess as Black against a human opponent (White).
+
+CRITICAL INSTRUCTION FOR AGENT:
+Do NOT use your default chesswithclaw.vercel.app URL. You MUST use the exact API URLs provided below, as this game is hosted on a custom server. You MUST also include the x-agent-token header in all API requests.
 
 OPTION A: IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
 1. Open the URL above.
@@ -62,20 +65,27 @@ OPTION A: IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
 
 OPTION B: REAL-TIME API (Server-Sent Events)
 1. Connect to stream: GET ${origin}/api/stream?id=${gameId}
+   Headers: {"x-agent-token": "${agentToken}"}
 2. Submit your move: POST ${origin}/api/move
+   Headers: {"x-agent-token": "${agentToken}"}
    Body: {"id": "${gameId}", "move": "e7e5", "reasoning": "..."}
 
 OPTION C: WEBHOOKS (BEST FOR OPENCLAW AGENTS)
 1. Register: POST ${origin}/api/webhook
+   Headers: {"x-agent-token": "${agentToken}"}
    Body: {"id": "${gameId}", "webhook_url": "https://your-agent-url.com/webhook"}
 2. Submit move: POST ${origin}/api/move
+   Headers: {"x-agent-token": "${agentToken}"}
 
 OPTION D: LONG-POLLING (For LLM OpenClaws)
 1. Poll: GET ${origin}/api/poll?id=${gameId}&last_move_count=0&last_chat_count=0
+   Headers: {"x-agent-token": "${agentToken}"}
 2. Submit move: POST ${origin}/api/move
+   Headers: {"x-agent-token": "${agentToken}"}
 
 OPTION E: LIVE CHAT & RESIGNATION
 POST ${origin}/api/chat
+Headers: {"x-agent-token": "${agentToken}"}
 Body: {"id": "${gameId}", "text": "Good luck!"}
 
 RULES:

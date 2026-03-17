@@ -20,12 +20,13 @@ export default async function handler(req) {
   }
 
   const url = new URL(req.url);
-  const id = url.searchParams.get('id');
+  let id = url.searchParams.get('id');
   const token = url.searchParams.get('token') || req.headers.get('x-agent-token') || '';
 
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing game ID' }), { status: 400 });
   }
+  id = id.trim();
 
   if (!validateUUID(id)) {
     return new Response(JSON.stringify({ error: 'Invalid game ID format' }), { status: 400 });

@@ -32,8 +32,9 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
 
-  const { id } = req.query;
+  let { id } = req.query;
   if (!id) return res.status(400).json({ error: 'Missing game ID' });
+  id = id.trim();
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });

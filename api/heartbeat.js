@@ -30,8 +30,9 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  const { id, role } = req.body || {};
+  let { id, role } = req.body || {};
   if (!id || !role) return res.status(400).json({ error: 'Missing id or role in JSON body' });
+  id = id.trim();
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });

@@ -50,7 +50,7 @@ export default function Home() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const agentUrl = `${window.location.origin}/Agent?id=${gameId}`;
+  const agentUrl = `${window.location.origin}/Agent?id=${gameId}&token=${agentToken}`;
 
   const createGame = async () => {
     if (!hasSupabase) {
