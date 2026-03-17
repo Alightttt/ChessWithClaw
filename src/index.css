@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=optional');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,45 +6,35 @@
 
 @layer base {
   :root {
-    --bg: #080808;
-    --surface: #111111;
-    --elevated: #181818;
-    --border: #1c1c1c;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --elevated: #1e1e1e;
+    --border: #242424;
+    --border-strong: #333333;
     --red: #e63946;
-    --green: #22c55e;
-    --amber: #f59e0b;
-    --text: #f0f0f0;
-    --muted: #555555;
-    --dim: #2a2a2a;
-    
-    /* Map old variables to new ones to avoid breaking existing Tailwind classes temporarily */
-    --color-bg-base: var(--bg);
-    --color-bg-surface: var(--surface);
-    --color-bg-elevated: var(--elevated);
-    --color-bg-hover: var(--dim);
-    
-    --color-border-subtle: var(--border);
-    --color-border-default: var(--muted);
-    
-    --color-text-primary: var(--text);
-    --color-text-secondary: var(--muted);
-    --color-text-muted: var(--dim);
-    
-    --color-red-primary: var(--red);
-    --color-red-hover: #c53030;
+    --red-dim: rgba(230,57,70,0.12);
+    --text-primary: #f2f2f2;
+    --text-secondary: #888888;
+    --text-muted: #444444;
+    --green-light: #739552;
+    --green-dark: #577047;
+
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   }
 
   body {
-    @apply bg-[var(--bg)] text-[var(--text)] antialiased;
-    font-family: 'DM Sans', sans-serif;
+    @apply bg-[var(--bg)] text-[var(--text-primary)] antialiased;
+    font-family: var(--font-sans);
   }
 
-  h1, h2, h3, h4, h5, h6, button {
-    font-family: 'Barlow Condensed', sans-serif;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
   }
 
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
   }
 }
 

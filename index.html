@@ -51,24 +51,25 @@
     <link rel="icon" type="image/png" sizes="16x16" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
       :root {
-        --bg:       #080808;
-        --surface:  #111111;
-        --elevated: #181818;
-        --border:   #1c1c1c;
-        --red:      #e63946;
-        --green:    #22c55e;
-        --amber:    #f59e0b;
-        --blue:     #3b82f6;
-        --text:     #f0f0f0;
-        --muted:    #555555;
-        --dim:      #2a2a2a;
+        --bg:          #0a0a0a;
+        --surface:     #141414;
+        --elevated:    #1e1e1e;
+        --border:      #242424;
+        --border-strong: #333333;
+        --red:         #e63946;
+        --red-dim:     rgba(230,57,70,0.12);
+        --text-primary: #f2f2f2;
+        --text-secondary: #888888;
+        --text-muted:  #444444;
+        --green-light: #739552;
+        --green-dark:  #577047;
         
-        --font-display: 'Barlow Condensed', sans-serif;
-        --font-body:    'DM Sans', sans-serif;
+        --font-display: 'Playfair Display', serif;
+        --font-body:    'Inter', sans-serif;
         --font-mono:    'JetBrains Mono', monospace;
         
         --r-sm:  6px;
@@ -88,9 +89,9 @@
       html { scroll-behavior: smooth; }
       
       body {
-        background: #080808;
-        color: #f0f0f0;
-        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-body);
         overflow-x: hidden;
       }
       

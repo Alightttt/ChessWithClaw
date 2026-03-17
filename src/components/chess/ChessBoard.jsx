@@ -147,11 +147,10 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && chess.isCheck();
 
   const themes = {
-    green: { light: '#eeeed2', dark: '#769656' },
-    classic: { light: '#f0d9b5', dark: '#b58863' },
-    blue: { light: '#dee3e6', dark: '#8ca2ad' },
-    purple: { light: '#e1d5e6', dark: '#8a789a' },
-    monochrome: { light: '#e0e0e0', dark: '#888888' },
+    green: { light: '#739552', dark: '#577047' },
+    brown: { light: '#f0d9b5', dark: '#b58863' },
+    slate: { light: '#8ca2ad', dark: '#4f6f7e' },
+    navy: { light: '#9db2c2', dark: '#445b73' },
   };
 
   const currentTheme = themes[boardTheme] || themes.green;

@@ -75,18 +75,27 @@ export default function Game() {
       const vw = window.innerWidth;
       const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
       
-      const usedHeight =
-        52 +   // header
-        100 +  // agent section (merged, collapsed)
-        48 +   // status bar
-        44 +   // chat header
-        44 +   // move history header
-        24;    // padding
+      let maxH, maxW;
       
-      const maxH = vh - usedHeight;
-      const maxW = vw - 24;
+      if (vw >= 1024) {
+        // Desktop: Board is in a flex container next to a 360px sidebar
+        const usedHeight = 52 + 64 + 100; // header + padding + top/bottom info
+        maxH = vh - usedHeight;
+        maxW = vw - 360 - 64; // sidebar width + padding
+      } else {
+        // Mobile
+        const usedHeight =
+          52 +   // header
+          100 +  // agent section (merged, collapsed)
+          48 +   // status bar
+          44 +   // chat header
+          44 +   // move history header
+          24;    // padding
+        maxH = vh - usedHeight;
+        maxW = vw - 24;
+      }
       
-      setBoardSize(Math.min(maxW, maxH, 460));
+      setBoardSize(Math.max(280, Math.min(maxW, maxH, 800)));
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     
@@ -638,13 +647,10 @@ export default function Game() {
   return (
     <div 
       ref={containerRef}
+      className="flex flex-col"
       style={{
       height: 'var(--vh, 100dvh)',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      paddingBottom: '48px',
-      scrollbarWidth: 'none',
-      WebkitOverflowScrolling: 'touch',
+      overflow: 'hidden',
       background: '#080808'
     }}>
       
@@ -707,8 +713,11 @@ export default function Game() {
         </button>
       </header>
 
-      {/* FIX 3 — MERGED AGENT SECTION */}
-      <div style={{
+      <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
+        {/* LEFT COLUMN: BOARD */}
+        <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative">
+          {/* FIX 3 — MERGED AGENT SECTION */}
+          <div style={{
         background: '#111111',
         borderBottom: '1px solid #161616',
         overflow: 'hidden'
@@ -869,10 +878,11 @@ export default function Game() {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
+        alignItems: 'center',
         padding: '10px 12px',
         background: '#080808',
         flexShrink: 0
-      }}>
+      }} className="lg:flex-1 lg:h-full">
         <div style={{
           position: 'relative',
           width: `${boardSize}px`,
@@ -907,16 +917,18 @@ export default function Game() {
           )}
         </div>
       </div>
+      </div>
 
-      {/* FIX 5 — LIVE CHAT */}
-      <div style={{
+      {/* RIGHT COLUMN: SIDEBAR */}
+      <div className="w-full lg:w-[360px] flex flex-col bg-[#0d0d0d] border-t lg:border-t-0 lg:border-l border-[#161616] flex-shrink-0 lg:h-full lg:overflow-hidden">
+        {/* FIX 5 — LIVE CHAT */}
+        <div style={{
         background: '#0d0d0d',
         borderTop: '1px solid #161616',
         display: 'flex',
         flexDirection: 'column',
-        height: '200px',
         flexShrink: 0
-      }}>
+      }} className="h-[200px] lg:h-1/2 lg:border-t-0 lg:order-2">
         <div style={{
           height: '38px', padding: '0 14px', borderBottom: '1px solid #111',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
@@ -1020,14 +1032,17 @@ export default function Game() {
       {/* FIX 6 — MOVE HISTORY */}
       <div style={{
         background: '#111111',
-        borderTop: '1px solid #161616'
-      }}>
+        borderTop: '1px solid #161616',
+        display: 'flex',
+        flexDirection: 'column'
+      }} className="lg:flex-1 lg:overflow-hidden lg:order-1">
         <div 
           onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
           style={{
             height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation'
           }}
+          className="lg:pointer-events-none"
         >
           <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Move History</span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1035,7 +1050,7 @@ export default function Game() {
               background: '#181818', border: '1px solid #1c1c1c', borderRadius: '6px', padding: '2px 7px',
               fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#3a3a3a'
             }}>{(game.move_history || []).length}</span>
-            <ChevronDown size={14} color="#2a2a2a" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }} />
+            <ChevronDown size={14} color="#2a2a2a" className="lg:hidden" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }} />
           </div>
         </div>
 
@@ -1043,8 +1058,8 @@ export default function Game() {
           maxHeight: moveHistoryOpen ? '200px' : '0px',
           overflow: 'hidden',
           transition: 'max-height 220ms cubic-bezier(0.4, 0, 0.2, 1)'
-        }}>
-          <div style={{ padding: '8px 12px', overflowY: 'auto', maxHeight: '200px', scrollbarWidth: 'none' }}>
+        }} className="lg:!max-h-none lg:flex-1 lg:flex lg:flex-col">
+          <div style={{ padding: '8px 12px', overflowY: 'auto', scrollbarWidth: 'none' }} className="max-h-[200px] lg:max-h-none lg:flex-1">
             {!(game.move_history || []).length ? (
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222', textAlign: 'center', padding: '10px 0' }}>No moves yet</div>
             ) : (
@@ -1078,14 +1093,11 @@ export default function Game() {
           </div>
         </div>
       </div>
+      </div>
+      </div>
 
       {/* FIX 7 — STATUS BAR */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, height: '48px',
-        background: 'rgba(8,8,8,0.96)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        borderTop: '1px solid #161616', padding: '0 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50
-      }}>
+      <div className="fixed lg:relative bottom-0 left-0 right-0 h-[48px] bg-[#080808]/96 backdrop-blur-md border-t border-[#161616] px-4 flex items-center justify-between z-50 flex-shrink-0">
         {game.status === 'finished' || game.status === 'abandoned' ? (
           <div style={{
             background: '#181818', border: '1px solid #222', color: '#e63946', height: '26px', padding: '0 10px', borderRadius: '6px',
@@ -1123,13 +1135,12 @@ export default function Game() {
             <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Preferences</h3>
             <div className="space-y-2">
               <label className="text-sm text-[var(--color-text-secondary)]">Board Theme</label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {[
-                  { id: 'green', colors: ['#eeeed2', '#769656'] },
-                  { id: 'classic', colors: ['#f0d9b5', '#b58863'] },
-                  { id: 'blue', colors: ['#dee3e6', '#8ca2ad'] },
-                  { id: 'purple', colors: ['#e1d5e6', '#8a789a'] },
-                  { id: 'monochrome', colors: ['#e0e0e0', '#888888'] }
+                  { id: 'green', colors: ['#f0d9b5', '#739552'] },
+                  { id: 'brown', colors: ['#f0d9b5', '#b58863'] },
+                  { id: 'slate', colors: ['#8ca2ad', '#4f6f7e'] },
+                  { id: 'navy', colors: ['#9db2c2', '#445b73'] }
                 ].map(theme => (
                   <button
                     key={theme.id}
