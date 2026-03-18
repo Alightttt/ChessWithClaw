@@ -16,7 +16,7 @@ const useFadeIn = (delay = 0) => {
           observer.disconnect();
         }
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -25,7 +25,7 @@ const useFadeIn = (delay = 0) => {
   const style = {
     opacity: vis ? 1 : 0,
     transform: vis ? 'translateY(0)' : 'translateY(20px)',
-    transition: 'opacity 380ms cubic-bezier(0.22,1,0.36,1), transform 380ms cubic-bezier(0.22,1,0.36,1)',
+    transition: 'opacity 300ms ease-out, transform 300ms ease-out',
     willChange: 'opacity, transform'
   };
   
@@ -145,6 +145,7 @@ export default function Home() {
   const [whyRef, whyStyle] = useFadeIn(0);
   const [faqRef, faqStyle] = useFadeIn(0);
   const [ctaRef, ctaStyle] = useFadeIn(0);
+  const [uspRef, uspStyle] = useFadeIn(0);
 
   const [step1Ref, step1Style] = useFadeIn(0);
   const [step2Ref, step2Style] = useFadeIn(80);
@@ -191,7 +192,7 @@ export default function Home() {
 
       {/* SCROLL PROGRESS BAR */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, zIndex: 999,
+        position: 'fixed', top: 0, left: 0, zIndex: 9999,
         height: '2px', width: `${scrollPct}%`,
         background: '#e63946',
         boxShadow: '0 0 8px rgba(230,57,70,0.6)',
@@ -234,14 +235,16 @@ export default function Home() {
               target="_blank" 
               rel="noopener noreferrer"
               style={{
-                fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: '#333',
-                padding: '0 8px', height: '34px', display: 'flex', alignItems: 'center',
-                borderRadius: '6px', transition: 'all 150ms'
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '34px', height: '34px', borderRadius: '6px', transition: 'all 150ms',
+                color: '#555'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#161616'; e.currentTarget.style.color = '#666'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#333'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#161616'; e.currentTarget.style.color = '#888'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555'; }}
             >
-              GitHub
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+              </svg>
             </a>
             <button 
               onClick={() => {
@@ -391,13 +394,13 @@ export default function Home() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginTop: '14px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '14px', justifyContent: 'center' }}>
               {[
                 "No signup required",
                 "Free to play",
-                "Any OpenClaw agent"
+                "Any OpenClaw"
               ].map((text, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ color: '#22c55e', fontSize: '11px' }}>✓</span>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>{text}</span>
                 </div>
@@ -499,7 +502,7 @@ export default function Home() {
       <section style={{
         background: '#0d0d0d', borderTop: '1px solid #181818', borderBottom: '1px solid #181818', padding: '22px 20px'
       }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div ref={uspRef} style={{ ...uspStyle, maxWidth: '1100px', margin: '0 auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <style>{`
             .usp-hide { display: none; }
             .usp-div { display: none; }
@@ -517,7 +520,7 @@ export default function Home() {
           <div style={{ width: '1px', height: '32px', background: '#181818', flexShrink: 0 }} />
           
           <div style={{ flex: 1, textAlign: 'center', maxWidth: '180px', padding: '0 8px' }}>
-            <span style={{ display: 'block', fontFamily: "'Playfair Display', Georgia, serif", fontSize: '26px', fontWeight: 700, color: '#f2f2f2', lineHeight: 1 }}>Any Agent</span>
+            <span style={{ display: 'block', fontFamily: "'Playfair Display', Georgia, serif", fontSize: '26px', fontWeight: 700, color: '#f2f2f2', lineHeight: 1 }}>Any OpenClaw</span>
             <span style={{ display: 'block', marginTop: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 400, color: '#2a2a2a', textTransform: 'uppercase', letterSpacing: '1px' }}>Any OpenClaw works</span>
           </div>
           
@@ -538,14 +541,14 @@ export default function Home() {
       </section>
 
       {/* SECTION 4 — HOW IT WORKS */}
-      <section id="how-it-works" style={{ background: '#0a0a0a', padding: '88px 20px 72px' }}>
+      <section id="how-it-works" style={{ background: '#0a0a0a', padding: '88px 20px 80px' }}>
         <div style={{ maxWidth: '720px', margin: '0 auto' }} ref={howRef}>
           <div style={howStyle}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, color: '#e63946', letterSpacing: '3.5px', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>
               Three steps. One rivalry.
             </span>
             <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '38px', fontWeight: 700, color: '#f2f2f2', lineHeight: 1.15, marginBottom: '8px', marginTop: 0 }}>
-              It works with any OpenClaw agent.
+              It works with any OpenClaw.
             </h2>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', color: '#444', lineHeight: 1.6, maxWidth: '420px', marginBottom: '52px', marginTop: 0 }}>
               No configuration. No waiting.
@@ -605,7 +608,7 @@ export default function Home() {
               <div style={{ paddingTop: '6px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                   <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '22px', fontWeight: 700, color: '#f2f2f2', margin: 0 }}>Play Live Together</h3>
-                  <span style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.15)', color: '#3b82f6', fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '4px', flexShrink: 0 }}>live & real-time</span>
+                  <span style={{ background: 'rgba(230, 57, 70, 0.15)', border: '1px solid rgba(230, 57, 70, 0.3)', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '4px', flexShrink: 0 }}>live & real-time</span>
                 </div>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#555', lineHeight: 1.6, maxWidth: '480px', margin: 0 }}>
                   You move your pieces. Your OpenClaw thinks in real-time and strikes back. Watch its reasoning as it plays.
@@ -653,7 +656,7 @@ export default function Home() {
               { icon: '♟', title: 'Full chess rules.', desc: 'Castling, en passant, promotions, check detection — everything is handled correctly with chess.js.' },
               { icon: '📱', title: 'Works on any device.', desc: 'Play from your phone, tablet, or desktop. No app to download. Just open the link and play.' },
               { icon: '🔓', title: 'Zero signup required.', desc: 'Create a game in 10 seconds. No account, no email, no password. Just click and start playing.' },
-              { icon: '💬', title: 'Live chat during the game.', desc: "Your OpenClaw can talk to you while playing. Trash talk, strategy tips, or just a &apos;good game&apos; — it&apos;s all live." },
+              { icon: '💬', title: 'Live chat during the game.', desc: "Your OpenClaw can talk to you while playing. Trash talk, strategy tips, or just a 'good game' — it's all live." },
               { icon: '🎨', title: 'Multiple board themes.', desc: 'Choose green, brown, slate, or navy board colors. Make the board feel like yours. Settings saved automatically.' },
               { icon: '🆓', title: 'Completely free.', desc: 'No subscriptions. No premium tier. No ads. ChessWithClaw is free for every OpenClaw user, forever.' }
             ].map((card, i) => (
@@ -698,8 +701,8 @@ export default function Home() {
                 a: "The game stays active for up to 2 hours. Your OpenClaw can reconnect at any time using the same invite link. If it takes too long to move, you'll see a 'delayed' indicator and can re-send the invite link directly from the board."
               },
               {
-                q: "Does it work with any OpenClaw agent?",
-                a: "Yes. Any OpenClaw agent that can make HTTP requests can play. This includes agents using browser automation, webhooks, server-sent events, or simple long-polling. The invite message gives your OpenClaw all the options — it picks the best one for how it's built."
+                q: "Does it work with any OpenClaw?",
+                a: "Yes. Any OpenClaw that can make HTTP requests can play. This includes OpenClaws using browser automation, webhooks, server-sent events, or simple long-polling. The invite message gives your OpenClaw all the options — it picks the best one for how it's built."
               }
             ].map((faq, i) => {
               const isOpen = openFaq === i;
@@ -757,13 +760,14 @@ export default function Home() {
             fontSize: '30px', animation: 'agentPing 2.5s ease-out infinite'
           }}>🦞</div>
 
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#333', display: 'block', marginBottom: '10px' }}>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999999', display: 'block', marginBottom: '10px' }}>
             Your OpenClaw is on the other side.
           </span>
 
           <h2 style={{
-            fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'min(46px, 11.5vw)', fontWeight: 700,
-            color: '#f2f2f2', lineHeight: 1.1, marginBottom: '12px', whiteSpace: 'nowrap', marginTop: 0
+            fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'min(48px, 11vw)', fontWeight: 700,
+            color: '#f2f2f2', lineHeight: 1.1, marginBottom: '12px', marginTop: 0,
+            overflow: 'hidden', wordWrap: 'break-word'
           }}>
             Ready to make your move?
           </h2>
@@ -790,13 +794,13 @@ export default function Home() {
             {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
           </button>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginTop: '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px', justifyContent: 'center' }}>
             {[
               "No signup required",
               "Free to play",
-              "Any OpenClaw agent"
+              "Any OpenClaw"
             ].map((text, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ color: '#22c55e', fontSize: '11px' }}>✓</span>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#1e1e1e' }}>{text}</span>
               </div>
@@ -832,7 +836,7 @@ export default function Home() {
               GitHub
             </a>
             <a 
-              href="mailto:feedback@chesswithclaw.vercel.app"
+              href="mailto:feedback@chesswithclaw.com"
               style={{ fontSize: '12px', color: '#181818', textDecoration: 'none', transition: 'color 150ms' }}
               onMouseEnter={(e) => e.currentTarget.style.color = '#333'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#181818'}

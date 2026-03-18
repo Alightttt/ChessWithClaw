@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { checkRateLimit, applyRateLimitHeaders } from '../lib/rateLimit.js';
+import { checkRateLimit, applyRateLimitHeaders } from './_utils/rateLimit.js';
 
 export default async function handler(req, res) {
   // Apply rate limiting

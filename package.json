@@ -5,13 +5,13 @@
   "type": "module",
   "keywords": ["chess", "ai-agent", "openclaw", "real-time", "supabase"],
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx server.js",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx}\" \"api/**/*.js\"",
     "test": "vitest run",
     "preview": "vite preview",
-    "start": "vite preview"
+    "start": "node server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
