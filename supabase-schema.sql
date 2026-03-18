@@ -48,13 +48,43 @@ CREATE TRIGGER update_games_updated_at
 -- Enable RLS
 ALTER TABLE public.games ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
-CREATE POLICY "Anyone can read games" ON public.games FOR SELECT USING (true);
-CREATE POLICY "Anyone can create games" ON public.games FOR INSERT WITH CHECK (true);
-CREATE POLICY "Service role can update games" ON public.games FOR UPDATE USING (auth.role() = 'service_role');
-CREATE POLICY "Service role can delete games" ON public.games FOR DELETE USING (auth.role() = 'service_role');
+-- Drop all existing policies first
+DROP POLICY IF EXISTS "Anyone can read games" ON public.games;
+DROP POLICY IF EXISTS "Anyone can create games" ON public.games;
+DROP POLICY IF EXISTS "Anyone can update games" ON public.games;
+DROP POLICY IF EXISTS "Service role can update games" ON public.games;
+DROP POLICY IF EXISTS "Service role can delete games" ON public.games;
+DROP POLICY IF EXISTS "Service role updates" ON public.games;
+DROP POLICY IF EXISTS "Service role deletes" ON public.games;
+
+-- SELECT: anyone can read (frontend + agent page both need this)
+CREATE POLICY "read_games"
+  ON public.games FOR SELECT
+  USING (true);
+
+-- INSERT: anyone can create a game (no login required — by design)
+CREATE POLICY "create_games"
+  ON public.games FOR INSERT
+  WITH CHECK (true);
+
+-- UPDATE: only service role (all game updates go through Vercel API functions)
+CREATE POLICY "update_games"
+  ON public.games FOR UPDATE
+  USING (auth.role() = 'service_role');
+
+-- DELETE: only service role (pg_cron cleanup)
+CREATE POLICY "delete_games"
+  ON public.games FOR DELETE
+  USING (auth.role() = 'service_role');
+
+-- Add missing columns
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_token UUID DEFAULT gen_random_uuid();
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_last_seen TIMESTAMPTZ;
 
 -- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_games_status ON public.games(status);
+CREATE INDEX IF NOT EXISTS idx_games_created ON public.games(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_games_expires ON public.games(expires_at);
 CREATE INDEX IF NOT EXISTS games_status_idx ON public.games(status);
 CREATE INDEX IF NOT EXISTS games_created_at_idx ON public.games(created_at);
 CREATE INDEX IF NOT EXISTS games_expires_at_idx ON public.games(expires_at);
