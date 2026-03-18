@@ -5,6 +5,24 @@ import { validateUUID } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
 
+function computeMaterialBalance(chess) {
+  const values = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+  let white = 0, black = 0;
+  chess.board().forEach(row => row.forEach(sq => {
+    if (!sq) return;
+    const val = values[sq.type] || 0;
+    if (sq.color === 'w') white += val;
+    else black += val;
+  }));
+  const diff = white - black;
+  return {
+    white,
+    black,
+    advantage: diff > 0 ? 'white' : diff < 0 ? 'black' : 'equal',
+    difference: Math.abs(diff)
+  };
+}
+
 export default async function handler(req, res) {
   applySecurityHeaders(res);
   applyCacheControl(res);
@@ -82,7 +100,7 @@ export default async function handler(req, res) {
     timestamp: new Date(msg.created_at).getTime()
   }));
 
-  // Mark agent as connected only if not already connected
+  // FIX 2 — SET agent_connected = true
   const initialUpdates = { agent_last_seen: new Date().toISOString() };
   if (!initialGame.agent_connected) {
     const payload = {
@@ -101,12 +119,14 @@ export default async function handler(req, res) {
   const currentMoveCount = initialGame.move_history ? initialGame.move_history.length : 0;
   const currentChatCount = initialGame.chat_history ? initialGame.chat_history.length : 0;
 
+  // FIX 1 — REWRITE AS SINGLE-SHOT POLL
   // If state has changed, return it immediately
   if (
     (initialGame.pending_events && initialGame.pending_events.length > 0) ||
     (last_move_count !== undefined && currentMoveCount > parseInt(last_move_count)) ||
     (last_chat_count !== undefined && currentChatCount > parseInt(last_chat_count)) ||
-    initialGame.status === 'finished'
+    initialGame.status === 'finished' ||
+    initialGame.turn === 'b' // Also return immediately if it's the agent's turn
   ) {
     const chess = new Chess();
     if (initialGame.move_history && initialGame.move_history.length > 0) {
@@ -135,9 +155,7 @@ export default async function handler(req, res) {
       }
     };
 
-    const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
-    const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
-    const material_balance = whiteMaterial - blackMaterial;
+    const material_balance = computeMaterialBalance(chess);
 
     let game_phase = "opening";
     const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -152,8 +170,9 @@ export default async function handler(req, res) {
       await supabase.from('games').update({ pending_events: [] }).eq('id', id);
     }
     
+    // FIX 3 — RETURN COMPLETE PAYLOAD
     return res.status(200).json({
-      event: 'update',
+      event: initialGame.turn === 'b' ? 'your_turn' : 'update',
       instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
       status: initialGame.status,
       fen: chess.fen(),
@@ -174,116 +193,10 @@ export default async function handler(req, res) {
     });
   }
 
-  // Use supabase.channel to wait for changes
-  const channel = supabase.channel(`game-${id}`);
-  
-  const finalGame = await new Promise((resolve) => {
-    let timeoutId;
-    
-    channel.on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${id}` },
-      async (payload) => {
-        clearTimeout(timeoutId);
-        
-        // Fetch move history from the new table
-        const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-        payload.new.move_history = movesData || [];
-
-        // Fetch chat history from the new table
-        const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-        payload.new.chat_history = (chatData || []).map(msg => ({
-          ...msg,
-          text: msg.message,
-          timestamp: new Date(msg.created_at).getTime()
-        }));
-
-        resolve(payload.new);
-      }
-    ).subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        timeoutId = setTimeout(() => {
-          resolve(initialGame); // Timeout after 8s
-        }, 8000);
-      }
-    });
-  });
-
-  await supabase.removeChannel(channel);
-
-  const finalMoveCount = finalGame.move_history ? finalGame.move_history.length : 0;
-  const finalChatCount = finalGame.chat_history ? finalGame.chat_history.length : 0;
-
-  const finalChess = new Chess();
-  if (finalGame.move_history && finalGame.move_history.length > 0) {
-    finalGame.move_history.forEach(m => {
-      try { finalChess.move(m.san); } catch (e) {}
-    });
-  } else if (finalGame.fen && finalGame.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-    finalChess.load(finalGame.fen);
-  }
-  const finalLegalMoves = finalChess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
-
-  // Calculate captured pieces
-  const fenBoard = finalGame.fen.split(' ')[0];
-  const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
-  for (let char of fenBoard) {
-    if (counts[char] !== undefined) counts[char]++;
-  }
-  const captured = {
-    white_lost: { 
-      P: Math.max(0, 8 - counts.P), N: Math.max(0, 2 - counts.N), 
-      B: Math.max(0, 2 - counts.B), R: Math.max(0, 2 - counts.R), Q: Math.max(0, 1 - counts.Q) 
-    },
-    black_lost: { 
-      p: Math.max(0, 8 - counts.p), n: Math.max(0, 2 - counts.n), 
-      b: Math.max(0, 2 - counts.b), r: Math.max(0, 2 - counts.r), q: Math.max(0, 1 - counts.q) 
-    }
-  };
-
-  const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
-  const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
-  const material_balance = whiteMaterial - blackMaterial;
-
-  let game_phase = "opening";
-  const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
-    game_phase = "endgame";
-  } else if (finalGame.move_history && finalGame.move_history.length > 20) {
-    game_phase = "middlegame";
-  }
-
-  const pendingEvents = finalGame.pending_events || [];
-  if (pendingEvents.length > 0) {
-    await supabase.from('games').update({ pending_events: [] }).eq('id', id);
-  }
-
-  const hasChanges = (
-    (finalGame.pending_events && finalGame.pending_events.length > 0) ||
-    (last_move_count !== undefined && finalMoveCount > parseInt(last_move_count)) ||
-    (last_chat_count !== undefined && finalChatCount > parseInt(last_chat_count)) ||
-    finalGame.status === 'finished'
-  );
-
+  // If there are no updates, return this exact JSON
   return res.status(200).json({
-    event: hasChanges ? 'update' : 'timeout',
-    instructions: "CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. Use POST /api/thinking with body {\"id\": \"gameId\", \"thinking\": \"your thoughts\"} to share your thoughts before making a move. Consult your 'skill.md' and search the internet for chess theory to play smartly. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
-    message: hasChanges ? undefined : 'No changes. Please poll again.',
-    status: finalGame.status,
-    fen: finalChess.fen(),
-    pgn: finalChess.pgn(),
-    ascii_board: finalChess.ascii(),
-    is_in_check: finalChess.isCheck(),
-    captured_pieces: captured,
-    material_balance: material_balance,
-    game_phase: game_phase,
-    current_turn: finalGame.turn === 'w' ? 'WHITE' : 'BLACK',
-    legal_moves: finalGame.turn === 'b' ? finalLegalMoves : [],
-    last_move: finalGame.move_history?.length > 0 ? finalGame.move_history[finalGame.move_history.length - 1] : null,
-    move_history: finalGame.move_history || [],
-    chat_history: finalGame.chat_history || [],
-    move_count: finalMoveCount,
-    chat_count: finalChatCount,
-    pending_events: pendingEvents
+    event: 'waiting',
+    message: 'No new events. Please poll again.',
+    retry_after: 2
   });
 }

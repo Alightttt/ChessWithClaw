@@ -15,6 +15,7 @@ CREATE TABLE public.games (
     thinking_log jsonb[] DEFAULT '{}',
     pending_events jsonb DEFAULT '[]'::jsonb,
     secret_token text,
+    agent_token uuid DEFAULT gen_random_uuid(),
     human_last_seen timestamptz,
     agent_last_seen timestamptz,
     human_last_moved_at timestamptz,
@@ -24,6 +25,7 @@ CREATE TABLE public.games (
     webhook_fail_count integer DEFAULT 0,
     chat_history jsonb[] DEFAULT '{}',
     updated_at timestamptz DEFAULT now(),
+    expires_at timestamptz,
     agent_name text DEFAULT 'Your Agent',
     agent_avatar text DEFAULT '🤖',
     agent_tagline text DEFAULT 'OpenClaw Agent'
@@ -46,14 +48,16 @@ CREATE TRIGGER update_games_updated_at
 -- Enable RLS
 ALTER TABLE public.games ENABLE ROW LEVEL SECURITY;
 
--- Allow public access for simplicity (since games are public)
-CREATE POLICY "Allow public read access" ON public.games FOR SELECT USING (true);
-CREATE POLICY "Allow public insert access" ON public.games FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow update with token" ON public.games FOR UPDATE USING (
-  secret_token IS NULL OR 
-  current_setting('request.headers')::json->>'x-game-token' = secret_token OR
-  true -- Fallback for now to not break existing games, in production remove 'OR true'
-);
+-- RLS Policies
+CREATE POLICY "Anyone can read games" ON public.games FOR SELECT USING (true);
+CREATE POLICY "Anyone can create games" ON public.games FOR INSERT WITH CHECK (true);
+CREATE POLICY "Service role can update games" ON public.games FOR UPDATE USING (auth.role() = 'service_role');
+CREATE POLICY "Service role can delete games" ON public.games FOR DELETE USING (auth.role() = 'service_role');
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS games_status_idx ON public.games(status);
+CREATE INDEX IF NOT EXISTS games_created_at_idx ON public.games(created_at);
+CREATE INDEX IF NOT EXISTS games_expires_at_idx ON public.games(expires_at);
 
 -- Enable real-time for the games table
 alter publication supabase_realtime add table public.games;

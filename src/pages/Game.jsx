@@ -56,8 +56,10 @@ export default function Game() {
   const [isMoving, setIsMoving] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
   const [agentTimedOut, setAgentTimedOut] = useState(false);
+  const [showGameOverModal, setShowGameOverModal] = useState(false);
   const createRipple = useRipple();
   
+  const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
   const prevStatusRef = useRef('waiting');
@@ -95,7 +97,8 @@ export default function Game() {
         maxW = vw - 24;
       }
       
-      setBoardSize(Math.max(280, Math.min(maxW, maxH, 800)));
+      const availableWidth = maxW - 24;
+      setBoardSize(Math.max(280, Math.min(availableWidth, maxH, 800)));
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     
@@ -159,6 +162,10 @@ export default function Game() {
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
       } else if (type === 'capture') {
         osc.type = 'square';
         osc.frequency.setValueAtTime(150, now);
@@ -181,6 +188,14 @@ export default function Game() {
         
         osc.start(now);
         osc.stop(now + 0.1);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
+        noise.onended = () => {
+          noise.disconnect();
+          noiseGain.disconnect();
+        };
       } else if (type === 'check') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(400, now);
@@ -190,11 +205,23 @@ export default function Game() {
         gain.gain.linearRampToValueAtTime(0, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
       }
     } catch (e) {
       console.error("Audio error:", e);
     }
   }, [soundEnabled]);
+
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!game) return;
@@ -444,7 +471,11 @@ export default function Game() {
     connectChannel();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') connectChannel();
+      if (document.visibilityState === 'visible') {
+        connectChannel();
+        supabase.from('games').select('*').eq('id', gameId).single()
+          .then(({ data }) => { if (data) setGame(prev => ({ ...prev, ...data })) });
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -463,13 +494,14 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== 'w' || game.status !== 'active' && game.status !== 'waiting') return;
-    if (isMoving) return;
+    if (isMoving || submittingRef.current) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
       return;
     }
 
+    submittingRef.current = true;
     setIsMoving(true);
     const chess = new Chess();
     if (game.move_history && game.move_history.length > 0) {
@@ -483,6 +515,7 @@ export default function Game() {
       const moveObj = promotion ? { from, to, promotion } : { from, to };
       const move = chess.move(moveObj);
       if (!move) {
+        submittingRef.current = false;
         setIsMoving(false);
         return;
       }
@@ -541,6 +574,7 @@ export default function Game() {
     } catch (e) {
       toast.error('Illegal move or failed to submit');
     } finally {
+      submittingRef.current = false;
       setIsMoving(false);
     }
   };
@@ -651,7 +685,8 @@ export default function Game() {
       style={{
       height: 'var(--vh, 100dvh)',
       overflow: 'hidden',
-      background: '#080808'
+      backgroundColor: game?.turn === 'b' ? '#120808' : '#0a0a0a',
+      transition: 'background-color 300ms ease'
     }}>
       
       {/* FIX 2 — PAGE HEADER */}
@@ -813,7 +848,7 @@ export default function Game() {
         }}>
           {!game.agent_connected ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>Agent not connected yet.</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>OpenClaw not connected yet.</div>
               <button 
                 onClick={(e) => { createRipple(e); copyInvite(); }}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
@@ -830,7 +865,7 @@ export default function Game() {
           ) : agentTimedOut ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#d97706', marginBottom: '8px' }}>
-                Agent seems delayed. They might have disconnected or crashed.
+                OpenClaw seems delayed. They might have disconnected or crashed.
               </div>
               <button 
                 onClick={(e) => { createRipple(e); copyInvite(); }}
@@ -842,12 +877,12 @@ export default function Game() {
                   cursor: 'pointer', transition: 'all 150ms'
                 }}
               >
-                {copiedInvite ? 'Copied!' : 'Copy Agent Link'}
+                {copiedInvite ? 'Copied!' : 'Copy OpenClaw Link'}
               </button>
             </div>
           ) : !game.current_thinking && !lastThinking ? (
             <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#333' }}>
-              Waiting for agent to move...
+              Waiting for OpenClaw to move...
             </div>
           ) : (
             <div 
@@ -877,21 +912,40 @@ export default function Game() {
       {/* FIX 4 — BOARD CONTAINER */}
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '10px 12px',
+        padding: '0 12px',
         background: '#080808',
         flexShrink: 0
       }} className="lg:flex-1 lg:h-full">
+        
+        {(() => {
+          const chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+          if (chess.isCheck() && game.status === 'active') {
+            return (
+              <div style={{
+                width: `${boardSize}px`, padding: '8px 16px', background: '#e63946', color: 'white', 
+                fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
+                borderRadius: '4px', marginBottom: '4px'
+              }}>
+                {game.turn === 'w' ? "⚠️ Your king is in check!" : `⚠️ ${game?.agent_name || 'OpenClaw'}'s king is in check!`}
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         <div style={{
           position: 'relative',
           width: `${boardSize}px`,
           height: `${boardSize}px`,
           borderRadius: '3px',
-          overflow: 'hidden',
+          overflow: 'visible',
           border: '1px solid rgba(230,57,70,0.08)',
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
-          flexShrink: 0
+          flexShrink: 0,
+          pointerEvents: isMoving ? 'none' : 'auto'
         }} ref={boardRef}>
           <ChessBoard 
             fen={game.fen} 
@@ -1127,6 +1181,78 @@ export default function Game() {
           <GameTimer startTime={game.created_at} status={game.status} />
         </div>
       </div>
+
+      {showGameOverModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#111111', border: '1px solid #222222', borderRadius: '12px',
+            padding: '32px 24px', maxWidth: '360px', width: 'calc(100% - 48px)', textAlign: 'center',
+            position: 'relative'
+          }}>
+            <button onClick={() => setShowGameOverModal(false)} style={{
+              position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px',
+              background: 'transparent', border: 'none', color: '#555', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <X size={20} />
+            </button>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+              {game.result === 'white' ? '🏆' : game.result === 'black' ? '🦞' : '🤝'}
+            </div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
+              {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${game?.agent_name || 'OpenClaw'} Won!` : "It's a Draw!"}
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
+              {game.result_reason === 'checkmate' ? 'by checkmate' :
+               game.result_reason === 'stalemate' ? 'by stalemate' :
+               game.result_reason === 'insufficient_material' ? 'insufficient material' :
+               game.result_reason === 'threefold_repetition' ? 'by repetition' :
+               game.result_reason === 'fifty_moves' ? 'fifty-move rule' :
+               game.result_reason === 'resignation' ? 'by resignation' :
+               game.result_reason === 'abandoned' ? 'by abandonment' :
+               game.result_reason === 'agreement' ? 'by agreement' : game.result_reason}
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#555', marginBottom: '24px' }}>
+              Game lasted {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={(e) => {
+                  const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
+                  const winner = game.result === 'white' ? 'I won' : game.result === 'black' ? `${game?.agent_name || 'OpenClaw'} won` : 'Draw';
+                  navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
+                  const btn = e.currentTarget;
+                  const oldText = btn.innerText;
+                  btn.innerText = 'Copied! ✓';
+                  setTimeout(() => btn.innerText = oldText, 2000);
+                }}
+                style={{
+                  background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #333',
+                  fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
+                  borderRadius: '6px', width: '100%', cursor: 'pointer', transition: 'background 200ms'
+                }}
+                className="hover:bg-[#222]"
+              >
+                Share Result
+              </button>
+              <button 
+                onClick={() => navigate('/')}
+                style={{
+                  background: '#e63946', color: 'white', border: 'none',
+                  fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
+                  borderRadius: '6px', width: '100%', cursor: 'pointer', transition: 'background 200ms'
+                }}
+                className="hover:bg-[#cc2f3b]"
+              >
+                New Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SETTINGS MODAL (Untouched) */}
       <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Settings" size="md">

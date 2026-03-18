@@ -32,6 +32,17 @@ const useFadeIn = (delay = 0) => {
   return [ref, style];
 };
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export default function Home() {
   const [gameId, setGameId] = useState(null);
   const [agentToken, setAgentToken] = useState(null);
@@ -65,8 +76,9 @@ export default function Home() {
         setTimeout(() => reject(new Error('Request timed out. Your Supabase project might be paused.')), 10000)
       );
 
-      const secretToken = crypto.randomUUID();
-      const agentToken = crypto.randomUUID();
+      const secretToken = generateUUID();
+      const agentToken = generateUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       const insertPromise = supabase
         .from('games')
@@ -84,7 +96,8 @@ export default function Home() {
           webhook_url: null,
           chat_history: [],
           secret_token: secretToken,
-          agent_token: agentToken
+          agent_token: agentToken,
+          expires_at: expiresAt
         }])
         .select()
         .single();
@@ -94,6 +107,9 @@ export default function Home() {
       if (error) {
         if (error.message && (error.message.includes('Could not find the table') || error.message.includes('relation "games" does not exist'))) {
           throw new Error('Database table "games" is missing. Please create it in your Supabase SQL Editor.');
+        }
+        if (error.message && (error.message.includes('column "agent_token"') || error.message.includes('column "expires_at"') || error.message.includes('schema cache'))) {
+          throw new Error('Database schema is outdated. Please run the latest SQL from supabase-schema.sql in your Supabase SQL Editor.');
         }
         throw error;
       }
@@ -106,7 +122,7 @@ export default function Home() {
       if (error.message === 'Failed to fetch') {
         toast.error('Network error: Failed to reach the database. Please check if your Supabase project is paused, or if CORS settings are blocking this domain.');
       } else {
-        toast.error("Couldn't create game. Try again.");
+        toast.error(`Couldn't create game: ${error.message || 'Unknown error'}`);
       }
     } finally {
       setCreating(false);

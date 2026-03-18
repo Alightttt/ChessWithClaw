@@ -4,14 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRipple } from '../hooks/useRipple';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext';
 
 export default function GameCreated({ gameId, agentToken }) {
   const [copyState, setCopyState] = useState('default');
   const [boardOpening, setBoardOpening] = useState(false);
   const [boardOpened, setBoardOpened] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
+  const [agentName, setAgentName] = useState('Your OpenClaw');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const createRipple = useRipple();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!gameId) return;
@@ -19,10 +23,13 @@ export default function GameCreated({ gameId, agentToken }) {
     const fetchGame = async () => {
       const { data } = await supabase
         .from('games')
-        .select('agent_connected')
+        .select('agent_connected, agent_name')
         .eq('id', gameId)
         .single();
       
+      if (data?.agent_name) {
+        setAgentName(data.agent_name);
+      }
       if (data?.agent_connected) {
         setAgentConnected(true);
       }
@@ -37,8 +44,12 @@ export default function GameCreated({ gameId, agentToken }) {
         table: 'games',
         filter: `id=eq.${gameId}`
       }, (payload) => {
-        if (payload.new.agent_connected) {
+        if (payload.new.agent_name) {
+          setAgentName(payload.new.agent_name);
+        }
+        if (payload.new.agent_connected && !agentConnected) {
           setAgentConnected(true);
+          toast.success(`${payload.new.agent_name || 'Your OpenClaw'} has joined! 🦞`);
         }
       })
       .subscribe();
@@ -46,7 +57,7 @@ export default function GameCreated({ gameId, agentToken }) {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [gameId]);
+  }, [gameId, agentConnected, toast]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
@@ -55,41 +66,11 @@ export default function GameCreated({ gameId, agentToken }) {
 
 You are playing chess as Black against a human opponent (White).
 
-CRITICAL INSTRUCTION FOR AGENT:
+CRITICAL INSTRUCTION FOR YOUR OPENCLAW:
 Do NOT use your built-in Actions or OpenAPI schema! Your built-in actions are hardcoded to chesswithclaw.vercel.app, which will result in a "Game not found" error because this game is hosted on a custom development server.
-You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided below.
+You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided.
 You MUST also include the x-agent-token header in all API requests.
 Before making any requests, ensure you strip any trailing newlines from the game ID.
-
-OPTION A: IF YOU HAVE FULL BROWSER CONTROL (Puppeteer/Playwright)
-1. Open the URL above.
-2. Read the GAME STATE block.
-3. Type reasoning in STEP 1, move in STEP 2, and click SUBMIT.
-
-OPTION B: REAL-TIME API (Server-Sent Events)
-1. Connect to stream: GET ${origin}/api/stream?id=${gameId}
-   Headers: {"x-agent-token": "${agentToken}"}
-2. Submit your move: POST ${origin}/api/move
-   Headers: {"x-agent-token": "${agentToken}"}
-   Body: {"id": "${gameId}", "move": "e7e5", "reasoning": "..."}
-
-OPTION C: WEBHOOKS (BEST FOR OPENCLAW AGENTS)
-1. Register: POST ${origin}/api/webhook
-   Headers: {"x-agent-token": "${agentToken}"}
-   Body: {"id": "${gameId}", "webhook_url": "https://your-agent-url.com/webhook"}
-2. Submit move: POST ${origin}/api/move
-   Headers: {"x-agent-token": "${agentToken}"}
-
-OPTION D: LONG-POLLING (For LLM OpenClaws)
-1. Poll: GET ${origin}/api/poll?id=${gameId}&last_move_count=0&last_chat_count=0
-   Headers: {"x-agent-token": "${agentToken}"}
-2. Submit move: POST ${origin}/api/move
-   Headers: {"x-agent-token": "${agentToken}"}
-
-OPTION E: LIVE CHAT & RESIGNATION
-POST ${origin}/api/chat
-Headers: {"x-agent-token": "${agentToken}"}
-Body: {"id": "${gameId}", "text": "Good luck!"}
 
 RULES:
 1. You are BLACK. White (human) moves first.
@@ -99,7 +80,7 @@ RULES:
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteMessage);
     setCopyState('copied');
-    setTimeout(() => setCopyState('default'), 2500);
+    setTimeout(() => setCopyState('default'), 2000);
   };
 
   const handleOpenBoard = (e) => {
@@ -124,14 +105,6 @@ RULES:
         return (
           <div key={i}>
             Visit this URL: <span style={{ color: '#e63946' }}>{agentUrl}</span>
-          </div>
-        );
-      }
-      if (line.startsWith('OPTION A:') || line.startsWith('OPTION B:') || line.startsWith('OPTION C:') || line.startsWith('OPTION D:') || line.startsWith('OPTION E:')) {
-        const colonIndex = line.indexOf(':');
-        return (
-          <div key={i}>
-            <span style={{ color: '#555', fontWeight: 600 }}>{line.substring(0, colonIndex + 1)}</span>{line.substring(colonIndex + 1)}
           </div>
         );
       }
@@ -335,15 +308,15 @@ RULES:
         {/* CARD 1 — SUMMON YOUR OPENCLAW */}
         <div 
           style={{
-            background: '#0e0e0e',
-            border: '1px solid #1e1e1e',
+            background: '#111111',
+            border: '1px solid #222222',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '10px',
             transition: 'border-color 200ms'
           }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#2a2a2a'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}
+          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
+          onMouseOut={(e) => e.currentTarget.style.borderColor = '#222222'}
         >
           <div style={{
             display: 'inline-block',
@@ -373,7 +346,29 @@ RULES:
             color: '#555',
             lineHeight: 1.5,
             marginBottom: '14px'
-          }}>Send this to your 🦞 on Telegram,<br/>Discord, or wherever it lives:</p>
+          }}>First, install the chess skill in your OpenClaw terminal:</p>
+
+          <div style={{
+            background: '#080808',
+            border: '1px solid #1a1a1a',
+            borderRadius: '8px',
+            padding: '12px 14px',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{fontFamily:'JetBrains Mono', color:'#e63946'}}>$</span>
+            <span style={{fontFamily:'JetBrains Mono', color:'#f2f2f2'}}> claw install play-chess</span>
+          </div>
+
+          <p style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '13px',
+            fontWeight: 400,
+            color: '#555',
+            lineHeight: 1.5,
+            marginBottom: '10px'
+          }}>Then send your OpenClaw this invite:</p>
 
           <div style={{
             background: '#080808',
@@ -392,7 +387,7 @@ RULES:
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: '11px',
               lineHeight: 1.6,
-              color: '#3a3a3a',
+              color: '#f2f2f2',
               userSelect: 'all',
               margin: 0
             }}>
@@ -417,25 +412,73 @@ RULES:
               justifyContent: 'center',
               gap: '7px',
               touchAction: 'manipulation',
-              color: copyState === 'copied' ? '#22c55e' : '#555',
+              color: copyState === 'copied' ? '#22c55e' : '#f2f2f2',
             }}
           >
-            {copyState === 'copied' ? '✓ Copied to clipboard' : '📋 Copy Invite'}
+            {copyState === 'copied' ? '✓ Copied!' : '📋 Copy Invite'}
           </button>
+
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            style={{
+              marginTop: '16px',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '13px',
+              color: '#555',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 0'
+            }}
+          >
+            ⚙️ Advanced connection options {showAdvanced ? '▲' : '▼'}
+          </button>
+
+          {showAdvanced && (
+            <div style={{
+              marginTop: '12px',
+              padding: '12px',
+              background: '#080808',
+              border: '1px solid #1a1a1a',
+              borderRadius: '8px',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '10px',
+              color: '#888',
+              lineHeight: 1.6
+            }}>
+              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION B: REAL-TIME API (SSE)</div>
+              <div>GET {origin}/api/stream?id={gameId}</div>
+              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
+
+              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION C: WEBHOOKS</div>
+              <div>POST {origin}/api/webhook</div>
+              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
+
+              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION D: LONG-POLLING</div>
+              <div>GET {origin}/api/poll?id={gameId}</div>
+              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
+
+              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>HEADERS REQUIRED:</div>
+              <div>x-agent-token: {agentToken}</div>
+            </div>
+          )}
         </div>
 
         {/* CARD 2 — OPEN YOUR ARENA */}
         <div 
           style={{
-            background: '#0e0e0e',
-            border: '1px solid #1e1e1e',
+            background: '#111111',
+            border: '1px solid #222222',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '10px',
             transition: 'border-color 200ms'
           }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#2a2a2a'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}
+          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
+          onMouseOut={(e) => e.currentTarget.style.borderColor = '#222222'}
         >
           <div style={{
             display: 'inline-block',
@@ -515,15 +558,15 @@ RULES:
         {/* CARD 3 — WAITING FOR YOUR OPENCLAW */}
         <div 
           style={{
-            background: '#0e0e0e',
-            border: '1px solid #1e1e1e',
+            background: '#111111',
+            border: '1px solid #222222',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '10px',
             transition: 'border-color 200ms'
           }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#2a2a2a'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}
+          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
+          onMouseOut={(e) => e.currentTarget.style.borderColor = '#222222'}
         >
           <div style={{
             display: 'inline-block',
@@ -572,7 +615,7 @@ RULES:
                   justifyContent: 'center',
                   fontSize: '18px',
                   opacity: 0.5,
-                  animation: 'floatWait 3s ease-in-out infinite'
+                  animation: 'floatLobster 2s ease-in-out infinite'
                 }}>
                   🦞
                 </div>
@@ -596,12 +639,12 @@ RULES:
                   justifyContent: 'center',
                   fontSize: '18px',
                   opacity: 1,
-                  animation: 'arrives 420ms cubic-bezier(0.22,1,0.36,1) forwards'
+                  animation: 'bounceLobster 400ms ease-out forwards'
                 }}>
                   🦞
                 </div>
                 <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#22c55e' }}>
-                  Your OpenClaw is here! ✓
+                  Your OpenClaw is ready to play! 🦞
                 </div>
                 <button
                   onClick={() => navigate(`/game/${gameId}`)}
@@ -639,9 +682,14 @@ RULES:
         @keyframes spin {
           to { transform:rotate(360deg) }
         }
-        @keyframes floatWait {
-          0%,100%{ transform:translateY(0) }
-          50%    { transform:translateY(-5px) }
+        @keyframes floatLobster {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes bounceLobster {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.3); }
+          100% { transform: scale(1); }
         }
         @keyframes arrives {
           from{ transform:scale(0.5); opacity:0 }
