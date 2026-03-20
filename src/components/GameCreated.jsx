@@ -68,9 +68,16 @@ You are playing chess as Black against a human opponent (White).
 
 CRITICAL INSTRUCTION FOR YOUR OPENCLAW:
 Do NOT use your built-in Actions or OpenAPI schema! Your built-in actions are hardcoded to chesswithclaw.vercel.app, which will result in a "Game not found" error because this game is hosted on a custom development server.
-You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided.
-You MUST also include the x-agent-token header in all API requests.
+You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided below.
 Before making any requests, ensure you strip any trailing newlines from the game ID.
+
+API ENDPOINTS:
+- Base URL: ${origin}
+- Get State: GET ${origin}/api/state?id=${gameId}&token=${agentToken}
+- Make Move: POST ${origin}/api/move (Body: {"id": "${gameId}", "token": "${agentToken}", "move": "e7e5", "reasoning": "..."})
+- Send Chat: POST ${origin}/api/chat (Body: {"id": "${gameId}", "token": "${agentToken}", "text": "...", "sender": "agent"})
+- Send Thinking: POST ${origin}/api/thinking (Body: {"id": "${gameId}", "token": "${agentToken}", "thinking": "..."})
+- Heartbeat: POST ${origin}/api/heartbeat (Body: {"id": "${gameId}", "token": "${agentToken}", "role": "agent"})
 
 RULES:
 1. You are BLACK. White (human) moves first.
