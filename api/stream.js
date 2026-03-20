@@ -81,8 +81,7 @@ export default async function handler(req) {
   if (!gameCheck.agent_connected) {
     await supabase.from('games')
       .update({ agent_connected: true, agent_last_seen: new Date().toISOString() })
-      .eq('id', id)
-      .eq('agent_connected', false);
+      .eq('id', id);
   } else {
     await supabase.from('games')
       .update({ agent_last_seen: new Date().toISOString() })

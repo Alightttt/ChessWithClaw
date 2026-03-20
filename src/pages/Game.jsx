@@ -29,8 +29,7 @@ function GameTimer({ startTime, status }) {
 }
 
 export default function Game() {
-  const { id } = useParams();
-  const gameId = id;
+  const { id: gameId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -315,13 +314,13 @@ export default function Game() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = game.agent_name || 'OpenClaw';
+    const agentName = game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'Game Over | ChessWithClaw';
     } else if (game.turn === 'w') {
       document.title = 'Your Turn | ChessWithClaw';
     } else {
-      document.title = `${agentName} is thinking... | ChessWithClaw`;
+      document.title = `⚡ ${agentName} Thinking... | ChessWithClaw`;
     }
   }, [game]);
 
@@ -571,7 +570,11 @@ export default function Game() {
         const errData = await response.json().catch(() => ({}));
         setGame(previousGame);
         if (errData.code === 'WAITING_FOR_AGENT') {
-          throw new Error('WAITING_FOR_AGENT');
+          toast('Waiting for your OpenClaw to join...', {
+            icon: '🦞',
+            style: { background: '#1a1a1a', border: '1px solid #333', color: '#f0f0f0' }
+          });
+          return;
         } else if (errData.code === 'TURN_CONFLICT') {
           throw new Error('TURN_CONFLICT');
         }
@@ -679,7 +682,7 @@ export default function Game() {
 
   if (loading) {
     return (
-      <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: "'DM Sans', sans-serif" }}>
         Loading game...
       </div>
     );
@@ -700,6 +703,7 @@ export default function Game() {
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
+  const agentName = game?.agent_name || 'Your OpenClaw';
 
   return (
     <div 
@@ -730,10 +734,11 @@ export default function Game() {
         overflow: 'hidden'
       }}>
         <img 
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+          src="/logo.png" 
           alt="Logo" 
-          style={{ width: '20px', height: '20px', borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}
+          style={{ height: '24px', cursor: 'pointer', flexShrink: 0 }}
           onClick={() => navigate('/')}
+          onError={e => { e.target.style.display = 'none' }}
         />
         
         <div style={{
@@ -748,10 +753,10 @@ export default function Game() {
           <span style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: '11px',
-            color: '#666',
+            color: '#888',
             whiteSpace: 'nowrap'
           }}>#{gameId.slice(0, 6).toUpperCase()}</span>
-          <button onClick={copyRoomCode} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#2a2a2a' }}>
+          <button onClick={copyRoomCode} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#888' }}>
             {copiedRoom ? <Check size={14} color="#22c55e" /> : <Copy size={14} />}
           </button>
         </div>
@@ -761,7 +766,7 @@ export default function Game() {
           style={{
             width: '34px', height: '34px',
             background: '#111', border: '1px solid #1c1c1c',
-            borderRadius: '8px', color: '#444',
+            borderRadius: '8px', color: '#888',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', transition: 'color 150ms'
           }}
@@ -804,15 +809,15 @@ export default function Game() {
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               lineHeight: 1
             }}>
-              {game.agent_name || 'YOUR OPENCLAW'}
+              {agentName.toUpperCase()}
             </div>
             <div style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#333' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#444' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#888' : '#e63946')))
             }}>
-              {agentTimeout ? "⏱ Agent delayed" :
-               !game.agent_connected ? (<span>Not here yet... <span style={{color: '#555'}}>Send them the invite link.</span></span>) : 
+              {agentTimeout ? "⏱ " + agentName + " delayed" :
+               !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
                game.turn === 'w' ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
             </div>
@@ -849,10 +854,10 @@ export default function Game() {
             <button 
               onClick={() => setAgentSectionOpen(!agentSectionOpen)}
               style={{
-                background: 'none', border: 'none', color: '#2a2a2a', cursor: 'pointer',
+                background: 'none', border: 'none', color: '#888', cursor: 'pointer',
                 fontSize: '14px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}
-              className="hover:text-[#666]"
+              className="hover:text-[#888]"
             >
               <ChevronDown size={16} style={{
                 transform: agentSectionOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -871,14 +876,14 @@ export default function Game() {
         }}>
           {!game.agent_connected ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#2a2a2a' }}>OpenClaw not connected yet.</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#888' }}>OpenClaw not connected yet.</div>
               <button 
                 onClick={(e) => { createRipple(e); copyInvite(); }}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
                 style={{
                   position: 'relative', overflow: 'hidden',
                   width: '100%', height: '30px', background: '#141414', border: '1px solid #1c1c1c',
-                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#3a3a3a', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
+                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#888', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
                   marginTop: '8px', cursor: 'pointer', transition: 'all 150ms'
                 }}
               >
@@ -896,7 +901,7 @@ export default function Game() {
                 style={{
                   position: 'relative', overflow: 'hidden',
                   width: '100%', height: '30px', background: '#141414', border: '1px solid #1c1c1c',
-                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#3a3a3a', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
+                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#888', fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
                   cursor: 'pointer', transition: 'all 150ms'
                 }}
               >
@@ -904,7 +909,7 @@ export default function Game() {
               </button>
             </div>
           ) : !game.current_thinking && !lastThinking ? (
-            <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#333' }}>
+            <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#888' }}>
               Waiting for OpenClaw to move...
             </div>
           ) : (
@@ -916,7 +921,7 @@ export default function Game() {
                 marginTop: '8px',
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: game.current_thinking ? '11px' : '10px',
-                color: game.current_thinking ? '#666' : '#2a2a2a',
+                color: game.current_thinking ? '#888' : '#888',
                 lineHeight: 1.7,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -943,6 +948,27 @@ export default function Game() {
         flexShrink: 0
       }} className="lg:flex-1 lg:h-full">
         
+        {game.status === 'waiting' && !game.agent_connected && (
+          <div style={{
+            background: 'rgba(230,57,70,0.08)',
+            border: '1px solid rgba(230,57,70,0.2)',
+            borderRadius: 8, padding: '10px 16px',
+            display: 'flex', alignItems: 'center', gap: 10,
+            marginBottom: 12,
+            width: `${boardSize}px`
+          }}>
+            <span style={{animation: 'floatLobster 2s ease-in-out infinite'}}>🦞</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#f0f0f0'}}>
+                Waiting for {agentName} to join...
+              </div>
+              <div style={{fontSize:12,color:'#888',marginTop:2}}>
+                Send the invite link to your OpenClaw to start the game.
+              </div>
+            </div>
+          </div>
+        )}
+
         {(() => {
           const chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
           if (chess.isCheck() && game.status === 'active') {
@@ -952,7 +978,7 @@ export default function Game() {
                 fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
                 borderRadius: '4px', marginBottom: '4px'
               }}>
-                {game.turn === 'w' ? "⚠️ Your king is in check!" : `⚠️ ${game?.agent_name || 'OpenClaw'}'s king is in check!`}
+                {game.turn === 'w' ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
               </div>
             );
           }
@@ -968,7 +994,7 @@ export default function Game() {
           border: '1px solid rgba(230,57,70,0.08)',
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
-          pointerEvents: isMoving ? 'none' : 'auto'
+          pointerEvents: (isMoving || !game.agent_connected) ? 'none' : 'auto'
         }} ref={boardRef}>
           <ChessBoard 
             fen={game.fen} 
@@ -988,7 +1014,7 @@ export default function Game() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#e63946', marginTop: '4px', fontWeight: 600 }}>
-                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === 'white' ? 'You won by ' : 'Agent won by ') + game.result_reason)}
+                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === 'white' ? 'You won by ' : agentName + ' won by ') + game.result_reason)}
               </div>
             </div>
           )}
@@ -1011,7 +1037,7 @@ export default function Game() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Chat with {game.agent_name || "your agent"}</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#888' }}>Chat with {agentName}</span>
             <span style={{ fontSize: '12px' }}>{game.agent_avatar || '🦞'}</span>
           </div>
           {unreadCount > 0 && (
@@ -1031,7 +1057,7 @@ export default function Game() {
           {!(game.chat_history || []).length ? (
             <div style={{ margin: 'auto', textAlign: 'center' }}>
               <span style={{ fontSize: '20px', color: '#1a1a1a', display: 'block', marginBottom: '5px' }}>{game.agent_avatar || '🦞'}</span>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222' }}>{game.agent_name || "Your OpenClaw"} can chat while playing</span>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} can chat while playing</span>
             </div>
           ) : (
             (game.chat_history || []).map((msg, i) => {
@@ -1060,14 +1086,14 @@ export default function Game() {
                   }}>
                     <div>{msg.text}</div>
                     {msg.timestamp && (
-                      <div style={{ fontSize: '9px', color: '#555', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ fontSize: '9px', color: '#888', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     )}
                   </div>
                   {!isHuman && (
-                    <div style={{ fontSize: '9px', color: '#444', marginTop: '4px', marginLeft: '4px', fontFamily: "'DM Sans', sans-serif" }}>
-                      {game.agent_name || 'OpenClaw'}
+                    <div style={{ fontSize: '9px', color: '#888', marginTop: '4px', marginLeft: '4px', fontFamily: "'DM Sans', sans-serif" }}>
+                      {agentName}
                     </div>
                   )}
                 </div>
@@ -1084,7 +1110,7 @@ export default function Game() {
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Message your agent..."
+            placeholder={`Message ${agentName}...`}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#e0e0e0',
@@ -1098,7 +1124,7 @@ export default function Game() {
               width: '30px', height: '30px', background: chatInput.trim() ? '#e63946' : '#181818',
               border: 'none', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: chatInput.trim() ? 'pointer' : 'default', touchAction: 'manipulation', transition: 'background 120ms',
-              color: chatInput.trim() ? 'white' : '#333'
+              color: chatInput.trim() ? 'white' : '#888'
             }}
           >
             <Send size={14} />
@@ -1121,13 +1147,13 @@ export default function Game() {
           }}
           className="lg:pointer-events-none"
         >
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#555' }}>Move History</span>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '14px', fontWeight: 700, color: '#888' }}>Move History</span>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{
               background: '#181818', border: '1px solid #1c1c1c', borderRadius: '6px', padding: '2px 7px',
-              fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#3a3a3a'
+              fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#888'
             }}>{(game.move_history || []).length}</span>
-            <ChevronDown size={14} color="#2a2a2a" className="lg:hidden" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }} />
+            <ChevronDown size={14} color="#888" className="lg:hidden" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }} />
           </div>
         </div>
 
@@ -1138,12 +1164,12 @@ export default function Game() {
         }} className="lg:!max-h-none lg:flex-1 lg:flex lg:flex-col">
           <div style={{ padding: '8px 12px', overflowY: 'auto', scrollbarWidth: 'none' }} className="max-h-[200px] lg:max-h-none lg:flex-1">
             {!(game.move_history || []).length ? (
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#222', textAlign: 'center', padding: '10px 0' }}>No moves yet</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#888', textAlign: 'center', padding: '10px 0' }}>No moves yet</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '22px 1fr 1fr' }}>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>#</div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>You</div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#222', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>{game.agent_name || 'OpenClaw'}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>#</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>You</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #141414', paddingBottom: '4px', marginBottom: '4px' }}>{agentName}</div>
                 
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const wMove = game.move_history[i * 2];
@@ -1153,13 +1179,13 @@ export default function Game() {
                   
                   return (
                     <React.Fragment key={i}>
-                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#2a2a2a', padding: '3px' }}>{i + 1}.</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888', padding: '3px' }}>{i + 1}.</div>
                       <div style={{ 
-                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestW ? '#e63946' : '#555', padding: '3px', borderRadius: '3px',
+                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestW ? '#e63946' : '#888', padding: '3px', borderRadius: '3px',
                         background: isLatestW ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestW ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
                       }}>{wMove?.san}</div>
                       <div style={{ 
-                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestB ? '#e63946' : '#555', padding: '3px', borderRadius: '3px',
+                        fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestB ? '#e63946' : '#888', padding: '3px', borderRadius: '3px',
                         background: isLatestB ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestB ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
                       }}>{bMove?.san || ''}</div>
                     </React.Fragment>
@@ -1190,17 +1216,17 @@ export default function Game() {
           }}>YOUR TURN</div>
         ) : (
           <div style={{
-            background: '#181818', border: '1px solid #222', color: '#3a3a3a', height: '26px', padding: '0 10px', borderRadius: '6px',
+            background: '#181818', border: '1px solid #222', color: '#888', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Barlow Condensed', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'uppercase'
-          }}>{game.agent_name || 'OPENCLAW'}&apos;S TURN</div>
+          }}>{agentName.toUpperCase()}&apos;S TURN</div>
         )}
         
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#2a2a2a' }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>
           Move {currentMoveNumber}
         </div>
         
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#222' }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>
           <GameTimer startTime={game.created_at} status={game.status} />
         </div>
       </div>
@@ -1217,7 +1243,7 @@ export default function Game() {
           }}>
             <button onClick={() => setShowGameOverModal(false)} style={{
               position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px',
-              background: 'transparent', border: 'none', color: '#555', cursor: 'pointer',
+              background: 'transparent', border: 'none', color: '#888', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <X size={20} />
@@ -1226,7 +1252,7 @@ export default function Game() {
               {game.result === 'white' ? '🏆' : game.result === 'black' ? '🦞' : '🤝'}
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
-              {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${game?.agent_name || 'OpenClaw'} Won!` : "It's a Draw!"}
+              {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${agentName} Won!` : "It's a Draw!"}
             </div>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
               {game.result_reason === 'checkmate' ? 'by checkmate' :
@@ -1238,14 +1264,14 @@ export default function Game() {
                game.result_reason === 'abandoned' ? 'by abandonment' :
                game.result_reason === 'agreement' ? 'by agreement' : game.result_reason}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#555', marginBottom: '24px' }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#888', marginBottom: '24px' }}>
               Game lasted {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button 
                 onClick={(e) => {
                   const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
-                  const winner = game.result === 'white' ? 'I won' : game.result === 'black' ? `${game?.agent_name || 'OpenClaw'} won` : 'Draw';
+                  const winner = game.result === 'white' ? 'I won' : game.result === 'black' ? `${agentName} won` : 'Draw';
                   navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
                   const btn = e.currentTarget;
                   const oldText = btn.innerText;
@@ -1386,7 +1412,7 @@ export default function Game() {
           70%  { transform: scale(0.96); }
           100% { transform: scale(1);    }
         }
-        input::placeholder { color: #222; }
+        input::placeholder { color: #888; }
       `}} />
     </div>
   );

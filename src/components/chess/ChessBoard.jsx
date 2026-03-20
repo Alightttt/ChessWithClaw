@@ -136,15 +136,32 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   
   const isLastMoveSquare = (sq) => {
     if (!lastMove) return false;
+    let lastMoveFrom, lastMoveTo;
     if (typeof lastMove === 'string') {
-        return sq === lastMove.substring(0, 2) || sq === lastMove.substring(2, 4);
+        lastMoveFrom = lastMove.substring(0, 2);
+        lastMoveTo = lastMove.substring(2, 4);
+    } else {
+        lastMoveFrom = lastMove.from;
+        lastMoveTo = lastMove.to;
     }
-    return lastMove.from === sq || lastMove.to === sq || lastMove.uci?.includes(sq);
+    if (!lastMoveFrom || !lastMoveTo) return false;
+    return sq === lastMoveFrom || sq === lastMoveTo;
   };
   
   const isLegalDestination = (sq) => legalMoves.some(m => m.to === sq);
   const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
   const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && chess.isCheck();
+
+  const [agentMoveFlash, setAgentMoveFlash] = useState(null);
+
+  useEffect(() => {
+    if (lastMove && lastMove.color === 'b') {
+      let toSq = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
+      setAgentMoveFlash(toSq);
+      const timer = setTimeout(() => setAgentMoveFlash(null), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [lastMove]);
 
   const themes = {
     green: { light: '#739552', dark: '#577047' },

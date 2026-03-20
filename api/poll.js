@@ -67,8 +67,7 @@ export default async function handler(req, res) {
     await supabase
       .from('games')
       .update({ agent_connected: true, updated_at: new Date().toISOString() })
-      .eq('id', gameId)
-      .eq('agent_connected', false);
+      .eq('id', gameId);
   }
 
   // Game finished

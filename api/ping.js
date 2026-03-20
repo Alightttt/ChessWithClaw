@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let { id } = req.body;
+  let { id, token } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Missing game ID' });
@@ -45,13 +45,26 @@ export default async function handler(req, res) {
     supabaseUrl = `https://${supabaseUrl}`;
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const agentToken = req.headers['x-agent-token'] || token || '';
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        'x-agent-token': agentToken
+      }
+    }
+  });
   
-  const { data: game, error } = await supabase.from('games').select('id, status, agent_connected').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, status, agent_connected, agent_token').eq('id', id).single();
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
+  
+  if (!agentToken || agentToken !== game.agent_token) {
+    return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
+  }
+
   if (game.status === 'finished' || game.status === 'abandoned') return res.status(400).json({ error: 'Game over' });
 
-  const updates = { agent_last_ping: new Date().toISOString() };
+  const updates = { agent_last_seen: new Date().toISOString() };
   if (!game.agent_connected) {
     updates.agent_connected = true;
   }

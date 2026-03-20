@@ -30,8 +30,8 @@ export default function GameCreated({ gameId, agentToken }) {
       if (data?.agent_name) {
         setAgentName(data.agent_name);
       }
-      if (data?.agent_connected) {
-        setAgentConnected(true);
+      if (data?.agent_connected !== undefined) {
+        setAgentConnected(!!data.agent_connected);
       }
     };
     fetchGame();
@@ -47,9 +47,16 @@ export default function GameCreated({ gameId, agentToken }) {
         if (payload.new.agent_name) {
           setAgentName(payload.new.agent_name);
         }
-        if (payload.new.agent_connected && !agentConnected) {
-          setAgentConnected(true);
-          toast.success(`${payload.new.agent_name || 'Your OpenClaw'} has joined! 🦞`);
+        if (payload.new.agent_connected !== undefined) {
+          const isConnected = !!payload.new.agent_connected;
+          setAgentConnected(prev => {
+            if (!prev && isConnected) {
+              toast.success(`${payload.new.agent_name || 'Your OpenClaw'} has joined! 🦞`);
+            } else if (prev && !isConnected) {
+              toast.error(`${payload.new.agent_name || 'Your OpenClaw'} disconnected.`);
+            }
+            return isConnected;
+          });
         }
       })
       .subscribe();
@@ -57,7 +64,7 @@ export default function GameCreated({ gameId, agentToken }) {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [gameId, agentConnected, toast]);
+  }, [gameId, toast]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
@@ -594,7 +601,7 @@ RULES:
             fontWeight: 700,
             color: '#f2f2f2',
             marginBottom: '14px'
-          }}>Waiting for Your OpenClaw</h2>
+          }}>{agentConnected ? 'Your OpenClaw is Ready' : 'Waiting for Your OpenClaw'}</h2>
           
           <div style={{
             background: agentConnected ? 'rgba(34,197,94,0.03)' : '#080808',

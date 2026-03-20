@@ -86,7 +86,7 @@ export default async function handler(req, res) {
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
   
   // FIX 1 — BETTER ERROR CODE WHEN WAITING
-  if (game.status === 'waiting') {
+  if (game.status === 'waiting' && !game.agent_connected) {
     return res.status(400).json({
       error: 'Waiting for OpenClaw to join',
       code: 'WAITING_FOR_AGENT',
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     });
   }
   
-  if (game.status !== 'active') return res.status(400).json({ error: 'Game over' });
+  if (game.status !== 'active' && game.status !== 'waiting') return res.status(400).json({ error: 'Game over' });
 
   // Fetch move history from the new table
   const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
@@ -129,8 +129,7 @@ export default async function handler(req, res) {
       await supabase
         .from('games')
         .update({ agent_connected: true })
-        .eq('id', id)
-        .eq('agent_connected', false);
+        .eq('id', id);
     }
   }
 
