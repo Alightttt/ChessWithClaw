@@ -108,7 +108,8 @@ export default function App() {
       const res = await fetch('/api/create', { method: 'POST' });
       if (!res.ok) throw new Error('Failed to create game');
       const game = await res.json();
-      navigate(`/created/${game.id}`, { state: { agentToken: game.agent_token } });
+      localStorage.setItem(`game_owner_${game.id}`, game.secret_token);
+      navigate(`/game/${game.id}`, { state: { agentToken: game.agent_token } });
     } catch (err) {
       console.error(err);
       alert('Error creating game');

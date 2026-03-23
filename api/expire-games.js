@@ -9,15 +9,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return res.status(500).json({ error: 'Server configuration error' });
-  }
-
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);

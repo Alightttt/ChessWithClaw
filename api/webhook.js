@@ -44,34 +44,41 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid webhook URL' });
   }
 
-  let supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        'x-agent-token': agentToken
-      }
-    }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, move_history, chat_history, pending_events, agent_token').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, pending_events, agent_token').eq('id', id).single();
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
 
   if (!agentToken || agentToken !== game.agent_token) {
     return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
   }
+
+  // Fetch move history from the new table
+  const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
+  game.move_history = (movesData || []).map(m => ({
+    ...m,
+    from: m.from_square || m.from,
+    to: m.to_square || m.to,
+    uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+  }));
+
+  // Fetch chat history from the new table
+  const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
+  game.chat_history = (chatData || []).map(msg => ({
+    ...msg,
+    text: msg.message,
+    timestamp: new Date(msg.created_at).getTime()
+  }));
 
   const payload = {
     event: 'agent_connected',

@@ -58,28 +58,17 @@ export default async function handler(req, res) {
 
   const sanitizedReasoning = sanitizeText(reasoning, 300);
 
-  let supabaseUrl = process.env.SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        'x-game-token': gameToken,
-        'x-agent-token': agentToken
-      }
-    }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, result, result_reason, agent_connected, human_connected, webhook_url, agent_capabilities, pending_events, move_count, created_at, updated_at, webhook_failed, webhook_fail_count, agent_name, agent_avatar, agent_tagline, secret_token, agent_token').eq('id', id).single();
 
@@ -98,7 +87,12 @@ export default async function handler(req, res) {
 
   // Fetch move history from the new table
   const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-  game.move_history = movesData || [];
+  game.move_history = (movesData || []).map(m => ({
+    ...m,
+    from: m.from_square || m.from,
+    to: m.to_square || m.to,
+    uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+  }));
 
   // Fetch chat history from the new table
   const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
@@ -183,13 +177,14 @@ export default async function handler(req, res) {
   };
 
   // Insert into moves table
-  const { error: moveInsertError } = await supabase.from('moves').insert(newMove);
+  let insertedMoveId = null;
+  const { data: insertedMove, error: moveInsertError } = await supabase.from('moves').insert(newMove).select().single();
   if (moveInsertError) {
     console.error("Error inserting move:", moveInsertError);
     // Fallback to old method if table doesn't exist
     if (moveInsertError.code === '42P01') {
       const newMoveHistory = [...(game.move_history || []), {
-        number: moveNumber,
+        move_number: moveNumber,
         color: isHumanMove ? 'w' : 'b',
         from: moveObj.from,
         to: moveObj.to,
@@ -203,7 +198,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to record move' });
     }
   } else {
-    game.move_history.push({ ...newMove, uci: newMove.from_square + newMove.to_square + (newMove.promotion || ''), timestamp: Date.now() });
+    insertedMoveId = insertedMove?.id;
+    game.move_history.push({ 
+      ...newMove, 
+      from: newMove.from_square,
+      to: newMove.to_square,
+      uci: newMove.from_square + newMove.to_square + (newMove.promotion || ''), 
+      timestamp: Date.now() 
+    });
   }
 
   const updates = {
@@ -212,6 +214,7 @@ export default async function handler(req, res) {
     status: 'active'
   };
 
+  let insertedThoughtId = null;
   if (isAgentMove) {
     const newThought = {
       game_id: id,
@@ -219,16 +222,22 @@ export default async function handler(req, res) {
       thought: sanitizedReasoning || '(no reasoning provided)',
       is_final: true
     };
-    const { error: thoughtError } = await supabase.from('agent_thoughts').insert(newThought);
-    if (thoughtError && thoughtError.code === '42P01') {
-      const newThinkingLog = [...(game.thinking_log || []), {
-        moveNumber: moveNumber,
-        text: sanitizedReasoning || '(no reasoning provided)',
-        finalMove: moveObj.san,
-        timestamp: Date.now()
-      }];
-      updates.thinking_log = newThinkingLog;
-      updates.current_thinking = '';
+    const { data: insertedThought, error: thoughtError } = await supabase.from('agent_thoughts').insert(newThought).select().single();
+    if (thoughtError) {
+      if (thoughtError.code === '42P01') {
+        const newThinkingLog = [...(game.thinking_log || []), {
+          moveNumber: moveNumber,
+          text: sanitizedReasoning || '(no reasoning provided)',
+          finalMove: moveObj.san,
+          timestamp: Date.now()
+        }];
+        updates.thinking_log = newThinkingLog;
+        updates.current_thinking = '';
+      } else {
+        console.error("Error inserting thought:", thoughtError);
+      }
+    } else {
+      insertedThoughtId = insertedThought?.id;
     }
     updates.agent_connected = true;
     updates.agent_last_seen = new Date().toISOString();
@@ -319,27 +328,8 @@ export default async function handler(req, res) {
     updates.pending_events = [...(game.pending_events || []), enrichedPayload];
     updates.human_last_moved_at = new Date().toISOString();
 
-    const webhookUrl = game.webhook_url || game.agent_webhook;
-    if (webhookUrl && !game.webhook_failed) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      try {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(enrichedPayload),
-          signal: controller.signal
-        });
-      } catch (e) {
-        console.error('Webhook delivery failed:', e.message);
-        // Do NOT throw — webhook failure should not break the game
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    }
-
     // BEHAVIOR 2 — Position commentary trigger
-    if (game.move_history.length % 8 === 0) { // Every 4 full moves (8 half-moves)
+    if (game.move_history.length % 8 === 1) { // Every 4 full moves (after White's 1st, 5th, 9th, etc.)
       const positionPayload = {
         event: "position_update",
         move_number: Math.floor(game.move_history.length / 2) + 1,
@@ -378,7 +368,17 @@ export default async function handler(req, res) {
     .select()
     .single();
 
+  if (updateError && updateError.code !== 'PGRST116') {
+    console.error("Update error:", updateError);
+  }
+
   if (!updated) {
+    if (insertedMoveId) {
+      await supabase.from('moves').delete().eq('id', insertedMoveId);
+    }
+    if (insertedThoughtId) {
+      await supabase.from('agent_thoughts').delete().eq('id', insertedThoughtId);
+    }
     return res.status(409).json({
       error: 'Move already processed',
       code: 'TURN_CONFLICT'

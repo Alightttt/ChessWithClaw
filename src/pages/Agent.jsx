@@ -43,7 +43,12 @@ export default function Agent() {
       } else {
         // Fetch move history from the new table
         const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
-        data.move_history = movesData || [];
+        data.move_history = (movesData || []).map(m => ({
+          ...m,
+          from: m.from_square || m.from,
+          to: m.to_square || m.to,
+          uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+        }));
 
         // Fetch chat history from the new table
         const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
@@ -118,7 +123,13 @@ export default function Agent() {
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` }, (payload) => {
         setGame(prev => {
           if (!prev) return prev;
-          const newMoveHistory = [...(prev.move_history || []), payload.new];
+          const newMove = {
+            ...payload.new,
+            from: payload.new.from_square || payload.new.from,
+            to: payload.new.to_square || payload.new.to,
+            uci: (payload.new.from_square || payload.new.from) + (payload.new.to_square || payload.new.to) + (payload.new.promotion || '')
+          };
+          const newMoveHistory = [...(prev.move_history || []), newMove];
           newMoveHistory.sort((a, b) => a.move_number - b.move_number);
           return { ...prev, move_history: newMoveHistory };
         });

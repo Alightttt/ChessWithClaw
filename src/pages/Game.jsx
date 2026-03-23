@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { useToast } from '../contexts/ToastContext';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
@@ -31,7 +31,10 @@ function GameTimer({ startTime, status }) {
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  const agentToken = location.state?.agentToken;
   
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -354,7 +357,12 @@ export default function Game() {
       } else {
         // Fetch move history from the new table
         const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
-        data.move_history = movesData || [];
+        data.move_history = (movesData || []).map(m => ({
+          ...m,
+          from: m.from_square || m.from,
+          to: m.to_square || m.to,
+          uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+        }));
 
         // Fetch chat history from the new table
         const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
@@ -420,7 +428,13 @@ export default function Game() {
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` }, (payload) => {
         setGame(prev => {
           if (!prev) return prev;
-          const newMoveHistory = [...(prev.move_history || []), payload.new];
+          const newMove = {
+            ...payload.new,
+            from: payload.new.from_square || payload.new.from,
+            to: payload.new.to_square || payload.new.to,
+            uci: (payload.new.from_square || payload.new.from) + (payload.new.to_square || payload.new.to) + (payload.new.promotion || '')
+          };
+          const newMoveHistory = [...(prev.move_history || []), newMove];
           // Sort by move_number to ensure correct order
           newMoveHistory.sort((a, b) => a.move_number - b.move_number);
           return { ...prev, move_history: newMoveHistory };
@@ -520,7 +534,7 @@ export default function Game() {
       }
 
       const newMoveHistory = [...(game.move_history || []), {
-        number: Math.floor((game.move_history || []).length / 2) + 1,
+        move_number: Math.floor((game.move_history || []).length / 2) + 1,
         color: 'w',
         from,
         to,
@@ -571,7 +585,7 @@ export default function Game() {
         setGame(previousGame);
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast('Waiting for your OpenClaw to join...', {
-            icon: '��',
+            icon: '🦞',
             style: { background: '#1a1a1a', border: '1px solid #333', color: '#f0f0f0' }
           });
           return;
@@ -674,7 +688,7 @@ export default function Game() {
   };
 
   const copyInvite = () => {
-    const url = `${window.location.origin}/Agent?id=${gameId}`;
+    const url = `${window.location.origin}/Agent?id=${gameId}${agentToken ? `&token=${agentToken}` : ''}`;
     navigator.clipboard.writeText(url);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
@@ -799,7 +813,7 @@ export default function Game() {
             fontSize: '18px', flexShrink: 0,
             animation: justConnected ? 'bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
           }}>
-            {game?.agent_avatar || '🦞'}
+            {game.agent_avatar || '🦞'}
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -876,7 +890,7 @@ export default function Game() {
         }}>
           {!game.agent_connected ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>OpenClaw not connected yet.</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} not connected yet.</div>
               <button 
                 onClick={(e) => { createRipple(e); copyInvite(); }}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
@@ -893,7 +907,7 @@ export default function Game() {
           ) : agentTimedOut ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#d97706', marginBottom: '8px' }}>
-                OpenClaw seems delayed. They might have disconnected or crashed.
+                {agentName} seems delayed. They might have disconnected or crashed.
               </div>
               <button 
                 onClick={(e) => { createRipple(e); copyInvite(); }}
@@ -905,12 +919,12 @@ export default function Game() {
                   cursor: 'pointer', transition: 'all 150ms'
                 }}
               >
-                {copiedInvite ? 'Copied!' : 'Copy OpenClaw Link'}
+                {copiedInvite ? 'Copied!' : `Copy ${agentName} Link`}
               </button>
             </div>
           ) : !game.current_thinking && !lastThinking ? (
             <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>
-              Waiting for OpenClaw to move...
+              Waiting for {agentName} to move...
             </div>
           ) : (
             <div 
@@ -957,7 +971,7 @@ export default function Game() {
             marginBottom: 12,
             width: `${boardSize}px`
           }}>
-            <span style={{animation: 'floatLobster 2s ease-in-out infinite'}}>��</span>
+            <span style={{animation: 'floatLobster 2s ease-in-out infinite'}}>🦞</span>
             <div>
               <div style={{fontSize:13,fontWeight:600,color:'#f0f0f0'}}>
                 Waiting for {agentName} to join...
@@ -1038,7 +1052,7 @@ export default function Game() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: '#888' }}>Chat with {agentName}</span>
-            <span style={{ fontSize: '12px' }}>{game?.agent_avatar || '🦞'}</span>
+            <span style={{ fontSize: '12px' }}>{game.agent_avatar || '🦞'}</span>
           </div>
           {unreadCount > 0 && (
             <span style={{ background: '#e63946', color: 'white', borderRadius: '99px', padding: '1px 6px', fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700 }}>
@@ -1056,7 +1070,7 @@ export default function Game() {
         >
           {!(game.chat_history || []).length ? (
             <div style={{ margin: 'auto', textAlign: 'center' }}>
-              <span style={{ fontSize: '20px', color: '#666', display: 'block', marginBottom: '5px' }}>{game?.agent_avatar || '🦞'}</span>
+              <span style={{ fontSize: '20px', color: '#666', display: 'block', marginBottom: '5px' }}>{game.agent_avatar || '🦞'}</span>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} can chat while playing</span>
             </div>
           ) : (
@@ -1249,7 +1263,7 @@ export default function Game() {
               <X size={20} />
             </button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {game.result === 'white' ? '��' : game.result === 'black' ? '��' : '��'}
+              {game.result === 'white' ? '🏆' : game.result === 'black' ? '🦞' : '🤝'}
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
               {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${agentName} Won!` : "It's a Draw!"}
@@ -1272,7 +1286,7 @@ export default function Game() {
                 onClick={(e) => {
                   const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
                   const winner = game.result === 'white' ? 'I won' : game.result === 'black' ? `${agentName} won` : 'Draw';
-                  navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw �� chesswithclaw.vercel.app`);
+                  navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
                   const btn = e.currentTarget;
                   const oldText = btn.innerText;
                   btn.innerText = 'Copied! ✓';

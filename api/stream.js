@@ -52,24 +52,14 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: 'Invalid game ID format' }), { status: 400 });
   }
 
-  let supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 });
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        'x-agent-token': token
-      }
-    }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Verify token before updating
   const { data: gameCheck } = await supabase.from('games').select('agent_token, agent_connected').eq('id', id).single();
@@ -99,7 +89,12 @@ export default async function handler(req) {
       const sendUpdate = async (gameData) => {
         // Fetch move history from the new table
         const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-        gameData.move_history = movesData || [];
+        gameData.move_history = (movesData || []).map(m => ({
+          ...m,
+          from: m.from_square || m.from,
+          to: m.to_square || m.to,
+          uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+        }));
 
         // Fetch chat history from the new table
         const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });

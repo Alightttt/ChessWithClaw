@@ -48,28 +48,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Text is empty after sanitization' });
   }
 
-  let supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        'x-game-token': gameToken,
-        'x-agent-token': agentToken
-      }
-    }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   // Verify game exists
   const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token').eq('id', id).single();
@@ -87,7 +76,12 @@ export default async function handler(req, res) {
 
   // Fetch move history from the new table
   const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-  game.move_history = movesData || [];
+  game.move_history = (movesData || []).map(m => ({
+    ...m,
+    from: m.from_square || m.from,
+    to: m.to_square || m.to,
+    uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+  }));
 
   const newMessage = {
     game_id: id,

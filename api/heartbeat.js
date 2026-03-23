@@ -38,29 +38,33 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid game ID format' });
   }
 
-  let supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
     return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    supabaseUrl = `https://${supabaseUrl}`;
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        'x-game-token': gameToken,
-        'x-agent-token': agentToken
-      }
-    }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
+  const { data: game, error: fetchError } = await supabase.from('games').select('secret_token, agent_token').eq('id', id).single();
+  if (fetchError || !game) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
+
+  if (role === 'human') {
+    if (!gameToken || gameToken !== game.secret_token) {
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
+    }
+  } else if (role === 'agent') {
+    if (!agentToken || agentToken !== game.agent_token) {
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
+    }
+  }
+
   const updates = {};
   const now = new Date().toISOString();
   
@@ -79,11 +83,11 @@ export default async function handler(req, res) {
 
   // Check for human slow
   if (role === 'human') {
-    const { data: game, error } = await supabase.from('games').select('id, turn, status, human_last_moved_at, last_impatience_at, pending_events, webhook_url, webhook_failed, webhook_fail_count, fen').eq('id', id).single();
+    const { data: gameData, error } = await supabase.from('games').select('id, turn, status, human_last_moved_at, last_impatience_at, pending_events, webhook_url, webhook_failed, webhook_fail_count, fen').eq('id', id).single();
     
-    if (!error && game && game.status === 'active' && game.turn === 'w' && game.human_last_moved_at) {
-      const lastMoved = new Date(game.human_last_moved_at).getTime();
-      const lastImpatience = game.last_impatience_at ? new Date(game.last_impatience_at).getTime() : 0;
+    if (!error && gameData && gameData.status === 'active' && gameData.turn === 'w' && gameData.human_last_moved_at) {
+      const lastMoved = new Date(gameData.human_last_moved_at).getTime();
+      const lastImpatience = gameData.last_impatience_at ? new Date(gameData.last_impatience_at).getTime() : 0;
       const currentTime = Date.now();
       
       const waitedSeconds = Math.floor((currentTime - lastMoved) / 1000);
@@ -92,15 +96,15 @@ export default async function handler(req, res) {
         const payload = {
           event: "human_slow",
           waited_seconds: waitedSeconds,
-          fen: game.fen,
+          fen: gameData.fen,
           instruction: "Your opponent is taking a long time. Send one short impatient or curious message in chat. Be yourself."
         };
         
-        const enrichedPayload = await notifyAgent(game, payload, supabase);
+        const enrichedPayload = await notifyAgent(gameData, payload, supabase);
         
         await supabase.from('games').update({
           last_impatience_at: now,
-          pending_events: [...(game.pending_events || []), enrichedPayload]
+          pending_events: [...(gameData.pending_events || []), enrichedPayload]
         }).eq('id', id);
       }
     }
