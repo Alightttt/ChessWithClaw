@@ -47,6 +47,8 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  const agentToken = req.headers['x-agent-token'] || req.query.token || '';
+
   // Single database read — no loop
   const { data: game, error } = await supabase
     .from('games')
@@ -57,6 +59,27 @@ export default async function handler(req, res) {
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', game_id: gameId });
   }
+
+  if (!agentToken || agentToken !== game.agent_token) {
+    return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
+  }
+
+  // Fetch move history from the new table
+  const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
+  game.move_history = (movesData || []).map(m => ({
+    ...m,
+    from: m.from_square || m.from,
+    to: m.to_square || m.to,
+    uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+  }));
+
+  // Fetch chat history from the new table
+  const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
+  game.chat_history = (chatData || []).map(msg => ({
+    ...msg,
+    text: msg.message,
+    timestamp: new Date(msg.created_at).getTime()
+  }));
 
   // Mark agent as connected if not already
   if (!game.agent_connected) {
