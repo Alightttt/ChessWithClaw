@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -7,6 +7,13 @@ const Home = lazy(() => import('./pages/Home'));
 const Game = lazy(() => import('./pages/Game'));
 const Agent = lazy(() => import('./pages/Agent'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const GameCreated = lazy(() => import('./components/GameCreated'));
+
+const GameCreatedWrapper = () => {
+  const { id } = useParams();
+  const location = useLocation();
+  return <GameCreated gameId={id} agentToken={location.state?.agentToken} />;
+};
 
 const Fallback = () => (
   <div
@@ -48,6 +55,7 @@ function AnimatedRoutes() {
     <Routes location={location}>
       <Route path="/" element={<PageTransition key={location.key}><Home /></PageTransition>} />
       <Route path="/game/:id" element={<PageTransition key={location.key}><Game /></PageTransition>} />
+      <Route path="/created/:id" element={<PageTransition key={location.key}><GameCreatedWrapper /></PageTransition>} />
       <Route path="/Agent" element={<PageTransition key={location.key}><Agent /></PageTransition>} />
       <Route path="*" element={<PageTransition key={location.key}><NotFound /></PageTransition>} />
     </Routes>

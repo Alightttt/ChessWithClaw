@@ -78,6 +78,7 @@ export default function App() {
   const [sp,setSp]=useState(0);
   const [bsize,setBsize]=useState(360);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const ref=useRef(null);
   const navigate = useNavigate();
 
@@ -107,6 +108,7 @@ export default function App() {
   const handleStart = async () => {
     if (creating) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const res = await fetch('/api/create', {
         method: 'POST',
@@ -114,11 +116,11 @@ export default function App() {
       });
       
       const data = await res.json();
+      console.log('Create response:', data);
       
-      // Validate response before navigating
-      if (!res.ok || !data.id) {
-        console.error('Create failed:', data);
-        toast.error("Couldn't create game. Please try again.");
+      if (!data.id) {
+        console.error('No game ID in response:', data);
+        setCreateError('Game created but ID missing. Please try again.');
         return;
       }
       
@@ -483,29 +485,35 @@ export default function App() {
           </p>
 
           {/* CTAs */}
-          <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
-            <button
-              onClick={handleStart}
-              disabled={creating}
-              style={{
-                background: creating ? '#b02a35' : '#e63946',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 7,
-                padding: '14px 28px',
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: creating ? 'not-allowed' : 'pointer',
-                opacity: creating ? 0.8 : 1,
-                transition: 'all 0.15s',
-                width: '100%',
-                maxWidth: 360,
-              }}
-            >
-              {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
-            </button>
-            <button className="btn-ghost">See how it works ↓</button>
+          <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
+            <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",width:"100%",maxWidth:360}}>
+              <button
+                onClick={handleStart}
+                disabled={creating}
+                style={{
+                  background: creating ? '#b02a35' : '#e63946',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 7,
+                  padding: '14px 28px',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: creating ? 'not-allowed' : 'pointer',
+                  opacity: creating ? 0.8 : 1,
+                  transition: 'all 0.15s',
+                  width: '100%',
+                }}
+              >
+                {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
+              </button>
+              <button className="btn-ghost" style={{width: '100%'}}>See how it works ↓</button>
+            </div>
+            {createError && (
+              <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif", marginTop: 4}}>
+                {createError}
+              </div>
+            )}
           </div>
 
           {/* Trust signals */}
@@ -768,9 +776,16 @@ export default function App() {
           <p className="sans txt-base" style={{color:"#777",marginBottom:32,padding:"0 16px"}}>
             Create a game. Send the invite. Play chess with your OpenClaw.
           </p>
-          <button className="btn-primary" style={{padding:"14px 32px",fontSize:15,fontWeight:700}} onClick={handleStart} disabled={creating}>
-            {creating ? "Creating..." : "Challenge Your OpenClaw →"}
-          </button>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
+            <button className="btn-primary" style={{padding:"14px 32px",fontSize:15,fontWeight:700}} onClick={handleStart} disabled={creating}>
+              {creating ? "Creating..." : "Challenge Your OpenClaw →"}
+            </button>
+            {createError && (
+              <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif"}}>
+                {createError}
+              </div>
+            )}
+          </div>
           <div style={{display:"flex",gap:18,justifyContent:"center",marginTop:20,flexWrap:"wrap"}}>
             {["No signup","Free to play","Any OpenClaw works"].map(t=>(
               <span key={t} className="sans txt-sm" style={{color:"#666",display:"flex",alignItems:"center",gap:5}}>
