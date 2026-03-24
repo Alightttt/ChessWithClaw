@@ -10,21 +10,41 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((message, type, duration = 3500) => {
+  const addToast = useCallback((message, typeOrOptions, duration = 3500) => {
     const id = Date.now() + Math.random();
+    
+    let type = 'info';
+    let dur = duration;
+    let icon = null;
+    let style = null;
+
+    if (typeof typeOrOptions === 'string') {
+      type = typeOrOptions;
+    } else if (typeOrOptions && typeof typeOrOptions === 'object') {
+      type = typeOrOptions.type || 'info';
+      dur = typeOrOptions.duration || duration;
+      icon = typeOrOptions.icon;
+      style = typeOrOptions.style;
+    }
+
     setToasts((prev) => {
-      const next = [{ id, message, type, duration }, ...prev];
+      const next = [{ id, message, type, duration: dur, icon, style }, ...prev];
       return next.slice(0, 3); // max 3 visible
     });
-    setTimeout(() => removeToast(id), duration);
+    setTimeout(() => removeToast(id), dur);
   }, [removeToast]);
 
-  const toast = {
-    success: (msg, dur) => addToast(msg, 'success', dur),
-    error: (msg, dur) => addToast(msg, 'error', dur),
-    info: (msg, dur) => addToast(msg, 'info', dur),
-    warning: (msg, dur) => addToast(msg, 'warning', dur),
-  };
+  const toast = Object.assign(
+    (msg, options = {}) => {
+      addToast(msg, options);
+    },
+    {
+      success: (msg, dur) => addToast(msg, 'success', dur),
+      error: (msg, dur) => addToast(msg, 'error', dur),
+      info: (msg, dur) => addToast(msg, 'info', dur),
+      warning: (msg, dur) => addToast(msg, 'warning', dur),
+    }
+  );
 
   const contextValue = {
     toast,
@@ -120,6 +140,7 @@ function ToastItem({ toast, removeToast }) {
         WebkitBackfaceVisibility: 'hidden',
         backfaceVisibility: 'hidden',
         transform: 'translateZ(0)',
+        ...(toast.style || {})
       }}
     >
       <style>
@@ -152,7 +173,7 @@ function ToastItem({ toast, removeToast }) {
           fontWeight: 700,
         }}
       >
-        {icons[toast.type] || icons.info}
+        {toast.icon || icons[toast.type] || icons.info}
       </div>
       <div
         style={{

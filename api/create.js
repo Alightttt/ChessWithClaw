@@ -4,18 +4,26 @@ import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCo
 import { checkRateLimit } from './_utils/rateLimit.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing env vars:', {
+      hasUrl: !!process.env.SUPABASE_URL,
+      hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      code: 'MISSING_ENV_VARS'
+    });
+  }
+
   applySecurityHeaders(res);
   applyCacheControl(res);
   applyCorsHeaders(req, res);
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
-  }
 
   const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
   const rateLimitResult = checkRateLimit(ip, '/api/create', 10, 60000);
@@ -26,50 +34,52 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
-    return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
   try {
-    const secretToken = randomUUID();
     const agentToken = randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const expires = new Date(Date.now() + 24*60*60*1000).toISOString();
 
     const { data: game, error } = await supabase
       .from('games')
-      .insert([{
-        status: 'waiting',
+      .insert({
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         turn: 'w',
-        human_connected: false,
+        status: 'waiting',
+        move_history: [],
+        chat_history: [],
+        move_count: 0,
+        chat_count: 0,
+        move_number: 0,
+        in_check: false,
         agent_connected: false,
-        result: null,
-        result_reason: null,
-        webhook_url: null,
-        secret_token: secretToken,
         agent_token: agentToken,
-        expires_at: expiresAt
-      }])
+        created_at: now,
+        updated_at: now,
+        expires_at: expires
+      })
       .select()
       .single();
 
-    if (error) {
-      console.error('Database error:', error);
-      return res.status(500).json({ error: 'Failed to create game in database' });
+    if (error || !game) {
+      console.error('Game creation failed:', error);
+      return res.status(500).json({ 
+        error: 'Failed to create game',
+        detail: error?.message,
+        code: 'CREATE_FAILED'
+      });
     }
 
     return res.status(200).json({
       id: game.id,
       fen: game.fen,
-      turn: 'w',
-      status: 'waiting',
+      turn: game.turn,
+      status: game.status,
       agent_token: agentToken,
-      secret_token: secretToken,
       created_at: game.created_at
     });
   } catch (error) {

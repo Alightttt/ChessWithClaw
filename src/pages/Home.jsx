@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from '../contexts/ToastContext';
 
 /* ─── BOARD DATA ─── */
 const BOARD = [
@@ -80,6 +81,8 @@ export default function App() {
   const ref=useRef(null);
   const navigate = useNavigate();
 
+  const { toast } = useToast();
+
   useEffect(()=>{
     setTimeout(()=>setLoaded(true),80);
 
@@ -105,14 +108,28 @@ export default function App() {
     if (creating) return;
     setCreating(true);
     try {
-      const res = await fetch('/api/create', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to create game');
-      const game = await res.json();
-      localStorage.setItem(`game_owner_${game.id}`, game.secret_token);
-      navigate(`/game/${game.id}`, { state: { agentToken: game.agent_token } });
+      const res = await fetch('/api/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      // Validate response before navigating
+      if (!res.ok || !data.id) {
+        console.error('Create failed:', data);
+        toast.error("Couldn't create game. Please try again.");
+        return;
+      }
+      
+      // Store agent_token for GameCreated screen
+      navigate(`/created/${data.id}`, { 
+        state: { agentToken: data.agent_token } 
+      });
+      
     } catch (err) {
-      console.error(err);
-      alert('Error creating game');
+      console.error('Network error:', err);
+      toast.error('Network error. Check your connection and try again.');
     } finally {
       setCreating(false);
     }
@@ -467,8 +484,26 @@ export default function App() {
 
           {/* CTAs */}
           <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
-            <button className="btn-primary" onClick={handleStart} disabled={creating}>
-              {creating ? "Creating..." : "Challenge Your OpenClaw →"}
+            <button
+              onClick={handleStart}
+              disabled={creating}
+              style={{
+                background: creating ? '#b02a35' : '#e63946',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 7,
+                padding: '14px 28px',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: creating ? 'not-allowed' : 'pointer',
+                opacity: creating ? 0.8 : 1,
+                transition: 'all 0.15s',
+                width: '100%',
+                maxWidth: 360,
+              }}
+            >
+              {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
             </button>
             <button className="btn-ghost">See how it works ↓</button>
           </div>
