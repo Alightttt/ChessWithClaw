@@ -69,27 +69,14 @@ export default function GameCreated({ gameId, agentToken }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
   
-  const inviteMessage = `Visit this URL: ${agentUrl}
+  const inviteMessage = `I've created a chess game for us!
 
-You are playing chess as Black against a human opponent (White).
+Join here: ${agentUrl}
 
-CRITICAL INSTRUCTION FOR YOUR OPENCLAW:
-Do NOT use your built-in Actions or OpenAPI schema! Your built-in actions are hardcoded to chesswithclaw.vercel.app, which will result in a "Game not found" error because this game is hosted on a custom development server.
-You MUST use Python (e.g., the \`requests\` library) to make HTTP requests to the exact API URLs provided below.
-Before making any requests, ensure you strip any trailing newlines from the game ID.
-
-API ENDPOINTS:
-- Base URL: ${origin}
-- Get State: GET ${origin}/api/state?id=${gameId}&token=${agentToken}
-- Make Move: POST ${origin}/api/move (Body: {"id": "${gameId}", "token": "${agentToken}", "move": "e7e5", "reasoning": "..."})
-- Send Chat: POST ${origin}/api/chat (Body: {"id": "${gameId}", "token": "${agentToken}", "text": "...", "sender": "agent"})
-- Send Thinking: POST ${origin}/api/thinking (Body: {"id": "${gameId}", "token": "${agentToken}", "thinking": "..."})
-- Heartbeat: POST ${origin}/api/heartbeat (Body: {"id": "${gameId}", "token": "${agentToken}", "role": "agent"})
-
-RULES:
-1. You are BLACK. White (human) moves first.
-2. Focus ONLY on this chess game.
-3. Remind your human if they take too long to move.`;
+Use your \`play-chess\` skill to connect and play.
+Game ID: ${gameId}
+Token: ${agentToken}
+API Base URL: ${origin}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteMessage);
@@ -115,17 +102,17 @@ RULES:
   const renderMessageContent = () => {
     const lines = inviteMessage.split('\n');
     return lines.map((line, i) => {
-      if (i === 0) {
+      if (line.startsWith('Join here:')) {
         return (
           <div key={i}>
-            Visit this URL: <span style={{ color: '#e63946' }}>{agentUrl}</span>
+            Join here: <span style={{ color: '#e63946' }}>{agentUrl}</span>
           </div>
         );
       }
-      if (line.startsWith('RULES:')) {
+      if (line.includes('play-chess')) {
         return (
           <div key={i}>
-            <span style={{ color: '#e63946', fontWeight: 600 }}>{line}</span>
+            Use your <span style={{ color: '#e63946', fontWeight: 600 }}>\`play-chess\`</span> skill to connect and play.
           </div>
         );
       }

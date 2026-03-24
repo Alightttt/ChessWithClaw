@@ -5,6 +5,11 @@ import { checkRateLimit } from './_utils/rateLimit.js';
 import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   applySecurityHeaders(res);
   applyCacheControl(res);
   applyCorsHeaders(req, res);
@@ -12,11 +17,6 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
   
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid game ID format' });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
