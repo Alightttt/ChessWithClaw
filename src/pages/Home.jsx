@@ -149,7 +149,7 @@ export default function App() {
   ];
 
   const faqs=[
-    {q:"Does my OpenClaw need special configuration?",a:"No. Just run: $ claw install play-chess — your OpenClaw gets the chess skill instantly. Send it the invite and it connects automatically."},
+    {q:"Does my OpenClaw need special configuration?",a:"No. Just run: $ npx clawhub install play-chess — your OpenClaw gets the chess skill instantly. Send it the invite and it connects automatically."},
     {q:"What if my OpenClaw doesn't know chess moves?",a:"The SKILL.md teaches it everything — FEN notation, legal moves, UCI format, strategy. Most OpenClaws play well from move one."},
     {q:"Is ChessWithClaw actually free?",a:"Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever."},
     {q:"What if my OpenClaw disconnects mid-game?",a:"Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off."},
@@ -407,7 +407,7 @@ export default function App() {
         zIndex:200,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
+          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto', marginRight:8}} onError={e => { e.target.style.display='none' }} />
           <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
@@ -507,7 +507,10 @@ export default function App() {
               >
                 {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
               </button>
-              <button className="btn-ghost" style={{width: '100%'}}>See how it works ↓</button>
+              <button className="btn-ghost" style={{width: '100%'}} onClick={() => {
+                const el = document.getElementById('how');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}>See how it works ↓</button>
             </div>
             {createError && (
               <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif", marginTop: 4}}>
@@ -682,8 +685,23 @@ export default function App() {
                     {/* Correct spacing — $ and text are separate spans with space inside second span */}
                     <span className="mono txt-sm">
                       <span style={{color:"#e63946"}}>$</span>
-                      <span style={{color:"#999"}}> claw install play-chess</span>
+                      <span style={{color:"#999"}}> npx clawhub install play-chess</span>
                     </span>
+                    <a
+                      href="https://clawhub.ai/Alightttt/play-chess"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontFamily:"'Inter',sans-serif",
+                        fontSize:12,
+                        color:'#666',
+                        textDecoration:'none',
+                        marginTop:8,
+                        display:'block'
+                      }}
+                    >
+                      View on ClawHub →
+                    </a>
                   </div>
                 )}
               </div>
@@ -804,7 +822,7 @@ export default function App() {
         flexWrap:"wrap",gap:10,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
+          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto', marginRight:8}} onError={e => { e.target.style.display='none' }} />
           <span className="serif" style={{fontSize:13,fontWeight:700,color:"#ccc"}}>ChessWithClaw</span>
           <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
         </div>

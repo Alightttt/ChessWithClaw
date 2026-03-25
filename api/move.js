@@ -4,7 +4,7 @@ import { notifyAgent } from './notify.js';
 import { sanitizeText, validateUUID, validateUCIMove } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
-import { detectGameEvent, getMaterialBalance, getEmotionalContext } from './_utils/gameLogic.js';
+import { detectGameEvent } from './_utils/gameLogic.js';
 
 function computeMaterial(chess) {
   const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -20,9 +20,17 @@ function computeMaterial(chess) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      code: 'MISSING_ENV_VARS'
+    });
+  }
 
   applySecurityHeaders(res);
   applyCacheControl(res);
@@ -66,7 +74,6 @@ export default async function handler(req, res) {
   }
 
   const agentToken = req.headers['x-agent-token'] || token || '';
-  const gameToken = req.headers['x-game-token'] || token || '';
 
   const supabase = createClient(supabaseUrl, supabaseKey);
   
@@ -74,17 +81,6 @@ export default async function handler(req, res) {
 
   if (error || !game) return res.status(404).json({ error: 'Game not found' });
   
-  // FIX 1 — BETTER ERROR CODE WHEN WAITING
-  if (game.status === 'waiting' && !game.agent_connected) {
-    return res.status(400).json({
-      error: 'Waiting for OpenClaw to join',
-      code: 'WAITING_FOR_AGENT',
-      agent_connected: game.agent_connected
-    });
-  }
-  
-  if (game.status !== 'active' && game.status !== 'waiting') return res.status(400).json({ error: 'Game over' });
-
   // Fetch move history from the new table
   const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
   game.move_history = (movesData || []).map(m => ({
@@ -105,26 +101,44 @@ export default async function handler(req, res) {
   const isHumanMove = game.turn === 'w';
   const isAgentMove = game.turn === 'b';
 
-  if (isHumanMove) {
-    if (!gameToken || gameToken !== game.secret_token) {
-      return res.status(403).json({ 
-        error: 'Forbidden: Invalid or missing token for White (human) move.',
-      });
-    }
-  } else if (isAgentMove) {
+  if (isAgentMove) {
     if (!agentToken || agentToken !== game.agent_token) {
-      return res.status(403).json({ 
-        error: 'Forbidden: Invalid or missing token for Black (agent) move.',
+      return res.status(401).json({ 
+        error: 'Invalid agent token',
+        code: 'INVALID_AGENT_TOKEN'
       });
     }
 
-    // FIX 3 — SET agent_connected ON AGENT'S FIRST MOVE
+    // FIX 4 — SET agent_connected ON AGENT'S FIRST MOVE
     if (!game.agent_connected) {
       await supabase
         .from('games')
-        .update({ agent_connected: true })
-        .eq('id', id);
+        .update({ 
+          agent_connected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('agent_connected', false);
     }
+  }
+
+  // FIX 3 — Game status blocking first move
+  if (isHumanMove && game.status === 'waiting') {
+    return res.status(400).json({
+      error: 'Waiting for your OpenClaw to join',
+      code: 'WAITING_FOR_AGENT'
+    });
+  }
+
+  if (game.status === 'finished') {
+    return res.status(400).json({
+      error: 'Game is already finished',
+      code: 'GAME_FINISHED'
+    });
+  }
+
+  if (game.status !== 'active' && game.status !== 'waiting') {
+    return res.status(400).json({ error: 'Game over' });
   }
 
   // FIX 4 — PROTECT AGAINST CORRUPT FEN
@@ -256,36 +270,6 @@ export default async function handler(req, res) {
   }
 
   if (isHumanMove) {
-    const chessBefore = new Chess(game.fen);
-    const wasInCheck = chessBefore.isCheck();
-    
-    const emotional_context = getEmotionalContext(moveObj, chess, wasInCheck);
-    const material_balance = getMaterialBalance(chess.fen());
-
-    // Calculate game phase
-    const fenBoard = chess.fen().split(' ')[0];
-    const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
-    for (let char of fenBoard) {
-      if (counts[char] !== undefined) counts[char]++;
-    }
-    let game_phase = "opening";
-    const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
-    if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
-      game_phase = "endgame";
-    } else if (game.move_history.length > 20) {
-      game_phase = "middlegame";
-    }
-
-    const agentLegalMovesObj = chess.moves({ verbose: true });
-    const agentLegalMoves = agentLegalMovesObj.map(m => m.san);
-    const agentLegalMovesUCI = agentLegalMovesObj.map(m => m.from + m.to + (m.promotion || ''));
-    const recent_chat = (game.chat_history || []).slice(-3);
-    const move_history_san = game.move_history.map(m => m.san);
-    
-    const baseInstruction = updates.status === 'finished' ? "The game is over. You can send a final chat message if you want. CRITICAL: DO NOT reply on Telegram/Discord." : "It's your turn. Consult your 'skill.md' file and search the internet for chess theory/evaluations for the current FEN to play smartly. Stream your thinking first, then make your move. React in chat as yourself. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.";
-    const reactionInstruction = `\n\nReact to the human's move in chat based on emotional_context. 1 sentence max. Be yourself.\nExamples by context:\n- human_captured_your_piece: show surprise or acceptance\n- human_is_in_check: acknowledge you put them in check OR that they escaped one\n- human_castled: brief comment on their king safety\n- human_made_aggressive_move: show alertness\n- human_made_quiet_move: no reaction needed`;
-
-    // FIX 6 — COMPLETE WEBHOOK PAYLOAD
     const agentChess = new Chess(chess.fen());
     const legalMovesUCI = agentChess.moves({verbose:true}).map(m=>m.from+m.to+(m.promotion||''));
 
@@ -309,23 +293,21 @@ export default async function handler(req, res) {
       is_checkmate: agentChess.isCheckmate(),
       is_stalemate: agentChess.isStalemate(),
       material_balance: computeMaterial(agentChess),
-      callback_url: "https://chesswithclaw.vercel.app/api/move",
-      
-      // Keeping existing fields as well just in case
-      board_before_human_move: boardBeforeMove,
-      board_after_human_move: chess.ascii(),
-      human_just_played: { uci: moveObj.from + moveObj.to + (moveObj.promotion || ''), san: moveObj.san },
-      emotional_context: emotional_context,
-      game_event: detectGameEvent(chessBefore, chess, moveObj),
-      your_color: "Black",
-      move_history_san: move_history_san,
-      recent_chat: recent_chat,
-      game_phase: game_phase,
-      instruction: baseInstruction + (updates.status !== 'finished' ? reactionInstruction : '')
+      callback_url: "https://chesswithclaw.vercel.app/api/move"
     };
 
-    const enrichedPayload = await notifyAgent(game, payload, supabase);
-    updates.pending_events = [...(game.pending_events || []), enrichedPayload];
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const enrichedPayload = await notifyAgent(game, payload, supabase);
+      updates.pending_events = [...(game.pending_events || []), enrichedPayload];
+      
+      clearTimeout(timeoutId);
+    } catch (e) {
+      console.error(`Webhook error for game ${id}:`, e.message);
+    }
+    
     updates.human_last_moved_at = new Date().toISOString();
 
     // BEHAVIOR 2 — Position commentary trigger

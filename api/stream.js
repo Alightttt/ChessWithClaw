@@ -31,10 +31,18 @@ export default async function handler(req) {
       headers: {
         'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, last-event-id',
+        'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, last-event-id, x-agent-token, x-game-token',
       },
     });
+  }
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    return new Response(JSON.stringify({ 
+      error: 'Server configuration error',
+      code: 'MISSING_ENV_VARS'
+    }), { status: 500 });
   }
 
   const url = new URL(req.url);

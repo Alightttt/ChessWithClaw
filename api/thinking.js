@@ -5,9 +5,17 @@ import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCo
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    return res.status(500).json({ 
+      error: 'Server configuration error',
+      code: 'MISSING_ENV_VARS'
+    });
+  }
 
   applySecurityHeaders(res);
   applyCacheControl(res);

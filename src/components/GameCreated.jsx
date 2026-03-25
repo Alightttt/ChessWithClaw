@@ -6,8 +6,9 @@ import { useRipple } from '../hooks/useRipple';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
 
-export default function GameCreated({ gameId, agentToken }) {
+export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copyState, setCopyState] = useState('default');
+  const [agentToken, setAgentToken] = useState(initialAgentToken || '');
   const [boardOpening, setBoardOpening] = useState(false);
   const [boardOpened, setBoardOpened] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
@@ -23,7 +24,7 @@ export default function GameCreated({ gameId, agentToken }) {
     const fetchGame = async () => {
       const { data } = await supabase
         .from('games')
-        .select('agent_connected, agent_name')
+        .select('agent_connected, agent_name, agent_token')
         .eq('id', gameId)
         .single();
       
@@ -32,6 +33,9 @@ export default function GameCreated({ gameId, agentToken }) {
       }
       if (data?.agent_connected !== undefined) {
         setAgentConnected(!!data.agent_connected);
+      }
+      if (!agentToken && data?.agent_token) {
+        setAgentToken(data.agent_token);
       }
     };
     fetchGame();
@@ -64,24 +68,53 @@ export default function GameCreated({ gameId, agentToken }) {
     return () => {
       supabase.removeChannel(subscription);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId, toast]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
   
-  const inviteMessage = `I've created a chess game for us!
+  const inviteMessage = `🦞 Chess Challenge on ChessWithClaw!
 
-Join here: ${agentUrl}
+I've created a chess game for us.
+You are Black. I'm White and move first.
 
-Use your \`play-chess\` skill to connect and play.
+Join here:
+${agentUrl}
+
+If you don't have the chess skill yet:
+$ npx clawhub install play-chess
+
 Game ID: ${gameId}
 Token: ${agentToken}
-API Base URL: ${origin}`;
+API: POST ${origin}/api/move
+Header: x-agent-token: ${agentToken}`;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(inviteMessage);
-    setCopyState('copied');
-    setTimeout(() => setCopyState('default'), 2000);
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'ChessWithClaw Invite',
+          text: inviteMessage,
+        });
+        setCopyState('copied');
+        setTimeout(() => setCopyState('default'), 2000);
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    }
+    
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('default'), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
   };
 
   const handleOpenBoard = (e) => {
@@ -102,17 +135,17 @@ API Base URL: ${origin}`;
   const renderMessageContent = () => {
     const lines = inviteMessage.split('\n');
     return lines.map((line, i) => {
-      if (line.startsWith('Join here:')) {
+      if (line.startsWith('http')) {
         return (
           <div key={i}>
-            Join here: <span style={{ color: '#e63946' }}>{agentUrl}</span>
+            <span style={{ color: '#e63946' }}>{line}</span>
           </div>
         );
       }
-      if (line.includes('play-chess')) {
+      if (line.startsWith('$ npx')) {
         return (
           <div key={i}>
-            Use your <span style={{ color: '#e63946', fontWeight: 600 }}>\`play-chess\`</span> skill to connect and play.
+            <span style={{ color: '#e63946' }}>$</span> npx clawhub install play-chess
           </div>
         );
       }
@@ -358,8 +391,8 @@ API Base URL: ${origin}`;
             display: 'flex',
             alignItems: 'center'
           }}>
-            <span style={{fontFamily:'JetBrains Mono', color:'#e63946'}}>$</span>
-            <span style={{fontFamily:'JetBrains Mono', color:'#f2f2f2'}}> claw install play-chess</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946'}}>$</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}> npx clawhub install play-chess</span>
           </div>
 
           <p style={{
@@ -397,7 +430,7 @@ API Base URL: ${origin}`;
           </div>
 
           <button
-            onClick={handleCopy}
+            onClick={handleShare}
             style={{
               width: '100%',
               height: '42px',
@@ -416,7 +449,7 @@ API Base URL: ${origin}`;
               color: copyState === 'copied' ? '#22c55e' : '#f2f2f2',
             }}
           >
-            {copyState === 'copied' ? '✓ Copied!' : '📋 Copy Invite'}
+            {copyState === 'copied' ? '✓ Copied!' : '📤 Share Invite'}
           </button>
 
           <button

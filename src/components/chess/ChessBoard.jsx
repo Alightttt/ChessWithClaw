@@ -222,8 +222,9 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
               >
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 bg-[#e63946]/40 z-0" />}
-                {!isSelected && isLast && <div className="absolute inset-0 bg-yellow-400/40 z-0" />}
-                {isCheck && <div className="absolute inset-0 bg-[#e63946] opacity-60 animate-pulse z-0" />}
+                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,197,9,0.4)' }} />}
+                {isCheck && <div className="absolute inset-0 z-0" style={{ background: 'radial-gradient(circle, rgba(230,57,70,0.85) 0%, rgba(230,57,70,0) 70%)' }} />}
+                {agentMoveFlash === sq && <div className="absolute inset-0 z-10" style={{ animation: 'agentFlash 400ms ease-out forwards' }} />}
                 
                 {/* Legal move indicators */}
                 {isLegal && !isCap && <div className="absolute w-[25%] h-[25%] rounded-full bg-[#e63946]/60 z-0" />}

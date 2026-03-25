@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { useToast } from '../contexts/ToastContext';
@@ -586,7 +586,7 @@ export default function Game() {
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast('Waiting for your OpenClaw to join...', {
             icon: '🦞',
-            style: { background: '#1a1a1a', border: '1px solid #333', color: '#f0f0f0' }
+            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
           });
           return;
         } else if (errData.code === 'TURN_CONFLICT') {
@@ -607,7 +607,10 @@ export default function Game() {
       }
     } catch (e) {
       if (e.message === 'WAITING_FOR_AGENT') {
-        toast.error('Waiting for your OpenClaw to join');
+        toast('Waiting for your OpenClaw to join...', {
+          icon: '🦞',
+          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+        });
       } else if (e.message === 'TURN_CONFLICT') {
         toast.error('Move already processed');
       } else {
@@ -694,6 +697,21 @@ export default function Game() {
     setTimeout(() => setCopiedInvite(false), 2000);
   };
 
+  const handleGoHome = useCallback(() => navigate('/'), [navigate]);
+  const handleOpenSettings = useCallback(() => setShowSettings(true), []);
+  const handleToggleAgentSection = useCallback(() => setAgentSectionOpen(prev => !prev), []);
+  const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
+  const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
+  const handleShareResult = useCallback((e) => {
+    const moves = Math.floor((game?.move_history || []).length / 2) + ((game?.move_history || []).length % 2);
+    const winner = game?.result === 'white' ? 'I won' : game?.result === 'black' ? `${agentName} won` : 'Draw';
+    navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
+    const btn = e.currentTarget;
+    const oldText = btn.innerText;
+    btn.innerText = 'Copied! ✓';
+    setTimeout(() => btn.innerText = oldText, 2000);
+  }, [game?.move_history, game?.result, agentName]);
+
   if (loading) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: "'Inter', sans-serif" }}>
@@ -751,7 +769,7 @@ export default function Game() {
           src="/logo.png" 
           alt="ChessWithClaw" 
           style={{ height: 22, width: 'auto', cursor: 'pointer', flexShrink: 0 }}
-          onClick={() => navigate('/')}
+          onClick={handleGoHome}
           onError={e => { e.target.style.display = 'none' }}
         />
         
@@ -776,7 +794,7 @@ export default function Game() {
         </div>
 
         <button 
-          onClick={() => setShowSettings(true)}
+          onClick={handleOpenSettings}
           style={{
             width: '34px', height: '34px',
             background: '#0e0e0e', border: '1px solid #1a1a1a',
@@ -866,7 +884,7 @@ export default function Game() {
               )}
             </div>
             <button 
-              onClick={() => setAgentSectionOpen(!agentSectionOpen)}
+              onClick={handleToggleAgentSection}
               style={{
                 background: 'none', border: 'none', color: '#888', cursor: 'pointer',
                 fontSize: '14px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -1154,7 +1172,7 @@ export default function Game() {
         flexDirection: 'column'
       }} className="lg:flex-1 lg:overflow-hidden lg:order-1">
         <div 
-          onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
+          onClick={handleToggleMoveHistory}
           style={{
             height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation'
@@ -1255,7 +1273,7 @@ export default function Game() {
             padding: '32px 24px', maxWidth: '360px', width: 'calc(100% - 48px)', textAlign: 'center',
             position: 'relative'
           }}>
-            <button onClick={() => setShowGameOverModal(false)} style={{
+            <button onClick={handleCloseGameOverModal} style={{
               position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px',
               background: 'transparent', border: 'none', color: '#888', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -1283,15 +1301,7 @@ export default function Game() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button 
-                onClick={(e) => {
-                  const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
-                  const winner = game.result === 'white' ? 'I won' : game.result === 'black' ? `${agentName} won` : 'Draw';
-                  navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
-                  const btn = e.currentTarget;
-                  const oldText = btn.innerText;
-                  btn.innerText = 'Copied! ✓';
-                  setTimeout(() => btn.innerText = oldText, 2000);
-                }}
+                onClick={handleShareResult}
                 style={{
                   background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #333',
                   fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
@@ -1302,7 +1312,7 @@ export default function Game() {
                 Share Result
               </button>
               <button 
-                onClick={() => navigate('/')}
+                onClick={handleGoHome}
                 style={{
                   background: '#e63946', color: 'white', border: 'none',
                   fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
@@ -1434,6 +1444,10 @@ export default function Game() {
           0% { transform: scale(0.5); opacity: 0; }
           50% { transform: scale(1.2); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes agentFlash {
+          0% { background-color: rgba(255, 255, 255, 0.8); }
+          100% { background-color: rgba(255, 255, 255, 0); }
         }
         input::placeholder { color: #888; }
       `}} />
