@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return res.status(500).json({ 
       error: 'Server configuration error',
       code: 'MISSING_ENV_VARS'
@@ -56,40 +56,40 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Text is empty after sanitization' });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
-    return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   
   // Verify game exists
   const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token').eq('id', id).single();
-  if (error || !game) return res.status(404).json({ error: 'Game not found' });
+  if (error || !game) {
+    return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
+  }
 
   if (sender === 'human') {
     if (!gameToken || gameToken !== game.secret_token) {
-      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for human.' });
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for human.', code: 'INVALID_GAME_TOKEN' });
     }
   } else if (sender === 'agent') {
     if (!agentToken || agentToken !== game.agent_token) {
-      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.' });
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.', code: 'INVALID_AGENT_TOKEN' });
     }
   }
 
   // Fetch move history from the new table
-  const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-  game.move_history = (movesData || []).map(m => ({
-    ...m,
-    from: m.from_square || m.from,
-    to: m.to_square || m.to,
-    uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-  }));
+  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
+  if (!movesError && movesData && movesData.length > 0) {
+    game.move_history = movesData.map(m => ({
+      ...m,
+      from: m.from_square || m.from,
+      to: m.to_square || m.to,
+      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+    }));
+  }
 
   const newMessage = {
     game_id: id,
@@ -122,14 +122,13 @@ export default async function handler(req, res) {
   }
 
   if (sender === 'human') {
-    const chess = new Chess();
-    if (game.move_history && game.move_history.length > 0) {
-      game.move_history.forEach(m => {
-        try { chess.move(m.san); } catch (e) {}
-      });
-    } else if (game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-      chess.load(game.fen);
+    let chess;
+    try {
+      chess = new Chess(game.fen);
+    } catch (e) {
+      return res.status(500).json({ error: 'Corrupt game state', code: 'CORRUPT_FEN' });
     }
+    
     const payload = {
       event: "human_sent_chat",
       game_id: id,

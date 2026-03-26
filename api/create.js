@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return res.status(500).json({ 
       error: 'Server configuration error',
       code: 'MISSING_ENV_VARS'

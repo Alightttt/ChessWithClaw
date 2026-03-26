@@ -38,7 +38,7 @@ export default async function handler(req) {
   }
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return new Response(JSON.stringify({ 
       error: 'Server configuration error',
       code: 'MISSING_ENV_VARS'
@@ -60,19 +60,18 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: 'Invalid game ID format' }), { status: 400 });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
   // Verify token before updating
   const { data: gameCheck } = await supabase.from('games').select('agent_token, agent_connected').eq('id', id).single();
-  if (!gameCheck || gameCheck.agent_token !== token) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Invalid or missing token' }), { status: 403 });
+  if (!gameCheck) {
+    return new Response(JSON.stringify({ error: 'Game not found', code: 'GAME_NOT_FOUND' }), { status: 404 });
+  }
+  if (gameCheck.agent_token !== token) {
+    return new Response(JSON.stringify({ error: 'Forbidden: Invalid or missing token', code: 'INVALID_AGENT_TOKEN' }), { status: 403 });
   }
 
   // Mark agent as connected in the database
@@ -96,39 +95,45 @@ export default async function handler(req) {
 
       const sendUpdate = async (gameData) => {
         // Fetch move history from the new table
-        const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
-        gameData.move_history = (movesData || []).map(m => ({
-          ...m,
-          from: m.from_square || m.from,
-          to: m.to_square || m.to,
-          uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-        }));
+        const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
+        if (!movesError && movesData && movesData.length > 0) {
+          gameData.move_history = movesData.map(m => ({
+            ...m,
+            from: m.from_square || m.from,
+            to: m.to_square || m.to,
+            uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+          }));
+        }
 
         // Fetch chat history from the new table
-        const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-        gameData.chat_history = (chatData || []).map(msg => ({
-          ...msg,
-          text: msg.message,
-          timestamp: new Date(msg.created_at).getTime()
-        }));
+        const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
+        if (!chatError && chatData && chatData.length > 0) {
+          gameData.chat_history = chatData.map(msg => ({
+            ...msg,
+            text: msg.message,
+            timestamp: new Date(msg.created_at).getTime()
+          }));
+        }
 
         // Fetch thinking log from the new table
-        const { data: thoughtsData } = await supabase.from('agent_thoughts').select('*').eq('game_id', id).order('created_at', { ascending: true });
-        gameData.thinking_log = (thoughtsData || []).map(thought => ({
-          ...thought,
-          text: thought.thought,
-          moveNumber: thought.move_number,
-          timestamp: new Date(thought.created_at).getTime()
-        }));
-
-        const chess = new Chess();
-        if (gameData.move_history && gameData.move_history.length > 0) {
-          gameData.move_history.forEach(m => {
-            try { chess.move(m.san); } catch (e) {}
-          });
-        } else if (gameData.fen && gameData.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-          chess.load(gameData.fen);
+        const { data: thoughtsData, error: thoughtsError } = await supabase.from('agent_thoughts').select('*').eq('game_id', id).order('created_at', { ascending: true });
+        if (!thoughtsError && thoughtsData && thoughtsData.length > 0) {
+          gameData.thinking_log = thoughtsData.map(thought => ({
+            ...thought,
+            text: thought.thought,
+            moveNumber: thought.move_number,
+            timestamp: new Date(thought.created_at).getTime()
+          }));
         }
+
+        let chess;
+        try {
+          chess = new Chess(gameData.fen);
+        } catch (e) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Corrupt game state', code: 'CORRUPT_FEN' })}\n\n`));
+          return;
+        }
+        
         const legalMoves = chess.moves({ verbose: true });
         const legalMovesSan = legalMoves.map(m => m.san);
         const legalMovesUCI = legalMoves.map(m => m.from + m.to + (m.promotion || ''));

@@ -7,8 +7,8 @@ export default function ChatBox({ chatHistory, onSendMessage, onAcceptResignatio
   const [message, setMessage] = useState('');
   const scrollRef = useRef(null);
 
-  const displayAvatar = agentAvatar || '🤖';
-  const displayName = agentName || 'Agent';
+  const displayAvatar = agentAvatar || '🦞';
+  const displayName = agentName || 'OpenClaw';
 
   useEffect(() => {
     if (scrollRef.current) {

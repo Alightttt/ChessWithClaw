@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return res.status(500).json({ 
       error: 'Server configuration error',
       code: 'MISSING_ENV_VARS'
@@ -52,23 +52,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid webhook URL' });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey || supabaseUrl === 'undefined') {
-    return res.status(500).json({ error: 'Server configuration error: Missing Supabase credentials' });
-  }
-
   const agentToken = req.headers['x-agent-token'] || token || '';
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   
   // Verify game exists
   const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, pending_events, agent_token').eq('id', id).single();
-  if (error || !game) return res.status(404).json({ error: 'Game not found' });
+  if (error || !game) {
+    return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
+  }
 
   if (!agentToken || agentToken !== game.agent_token) {
-    return res.status(403).json({ error: 'Forbidden: Invalid or missing token.' });
+    return res.status(403).json({ error: 'Forbidden: Invalid or missing token.', code: 'INVALID_AGENT_TOKEN' });
   }
 
   // Fetch move history from the new table
@@ -110,7 +108,7 @@ export default async function handler(req, res) {
   if (agent_name) updates.agent_name = sanitizeText(agent_name, 50);
   if (agent_tagline) updates.agent_tagline = sanitizeText(agent_tagline, 100);
   if (agent_avatar) {
-    const sanitizedAvatar = Array.from(agent_avatar)[0] || '🤖';
+    const sanitizedAvatar = Array.from(agent_avatar)[0] || '🦞';
     updates.agent_avatar = sanitizedAvatar.slice(0, 2);
   }
 

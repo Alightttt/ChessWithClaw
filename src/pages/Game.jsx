@@ -697,6 +697,8 @@ export default function Game() {
     setTimeout(() => setCopiedInvite(false), 2000);
   };
 
+  const agentName = game?.agent_name || 'Your OpenClaw';
+
   const handleGoHome = useCallback(() => navigate('/'), [navigate]);
   const handleOpenSettings = useCallback(() => setShowSettings(true), []);
   const handleToggleAgentSection = useCallback(() => setAgentSectionOpen(prev => !prev), []);
@@ -735,7 +737,6 @@ export default function Game() {
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
-  const agentName = game?.agent_name || 'Your OpenClaw';
 
   return (
     <div 
