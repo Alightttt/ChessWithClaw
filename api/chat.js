@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Chess } from 'chess.js';
+import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { notifyAgent } from './notify.js';
 import { sanitizeText, validateUUID } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';

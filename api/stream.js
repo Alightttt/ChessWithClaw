@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Chess } from 'chess.js';
+import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { validateUUID } from './_utils/sanitize.js';
 
 export const config = { runtime: 'edge' };

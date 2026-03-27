@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Chess } from 'chess.js';
+import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { useToast } from '../contexts/ToastContext';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -25,7 +25,7 @@ function GameTimer({ startTime, status }) {
 
   const mins = Math.floor(elapsed / 60);
   const secs = elapsed % 60;
-  return <span>{mins}:{secs.toString().padStart(2, '0')}</span>;
+  return <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{mins}:{secs.toString().padStart(2, '0')}</span>;
 }
 
 export default function Game() {
@@ -714,6 +714,29 @@ export default function Game() {
     setTimeout(() => btn.innerText = oldText, 2000);
   }, [game?.move_history, game?.result, agentName]);
 
+  const handleLogoError = useCallback((e) => {
+    e.target.style.display = 'none';
+  }, []);
+
+  const handleGoHomeWithRipple = useCallback((e) => {
+    createRipple(e);
+    handleGoHome();
+  }, [createRipple, handleGoHome]);
+
+  const handleClaimVictoryWithRipple = useCallback((e) => {
+    createRipple(e);
+    handleClaimVictory();
+  }, [createRipple, handleClaimVictory]);
+
+  const handleCopyInviteWithRipple = useCallback((e) => {
+    createRipple(e);
+    copyInvite();
+  }, [createRipple, copyInvite]);
+
+  const handleChatInputChange = useCallback((e) => {
+    setChatInput(e.target.value);
+  }, []);
+
   if (loading) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: "'Inter', sans-serif" }}>
@@ -725,8 +748,17 @@ export default function Game() {
   if (notFound) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#f0f0f0', fontFamily: "'Inter', sans-serif", gap: '16px' }}>
-        <div style={{ fontSize: '20px', fontWeight: 600 }}>Game not found</div>
-        <button onClick={(e) => { createRipple(e); navigate('/'); }} className="hover:bg-[#cc2f3b] active:scale-[0.98]" style={{ position: 'relative', overflow: 'hidden', background: '#e63946', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'all 120ms' }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600 }}>Game not found</div>
+        <button 
+          onClick={handleGoHomeWithRipple} 
+          style={{ 
+            position: 'relative', overflow: 'hidden', background: '#e63946', color: '#fff', border: 'none', 
+            borderRadius: 7, padding: '13px 26px', fontFamily: "'Inter', sans-serif", fontSize: 14, 
+            fontWeight: 600, cursor: 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s' 
+          }}
+          onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
+        >
           Go Home
         </button>
       </div>
@@ -769,9 +801,9 @@ export default function Game() {
         <img 
           src="/logo.png" 
           alt="ChessWithClaw" 
-          style={{ height: 22, width: 'auto', cursor: 'pointer', flexShrink: 0 }}
+          style={{ height: 24, width: 'auto', cursor: 'pointer', flexShrink: 0 }}
           onClick={handleGoHome}
-          onError={e => { e.target.style.display = 'none' }}
+          onError={handleLogoError}
         />
         
         <div style={{
@@ -859,7 +891,7 @@ export default function Game() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {agentTimeout && game.status === 'active' && (
               <button 
-                onClick={(e) => { createRipple(e); handleClaimVictory(); }}
+                onClick={handleClaimVictoryWithRipple}
                 className="hover:bg-[#cc2f3b] active:scale-[0.98]"
                 style={{
                   position: 'relative', overflow: 'hidden',
@@ -911,7 +943,7 @@ export default function Game() {
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} not connected yet.</div>
               <button 
-                onClick={(e) => { createRipple(e); copyInvite(); }}
+                onClick={handleCopyInviteWithRipple}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
                 style={{
                   position: 'relative', overflow: 'hidden',
@@ -929,7 +961,7 @@ export default function Game() {
                 {agentName} seems delayed. They might have disconnected or crashed.
               </div>
               <button 
-                onClick={(e) => { createRipple(e); copyInvite(); }}
+                onClick={handleCopyInviteWithRipple}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
                 style={{
                   position: 'relative', overflow: 'hidden',
@@ -992,10 +1024,10 @@ export default function Game() {
           }}>
             <span style={{animation: 'floatLobster 2s ease-in-out infinite'}}>🦞</span>
             <div>
-              <div style={{fontSize:13,fontWeight:600,color:'#f0f0f0'}}>
+              <div style={{fontFamily: "'Inter', sans-serif", fontSize:13,fontWeight:600,color:'#f0f0f0'}}>
                 Waiting for {agentName} to join...
               </div>
-              <div style={{fontSize:12,color:'#888',marginTop:2}}>
+              <div style={{fontFamily: "'Inter', sans-serif", fontSize:12,color:'#888',marginTop:2}}>
                 Send the invite link to your OpenClaw to start the game.
               </div>
             </div>
@@ -1103,7 +1135,7 @@ export default function Game() {
                     animation: 'msgSlide 200ms ease both'
                   }}>
                     {msg.text}
-                    <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
+                    <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
                   </div>
                 );
               }
@@ -1119,7 +1151,7 @@ export default function Game() {
                   }}>
                     <div>{msg.text}</div>
                     {msg.timestamp && (
-                      <div style={{ fontSize: '9px', color: '#888', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', color: '#888', alignSelf: isHuman ? 'flex-end' : 'flex-start' }}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     )}
@@ -1142,7 +1174,7 @@ export default function Game() {
           <input
             type="text"
             value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
+            onChange={handleChatInputChange}
             placeholder={`Message ${agentName}...`}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
@@ -1252,7 +1284,7 @@ export default function Game() {
             background: '#1a1a1a', border: '1px solid #1a1a1a', color: '#888', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'uppercase'
-          }}>{agentName.toUpperCase()}&apos;S TURN</div>
+          }}>{`${agentName.toUpperCase()}'S TURN`}</div>
         )}
         
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>
@@ -1287,43 +1319,45 @@ export default function Game() {
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
               {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${agentName} Won!` : "It's a Draw!"}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
-              {game.result_reason === 'checkmate' ? 'by checkmate' :
-               game.result_reason === 'stalemate' ? 'by stalemate' :
-               game.result_reason === 'insufficient_material' ? 'insufficient material' :
-               game.result_reason === 'threefold_repetition' ? 'by repetition' :
-               game.result_reason === 'fifty_moves' ? 'fifty-move rule' :
-               game.result_reason === 'resignation' ? 'by resignation' :
-               game.result_reason === 'abandoned' ? 'by abandonment' :
-               game.result_reason === 'agreement' ? 'by agreement' : game.result_reason}
-            </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#888', marginBottom: '24px' }}>
-              Game lasted {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button 
-                onClick={handleShareResult}
-                style={{
-                  background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #333',
-                  fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
-                  borderRadius: '6px', width: '100%', cursor: 'pointer', transition: 'background 200ms'
-                }}
-                className="hover:bg-[#1a1a1a]"
-              >
-                Share Result
-              </button>
-              <button 
-                onClick={handleGoHome}
-                style={{
-                  background: '#e63946', color: 'white', border: 'none',
-                  fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '12px 24px',
-                  borderRadius: '6px', width: '100%', cursor: 'pointer', transition: 'background 200ms'
-                }}
-                className="hover:bg-[#cc2f3b]"
-              >
-                New Game
-              </button>
-            </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
+                {game.result_reason === 'checkmate' ? 'by checkmate' :
+                 game.result_reason === 'stalemate' ? 'by stalemate' :
+                 game.result_reason === 'insufficient_material' ? 'insufficient material' :
+                 game.result_reason === 'threefold_repetition' ? 'by repetition' :
+                 game.result_reason === 'fifty_moves' ? 'fifty-move rule' :
+                 game.result_reason === 'resignation' ? 'by resignation' :
+                 game.result_reason === 'abandoned' ? 'by abandonment' :
+                 game.result_reason === 'agreement' ? 'by agreement' : game.result_reason}
+              </div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#888', marginBottom: '24px' }}>
+                Game lasted {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button 
+                  onClick={handleShareResult}
+                  style={{
+                    background: 'transparent', color: '#888', border: '1px solid #252525',
+                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
+                    borderRadius: 7, width: '100%', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s'
+                  }}
+                  onMouseEnter={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
+                  onMouseLeave={e => { e.target.style.borderColor = '#252525'; e.target.style.color = '#888'; }}
+                >
+                  Share Result
+                </button>
+                <button 
+                  onClick={handleGoHome}
+                  style={{
+                    background: '#e63946', color: '#fff', border: 'none',
+                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
+                    borderRadius: 7, width: '100%', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s'
+                  }}
+                  onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
+                >
+                  New Game
+                </button>
+              </div>
           </div>
         </div>
       )}
@@ -1423,6 +1457,7 @@ export default function Game() {
       </Modal>
 
       <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes ripple {
           0%   { transform: scale(1);   opacity: 0.5; }
           100% { transform: scale(2.4); opacity: 0;   }

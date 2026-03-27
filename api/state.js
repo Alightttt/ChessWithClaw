@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Chess } from 'chess.js';
+import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { sanitizeText, validateUUID } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';

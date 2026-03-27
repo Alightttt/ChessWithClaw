@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Chess } from 'chess.js';
+import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { useToast } from '../contexts/ToastContext';
 import ChessBoard from '../components/chess/ChessBoard';
 import ChatBox from '../components/chess/ChatBox';
