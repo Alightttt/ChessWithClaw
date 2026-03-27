@@ -139,7 +139,7 @@ export default function App() {
 
   const reasons=[
     {e:"⚡",t:"Real-time sync.",b:"Moves update in under 200ms. Every turn, both sides see the board instantly."},
-    {e:"🦞",t:"Built for OpenClaw.",b:"Native API support. Your OpenClaw connects with one invite — no setup."},
+    {e:"🦞",t:"Built for OpenClaw.",b:"Native API support. Once taught the chess skill, your OpenClaw connects with one invite."},
     {e:"♟",t:"Full chess rules.",b:"Castling, en passant, promotion, check detection — all handled correctly."},
     {e:"📱",t:"Any device.",b:"Phone, tablet, desktop. No app to download. Open the link and play."},
     {e:"🔓",t:"Zero signup.",b:"No account. No email. No password. Create a game in 10 seconds."},
@@ -149,8 +149,8 @@ export default function App() {
   ];
 
   const faqs=[
-    {q:"Does my OpenClaw need special configuration?",a:"No. Just run: $ npx clawhub install play-chess — your OpenClaw gets the chess skill instantly. Send it the invite and it connects automatically."},
-    {q:"What if my OpenClaw doesn't know chess moves?",a:"The SKILL.md teaches it everything — FEN notation, legal moves, UCI format, strategy. Most OpenClaws play well from move one."},
+    {q:"Does my OpenClaw need special configuration?",a:"Yes. Your OpenClaw starts with zero chess knowledge. You must install the chess skill first. Run: $ npx clawhub install play-chess — your OpenClaw gets the skill instantly. After that, send it the invite and it connects automatically."},
+    {q:"What exactly does the skill.md file teach my OpenClaw?",a:"The skill.md file contains everything: full chess knowledge, how to play chess, what ChessWithClaw is, how it works, how to play against you, what all the methods are to connect to the game, and which is the best method for it to connect."},
     {q:"Is ChessWithClaw actually free?",a:"Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever."},
     {q:"What if my OpenClaw disconnects mid-game?",a:"Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off."},
     {q:"Does it work with any OpenClaw?",a:"Yes — all 4 connection methods work out of the box: browser automation, SSE, webhooks, and long-polling."},
@@ -626,26 +626,28 @@ export default function App() {
       <section id="how" className="section-pad" style={{background:"#080808"}}>
         <div className="container-sm">
           <div className="sans txt-3xs" style={{color:"#e63946",letterSpacing:"0.15em",fontWeight:700,marginBottom:12,textTransform:"uppercase"}}>
-            Three Steps
+            Four Steps
           </div>
           <h2 className="section-h2" style={{marginBottom:8}}>
             Works with any<br/>OpenClaw agent.
           </h2>
           <p className="sans txt-base" style={{color:"#777",marginBottom:56,lineHeight:1.7}}>
-            No configuration. No waiting.
+            Teach it chess once. Play forever.
           </p>
 
           {[
-            {n:"01",t:"Create a board",badge:"10 seconds",
-              b:"Hit 'Challenge Your OpenClaw'. Your game room is created instantly. No login, no signup, no credit card required."},
-            {n:"02",t:"Invite your OpenClaw",badge:"send anywhere",
-              b:"Copy the invite and send it to your OpenClaw on Telegram, Discord, wherever it lives. It joins automatically.",
+            {n:"01",t:"Teach your OpenClaw chess",badge:"one-time setup",
+              b:"Your OpenClaw has zero chess knowledge initially. Install the chess skill (skill.md) to give it full knowledge of the game, the app, and how to connect.",
               code:true},
-            {n:"03",t:"Play together, live",badge:"real-time",
+            {n:"02",t:"Create a board",badge:"10 seconds",
+              b:"Hit 'Challenge Your OpenClaw'. Your game room is created instantly. No login, no signup, no credit card required."},
+            {n:"03",t:"Invite your OpenClaw",badge:"send anywhere",
+              b:"Copy the game invite and send it to your OpenClaw on Telegram, Discord, or wherever it lives. It will use its new skill to connect automatically."},
+            {n:"04",t:"Play together, live",badge:"real-time",
               b:"You move your pieces. Your OpenClaw thinks — you watch its reasoning appear live — then it moves. Until the game ends."},
           ].map((s,i)=>(
-            <div key={i} className="step-row" style={{marginBottom:i<2?48:0}}>
-              {i<2&&(
+            <div key={i} className="step-row" style={{marginBottom:i<3?48:0}}>
+              {i<3&&(
                 <div style={{
                   position:"absolute",left:15,top:36,
                   width:1,height:"calc(100% + 12px)",
@@ -678,7 +680,7 @@ export default function App() {
                 <p className="sans txt-base" style={{color:"#888",lineHeight:1.75,maxWidth:440}}>{s.b}</p>
                 {s.code&&(
                   <div style={{
-                    marginTop:14,display:"inline-flex",
+                    marginTop:14,display:"inline-flex",flexDirection:"column",
                     background:"#090909",border:"1px solid #1c1c1c",
                     borderRadius:5,padding:"9px 14px",
                   }}>
