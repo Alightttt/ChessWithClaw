@@ -212,7 +212,7 @@ export default function Game() {
   // Agent Timeout Check
   const [agentTimeout, setAgentTimeout] = useState(false);
   useEffect(() => {
-    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === 'w') {
+    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === game.player_color) {
       setAgentTimeout(false);
       return;
     }
@@ -263,7 +263,7 @@ export default function Game() {
     }
 
     // If it's the agent's turn (black) and game is active
-    if (game.turn === 'b' && game.status === 'active') {
+    if (game.turn !== game.player_color && game.status === 'active') {
       agentTimerRef.current = setTimeout(() => {
         setAgentTimedOut(true);
       }, 90000); // 90 seconds
@@ -283,7 +283,7 @@ export default function Game() {
     const agentName = game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'Game Over | ChessWithClaw';
-    } else if (game.turn === 'w') {
+    } else if (game.turn === game.player_color) {
       document.title = 'Your Turn | ChessWithClaw';
     } else {
       document.title = `⚡ ${agentName} Thinking... | ChessWithClaw`;
@@ -319,30 +319,49 @@ export default function Game() {
         setNotFound(true);
       } else {
         // Fetch move history from the new table
-        const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
-        data.move_history = (movesData || []).map(m => ({
-          ...m,
-          from: m.from_square || m.from,
-          to: m.to_square || m.to,
-          uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-        }));
+        const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
+        if (movesError) {
+          console.warn('Could not fetch from moves, falling back to games.move_history', movesError);
+        } else if (movesData && movesData.length > 0) {
+          data.move_history = movesData.map(m => ({
+            ...m,
+            from: m.from_square || m.from,
+            to: m.to_square || m.to,
+            uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
+            san: m.san
+          }));
+        } else if (movesData && movesData.length === 0) {
+          data.move_history = [];
+        }
 
         // Fetch chat history from the new table
-        const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        data.chat_history = (chatData || []).map(msg => ({
-          ...msg,
-          text: msg.message,
-          timestamp: new Date(msg.created_at).getTime()
-        }));
+        const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
+        if (chatError) {
+          console.warn('Could not fetch from chat_messages, falling back to games.chat_history', chatError);
+        } else if (chatData && chatData.length > 0) {
+          data.chat_history = chatData.map(msg => ({
+            ...msg,
+            text: msg.message,
+            timestamp: new Date(msg.created_at).getTime()
+          }));
+        } else if (chatData && chatData.length === 0) {
+          data.chat_history = [];
+        }
 
         // Fetch thinking log from the new table
-        const { data: thoughtsData } = await supabase.from('agent_thoughts').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        data.thinking_log = (thoughtsData || []).map(thought => ({
-          ...thought,
-          text: thought.thought,
-          moveNumber: thought.move_number,
-          timestamp: new Date(thought.created_at).getTime()
-        }));
+        const { data: thoughtsData, error: thoughtsError } = await supabase.from('agent_thoughts').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
+        if (thoughtsError) {
+          console.warn('Could not fetch from agent_thoughts, falling back to games.thinking_log', thoughtsError);
+        } else if (thoughtsData && thoughtsData.length > 0) {
+          data.thinking_log = thoughtsData.map(thought => ({
+            ...thought,
+            text: thought.thought,
+            moveNumber: thought.move_number,
+            timestamp: new Date(thought.created_at).getTime()
+          }));
+        } else if (thoughtsData && thoughtsData.length === 0) {
+          data.thinking_log = [];
+        }
 
         setGame(data);
         if (data.status === 'finished' || data.status === 'abandoned') setGameOver(true);
@@ -469,7 +488,7 @@ export default function Game() {
   }, [gameId]);
 
   const makeMove = async (from, to, promotion) => {
-    if (!game || game.turn !== 'w' || game.status !== 'active' && game.status !== 'waiting') return;
+    if (!game || game.turn !== game.player_color || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (isMoving || submittingRef.current) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
@@ -482,7 +501,7 @@ export default function Game() {
     const chess = new Chess();
     if (game.move_history && game.move_history.length > 0) {
       game.move_history.forEach(m => {
-        try { chess.move(m.san); } catch (e) {}
+        try { chess.move(typeof m === 'string' ? m : (m.san || m)); } catch (e) {}
       });
     } else if (game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
       chess.load(game.fen);
@@ -498,7 +517,7 @@ export default function Game() {
 
       const newMoveHistory = [...(game.move_history || []), {
         move_number: Math.floor((game.move_history || []).length / 2) + 1,
-        color: 'w',
+        color: game.player_color,
         from,
         to,
         san: move.san,
@@ -508,7 +527,7 @@ export default function Game() {
 
       const updates = {
         fen: chess.fen(),
-        turn: 'b',
+        turn: game.player_color === 'w' ? 'b' : 'w',
         move_history: newMoveHistory,
         status: 'active',
         human_last_moved_at: new Date().toISOString()
@@ -728,7 +747,7 @@ export default function Game() {
     );
   }
 
-  const isMyTurn = game.turn === 'w' && (game.status === 'active' || game.status === 'waiting');
+  const isMyTurn = game.turn === game.player_color && (game.status === 'active' || game.status === 'waiting');
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
@@ -845,11 +864,11 @@ export default function Game() {
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === 'w' ? '#888' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === game.player_color ? '#888' : '#e63946')))
             }}>
               {agentTimeout ? "⏱ " + agentName + " delayed" :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
-               game.turn === 'w' ? "Watching you..." : 
+               game.turn === game.player_color ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
             </div>
           </div>
@@ -1057,7 +1076,7 @@ export default function Game() {
                 fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
                 borderRadius: '4px', marginBottom: '4px'
               }}>
-                {game.turn === 'w' ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
+                {game.turn === game.player_color ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
               </div>
             );
           }
@@ -1294,7 +1313,7 @@ export default function Game() {
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>GAME OVER</div>
-        ) : game.turn === 'w' ? (
+        ) : game.turn === game.player_color ? (
           <div style={{
             background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',

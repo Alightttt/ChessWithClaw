@@ -35,41 +35,46 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     }
     
     if (moveHistory && moveHistory.length > 0) {
-      for (const move of moveHistory) {
+      for (const moveInput of moveHistory) {
+        let moveObj;
+        try {
+          moveObj = initialChess.move(typeof moveInput === 'string' ? moveInput : (moveInput.san || moveInput));
+        } catch (e) {
+          console.error("Error replaying move:", moveInput, e);
+          continue;
+        }
+        if (!moveObj) continue;
+
         // Handle capture
-        const isEnPassant = move.san && move.san.includes('x') && !move.san.includes('=') && move.san[0] >= 'a' && move.san[0] <= 'h' && move.to[1] !== (move.color === 'w' ? '8' : '1') && initialChess.get(move.to) === null;
-        let capturedSquare = move.to;
+        const isEnPassant = moveObj.flags.includes('e');
+        let capturedSquare = moveObj.to;
         if (isEnPassant) {
-          capturedSquare = move.to[0] + move.from[1];
+          capturedSquare = moveObj.to[0] + moveObj.from[1];
         }
         
         // Remove captured piece if any
-        const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== move.from);
+        const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== moveObj.from);
         if (capturedIndex !== -1) {
-          // Instead of removing immediately, mark as captured for animation
           currentPieces[capturedIndex].captured = true;
-          // We still need to remove it eventually, but let the animation play first.
-          // For simplicity in this synchronous loop, we'll just keep it in the array
-          // but render it with the capture animation.
         }
         
         // Update moved piece
-        const pieceIndex = currentPieces.findIndex(p => p.square === move.from);
+        const pieceIndex = currentPieces.findIndex(p => p.square === moveObj.from);
         if (pieceIndex !== -1) {
-          currentPieces[pieceIndex].square = move.to;
+          currentPieces[pieceIndex].square = moveObj.to;
           
           // Handle promotion
-          if (move.uci && move.uci.length > 4) {
-            currentPieces[pieceIndex].type = move.uci[4];
+          if (moveObj.promotion) {
+            currentPieces[pieceIndex].type = moveObj.promotion;
           }
           
           // Handle castling
-          if (move.san === 'O-O' || move.san === 'O-O-O') {
+          if (moveObj.flags.includes('k') || moveObj.flags.includes('q')) {
             let rookFrom, rookTo;
-            if (move.to === 'g1') { rookFrom = 'h1'; rookTo = 'f1'; }
-            else if (move.to === 'c1') { rookFrom = 'a1'; rookTo = 'd1'; }
-            else if (move.to === 'g8') { rookFrom = 'h8'; rookTo = 'f8'; }
-            else if (move.to === 'c8') { rookFrom = 'a8'; rookTo = 'd8'; }
+            if (moveObj.to === 'g1') { rookFrom = 'h1'; rookTo = 'f1'; }
+            else if (moveObj.to === 'c1') { rookFrom = 'a1'; rookTo = 'd1'; }
+            else if (moveObj.to === 'g8') { rookFrom = 'h8'; rookTo = 'f8'; }
+            else if (moveObj.to === 'c8') { rookFrom = 'a8'; rookTo = 'd8'; }
             
             const rookIndex = currentPieces.findIndex(p => p.square === rookFrom);
             if (rookIndex !== -1) {
@@ -102,8 +107,8 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟'
   };
 
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+  const files = playerColor === 'b' ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  const ranks = playerColor === 'b' ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['8', '7', '6', '5', '4', '3', '2', '1'];
 
   const handleSquareClick = (row, col) => {
     if (!interactive || !isMyTurn) return;
@@ -112,7 +117,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     const piece = chess.get(square);
 
     if (!selectedSquare) {
-      if (piece && piece.color === 'w') {
+      if (piece && piece.color === playerColor) {
         setSelectedSquare(square);
         setLegalMoves(chess.moves({ square, verbose: true }));
       }
@@ -126,7 +131,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           setSelectedSquare(null);
           setLegalMoves([]);
         }
-      } else if (piece && piece.color === 'w') {
+      } else if (piece && piece.color === playerColor) {
         setSelectedSquare(square);
         setLegalMoves(chess.moves({ square, verbose: true }));
       } else {
@@ -282,7 +287,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           return (
             <div
               key={piece.id}
-              className={`absolute w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform ${animationClass}`}
+              className={`absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform ${animationClass}`}
               style={{ 
                 transform: `translate(${fileIndex * 100}%, ${rankIndex * 100}%)`,
                 ...animationStyle

@@ -88,8 +88,8 @@ export default async function handler(req, res) {
     }));
   }
 
-  const isHumanMove = game.turn === 'w';
-  const isAgentMove = game.turn === 'b';
+  const isHumanMove = game.turn === game.player_color;
+  const isAgentMove = game.turn !== game.player_color;
 
   if (isAgentMove) {
     const agentToken = req.headers['x-agent-token'] || token || '';
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
   const newMove = {
     game_id: id,
     move_number: moveNumber,
-    color: isHumanMove ? 'w' : 'b',
+    color: game.turn,
     from_square: moveObj.from,
     to_square: moveObj.to,
     san: moveObj.san,
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
     if (moveInsertError.code === '42P01') {
       const newMoveHistory = [...(game.move_history || []), {
         move_number: moveNumber,
-        color: isHumanMove ? 'w' : 'b',
+        color: game.turn,
         from: moveObj.from,
         to: moveObj.to,
         san: moveObj.san,

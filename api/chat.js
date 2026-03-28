@@ -100,19 +100,15 @@ export default async function handler(req, res) {
 
   const { error: chatInsertError } = await supabase.from('chat_messages').insert(newMessage);
   if (chatInsertError) {
-    console.error("Error inserting chat:", chatInsertError);
-    if (chatInsertError.code === '42P01') {
-      const { data: oldGame } = await supabase.from('games').select('chat_history').eq('id', id).single();
-      const newHistory = [...(oldGame?.chat_history || []), {
-        sender: sender,
-        text: sanitizedText,
-        type: type || 'text',
-        timestamp: Date.now()
-      }];
-      await supabase.from('games').update({ chat_history: newHistory }).eq('id', id);
-    } else {
-      return res.status(500).json({ error: 'Failed to send message' });
-    }
+    console.warn("Error inserting chat, falling back to games table:", chatInsertError);
+    const { data: oldGame } = await supabase.from('games').select('chat_history').eq('id', id).single();
+    const newHistory = [...(oldGame?.chat_history || []), {
+      sender: sender,
+      text: sanitizedText,
+      type: type || 'text',
+      timestamp: Date.now()
+    }];
+    await supabase.from('games').update({ chat_history: newHistory }).eq('id', id);
   }
 
   const updates = {};
