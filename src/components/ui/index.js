@@ -6,3 +6,4 @@ export { default as Modal } from './Modal';
 export { default as Tooltip } from './Tooltip';
 export { default as StatusDot } from './StatusDot';
 export { default as Divider } from './Divider';
+export { SoundToggle } from './SoundToggle';

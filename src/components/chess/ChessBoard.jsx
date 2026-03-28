@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida' }) {
+export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove }) {
   const [chess, setChess] = useState(new Chess(fen));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
@@ -46,7 +46,11 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         // Remove captured piece if any
         const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== move.from);
         if (capturedIndex !== -1) {
-          currentPieces.splice(capturedIndex, 1);
+          // Instead of removing immediately, mark as captured for animation
+          currentPieces[capturedIndex].captured = true;
+          // We still need to remove it eventually, but let the animation play first.
+          // For simplicity in this synchronous loop, we'll just keep it in the array
+          // but render it with the capture animation.
         }
         
         // Update moved piece
@@ -126,6 +130,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         setSelectedSquare(square);
         setLegalMoves(chess.moves({ square, verbose: true }));
       } else {
+        if (onIllegalMove) onIllegalMove();
         setSelectedSquare(null);
         setLegalMoves([]);
       }
@@ -248,23 +253,43 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         </div>
         
         {/* Pieces Layer */}
-        {pieces.map((piece) => {
+        {pieces.map((piece, index) => {
           const fileIndex = files.indexOf(piece.square[0]);
           const rankIndex = ranks.indexOf(piece.square[1]);
-          const left = `${(fileIndex / 8) * 100}%`;
-          const top = `${(rankIndex / 8) * 100}%`;
+          const isSelected = selectedSquare === piece.square;
+          const isLastPlaced = lastMove && (typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to) === piece.square;
           
+          // Calculate entrance delay based on rank (staggered entrance)
+          const entranceDelay = `${(rankIndex * 0.05) + (fileIndex * 0.02)}s`;
+          
+          let animationClass = '';
+          let animationStyle = {};
+          
+          if (piece.captured) {
+            animationClass = 'animate-[pieceCapture_200ms_ease-out_forwards]';
+          } else if (isSelected) {
+            animationClass = 'animate-[pieceLift_200ms_cubic-bezier(0.2,0,0,1)_forwards]';
+          } else if (isLastPlaced) {
+            animationClass = 'animate-[pieceDrop_150ms_cubic-bezier(0.2,0,0,1)_forwards]';
+          } else {
+            // Only apply entrance animation if there's no move history (initial load)
+            if (!moveHistory || moveHistory.length === 0) {
+              animationClass = 'animate-[pieceEntrance_400ms_cubic-bezier(0.2,0,0,1)_both]';
+              animationStyle = { animationDelay: entranceDelay };
+            }
+          }
+
           return (
-            <motion.div
+            <div
               key={piece.id}
-              layout
-              initial={false}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10"
-              style={{ left, top }}
+              className={`absolute w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform ${animationClass}`}
+              style={{ 
+                transform: `translate(${fileIndex * 100}%, ${rankIndex * 100}%)`,
+                ...animationStyle
+              }}
             >
               {renderPiece(piece)}
-            </motion.div>
+            </div>
           );
         })}
 

@@ -8,7 +8,7 @@ import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, Che
 import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
-import { Button, Card, Modal, StatusDot, Divider, Badge } from '../components/ui';
+import { Button, Card, Modal, StatusDot, Divider, Badge, SoundToggle } from '../components/ui';
 import { useRipple } from '../hooks/useRipple';
 
 function GameTimer({ startTime, status }) {
@@ -59,6 +59,7 @@ export default function Game() {
   const [justConnected, setJustConnected] = useState(false);
   const [agentTimedOut, setAgentTimedOut] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [shaking, setShaking] = useState(false);
   const createRipple = useRipple();
   
   const submittingRef = useRef(false);
@@ -142,88 +143,27 @@ export default function Game() {
   // Sound Effects
   const playSound = useMemo(() => (type) => {
     if (!soundEnabled) return;
-    try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-      
-      if (type === 'move') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + 0.05);
-        gain.gain.setValueAtTime(0.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-        osc.start(now);
-        osc.stop(now + 0.05);
-        osc.onended = () => {
-          osc.disconnect();
-          gain.disconnect();
-        };
-      } else if (type === 'capture') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-        gain.gain.setValueAtTime(0.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        
-        const bufferSize = ctx.sampleRate * 0.1;
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const noise = ctx.createBufferSource();
-        noise.buffer = buffer;
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.2, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        noise.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        noise.start(now);
-        
-        osc.start(now);
-        osc.stop(now + 0.1);
-        osc.onended = () => {
-          osc.disconnect();
-          gain.disconnect();
-        };
-        noise.onended = () => {
-          noise.disconnect();
-          noiseGain.disconnect();
-        };
-      } else if (type === 'check') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.setValueAtTime(600, now + 0.1);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-        gain.gain.linearRampToValueAtTime(0, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
-        osc.onended = () => {
-          osc.disconnect();
-          gain.disconnect();
-        };
-      }
-    } catch (e) {
-      console.error("Audio error:", e);
+    const urls = {
+      move: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-piece-slide-2070.mp3',
+      capture: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-piece-capture-2071.mp3',
+      check: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-check-2072.mp3',
+      checkmate: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-checkmate-2073.mp3',
+      start: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-game-start-2074.mp3',
+      end: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-game-end-2075.mp3',
+      illegal: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-illegal-move-2076.mp3',
+      agentThinking: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-thinking-2077.mp3',
+      agentMove: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-move-2078.mp3',
+      agentCapture: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-capture-2079.mp3',
+      agentCheck: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-check-2080.mp3',
+      agentCheckmate: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-checkmate-2081.mp3',
+      agentEnd: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-game-end-2082.mp3',
+      agentIllegal: 'https://assets.mixkit.co/sfx/preview/mixkit-chess-agent-illegal-move-2083.mp3'
+    };
+    if (urls[type]) {
+      const audio = new Audio(urls[type]);
+      audio.play().catch(e => console.error("Error playing sound", e));
     }
   }, [soundEnabled]);
-
-  useEffect(() => {
-    return () => {
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!game) return;
@@ -238,12 +178,35 @@ export default function Game() {
         chess.load(game.fen);
       }
       const lastMove = game.move_history[currentMoveCount - 1];
-      if (chess.isCheck()) playSound('check');
-      else if (lastMove && lastMove.san.includes('x')) playSound('capture');
-      else playSound('move');
+      
+      const isAgent = lastMove?.color === 'b';
+      
+      if (chess.isCheckmate()) {
+        playSound(isAgent ? 'agentCheckmate' : 'checkmate');
+      } else if (chess.isCheck()) {
+        playSound(isAgent ? 'agentCheck' : 'check');
+      } else if (lastMove && lastMove.san.includes('x')) {
+        playSound(isAgent ? 'agentCapture' : 'capture');
+      } else {
+        playSound(isAgent ? 'agentMove' : 'move');
+      }
     }
+    
+    if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
+      playSound(game.result === 'black' ? 'agentEnd' : 'end');
+    }
+    
+    if (game.status === 'active' && prevStatusRef.current === 'waiting') {
+      playSound('start');
+    }
+    
+    if (game.current_thinking && !prevStatusRef.current_thinking) {
+      playSound('agentThinking');
+    }
+    
     prevMoveCountRef.current = currentMoveCount;
     prevStatusRef.current = game.status;
+    prevStatusRef.current_thinking = game.current_thinking;
   }, [game, playSound]);
 
   // Agent Timeout Check
@@ -283,12 +246,12 @@ export default function Game() {
     };
   }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at, gameId]);
 
-  const handleClaimVictory = async () => {
+  const handleClaimVictory = useCallback(async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: 'white', result_reason: 'abandoned'
     }).eq('id', gameId);
     setAgentTimeout(false);
-  };
+  }, [gameId]);
 
   useEffect(() => {
     if (!game) return;
@@ -690,12 +653,12 @@ export default function Game() {
     setTimeout(() => setCopiedRoom(false), 2000);
   };
 
-  const copyInvite = () => {
+  const copyInvite = useCallback(() => {
     const url = `${window.location.origin}/Agent?id=${gameId}${agentToken ? `&token=${agentToken}` : ''}`;
     navigator.clipboard.writeText(url);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
-  };
+  }, [gameId, agentToken]);
 
   const agentName = game?.agent_name || 'Your OpenClaw';
 
@@ -826,19 +789,22 @@ export default function Game() {
           </button>
         </div>
 
-        <button 
-          onClick={handleOpenSettings}
-          style={{
-            width: '34px', height: '34px',
-            background: '#0e0e0e', border: '1px solid #1a1a1a',
-            borderRadius: '8px', color: '#888',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', transition: 'color 150ms'
-          }}
-          className="hover:text-[#888]"
-        >
-          <Settings size={18} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+          <button 
+            onClick={handleOpenSettings}
+            style={{
+              width: '34px', height: '34px',
+              background: '#0e0e0e', border: '1px solid #1a1a1a',
+              borderRadius: '8px', color: '#888',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', transition: 'color 150ms'
+            }}
+            className="hover:text-[#888]"
+          >
+            <Settings size={18} />
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
@@ -889,6 +855,7 @@ export default function Game() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
             {agentTimeout && game.status === 'active' && (
               <button 
                 onClick={handleClaimVictoryWithRipple}
@@ -982,21 +949,68 @@ export default function Game() {
               ref={thinkingScrollRef}
               style={{
                 borderLeft: `2px solid ${game.current_thinking ? '#e63946' : '#1a1a1a'}`,
-                padding: '8px 0 8px 12px',
+                background: game.current_thinking ? 'linear-gradient(90deg, rgba(230,57,70,0.08) 0%, transparent 100%)' : 'transparent',
+                padding: '12px 12px 12px 16px',
                 marginTop: '8px',
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: game.current_thinking ? '11px' : '10px',
-                color: game.current_thinking ? '#888' : '#888',
-                lineHeight: 1.7,
+                fontSize: game.current_thinking ? '13px' : '11px',
+                color: game.current_thinking ? '#e0e0e0' : '#666',
+                lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                maxHeight: '200px',
+                maxHeight: '250px',
                 overflowY: 'auto',
-                scrollbarWidth: 'none'
+                scrollbarWidth: 'none',
+                transition: 'all 300ms ease',
+                position: 'relative'
               }}
             >
-              {!game.current_thinking && lastThinking && <span style={{ color: '#666' }}>Last thought: </span>}
-              {game.current_thinking || lastThinking?.text}
+              {game.current_thinking && (
+                <div style={{ 
+                  fontFamily: "'Inter', sans-serif", 
+                  fontSize: '10px', 
+                  fontWeight: 700, 
+                  color: '#e63946', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px', 
+                  marginBottom: '8px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px' 
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e63946' }} className="animate-pulse" />
+                  {agentName.toUpperCase()} IS THINKING
+                </div>
+              )}
+              {!game.current_thinking && lastThinking && (
+                <div style={{ 
+                  fontFamily: "'Inter', sans-serif", 
+                  fontSize: '10px', 
+                  fontWeight: 600, 
+                  color: '#444', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.5px', 
+                  marginBottom: '6px' 
+                }}>
+                  LAST THOUGHT
+                </div>
+              )}
+              <div style={{ opacity: game.current_thinking ? 1 : 0.7 }}>
+                {game.current_thinking || lastThinking?.text}
+                {game.current_thinking && (
+                  <span style={{ 
+                    animation: 'blink 1s step-end infinite', 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '13px', 
+                    background: '#e63946', 
+                    marginLeft: '4px', 
+                    verticalAlign: 'middle',
+                    position: 'relative',
+                    top: '-1px'
+                  }} />
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -1059,7 +1073,8 @@ export default function Game() {
           border: '1px solid rgba(230,57,70,0.08)',
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
-          pointerEvents: (isMoving || !game.agent_connected) ? 'none' : 'auto'
+          pointerEvents: (isMoving || !game.agent_connected) ? 'none' : 'auto',
+          animation: shaking ? 'boardShake 300ms ease-in-out' : (game.current_thinking ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none')
         }} ref={boardRef}>
           <ChessBoard 
             fen={game.fen} 
@@ -1069,6 +1084,10 @@ export default function Game() {
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
+            onIllegalMove={() => {
+              setShaking(true);
+              setTimeout(() => setShaking(false), 300);
+            }}
           />
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div style={{
@@ -1105,11 +1124,14 @@ export default function Game() {
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: '#888' }}>Chat with {agentName}</span>
             <span style={{ fontSize: '12px' }}>{game.agent_avatar || '🦞'}</span>
           </div>
-          {unreadCount > 0 && (
-            <span style={{ background: '#e63946', color: 'white', borderRadius: '99px', padding: '1px 6px', fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700 }}>
-              {unreadCount}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+            {unreadCount > 0 && (
+              <span style={{ background: '#e63946', color: 'white', borderRadius: '99px', padding: '1px 6px', fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700 }}>
+                {unreadCount}
+              </span>
+            )}
+          </div>
         </div>
         
         <div 
@@ -1291,8 +1313,11 @@ export default function Game() {
           Move {currentMoveNumber}
         </div>
         
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>
-          <GameTimer startTime={game.created_at} status={game.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>
+            <GameTimer startTime={game.created_at} status={game.status} />
+          </div>
         </div>
       </div>
 
@@ -1484,6 +1509,39 @@ export default function Game() {
         @keyframes agentFlash {
           0% { background-color: rgba(255, 255, 255, 0.8); }
           100% { background-color: rgba(255, 255, 255, 0); }
+        }
+        @keyframes pieceLift {
+          0% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          100% { transform: scale(1.15) translateY(-4px); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); }
+        }
+        @keyframes pieceDrop {
+          0% { transform: scale(1.15) translateY(-4px); }
+          100% { transform: scale(1) translateY(0); }
+        }
+        @keyframes pieceCapture {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(0.5); opacity: 0; }
+        }
+        @keyframes boardShake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-4px); }
+          40%, 80% { transform: translateX(4px); }
+        }
+        @keyframes agentMoveFlash {
+          0% { background-color: rgba(230, 57, 70, 0.6); }
+          100% { background-color: rgba(255, 213, 79, 0.3); }
+        }
+        @keyframes pieceEntrance {
+          0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes boardThinkingGlow {
+          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
+          50% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
         input::placeholder { color: #888; }
       `}} />

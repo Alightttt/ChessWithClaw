@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from '../contexts/ToastContext';
+import { SoundToggle } from '../components/ui';
 
 /* ─── BOARD DATA ─── */
 const BOARD = [
@@ -79,6 +80,7 @@ export default function App() {
   const [bsize,setBsize]=useState(360);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const ref=useRef(null);
   const navigate = useNavigate();
 
@@ -157,7 +159,7 @@ export default function App() {
   ];
 
   const css=`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,400;1,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     ::-webkit-scrollbar { display: none; }
@@ -407,7 +409,7 @@ export default function App() {
         zIndex:200,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto', marginRight:8}} onError={e => { e.target.style.display='none' }} />
+          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
           <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
@@ -418,6 +420,7 @@ export default function App() {
             <a className="nav-link" href="#why">Why</a>
             <a className="nav-link" href="#faq">FAQ</a>
           </div>
+          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
           <button className="btn-primary" style={{padding:"8px 16px",fontSize:12}} onClick={handleStart} disabled={creating}>
             {creating ? "Creating..." : "Play Now →"}
           </button>
@@ -508,8 +511,7 @@ export default function App() {
                 {creating ? 'Creating game...' : 'Challenge Your OpenClaw →'}
               </button>
               <button className="btn-ghost" style={{width: '100%'}} onClick={() => {
-                const el = document.getElementById('how');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('how')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}>See how it works ↓</button>
             </div>
             {createError && (
@@ -824,11 +826,14 @@ export default function App() {
         flexWrap:"wrap",gap:10,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto', marginRight:8}} onError={e => { e.target.style.display='none' }} />
+          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
           <span className="serif" style={{fontSize:13,fontWeight:700,color:"#ccc"}}>ChessWithClaw</span>
           <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
         </div>
-        <span className="sans txt-xs" style={{color:"#333"}}>© 2025 ChessWithClaw</span>
+        <div style={{display:"flex",alignItems:"center",gap:16}}>
+          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
+          <span className="sans txt-xs" style={{color:"#333"}}>© 2025 ChessWithClaw</span>
+        </div>
       </footer>
     </div>
   );
