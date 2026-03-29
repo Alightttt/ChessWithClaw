@@ -1103,6 +1103,7 @@ export default function Game() {
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
+            playerColor={game.player_color}
             onIllegalMove={() => {
               setShaking(true);
               setTimeout(() => setShaking(false), 300);
