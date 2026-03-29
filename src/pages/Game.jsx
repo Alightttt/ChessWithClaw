@@ -388,10 +388,10 @@ export default function Game() {
         setGame(prev => {
           if (!prev) return payload.new;
           const updatedGame = { ...prev, ...payload.new };
-          // Preserve arrays that are no longer in the games table
-          updatedGame.move_history = prev.move_history || [];
-          updatedGame.chat_history = prev.chat_history || [];
-          updatedGame.thinking_log = prev.thinking_log || [];
+          // Preserve arrays that are no longer in the games table, but allow updates if games table has more items (fallback mode)
+          updatedGame.move_history = (payload.new.move_history && payload.new.move_history.length > (prev.move_history || []).length) ? payload.new.move_history : (prev.move_history || []);
+          updatedGame.chat_history = (payload.new.chat_history && payload.new.chat_history.length > (prev.chat_history || []).length) ? payload.new.chat_history : (prev.chat_history || []);
+          updatedGame.thinking_log = (payload.new.thinking_log && payload.new.thinking_log.length > (prev.thinking_log || []).length) ? payload.new.thinking_log : (prev.thinking_log || []);
           return updatedGame;
         });
         if (!payload.new.human_connected) {
@@ -416,7 +416,13 @@ export default function Game() {
             to: payload.new.to_square || payload.new.to,
             uci: (payload.new.from_square || payload.new.from) + (payload.new.to_square || payload.new.to) + (payload.new.promotion || '')
           };
-          const newMoveHistory = [...(prev.move_history || []), newMove];
+          const newMoveHistory = [...(prev.move_history || [])];
+          const optimisticIndex = newMoveHistory.findIndex(m => !m.id && m.move_number === newMove.move_number && m.color === newMove.color);
+          if (optimisticIndex !== -1) {
+            newMoveHistory[optimisticIndex] = newMove;
+          } else {
+            newMoveHistory.push(newMove);
+          }
           // Sort by move_number to ensure correct order
           newMoveHistory.sort((a, b) => a.move_number - b.move_number);
           return { ...prev, move_history: newMoveHistory };
@@ -431,7 +437,13 @@ export default function Game() {
             text: payload.new.message,
             timestamp: new Date(payload.new.created_at).getTime()
           };
-          const newChatHistory = [...(prev.chat_history || []), newMsg];
+          const newChatHistory = [...(prev.chat_history || [])];
+          const optimisticIndex = newChatHistory.findIndex(m => !m.id && m.sender === newMsg.sender && m.text === newMsg.text);
+          if (optimisticIndex !== -1) {
+            newChatHistory[optimisticIndex] = newMsg;
+          } else {
+            newChatHistory.push(newMsg);
+          }
           newChatHistory.sort((a, b) => a.timestamp - b.timestamp);
           return { ...prev, chat_history: newChatHistory };
         });
@@ -625,7 +637,11 @@ export default function Game() {
         body: JSON.stringify({ id: gameId, text, sender: 'human' })
       });
       if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
         setGame(previousGame);
+        toast.error(errData.error || 'Failed to send message', {
+          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+        });
         throw new Error('Failed to send message');
       }
     } catch (e) {
@@ -747,7 +763,8 @@ export default function Game() {
     );
   }
 
-  const isMyTurn = game.turn === game.player_color && (game.status === 'active' || game.status === 'waiting');
+  const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
+  const isMyTurn = !isSpectator && game.turn === game.player_color && (game.status === 'active' || game.status === 'waiting');
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
@@ -1217,7 +1234,8 @@ export default function Game() {
             type="text"
             value={chatInput}
             onChange={handleChatInputChange}
-            placeholder={`Message ${agentName}...`}
+            placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+            disabled={isSpectator}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#e0e0e0',
@@ -1226,12 +1244,12 @@ export default function Game() {
           />
           <button 
             type="submit"
-            disabled={!chatInput.trim()}
+            disabled={isSpectator || !chatInput.trim()}
             style={{
-              width: '30px', height: '30px', background: chatInput.trim() ? '#e63946' : '#1a1a1a',
+              width: '30px', height: '30px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : '#1a1a1a',
               border: 'none', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: chatInput.trim() ? 'pointer' : 'default', touchAction: 'manipulation', transition: 'background 120ms',
-              color: chatInput.trim() ? 'white' : '#888'
+              cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', touchAction: 'manipulation', transition: 'background 120ms',
+              color: (!isSpectator && chatInput.trim()) ? 'white' : '#888'
             }}
           >
             <Send size={14} />

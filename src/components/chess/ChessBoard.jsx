@@ -287,13 +287,17 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           return (
             <div
               key={piece.id}
-              className={`absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform ${animationClass}`}
+              className="absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform"
               style={{ 
-                transform: `translate(${fileIndex * 100}%, ${rankIndex * 100}%)`,
-                ...animationStyle
+                transform: `translate(${fileIndex * 100}%, ${rankIndex * 100}%)`
               }}
             >
-              {renderPiece(piece)}
+              <div 
+                className={`w-full h-full flex items-center justify-center ${animationClass}`}
+                style={animationStyle}
+              >
+                {renderPiece(piece)}
+              </div>
             </div>
           );
         })}

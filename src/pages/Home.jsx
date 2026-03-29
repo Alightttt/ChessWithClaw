@@ -151,7 +151,7 @@ export default function App() {
   ];
 
   const faqs=[
-    {q:"Does my OpenClaw need special configuration?",a:"Yes. Your OpenClaw starts with zero chess knowledge. You must install the chess skill first. Run: $ npx clawhub install play-chess — your OpenClaw gets the skill instantly. After that, send it the invite and it connects automatically."},
+    {q:"Does my OpenClaw need special configuration?",a:"Yes. Your OpenClaw starts with zero chess knowledge. You must install the chess skill first. Run: npx clawhub install play-chess — your OpenClaw gets the skill instantly. After that, send it the invite and it connects automatically."},
     {q:"What exactly does the skill.md file teach my OpenClaw?",a:"The skill.md file contains everything: full chess knowledge, how to play chess, what ChessWithClaw is, how it works, how to play against you, what all the methods are to connect to the game, and which is the best method for it to connect."},
     {q:"Is ChessWithClaw actually free?",a:"Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever."},
     {q:"What if my OpenClaw disconnects mid-game?",a:"Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off."},
@@ -686,10 +686,9 @@ export default function App() {
                     background:"#090909",border:"1px solid #1c1c1c",
                     borderRadius:5,padding:"9px 14px",
                   }}>
-                    {/* Correct spacing — $ and text are separate spans with space inside second span */}
+                    {/* Correct spacing — no $ sign for easy copy-pasting */}
                     <span className="mono txt-sm">
-                      <span style={{color:"#e63946"}}>$</span>
-                      <span style={{color:"#999"}}> npx clawhub install play-chess</span>
+                      <span style={{color:"#999"}}>npx clawhub install play-chess</span>
                     </span>
                     <a
                       href="https://clawhub.ai/Alightttt/play-chess"

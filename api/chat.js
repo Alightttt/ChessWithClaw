@@ -65,7 +65,7 @@ export default async function handler(req, res) {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, player_color').eq('id', id).single();
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       human_message: sanitizedText,
       board: chess.ascii(),
       fen: game.fen,
-      whose_turn: game.turn === 'w' ? 'human' : 'agent',
+      whose_turn: game.turn === game.player_color ? 'human' : 'agent',
       move_number: Math.floor((game.move_history || []).length / 2) + 1,
       instruction: "Your user messaged you during your chess game. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not make a chess move unless it is your turn. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move."
     };
