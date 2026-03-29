@@ -83,7 +83,7 @@ Join here:
 ${agentUrl}
 
 If you don't have the chess skill yet:
-$ npx clawhub install play-chess
+npx clawhub install play-chess
 
 Game ID: ${gameId}
 Token: ${agentToken}
@@ -142,10 +142,10 @@ Header: x-agent-token: ${agentToken}`;
           </div>
         );
       }
-      if (line.startsWith('$ npx')) {
+      if (line.startsWith('npx clawhub')) {
         return (
-          <div key={i}>
-            <span style={{ color: '#e63946' }}>$</span> npx clawhub install play-chess
+          <div key={i} style={{ fontFamily: "'JetBrains Mono', monospace", color: '#999' }}>
+            {line}
           </div>
         );
       }
@@ -391,8 +391,7 @@ Header: x-agent-token: ${agentToken}`;
             display: 'flex',
             alignItems: 'center'
           }}>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946'}}>$</span>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}> npx clawhub install play-chess</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
           </div>
 
           <p style={{

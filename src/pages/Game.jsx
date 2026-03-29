@@ -212,7 +212,7 @@ export default function Game() {
   // Agent Timeout Check
   const [agentTimeout, setAgentTimeout] = useState(false);
   useEffect(() => {
-    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === game.player_color) {
+    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game.player_color || 'w')) {
       setAgentTimeout(false);
       return;
     }
@@ -263,7 +263,7 @@ export default function Game() {
     }
 
     // If it's the agent's turn (black) and game is active
-    if (game.turn !== game.player_color && game.status === 'active') {
+    if (game.turn !== (game.player_color || 'w') && game.status === 'active') {
       agentTimerRef.current = setTimeout(() => {
         setAgentTimedOut(true);
       }, 90000); // 90 seconds
@@ -283,7 +283,7 @@ export default function Game() {
     const agentName = game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'Game Over | ChessWithClaw';
-    } else if (game.turn === game.player_color) {
+    } else if (game.turn === (game.player_color || 'w')) {
       document.title = 'Your Turn | ChessWithClaw';
     } else {
       document.title = `⚡ ${agentName} Thinking... | ChessWithClaw`;
@@ -500,7 +500,7 @@ export default function Game() {
   }, [gameId]);
 
   const makeMove = async (from, to, promotion) => {
-    if (!game || game.turn !== game.player_color || (game.status !== 'active' && game.status !== 'waiting')) return;
+    if (!game || game.turn !== (game.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (isMoving || submittingRef.current) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
@@ -529,7 +529,7 @@ export default function Game() {
 
       const newMoveHistory = [...(game.move_history || []), {
         move_number: Math.floor((game.move_history || []).length / 2) + 1,
-        color: game.player_color,
+        color: (game.player_color || 'w'),
         from,
         to,
         san: move.san,
@@ -539,7 +539,7 @@ export default function Game() {
 
       const updates = {
         fen: chess.fen(),
-        turn: game.player_color === 'w' ? 'b' : 'w',
+        turn: (game.player_color || 'w') === 'w' ? 'b' : 'w',
         move_history: newMoveHistory,
         status: 'active',
         human_last_moved_at: new Date().toISOString()
@@ -764,7 +764,7 @@ export default function Game() {
   }
 
   const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
-  const isMyTurn = !isSpectator && game.turn === game.player_color && (game.status === 'active' || game.status === 'waiting');
+  const isMyTurn = !isSpectator && game.turn === (game.player_color || 'w') && (game.status === 'active' || game.status === 'waiting');
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
@@ -881,11 +881,11 @@ export default function Game() {
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === game.player_color ? '#888' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
               {agentTimeout ? "⏱ " + agentName + " delayed" :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
-               game.turn === game.player_color ? "Watching you..." : 
+               game.turn === (game.player_color || 'w') ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
             </div>
           </div>
@@ -1093,7 +1093,7 @@ export default function Game() {
                 fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
                 borderRadius: '4px', marginBottom: '4px'
               }}>
-                {game.turn === game.player_color ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
+                {game.turn === (game.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
               </div>
             );
           }
@@ -1120,7 +1120,7 @@ export default function Game() {
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
-            playerColor={game.player_color}
+            playerColor={game.player_color || 'w'}
             onIllegalMove={() => {
               setShaking(true);
               setTimeout(() => setShaking(false), 300);
@@ -1332,7 +1332,7 @@ export default function Game() {
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>GAME OVER</div>
-        ) : game.turn === game.player_color ? (
+        ) : game.turn === (game.player_color || 'w') ? (
           <div style={{
             background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',

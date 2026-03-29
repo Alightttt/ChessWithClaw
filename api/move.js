@@ -88,8 +88,9 @@ export default async function handler(req, res) {
     }));
   }
 
-  const isHumanMove = game.turn === game.player_color;
-  const isAgentMove = game.turn !== game.player_color;
+  const playerColor = game.player_color || 'w';
+  const isHumanMove = game.turn === playerColor;
+  const isAgentMove = game.turn !== playerColor;
 
   if (isAgentMove) {
     const agentToken = req.headers['x-agent-token'] || token || '';
@@ -112,7 +113,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (isHumanMove && game.status === 'waiting') {
+  if (isHumanMove && !game.agent_connected) {
     return res.status(400).json({
       error: 'Waiting for OpenClaw to join',
       code: 'WAITING_FOR_AGENT'

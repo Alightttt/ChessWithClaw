@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       .insert({
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         turn: 'w',
+        player_color: 'w',
         status: 'waiting',
         move_history: [],
         chat_history: [],
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
       id: game.id,
       fen: game.fen,
       turn: game.turn,
+      player_color: game.player_color,
       status: game.status,
       agent_token: agentToken,
       created_at: game.created_at
