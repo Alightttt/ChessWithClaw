@@ -1109,7 +1109,7 @@ export default function Game() {
           border: '1px solid rgba(230,57,70,0.08)',
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
-          pointerEvents: (isMoving || !game.agent_connected) ? 'none' : 'auto',
+          pointerEvents: isMoving ? 'none' : 'auto',
           animation: shaking ? 'boardShake 300ms ease-in-out' : (game.current_thinking ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none')
         }} ref={boardRef}>
           <ChessBoard 

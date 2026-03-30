@@ -113,13 +113,6 @@ export default async function handler(req, res) {
     }
   }
 
-  if (isHumanMove && !game.agent_connected) {
-    return res.status(400).json({
-      error: 'Waiting for OpenClaw to join',
-      code: 'WAITING_FOR_AGENT'
-    });
-  }
-
   if (game.status === 'finished') {
     return res.status(400).json({
       error: 'Game is finished',
@@ -212,13 +205,7 @@ export default async function handler(req, res) {
     fen: chess.fen(),
     turn: isHumanMove ? 'b' : 'w',
     status: 'active',
-    move_count: (game.move_count || 0) + 1,
-    last_move: {
-      from: moveObj.from,
-      to: moveObj.to,
-      san: moveObj.san,
-      uci: moveObj.from + moveObj.to + (moveObj.promotion || '')
-    }
+    move_number: moveNumber
   };
 
   let insertedThoughtId = null;
@@ -231,21 +218,11 @@ export default async function handler(req, res) {
     };
     const { data: insertedThought, error: thoughtError } = await supabase.from('agent_thoughts').insert(newThought).select().single();
     if (thoughtError) {
-      if (thoughtError.code === '42P01') {
-        const newThinkingLog = [...(game.thinking_log || []), {
-          moveNumber: moveNumber,
-          text: sanitizedReasoning || '(no reasoning provided)',
-          finalMove: moveObj.san,
-          timestamp: Date.now()
-        }];
-        updates.thinking_log = newThinkingLog;
-        updates.current_thinking = '';
-      } else {
-        console.error("Error inserting thought:", thoughtError);
-      }
+      console.error("Error inserting thought:", thoughtError);
     } else {
       insertedThoughtId = insertedThought?.id;
     }
+    updates.current_thinking = '';
   }
 
   if (chess.isCheckmate()) {
