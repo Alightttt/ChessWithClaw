@@ -126,6 +126,10 @@ export default function App() {
         return;
       }
       
+      if (data.secret_token) {
+        localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
+      }
+
       // Store agent_token for GameCreated screen
       navigate(`/created/${data.id}`, { 
         state: { agentToken: data.agent_token } 

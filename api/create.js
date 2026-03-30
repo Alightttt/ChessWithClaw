@@ -79,6 +79,7 @@ export default async function handler(req, res) {
       player_color: game.player_color || 'w',
       status: game.status,
       agent_token: agentToken,
+      secret_token: game.secret_token,
       created_at: game.created_at
     });
   } catch (error) {
