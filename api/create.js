@@ -39,6 +39,7 @@ export default async function handler(req, res) {
 
   try {
     const agentToken = randomUUID();
+    const secretToken = randomUUID();
     const now = new Date().toISOString();
     const expires = new Date(Date.now() + 24*60*60*1000).toISOString();
 
@@ -48,14 +49,11 @@ export default async function handler(req, res) {
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         turn: 'w',
         status: 'waiting',
-        move_history: [],
-        chat_history: [],
-        move_count: 0,
-        chat_count: 0,
         move_number: 0,
         in_check: false,
         agent_connected: false,
         agent_token: agentToken,
+        secret_token: secretToken,
         created_at: now,
         updated_at: now,
         expires_at: expires
