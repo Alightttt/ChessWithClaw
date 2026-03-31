@@ -417,12 +417,7 @@ export default function Game() {
             uci: (payload.new.from_square || payload.new.from) + (payload.new.to_square || payload.new.to) + (payload.new.promotion || '')
           };
           const newMoveHistory = [...(prev.move_history || [])];
-          const optimisticIndex = newMoveHistory.findIndex(m => !m.id && m.move_number === newMove.move_number && m.color === newMove.color);
-          if (optimisticIndex !== -1) {
-            newMoveHistory[optimisticIndex] = newMove;
-          } else {
-            newMoveHistory.push(newMove);
-          }
+          newMoveHistory.push(newMove);
           // Sort by move_number to ensure correct order
           newMoveHistory.sort((a, b) => a.move_number - b.move_number);
           return { ...prev, move_history: newMoveHistory };
@@ -437,13 +432,7 @@ export default function Game() {
             text: payload.new.message,
             timestamp: new Date(payload.new.created_at).getTime()
           };
-          const newChatHistory = [...(prev.chat_history || [])];
-          const optimisticIndex = newChatHistory.findIndex(m => !m.id && m.sender === newMsg.sender && m.text === newMsg.text);
-          if (optimisticIndex !== -1) {
-            newChatHistory[optimisticIndex] = newMsg;
-          } else {
-            newChatHistory.push(newMsg);
-          }
+          const newChatHistory = [...(prev.chat_history || []), newMsg];
           newChatHistory.sort((a, b) => a.timestamp - b.timestamp);
           return { ...prev, chat_history: newChatHistory };
         });
@@ -527,41 +516,6 @@ export default function Game() {
         return;
       }
 
-      const newMoveHistory = [...(game.move_history || []), {
-        move_number: Math.floor((game.move_history || []).length / 2) + 1,
-        color: (game.player_color || 'w'),
-        from,
-        to,
-        san: move.san,
-        uci: from + to + (promotion || ''),
-        timestamp: Date.now()
-      }];
-
-      const updates = {
-        fen: chess.fen(),
-        turn: (game.player_color || 'w') === 'w' ? 'b' : 'w',
-        move_history: newMoveHistory,
-        status: 'active',
-        human_last_moved_at: new Date().toISOString()
-      };
-
-      if (chess.isCheckmate()) {
-        updates.status = 'finished';
-        updates.result = 'white';
-        updates.result_reason = 'checkmate';
-      } else if (chess.isStalemate()) {
-        updates.status = 'finished';
-        updates.result = 'draw';
-        updates.result_reason = 'stalemate';
-      } else if (chess.isDraw()) {
-        updates.status = 'finished';
-        updates.result = 'draw';
-        updates.result_reason = 'draw';
-      }
-
-      const previousGame = { ...game };
-      setGame(prev => ({ ...prev, ...updates }));
-      
       const response = await fetch('/api/move', {
         method: 'POST',
         headers: {
@@ -576,7 +530,6 @@ export default function Game() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        setGame(previousGame);
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast('Waiting for your OpenClaw to join...', {
             icon: '🦞',
@@ -587,17 +540,6 @@ export default function Game() {
           throw new Error('TURN_CONFLICT');
         }
         throw new Error(errData.error || 'Failed to submit move');
-      }
-
-      const responseData = await response.json();
-      if (responseData.success && responseData.game) {
-        setGame(prev => ({
-          ...prev,
-          ...responseData.game,
-          // Preserve arrays that might not be in the minimal response
-          chat_history: prev.chat_history || [],
-          thinking_log: prev.thinking_log || []
-        }));
       }
     } catch (e) {
       if (e.message === 'WAITING_FOR_AGENT') {
@@ -623,10 +565,6 @@ export default function Game() {
     const text = chatInput;
     setChatInput('');
     
-    const previousGame = { ...game };
-    const newMessage = { sender: 'human', text, timestamp: Date.now() };
-    setGame(prev => ({ ...prev, chat_history: [...(prev.chat_history || []), newMessage] }));
-    
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -638,7 +576,6 @@ export default function Game() {
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        setGame(previousGame);
         toast.error(errData.error || 'Failed to send message', {
           style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
         });
@@ -646,7 +583,6 @@ export default function Game() {
       }
     } catch (e) {
       console.error('Failed to send message:', e);
-      setGame(previousGame);
     }
   };
 
@@ -876,14 +812,14 @@ export default function Game() {
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               lineHeight: 1
             }}>
-              {agentName.toUpperCase()}
+              {agentName}
             </div>
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
               color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
-              {agentTimeout ? "⏱ " + agentName + " delayed" :
+              {agentTimeout ? "⏱ " + agentName + " is taking longer than usual" :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
                game.turn === (game.player_color || 'w') ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
@@ -1341,10 +1277,11 @@ export default function Game() {
           }}>YOUR TURN</div>
         ) : (
           <div style={{
-            background: '#1a1a1a', border: '1px solid #1a1a1a', color: '#888', height: '26px', padding: '0 10px', borderRadius: '6px',
+            background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'uppercase'
-          }}>{`${agentName.toUpperCase()}'S TURN`}</div>
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'pillPop 300ms ease both'
+          }}>{`${agentName}'s Turn`}</div>
         )}
         
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888' }}>

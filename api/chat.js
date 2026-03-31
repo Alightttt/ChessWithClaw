@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { notifyAgent } from './notify.js';
 import { sanitizeText, validateUUID } from './_utils/sanitize.js';
@@ -59,6 +58,7 @@ export default async function handler(req, res) {
   const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
+  const { createClient } = require('@supabase/supabase-js');
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
