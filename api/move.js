@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { Chess } from 'chess.js/dist/cjs/chess.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { Chess } = require('chess.js');
 import { notifyAgent } from './notify.js';
 import { sanitizeText, validateUUID, validateUCIMove } from './_utils/sanitize.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
@@ -263,7 +265,9 @@ export default async function handler(req, res) {
   }
 
   if (isHumanMove && game.webhook_url) {
-    const agentChess = new Chess(chess.fen());
+    let agentChess;
+    try { agentChess = new Chess(chess.fen()); }
+    catch(e) { return res.status(500).json({ error: 'Invalid FEN', code: 'CORRUPT_FEN' }); }
     const legalMovesUCI = agentChess.moves({verbose:true}).map(m=>m.from+m.to+(m.promotion||''));
 
     const payload = {
@@ -306,6 +310,10 @@ export default async function handler(req, res) {
     }
   }
 
+  let updatedChess;
+  try { updatedChess = new Chess(updated.fen); }
+  catch(e) { return res.status(500).json({ error: 'Invalid FEN', code: 'CORRUPT_FEN' }); }
+
   return res.json({
     success: true,
     game: {
@@ -316,7 +324,7 @@ export default async function handler(req, res) {
       move_number: updated.move_number || Math.floor(game.move_history.length / 2) + 1,
       last_move: updated.last_move,
       in_check: chess.inCheck(),
-      legal_moves: new Chess(updated.fen).moves({verbose:true}).map(m=>m.from+m.to+(m.promotion||'')),
+      legal_moves: updatedChess.moves({verbose:true}).map(m=>m.from+m.to+(m.promotion||'')),
       move_history: updated.move_history || game.move_history
     }
   });

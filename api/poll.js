@@ -1,4 +1,6 @@
-import { Chess } from 'chess.js/dist/cjs/chess.js'
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { Chess } = require('chess.js');
 import { createClient } from '@supabase/supabase-js'
 
 function isValidUUID(id) {
