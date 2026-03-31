@@ -802,7 +802,7 @@ export default function Game() {
             fontSize: '18px', flexShrink: 0,
             animation: justConnected ? 'bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
           }}>
-            {game.agent_avatar || '🦞'}
+            🦞
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -1095,7 +1095,7 @@ export default function Game() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: '#888' }}>Chat with {agentName}</span>
-            <span style={{ fontSize: '12px' }}>{game.agent_avatar || '🦞'}</span>
+            <span style={{ fontSize: '12px' }}>🦞</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
@@ -1116,7 +1116,7 @@ export default function Game() {
         >
           {!(game.chat_history || []).length ? (
             <div style={{ margin: 'auto', textAlign: 'center' }}>
-              <span style={{ fontSize: '20px', color: '#666', display: 'block', marginBottom: '5px' }}>{game.agent_avatar || '🦞'}</span>
+              <span style={{ fontSize: '20px', color: '#666', display: 'block', marginBottom: '5px' }}>🦞</span>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} can chat while playing</span>
             </div>
           ) : (

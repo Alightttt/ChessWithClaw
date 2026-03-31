@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js/dist/cjs/chess.js'
+import { createClient } from '@supabase/supabase-js'
 
 function isValidUUID(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id||''))
@@ -31,7 +32,6 @@ export default async function handler(req, res) {
     return res.status(500).json({error:'Server config error'})
   }
 
-  const { createClient } = require('@supabase/supabase-js')
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
