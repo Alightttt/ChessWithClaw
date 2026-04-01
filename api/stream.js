@@ -1,7 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { Chess } = require('chess.js');
+import { Chess } from 'chess.js';
 import { validateUUID } from './_utils/sanitize.js';
 
 export const config = { runtime: 'edge' };
