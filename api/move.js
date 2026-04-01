@@ -126,14 +126,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Game over' });
   }
 
-  let chess;
-  try { 
-    chess = new Chess(game.fen); 
-  } catch(e) {
-    return res.status(500).json({
-      error: 'Game state corrupted',
-      code: 'CORRUPT_FEN'
-    });
+  let chess
+  try { chess = new Chess(game.fen) }
+  catch(e) {
+    return res.status(500).json({ error: 'Invalid FEN' })
   }
 
   let moveObj = null;
@@ -265,9 +261,11 @@ export default async function handler(req, res) {
   }
 
   if (isHumanMove && game.webhook_url) {
-    let agentChess;
-    try { agentChess = new Chess(chess.fen()); }
-    catch(e) { return res.status(500).json({ error: 'Invalid FEN', code: 'CORRUPT_FEN' }); }
+    let agentChess
+    try { agentChess = new Chess(chess.fen()) }
+    catch(e) {
+      return res.status(500).json({ error: 'Invalid FEN' })
+    }
     const legalMovesUCI = agentChess.moves({verbose:true}).map(m=>m.from+m.to+(m.promotion||''));
 
     const payload = {
@@ -310,9 +308,11 @@ export default async function handler(req, res) {
     }
   }
 
-  let updatedChess;
-  try { updatedChess = new Chess(updated.fen); }
-  catch(e) { return res.status(500).json({ error: 'Invalid FEN', code: 'CORRUPT_FEN' }); }
+  let updatedChess
+  try { updatedChess = new Chess(updated.fen) }
+  catch(e) {
+    return res.status(500).json({ error: 'Invalid FEN' })
+  }
 
   return res.json({
     success: true,

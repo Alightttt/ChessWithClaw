@@ -57,7 +57,6 @@ export default function Game() {
   const [chatInput, setChatInput] = useState('');
   const [isMoving, setIsMoving] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
-  const [agentTimedOut, setAgentTimedOut] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [shaking, setShaking] = useState(false);
   const createRipple = useRipple();
@@ -71,7 +70,6 @@ export default function Game() {
   const chatMessagesRef = useRef(null);
   const thinkingScrollRef = useRef(null);
   const channelRef = useRef(null);
-  const agentTimerRef = useRef(null);
   const containerRef = useRef(null);
 
   // Calculate Board Size and Viewport Height
@@ -219,7 +217,7 @@ export default function Game() {
     
     const checkTimeout = () => {
       const lastUpdated = new Date(game.agent_last_seen || game.updated_at || game.created_at).getTime();
-      if (Date.now() - lastUpdated > 120000) { // 2 minutes
+      if (Date.now() - lastUpdated > 90000) { // 90 seconds
         setAgentTimeout(true);
       } else {
         setAgentTimeout(false);
@@ -252,31 +250,6 @@ export default function Game() {
     }).eq('id', gameId);
     setAgentTimeout(false);
   }, [gameId]);
-
-  useEffect(() => {
-    if (!game) return;
-    
-    // Clear existing timer
-    if (agentTimerRef.current) {
-      clearTimeout(agentTimerRef.current);
-      agentTimerRef.current = null;
-    }
-
-    // If it's the agent's turn (black) and game is active
-    if (game.turn !== (game.player_color || 'w') && game.status === 'active') {
-      agentTimerRef.current = setTimeout(() => {
-        setAgentTimedOut(true);
-      }, 90000); // 90 seconds
-    } else {
-      setAgentTimedOut(false);
-    }
-
-    return () => {
-      if (agentTimerRef.current) {
-        clearTimeout(agentTimerRef.current);
-      }
-    };
-  }, [game]);
 
   useEffect(() => {
     if (!game) return;
@@ -819,7 +792,7 @@ export default function Game() {
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
               color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
-              {agentTimeout ? "⏱ " + agentName + " is taking longer than usual" :
+              {agentTimeout ? "⏱ Your OpenClaw is taking longer than usual" :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
                game.turn === (game.player_color || 'w') ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
@@ -894,23 +867,11 @@ export default function Game() {
                 {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
               </button>
             </div>
-          ) : agentTimedOut ? (
+          ) : agentTimeout ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#d97706', marginBottom: '8px' }}>
-                {agentName} seems delayed. They might have disconnected or crashed.
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#d97706' }}>
+                Your OpenClaw is taking longer than usual
               </div>
-              <button 
-                onClick={handleCopyInviteWithRipple}
-                className="hover:bg-[#1a1a1a] active:scale-[0.98]"
-                style={{
-                  position: 'relative', overflow: 'hidden',
-                  width: '100%', height: '30px', background: '#1a1a1a', border: '1px solid #1a1a1a',
-                  borderRadius: '7px', color: copiedInvite ? '#22c55e' : '#888', fontFamily: "'Inter', sans-serif", fontSize: '11px',
-                  cursor: 'pointer', transition: 'all 150ms'
-                }}
-              >
-                {copiedInvite ? 'Copied!' : `Copy ${agentName} Link`}
-              </button>
             </div>
           ) : !game.current_thinking && !lastThinking ? (
             <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>

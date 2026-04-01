@@ -120,11 +120,10 @@ export default async function handler(req, res) {
   }
 
   if (sender === 'human') {
-    let chess;
-    try {
-      chess = new Chess(game.fen);
-    } catch (e) {
-      return res.status(500).json({ error: 'Corrupt game state', code: 'CORRUPT_FEN' });
+    let chess
+    try { chess = new Chess(game.fen) }
+    catch(e) {
+      return res.status(500).json({ error: 'Invalid FEN' })
     }
     
     const payload = {
