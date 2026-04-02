@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, text, type, sender = 'agent', token } = req.body || {};
+  let { id, text, type, sender = 'agent', token, reasoning } = req.body || {};
   if (!id || !text) return res.status(400).json({ error: 'Missing id or text in JSON body' });
   id = id.trim();
   
@@ -54,6 +54,7 @@ export default async function handler(req, res) {
   }
 
   const sanitizedText = sanitizeText(text, 500);
+  const sanitizedReasoning = sanitizeText(reasoning, 300);
   if (!sanitizedText) {
     return res.status(400).json({ error: 'Text is empty after sanitization' });
   }
@@ -131,6 +132,7 @@ export default async function handler(req, res) {
   };
 
   if (sender === 'agent') {
+    updates.current_thinking = sanitizedReasoning || '';
     updates.agent_connected = true;
     updates.agent_last_seen = new Date().toISOString();
   }

@@ -59,6 +59,7 @@ export default function Game() {
   const [justConnected, setJustConnected] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [displayedThinking, setDisplayedThinking] = useState('');
   const createRipple = useRipple();
   
   const submittingRef = useRef(false);
@@ -136,6 +137,32 @@ export default function Game() {
     if (thinkingScrollRef.current && game?.current_thinking) {
       thinkingScrollRef.current.scrollTop = thinkingScrollRef.current.scrollHeight;
     }
+  }, [game?.current_thinking, displayedThinking]);
+
+  // Typewriter effect for thinking
+  useEffect(() => {
+    if (!game) return;
+
+    const targetText = game.current_thinking || '';
+    
+    setDisplayedThinking(prev => {
+      if (targetText === prev) return prev;
+      if (targetText.length < prev.length) return targetText;
+      return prev;
+    });
+
+    const interval = setInterval(() => {
+      setDisplayedThinking(prev => {
+        if (prev.length < targetText.length) {
+          return targetText.slice(0, prev.length + 1);
+        }
+        clearInterval(interval);
+        return prev;
+      });
+    }, 15);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.current_thinking]);
 
   // Sound Effects
@@ -414,8 +441,7 @@ export default function Game() {
           };
           const newThinkingLog = [...(prev.thinking_log || []), newThought];
           newThinkingLog.sort((a, b) => a.timestamp - b.timestamp);
-          // Clear current_thinking when a final thought is received
-          return { ...prev, thinking_log: newThinkingLog, current_thinking: '' };
+          return { ...prev, thinking_log: newThinkingLog };
         });
       });
 
@@ -787,7 +813,7 @@ export default function Game() {
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : (game.current_thinking ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
               {agentTimeout ? "⏱ Your OpenClaw is taking longer than usual" :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
@@ -814,14 +840,14 @@ export default function Game() {
             )}
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
-              background: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#1a1a1a' : (game.current_thinking ? '#e63946' : '#22c55e'))
+              background: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#1a1a1a' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#22c55e'))
             }}>
               {game.agent_connected && (
                 <div style={{
                   position: 'absolute', inset: '-3px', borderRadius: '50%',
-                  background: agentTimeout ? '#f59e0b' : (game.current_thinking ? '#e63946' : '#22c55e'),
+                  background: agentTimeout ? '#f59e0b' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#22c55e'),
                   opacity: 0,
-                  animation: `ripple ${game.current_thinking ? '1s' : '2s'} ease-out infinite`
+                  animation: `ripple ${(game.current_thinking && game.turn !== (game.player_color || 'w')) ? '1s' : '2s'} ease-out infinite`
                 }}></div>
               )}
             </div>
@@ -878,13 +904,13 @@ export default function Game() {
             <div 
               ref={thinkingScrollRef}
               style={{
-                borderLeft: `2px solid ${game.current_thinking ? '#e63946' : '#1a1a1a'}`,
-                background: game.current_thinking ? 'linear-gradient(90deg, rgba(230,57,70,0.08) 0%, transparent 100%)' : 'transparent',
+                borderLeft: `2px solid ${(game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#1a1a1a'}`,
+                background: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? 'linear-gradient(90deg, rgba(230,57,70,0.08) 0%, transparent 100%)' : 'transparent',
                 padding: '12px 12px 12px 16px',
                 marginTop: '8px',
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: game.current_thinking ? '13px' : '11px',
-                color: game.current_thinking ? '#e0e0e0' : '#666',
+                fontSize: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '13px' : '11px',
+                color: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e0e0e0' : '#666',
                 lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -895,7 +921,7 @@ export default function Game() {
                 position: 'relative'
               }}
             >
-              {game.current_thinking && (
+              {(game.current_thinking && game.turn !== (game.player_color || 'w')) && (
                 <div style={{ 
                   fontFamily: "'Inter', sans-serif", 
                   fontSize: '10px', 
@@ -912,7 +938,7 @@ export default function Game() {
                   {agentName.toUpperCase()} IS THINKING
                 </div>
               )}
-              {!game.current_thinking && lastThinking && (
+              {(!game.current_thinking || game.turn === (game.player_color || 'w')) && lastThinking && (
                 <div style={{ 
                   fontFamily: "'Inter', sans-serif", 
                   fontSize: '10px', 
@@ -925,9 +951,9 @@ export default function Game() {
                   LAST THOUGHT
                 </div>
               )}
-              <div style={{ opacity: game.current_thinking ? 1 : 0.7 }}>
-                {game.current_thinking || lastThinking?.text}
-                {game.current_thinking && (
+              <div style={{ opacity: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? 1 : 0.7 }}>
+                {(game.current_thinking && game.turn !== (game.player_color || 'w')) ? displayedThinking : lastThinking?.text}
+                {game.current_thinking && game.turn !== (game.player_color || 'w') && (
                   <span style={{ 
                     animation: 'blink 1s step-end infinite', 
                     display: 'inline-block', 
@@ -1004,7 +1030,7 @@ export default function Game() {
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
           pointerEvents: isMoving ? 'none' : 'auto',
-          animation: shaking ? 'boardShake 300ms ease-in-out' : (game.current_thinking ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none')
+          animation: shaking ? 'boardShake 300ms ease-in-out' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none')
         }} ref={boardRef}>
           <ChessBoard 
             fen={game.fen} 

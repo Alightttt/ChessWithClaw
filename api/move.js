@@ -204,7 +204,8 @@ export default async function handler(req, res) {
     fen: chess.fen(),
     turn: isHumanMove ? 'b' : 'w',
     status: 'active',
-    move_number: moveNumber
+    move_number: moveNumber,
+    current_thinking: sanitizedReasoning || ''
   };
 
   let insertedThoughtId = null;
@@ -221,7 +222,6 @@ export default async function handler(req, res) {
     } else {
       insertedThoughtId = insertedThought?.id;
     }
-    updates.current_thinking = '';
   }
 
   if (chess.isCheckmate()) {
