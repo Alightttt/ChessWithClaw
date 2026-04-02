@@ -80,13 +80,14 @@ export default async function handler(req, res) {
   }
   
   // Fetch move history from the new table
-  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
+  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('created_at', { ascending: true });
   if (!movesError && movesData && movesData.length > 0) {
     game.move_history = movesData.map(m => ({
       ...m,
       from: m.from_square || m.from,
       to: m.to_square || m.to,
-      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
+      san: m.san
     }));
   }
 

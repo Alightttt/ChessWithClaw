@@ -46,8 +46,8 @@ export default function Game() {
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
-  const [boardTheme, setBoardTheme] = useState('green');
-  const [pieceTheme, setPieceTheme] = useState('merida');
+  const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('chess_board_theme') || 'green');
+  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('chess_piece_style') || 'merida');
   const [soundEnabled, setSoundEnabled] = useState(true);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
@@ -292,7 +292,7 @@ export default function Game() {
         setNotFound(true);
       } else {
         // Fetch move history from the new table
-        const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
+        const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
         if (movesError) {
           console.warn('Could not fetch from moves, falling back to games.move_history', movesError);
         } else if (movesData && movesData.length > 0) {
@@ -311,14 +311,16 @@ export default function Game() {
         const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
         if (chatError) {
           console.warn('Could not fetch from chat_messages, falling back to games.chat_history', chatError);
-        } else if (chatData && chatData.length > 0) {
-          data.chat_history = chatData.map(msg => ({
+        } else if (chatData) {
+          const mappedChatData = chatData.map(msg => ({
             ...msg,
             text: msg.message,
             timestamp: new Date(msg.created_at).getTime()
           }));
-        } else if (chatData && chatData.length === 0) {
-          data.chat_history = [];
+          // Use the longer array in case chat_messages insert failed but games update succeeded
+          if (mappedChatData.length >= (data.chat_history || []).length) {
+            data.chat_history = mappedChatData;
+          }
         }
 
         // Fetch thinking log from the new table
@@ -367,6 +369,8 @@ export default function Game() {
           updatedGame.thinking_log = (payload.new.thinking_log && payload.new.thinking_log.length > (prev.thinking_log || []).length) ? payload.new.thinking_log : (prev.thinking_log || []);
           return updatedGame;
         });
+        submittingRef.current = false;
+        setIsMoving(false);
         if (!payload.new.human_connected) {
           fetch('/api/heartbeat', {
             method: 'POST',
@@ -391,24 +395,12 @@ export default function Game() {
           };
           const newMoveHistory = [...(prev.move_history || [])];
           newMoveHistory.push(newMove);
-          // Sort by move_number to ensure correct order
-          newMoveHistory.sort((a, b) => a.move_number - b.move_number);
+          // Sort by timestamp to ensure correct order
+          newMoveHistory.sort((a, b) => a.timestamp - b.timestamp);
           return { ...prev, move_history: newMoveHistory };
         });
-      });
-
-      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `game_id=eq.${gameId}` }, (payload) => {
-        setGame(prev => {
-          if (!prev) return prev;
-          const newMsg = {
-            ...payload.new,
-            text: payload.new.message,
-            timestamp: new Date(payload.new.created_at).getTime()
-          };
-          const newChatHistory = [...(prev.chat_history || []), newMsg];
-          newChatHistory.sort((a, b) => a.timestamp - b.timestamp);
-          return { ...prev, chat_history: newChatHistory };
-        });
+        submittingRef.current = false;
+        setIsMoving(false);
       });
 
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_thoughts', filter: `game_id=eq.${gameId}` }, (payload) => {
@@ -503,6 +495,8 @@ export default function Game() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
+        submittingRef.current = false;
+        setIsMoving(false);
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast('Waiting for your OpenClaw to join...', {
             icon: '🦞',
@@ -525,7 +519,6 @@ export default function Game() {
       } else {
         toast.error(e.message || 'Illegal move or failed to submit');
       }
-    } finally {
       submittingRef.current = false;
       setIsMoving(false);
     }
@@ -706,13 +699,17 @@ export default function Game() {
         flexShrink: 0,
         overflow: 'hidden'
       }}>
-        <img 
-          src="/logo.png" 
-          alt="ChessWithClaw" 
-          style={{ height: 24, width: 'auto', cursor: 'pointer', flexShrink: 0 }}
-          onClick={handleGoHome}
-          onError={handleLogoError}
-        />
+        <div style={{display:"flex",alignItems:"center",cursor:"pointer"}} onClick={handleGoHome}>
+          <img
+            src="/logo.png"
+            alt=""
+            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            onError={e => { e.target.style.display = 'none' }}
+          />
+          <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
+            ChessWithClaw
+          </span>
+        </div>
         
         <div style={{
           background: '#0e0e0e',
@@ -1339,7 +1336,10 @@ export default function Game() {
                 ].map(theme => (
                   <button
                     key={theme.id}
-                    onClick={() => setBoardTheme(theme.id)}
+                    onClick={() => {
+                      setBoardTheme(theme.id);
+                      localStorage.setItem('chess_board_theme', theme.id);
+                    }}
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
                   >
@@ -1369,7 +1369,10 @@ export default function Game() {
                 ].map(piece => (
                   <button
                     key={piece.id}
-                    onClick={() => setPieceTheme(piece.id)}
+                    onClick={() => {
+                      setPieceTheme(piece.id);
+                      localStorage.setItem('chess_piece_style', piece.id);
+                    }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >
                     <span className="text-2xl leading-none">{piece.icon}</span>

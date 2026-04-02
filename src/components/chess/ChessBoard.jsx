@@ -83,6 +83,13 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           }
         }
       }
+      
+      // Check if moveHistory matches fen to prevent flashing during split-second Realtime sync
+      const historyFen = initialChess.fen().split(' ')[0];
+      const targetFen = newChess.fen().split(' ')[0];
+      if (historyFen !== targetFen) {
+        return; // Wait for both fen and moveHistory to be in sync
+      }
     } else {
       // If no move history (e.g. custom FEN), just use the current board state
       const customPieces = [];

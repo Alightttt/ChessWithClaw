@@ -412,8 +412,13 @@ export default function App() {
         borderBottom:"1px solid rgba(255,255,255,0.04)",
         zIndex:200,
       }}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
+        <div style={{display:"flex",alignItems:"center"}}>
+          <img
+            src="/logo.png"
+            alt=""
+            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            onError={e => { e.target.style.display = 'none' }}
+          />
           <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
@@ -828,8 +833,13 @@ export default function App() {
         display:"flex",alignItems:"center",justifyContent:"space-between",
         flexWrap:"wrap",gap:10,
       }}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <img src="/logo.png" alt="ChessWithClaw" style={{height:22, width:'auto'}} onError={e => { e.target.style.display='none' }} />
+        <div style={{display:"flex",alignItems:"center"}}>
+          <img
+            src="/logo.png"
+            alt=""
+            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            onError={e => { e.target.style.display = 'none' }}
+          />
           <span className="serif" style={{fontSize:13,fontWeight:700,color:"#ccc"}}>ChessWithClaw</span>
           <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
         </div>

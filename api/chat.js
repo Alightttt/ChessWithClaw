@@ -67,7 +67,7 @@ export default async function handler(req, res) {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history, chat_count').eq('id', id).single();
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
@@ -93,6 +93,19 @@ export default async function handler(req, res) {
     }));
   }
 
+  // Fetch full chat history from chat_messages table
+  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
+  if (!chatError && chatData) {
+    const mappedChatData = chatData.map(msg => ({
+      ...msg,
+      text: msg.message,
+      timestamp: new Date(msg.created_at).getTime()
+    }));
+    if (mappedChatData.length >= (game.chat_history || []).length) {
+      game.chat_history = mappedChatData;
+    }
+  }
+
   const newMessage = {
     game_id: id,
     sender: sender,
@@ -103,17 +116,20 @@ export default async function handler(req, res) {
   const { error: chatInsertError } = await supabase.from('chat_messages').insert(newMessage);
   if (chatInsertError) {
     console.warn("Error inserting chat, falling back to games table:", chatInsertError);
-    const { data: oldGame } = await supabase.from('games').select('chat_history').eq('id', id).single();
-    const newHistory = [...(oldGame?.chat_history || []), {
-      sender: sender,
-      text: sanitizedText,
-      type: type || 'text',
-      timestamp: Date.now()
-    }];
-    await supabase.from('games').update({ chat_history: newHistory }).eq('id', id);
   }
 
-  const updates = {};
+  const newHistory = [...(game.chat_history || []), {
+    sender: sender,
+    text: sanitizedText,
+    type: type || 'text',
+    timestamp: Date.now()
+  }];
+  
+  const updates = {
+    chat_history: newHistory,
+    chat_count: (game.chat_count || 0) + 1
+  };
+
   if (sender === 'agent') {
     updates.agent_connected = true;
     updates.agent_last_seen = new Date().toISOString();
