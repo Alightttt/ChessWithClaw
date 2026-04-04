@@ -100,11 +100,15 @@ export default function App() {
     calcBoard();
     window.addEventListener("resize",calcBoard);
 
-    const el=ref.current;
-    if(!el) return;
-    const sc=()=>setSp(el.scrollTop/(el.scrollHeight-el.clientHeight)*100||0);
-    el.addEventListener("scroll",sc);
-    return()=>{el.removeEventListener("scroll",sc);window.removeEventListener("resize",calcBoard);};
+    const sc = () => {
+      const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+      setSp(pct || 0);
+    };
+    window.addEventListener("scroll", sc);
+    return () => {
+      window.removeEventListener("scroll", sc);
+      window.removeEventListener("resize", calcBoard);
+    };
   },[]);
 
   const handleStart = async () => {
@@ -399,7 +403,12 @@ export default function App() {
       <style>{css}</style>
 
       {/* ═══ SCROLL PROGRESS ═══ */}
-      <div style={{position:"fixed",top:0,left:0,height:2,width:`${sp}%`,background:"#e63946",zIndex:9999,transition:"width 0.08s linear",pointerEvents:"none"}}/>
+      <div style={{
+        position: 'fixed', top: 0, left: 0, zIndex: 9999,
+        height: 2, background: '#e63946',
+        width: sp + '%',
+        transition: 'width 0.1s linear'
+      }}/>
 
       {/* ═══ NAV ═══ */}
       <nav style={{
@@ -415,8 +424,8 @@ export default function App() {
         <div style={{display:"flex",alignItems:"center"}}>
           <img
             src="/logo.png"
-            alt=""
-            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            alt="ChessWithClaw"
+            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
             onError={e => { e.target.style.display = 'none' }}
           />
           <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
@@ -836,8 +845,8 @@ export default function App() {
         <div style={{display:"flex",alignItems:"center"}}>
           <img
             src="/logo.png"
-            alt=""
-            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            alt="ChessWithClaw"
+            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
             onError={e => { e.target.style.display = 'none' }}
           />
           <span className="serif" style={{fontSize:13,fontWeight:700,color:"#ccc"}}>ChessWithClaw</span>

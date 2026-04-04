@@ -39,15 +39,14 @@ export default function Game() {
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
   
   const [showSettings, setShowSettings] = useState(false);
   const [agentSectionOpen, setAgentSectionOpen] = useState(false);
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
-  const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('chess_board_theme') || 'green');
-  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('chess_piece_style') || 'merida');
+  const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
+  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
   const [soundEnabled, setSoundEnabled] = useState(true);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
@@ -55,7 +54,7 @@ export default function Game() {
   const [confirmResign, setConfirmResign] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [isMoving, setIsMoving] = useState(false);
+  const [boardLocked, setBoardLocked] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [shaking, setShaking] = useState(false);
@@ -143,6 +142,11 @@ export default function Game() {
   useEffect(() => {
     if (!game) return;
 
+    if (game.turn === (game.player_color || 'w')) {
+      setDisplayedThinking('');
+      return;
+    }
+
     const targetText = game.current_thinking || '';
     
     setDisplayedThinking(prev => {
@@ -163,7 +167,7 @@ export default function Game() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.current_thinking]);
+  }, [game?.current_thinking, game?.turn, game?.player_color]);
 
   // Sound Effects
   const playSound = useMemo(() => (type) => {
@@ -366,7 +370,7 @@ export default function Game() {
         }
 
         setGame(data);
-        if (data.status === 'finished' || data.status === 'abandoned') setGameOver(true);
+        if (data.status === 'finished' || data.status === 'abandoned') setShowGameOverModal(true);
         fetch('/api/heartbeat', {
           method: 'POST',
           headers: { 
@@ -397,7 +401,7 @@ export default function Game() {
           return updatedGame;
         });
         submittingRef.current = false;
-        setIsMoving(false);
+        setBoardLocked(false);
         if (!payload.new.human_connected) {
           fetch('/api/heartbeat', {
             method: 'POST',
@@ -408,7 +412,7 @@ export default function Game() {
             body: JSON.stringify({ id: gameId, role: 'human' })
           }).catch(() => {});
         }
-        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') setGameOver(true);
+        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') setShowGameOverModal(true);
       });
 
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` }, (payload) => {
@@ -427,7 +431,23 @@ export default function Game() {
           return { ...prev, move_history: newMoveHistory };
         });
         submittingRef.current = false;
-        setIsMoving(false);
+        setBoardLocked(false);
+      });
+
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `game_id=eq.${gameId}` }, (payload) => {
+        setGame(prev => {
+          if (!prev) return prev;
+          const newMsg = {
+            ...payload.new,
+            text: payload.new.message,
+            timestamp: new Date(payload.new.created_at).getTime()
+          };
+          // Check if message already exists to prevent duplicates
+          if ((prev.chat_history || []).some(m => m.id === newMsg.id || (m.timestamp === newMsg.timestamp && m.text === newMsg.text))) {
+            return prev;
+          }
+          return { ...prev, chat_history: [...(prev.chat_history || []), newMsg] };
+        });
       });
 
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_thoughts', filter: `game_id=eq.${gameId}` }, (payload) => {
@@ -481,7 +501,7 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== (game.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
-    if (isMoving || submittingRef.current) return;
+    if (boardLocked || submittingRef.current) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
@@ -489,7 +509,7 @@ export default function Game() {
     }
 
     submittingRef.current = true;
-    setIsMoving(true);
+    setBoardLocked(true);
     const chess = new Chess();
     if (game.move_history && game.move_history.length > 0) {
       game.move_history.forEach(m => {
@@ -503,7 +523,7 @@ export default function Game() {
       const move = chess.move(moveObj);
       if (!move) {
         submittingRef.current = false;
-        setIsMoving(false);
+        setBoardLocked(false);
         return;
       }
 
@@ -522,7 +542,7 @@ export default function Game() {
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         submittingRef.current = false;
-        setIsMoving(false);
+        setBoardLocked(false);
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast('Waiting for your OpenClaw to join...', {
             icon: '🦞',
@@ -546,7 +566,7 @@ export default function Game() {
         toast.error(e.message || 'Illegal move or failed to submit');
       }
       submittingRef.current = false;
-      setIsMoving(false);
+      setBoardLocked(false);
     }
   };
 
@@ -630,15 +650,35 @@ export default function Game() {
   const handleToggleAgentSection = useCallback(() => setAgentSectionOpen(prev => !prev), []);
   const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
   const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
-  const handleShareResult = useCallback((e) => {
-    const moves = Math.floor((game?.move_history || []).length / 2) + ((game?.move_history || []).length % 2);
-    const winner = game?.result === 'white' ? 'I won' : game?.result === 'black' ? `${agentName} won` : 'Draw';
-    navigator.clipboard.writeText(`${winner} in ${moves} moves on ChessWithClaw 🦞 chesswithclaw.vercel.app`);
+  const handleShareResult = useCallback(async (e) => {
+    const textToShare = "I played chess vs my OpenClaw on ChessWithClaw! chesswithclaw.vercel.app";
     const btn = e.currentTarget;
     const oldText = btn.innerText;
-    btn.innerText = 'Copied! ✓';
-    setTimeout(() => btn.innerText = oldText, 2000);
-  }, [game?.move_history, game?.result, agentName]);
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'ChessWithClaw',
+          text: textToShare,
+        });
+      } else {
+        await navigator.clipboard.writeText(textToShare);
+        btn.innerText = 'Copied! ✓';
+        setTimeout(() => btn.innerText = oldText, 2000);
+      }
+    } catch (err) {
+      // User cancelled share or clipboard failed
+      if (err.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(textToShare);
+          btn.innerText = 'Copied! ✓';
+          setTimeout(() => btn.innerText = oldText, 2000);
+        } catch (clipboardErr) {
+          console.error('Failed to share or copy:', clipboardErr);
+        }
+      }
+    }
+  }, []);
 
   const handleLogoError = useCallback((e) => {
     e.target.style.display = 'none';
@@ -728,8 +768,8 @@ export default function Game() {
         <div style={{display:"flex",alignItems:"center",cursor:"pointer"}} onClick={handleGoHome}>
           <img
             src="/logo.png"
-            alt=""
-            style={{ height: 24, width: 'auto', marginRight: 8 }}
+            alt="ChessWithClaw"
+            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
             onError={e => { e.target.style.display = 'none' }}
           />
           <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
@@ -1029,7 +1069,7 @@ export default function Game() {
           border: '1px solid rgba(230,57,70,0.08)',
           boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
-          pointerEvents: isMoving ? 'none' : 'auto',
+          pointerEvents: boardLocked ? 'none' : 'auto',
           animation: shaking ? 'boardShake 300ms ease-in-out' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none')
         }} ref={boardRef}>
           <ChessBoard 
@@ -1298,10 +1338,10 @@ export default function Game() {
               <X size={20} />
             </button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {game.result === 'white' ? '🏆' : game.result === 'black' ? '🦞' : '🤝'}
+              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? '🏆' : game.result === 'draw' ? '🤝' : '🦞'}
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
-              {game.result === 'white' ? 'You Won!' : game.result === 'black' ? `${agentName} Won!` : "It's a Draw!"}
+              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
                 {game.result_reason === 'checkmate' ? 'by checkmate' :
@@ -1318,6 +1358,18 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
+                  onClick={handleGoHome}
+                  style={{
+                    background: '#e63946', color: '#fff', border: 'none',
+                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
+                    borderRadius: 7, width: '100%', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s'
+                  }}
+                  onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
+                >
+                  Rematch
+                </button>
+                <button 
                   onClick={handleShareResult}
                   style={{
                     background: 'transparent', color: '#888', border: '1px solid #252525',
@@ -1332,14 +1384,14 @@ export default function Game() {
                 <button 
                   onClick={handleGoHome}
                   style={{
-                    background: '#e63946', color: '#fff', border: 'none',
-                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
-                    borderRadius: 7, width: '100%', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s'
+                    background: 'transparent', color: '#888', border: 'none',
+                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
+                    borderRadius: 7, width: '100%', cursor: 'pointer', transition: 'color 0.15s'
                   }}
-                  onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
+                  onMouseEnter={e => { e.target.style.color = '#f0f0f0'; }}
+                  onMouseLeave={e => { e.target.style.color = '#888'; }}
                 >
-                  New Game
+                  Go Home
                 </button>
               </div>
           </div>
@@ -1364,7 +1416,7 @@ export default function Game() {
                     key={theme.id}
                     onClick={() => {
                       setBoardTheme(theme.id);
-                      localStorage.setItem('chess_board_theme', theme.id);
+                      localStorage.setItem('cwc_theme', theme.id);
                     }}
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
@@ -1397,7 +1449,7 @@ export default function Game() {
                     key={piece.id}
                     onClick={() => {
                       setPieceTheme(piece.id);
-                      localStorage.setItem('chess_piece_style', piece.id);
+                      localStorage.setItem('cwc_pieces', piece.id);
                     }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >

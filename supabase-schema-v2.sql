@@ -3,6 +3,9 @@
 -- Add agent_token to games table
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_token text;
 
+-- Add current_thinking to games table
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS current_thinking TEXT DEFAULT '';
+
 -- 1. Moves Table
 CREATE TABLE IF NOT EXISTS public.moves (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -54,9 +54,12 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, move, reasoning, token } = req.body || {};
+  let { id, move, reasoning, thinking, token } = req.body || {};
   if (!id || !move) return res.status(400).json({ error: 'Missing id or move in JSON body' });
   id = id.trim();
+
+  // Support both reasoning and thinking fields
+  const actualReasoning = reasoning || thinking || '';
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });
@@ -66,7 +69,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid move format. Use UCI format (e.g., e2e4).' });
   }
 
-  const sanitizedReasoning = sanitizeText(reasoning, 300);
+  const sanitizedReasoning = sanitizeText(actualReasoning, 300);
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
