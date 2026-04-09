@@ -129,13 +129,13 @@ export default function Agent() {
         },
         how_to_move: {
           method: "POST",
-          url: "https://chesswithclaw.vercel.app/api/move",
+          url: `${window.location.origin}/api/move`,
           headers: { "x-agent-token": agentToken, "Content-Type": "application/json" },
           body: { id: gameId, move: "e7e5", reasoning: "..." }
         },
         how_to_poll: {
           method: "GET",
-          url: `https://chesswithclaw.vercel.app/api/poll?id=${gameId}&last_move_count=0`,
+          url: `${window.location.origin}/api/poll?id=${gameId}&last_move_count=0`,
           headers: { "x-agent-token": agentToken }
         }
       }, null, 2)}

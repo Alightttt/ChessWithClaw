@@ -81,6 +81,7 @@ export default function App() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showColorModal, setShowColorModal] = useState(false);
   const ref=useRef(null);
   const navigate = useNavigate();
 
@@ -111,14 +112,16 @@ export default function App() {
     };
   },[]);
 
-  const handleStart = async () => {
+  const handleStart = async (color = 'w') => {
     if (creating) return;
     setCreating(true);
     setCreateError(null);
+    setShowColorModal(false);
     try {
       const res = await fetch('/api/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player_color: color })
       });
       
       const data = await res.json();
@@ -439,7 +442,7 @@ export default function App() {
             <a className="nav-link" href="#faq">FAQ</a>
           </div>
           <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
-          <button className="btn-primary" style={{padding:"8px 16px",fontSize:12}} onClick={handleStart} disabled={creating}>
+          <button className="btn-primary" style={{padding:"8px 16px",fontSize:12}} onClick={() => setShowColorModal(true)} disabled={creating}>
             {creating ? "Creating..." : "Play Now →"}
           </button>
         </div>
@@ -509,7 +512,7 @@ export default function App() {
           <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
             <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",width:"100%",maxWidth:360}}>
               <button
-                onClick={handleStart}
+                onClick={() => setShowColorModal(true)}
                 disabled={creating}
                 style={{
                   background: creating ? '#b02a35' : '#e63946',
@@ -816,7 +819,7 @@ export default function App() {
             Create a game. Send the invite. Play chess with your OpenClaw.
           </p>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-            <button className="btn-primary" style={{padding:"14px 32px",fontSize:15,fontWeight:700}} onClick={handleStart} disabled={creating}>
+            <button className="btn-primary" style={{padding:"14px 32px",fontSize:15,fontWeight:700}} onClick={() => setShowColorModal(true)} disabled={creating}>
               {creating ? "Creating..." : "Challenge Your OpenClaw →"}
             </button>
             {createError && (
@@ -857,6 +860,72 @@ export default function App() {
           <span className="sans txt-xs" style={{color:"#333"}}>© 2025 ChessWithClaw</span>
         </div>
       </footer>
+
+      {/* COLOR SELECTION MODAL */}
+      {showColorModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px'
+        }} onClick={() => setShowColorModal(false)}>
+          <div style={{
+            background: '#0e0e0e', border: '1px solid #252525', borderRadius: '16px',
+            padding: '32px', maxWidth: '400px', width: '100%', textAlign: 'center',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.5)'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '24px', color: '#fff', marginBottom: '8px' }}>
+              Choose Your Color
+            </h3>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#888', marginBottom: '24px' }}>
+              Select which side you want to play as.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+              <button
+                onClick={() => handleStart('w')}
+                disabled={creating}
+                style={{
+                  flex: 1, background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px',
+                  padding: '24px 16px', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63946'; e.currentTarget.style.background = '#222'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.background = '#1a1a1a'; }}
+              >
+                <span style={{ fontSize: '48px', lineHeight: 1, color: '#fff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>♔</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fff' }}>Play White</span>
+              </button>
+              
+              <button
+                onClick={() => handleStart('b')}
+                disabled={creating}
+                style={{
+                  flex: 1, background: '#1a1a1a', border: '1px solid #333', borderRadius: '12px',
+                  padding: '24px 16px', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#e63946'; e.currentTarget.style.background = '#222'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.background = '#1a1a1a'; }}
+              >
+                <span style={{ fontSize: '48px', lineHeight: 1, color: '#000', filter: 'drop-shadow(0 1px 1px rgba(255,255,255,0.2))' }}>♚</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#fff' }}>Play Black</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowColorModal(false)}
+              style={{
+                background: 'transparent', border: 'none', color: '#666',
+                fontFamily: "'Inter', sans-serif", fontSize: '14px', cursor: 'pointer',
+                padding: '8px 16px'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.color = '#666'}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

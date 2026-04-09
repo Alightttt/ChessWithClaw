@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     const secretToken = randomUUID();
     const now = new Date().toISOString();
     const expires = new Date(Date.now() + 24*60*60*1000).toISOString();
+    const { player_color = 'w', agent_name = 'OpenClaw' } = req.body || {};
 
     const { data: game, error } = await supabase
       .from('games')
@@ -54,6 +55,8 @@ export default async function handler(req, res) {
         agent_connected: false,
         agent_token: agentToken,
         secret_token: secretToken,
+        player_color: player_color === 'b' ? 'b' : 'w',
+        agent_name: agent_name.substring(0, 50),
         created_at: now,
         updated_at: now,
         expires_at: expires

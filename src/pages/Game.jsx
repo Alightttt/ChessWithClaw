@@ -47,7 +47,15 @@ export default function Game() {
   const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('cwc_sound');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Persist sound setting
+  useEffect(() => {
+    localStorage.setItem('cwc_sound', soundEnabled);
+  }, [soundEnabled]);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -222,7 +230,9 @@ export default function Game() {
     }
     
     if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
-      playSound(game.result === 'black' ? 'agentEnd' : 'end');
+      const playerColor = game.player_color || 'w';
+      const isAgentWinner = game.result === (playerColor === 'w' ? 'black' : 'white');
+      playSound(isAgentWinner ? 'agentEnd' : 'end');
     }
     
     if (game.status === 'active' && prevStatusRef.current === 'waiting') {
@@ -277,10 +287,10 @@ export default function Game() {
 
   const handleClaimVictory = useCallback(async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: 'white', result_reason: 'abandoned'
+      status: 'finished', result: (game?.player_color || 'w') === 'b' ? 'black' : 'white', result_reason: 'abandoned'
     }).eq('id', gameId);
     setAgentTimeout(false);
-  }, [gameId]);
+  }, [gameId, game?.player_color]);
 
   useEffect(() => {
     if (!game) return;
@@ -605,7 +615,7 @@ export default function Game() {
       return;
     }
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: 'black', result_reason: 'resignation'
+      status: 'finished', result: (game?.player_color || 'w') === 'b' ? 'white' : 'black', result_reason: 'resignation'
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
@@ -626,7 +636,7 @@ export default function Game() {
 
   const acceptAgentResignation = async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: 'white', result_reason: 'resignation'
+      status: 'finished', result: (game?.player_color || 'w') === 'b' ? 'black' : 'white', result_reason: 'resignation'
     }).eq('id', gameId);
   };
 
@@ -646,12 +656,31 @@ export default function Game() {
   const agentName = game?.agent_name || 'Your OpenClaw';
 
   const handleGoHome = useCallback(() => navigate('/'), [navigate]);
+  const [creatingRematch, setCreatingRematch] = useState(false);
+  const handleRematch = useCallback(async () => {
+    setCreatingRematch(true);
+    try {
+      const response = await fetch('/api/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_name: game?.agent_name || 'OpenClaw', player_color: game?.player_color === 'w' ? 'b' : 'w' })
+      });
+      if (!response.ok) throw new Error('Failed to create rematch');
+      const data = await response.json();
+      localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
+      navigate(`/game/${data.id}?token=${data.agent_token}`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCreatingRematch(false);
+    }
+  }, [game, navigate]);
   const handleOpenSettings = useCallback(() => setShowSettings(true), []);
   const handleToggleAgentSection = useCallback(() => setAgentSectionOpen(prev => !prev), []);
   const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
   const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
   const handleShareResult = useCallback(async (e) => {
-    const textToShare = "I played chess vs my OpenClaw on ChessWithClaw! chesswithclaw.vercel.app";
+    const textToShare = `I played chess vs my OpenClaw on ChessWithClaw! ${window.location.origin}`;
     const btn = e.currentTarget;
     const oldText = btn.innerText;
 
@@ -1095,7 +1124,7 @@ export default function Game() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#e63946', marginTop: '4px', fontWeight: 600 }}>
-                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === 'white' ? 'You won by ' : agentName + ' won by ') + game.result_reason)}
+                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === ((game.player_color || 'w') === 'w' ? 'white' : 'black') ? 'You won by ' : agentName + ' won by ') + game.result_reason)}
               </div>
             </div>
           )}
@@ -1154,7 +1183,29 @@ export default function Game() {
                     animation: 'msgSlide 200ms ease both'
                   }}>
                     {msg.text}
-                    <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
+                    {game.status === 'active' && (
+                      <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
+                    )}
+                  </div>
+                );
+              }
+              if (msg.type === 'draw_offer') {
+                return (
+                  <div key={i} style={{
+                    alignSelf: 'flex-start', background: '#1a1a1a', border: '1px solid #739552', borderRadius: '8px 8px 8px 2px',
+                    padding: '7px 10px', maxWidth: '78%', fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#999', lineHeight: 1.4,
+                    animation: 'msgSlide 200ms ease both'
+                  }}>
+                    {msg.text}
+                    {game.status === 'active' && (
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+                        <button onClick={async () => {
+                          await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+                            status: 'finished', result: 'draw', result_reason: 'agreement'
+                          }).eq('id', gameId);
+                        }} style={{ flex: 1, background: '#739552', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Draw</button>
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -1253,8 +1304,8 @@ export default function Game() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '22px 1fr 1fr' }}>
                 <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #1a1a1a', paddingBottom: '4px', marginBottom: '4px' }}>#</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #1a1a1a', paddingBottom: '4px', marginBottom: '4px' }}>You</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #1a1a1a', paddingBottom: '4px', marginBottom: '4px' }}>{agentName}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #1a1a1a', paddingBottom: '4px', marginBottom: '4px' }}>{(game.player_color || 'w') === 'w' ? 'You' : agentName}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #1a1a1a', paddingBottom: '4px', marginBottom: '4px' }}>{(game.player_color || 'w') === 'w' ? agentName : 'You'}</div>
                 
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const wMove = game.move_history[i * 2];
@@ -1338,10 +1389,10 @@ export default function Game() {
               <X size={20} />
             </button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? '🏆' : game.result === 'draw' ? '🤝' : '🦞'}
+              {game.result === ((game.player_color || 'w') === 'w' ? 'white' : 'black') ? '🏆' : game.result === 'draw' ? '🤝' : '🦞'}
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
-              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
+              {game.result === ((game.player_color || 'w') === 'w' ? 'white' : 'black') ? 'You Won!' : game.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
                 {game.result_reason === 'checkmate' ? 'by checkmate' :
@@ -1358,16 +1409,17 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
-                  onClick={handleGoHome}
+                  onClick={handleRematch}
+                  disabled={creatingRematch}
                   style={{
-                    background: '#e63946', color: '#fff', border: 'none',
+                    background: creatingRematch ? '#b02a35' : '#e63946', color: '#fff', border: 'none',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
-                    borderRadius: 7, width: '100%', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s'
+                    borderRadius: 7, width: '100%', cursor: creatingRematch ? 'default' : 'pointer', letterSpacing: '-0.2px', transition: 'opacity 0.15s, transform 0.15s'
                   }}
-                  onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
+                  onMouseEnter={e => { if (!creatingRematch) { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; } }}
+                  onMouseLeave={e => { if (!creatingRematch) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; } }}
                 >
-                  Rematch
+                  {creatingRematch ? 'Creating...' : 'Rematch'}
                 </button>
                 <button 
                   onClick={handleShareResult}

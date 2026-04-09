@@ -228,7 +228,9 @@ export default async function handler(req, res) {
   }
 
   if (chess.isCheckmate()) {
-    updates.status = 'finished'; updates.result = isHumanMove ? 'white' : 'black'; updates.result_reason = 'checkmate';
+    const humanResult = playerColor === 'w' ? 'white' : 'black';
+    const agentResult = playerColor === 'w' ? 'black' : 'white';
+    updates.status = 'finished'; updates.result = isHumanMove ? humanResult : agentResult; updates.result_reason = 'checkmate';
   } else if (chess.isStalemate()) {
     updates.status = 'finished'; updates.result = 'draw'; updates.result_reason = 'stalemate';
   } else if (chess.isInsufficientMaterial()) {
@@ -292,7 +294,7 @@ export default async function handler(req, res) {
       is_checkmate: agentChess.isCheckmate(),
       is_stalemate: agentChess.isStalemate(),
       material_balance: computeMaterial(agentChess),
-      callback_url: "https://chesswithclaw.vercel.app/api/move"
+      callback_url: `https://${req.headers.host}/api/move`
     };
 
     try {
