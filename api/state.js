@@ -147,17 +147,13 @@ export default async function handler(req, res) {
     game_phase = "middlegame";
   }
 
-  const agentColor = game.player_color === 'w' ? 'b' : 'w';
-  const agentColorName = agentColor === 'w' ? 'WHITE' : 'BLACK';
-  const humanColorName = agentColor === 'w' ? 'BLACK' : 'WHITE';
-
   res.status(200).json({
-    instructions: `You are ${agentColorName}. If current_turn is ${agentColorName}, choose a move from legal_moves and POST to /api/move. Consult your 'skill.md' and search the internet for chess theory to play smartly. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.`,
+    instructions: "You are BLACK. If current_turn is BLACK, choose a move from legal_moves and POST to /api/move. Consult your 'skill.md' and search the internet for chess theory to play smartly. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
     game_id: id,
     status: game.status,
     game_info: {
-      white_player: agentColor === 'w' ? 'Agent' : 'Human',
-      black_player: agentColor === 'b' ? 'Agent' : 'Human',
+      white_player: 'Human',
+      black_player: 'Agent',
       white_elo: '?',
       black_elo: '?',
       time_control: 'none',
@@ -172,11 +168,11 @@ export default async function handler(req, res) {
     is_in_check: chess.isCheck(),
     game_phase: game_phase,
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
-    you_are: agentColorName,
+    you_are: 'BLACK',
     fen: chess.fen(),
     pgn: chess.pgn(),
     ascii_board: chess.ascii(),
-    legal_moves: game.turn === agentColor ? legalMoves : [],
+    legal_moves: game.turn === 'b' ? legalMoves : [],
     last_move: game.move_history?.length > 0 ? game.move_history[game.move_history.length - 1] : null,
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],

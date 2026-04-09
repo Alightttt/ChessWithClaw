@@ -13,7 +13,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [boardOpened, setBoardOpened] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
-  const [playerColor, setPlayerColor] = useState('w');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const createRipple = useRipple();
   const navigate = useNavigate();
@@ -25,7 +24,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     const fetchGame = async () => {
       const { data } = await supabase
         .from('games')
-        .select('agent_connected, agent_name, agent_token, player_color')
+        .select('agent_connected, agent_name, agent_token')
         .eq('id', gameId)
         .single();
       
@@ -37,9 +36,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       }
       if (!agentToken && data?.agent_token) {
         setAgentToken(data.agent_token);
-      }
-      if (data?.player_color) {
-        setPlayerColor(data.player_color);
       }
     };
     fetchGame();
@@ -81,7 +77,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const inviteMessage = `🦞 Chess Challenge on ChessWithClaw!
 
 I've created a chess game for us.
-You are ${playerColor === 'w' ? 'Black' : 'White'}. I'm ${playerColor === 'w' ? 'White' : 'Black'} and move ${playerColor === 'w' ? 'first' : 'second'}.
+You are Black. I'm White and move first.
 
 Join here:
 ${agentUrl}

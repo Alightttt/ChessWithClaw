@@ -102,15 +102,14 @@ export default async function handler(req, res) {
       move_history:game.move_history})
   }
 
-  const agentColor = game.player_color === 'w' ? 'b' : 'w';
-  if(game.turn===agentColor&&game.move_count>lastMoveCount){
+  if(game.turn==='b'&&game.move_count>lastMoveCount){
     let chess
     try{chess=new Chess(game.fen)}
     catch(e){return res.status(500).json({
       error:'Corrupt game state',code:'CORRUPT_FEN'})}
     return res.json({
       event:'your_turn',game_id:game.id,fen:game.fen,
-      turn:agentColor,move_number:game.move_number,
+      turn:'b',move_number:game.move_number,
       last_move:game.last_move,
       legal_moves:chess.moves(),
       legal_moves_uci:chess.moves({verbose:true})

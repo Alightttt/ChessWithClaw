@@ -151,10 +151,9 @@ export default async function handler(req, res) {
       human_message: sanitizedText,
       board: chess.ascii(),
       fen: game.fen,
-      status: game.status,
       whose_turn: game.turn === (game.player_color || 'w') ? 'human' : 'agent',
       move_number: Math.floor((game.move_history || []).length / 2) + 1,
-      instruction: game.status === 'finished' ? "The game is over. Your user messaged you. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not try to make a chess move." : "Your user messaged you during your chess game. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not make a chess move unless it is your turn. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move."
+      instruction: "Your user messaged you during your chess game. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not make a chess move unless it is your turn. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move."
     };
     
     const enrichedPayload = await notifyAgent(game, payload, supabase);

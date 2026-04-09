@@ -142,9 +142,8 @@ export default async function handler(req) {
         
         // Only send if it's a new event compared to lastEventId
         if (moveCount >= lastMoveCount) {
-          const agentColor = gameData.player_color === 'w' ? 'b' : 'w';
           const payload = { 
-            event: gameData.turn === agentColor ? 'your_turn' : 'update', 
+            event: gameData.turn === 'b' ? 'your_turn' : 'update', 
             game_id: id,
             status: gameData.status,
             fen: chess.fen(), 

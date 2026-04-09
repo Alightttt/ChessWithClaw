@@ -91,9 +91,9 @@ export default async function handler(req, res) {
 
   // Check for human slow
   if (role === 'human') {
-    const { data: gameData, error } = await supabase.from('games').select('id, turn, status, human_last_moved_at, last_impatience_at, pending_events, webhook_url, webhook_failed, webhook_fail_count, fen, player_color').eq('id', id).single();
+    const { data: gameData, error } = await supabase.from('games').select('id, turn, status, human_last_moved_at, last_impatience_at, pending_events, webhook_url, webhook_failed, webhook_fail_count, fen').eq('id', id).single();
     
-    if (!error && gameData && gameData.status === 'active' && gameData.turn === (gameData.player_color || 'w') && gameData.human_last_moved_at) {
+    if (!error && gameData && gameData.status === 'active' && gameData.turn === 'w' && gameData.human_last_moved_at) {
       const lastMoved = new Date(gameData.human_last_moved_at).getTime();
       const lastImpatience = gameData.last_impatience_at ? new Date(gameData.last_impatience_at).getTime() : 0;
       const currentTime = Date.now();

@@ -310,47 +310,31 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         })}
 
         {promotionMove && (
-          <div 
-            className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPromotionMove(null);
-              setSelectedSquare(null);
-              setLegalMoves([]);
-            }}
-          >
-            <div 
-              className="bg-[var(--color-bg-surface)] p-6 rounded-2xl flex flex-col items-center gap-6 border border-[var(--color-border-subtle)] shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-[var(--color-text-primary)] font-semibold text-lg tracking-tight">Choose Promotion</div>
-              <div className="flex gap-4">
-                {['q', 'r', 'b', 'n'].map(p => (
-                  <button 
-                    key={p} 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMove(promotionMove.from, promotionMove.to, p);
-                      setPromotionMove(null);
-                      setSelectedSquare(null);
-                      setLegalMoves([]);
-                    }}
-                    className="w-16 h-16 sm:w-20 sm:h-20 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] rounded-xl flex items-center justify-center border border-[var(--color-border-subtle)] hover:border-[var(--color-red-primary)] transition-all transform hover:scale-105 hover:-translate-y-1 shadow-lg"
-                  >
-                    {renderPiece({ type: p, color: chess.turn() })}
-                  </button>
-                ))}
-              </div>
+          <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-[var(--color-bg-surface)] p-4 rounded-xl flex gap-4 border border-[var(--color-border-subtle)] shadow-2xl">
+              {['q', 'r', 'b', 'n'].map(p => (
+                <button 
+                  key={p} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(promotionMove.from, promotionMove.to, p);
+                    setPromotionMove(null);
+                    setSelectedSquare(null);
+                    setLegalMoves([]);
+                  }}
+                  className="w-14 h-14 sm:w-20 sm:h-20 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] rounded-lg flex items-center justify-center border border-[var(--color-border-subtle)] hover:border-[var(--color-red-primary)] transition-all transform hover:scale-105"
+                >
+                  {renderPiece({ type: p, color: chess.turn() })}
+                </button>
+              ))}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setPromotionMove(null);
-                  setSelectedSquare(null);
-                  setLegalMoves([]);
                 }}
-                className="px-6 py-2 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] rounded-lg text-sm font-medium border border-[var(--color-border-subtle)] transition-all"
+                className="w-14 h-14 sm:w-20 sm:h-20 bg-[var(--color-red-primary)]/10 hover:bg-[var(--color-red-primary)]/20 text-[var(--color-red-primary)] rounded-lg flex items-center justify-center text-xl font-bold border border-[var(--color-red-primary)]/30 transition-all"
               >
-                Cancel
+                ✕
               </button>
             </div>
           </div>
