@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { applySecurityHeaders, applyCacheControl } = require('./_middleware/headers.cjs');
+const { applySecurityHeaders, applyCacheControl } = require('./_middleware/headers.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
