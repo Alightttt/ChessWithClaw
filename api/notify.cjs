@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export async function notifyAgent(game, newPayload, supabase) {
+async function notifyAgent(game, newPayload, supabase) {
   const payload = { ...newPayload };
 
   if (payload.game_event) {
@@ -72,6 +72,8 @@ export async function notifyAgent(game, newPayload, supabase) {
   return payload;
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.status(404).json({ error: 'Not found' });
 }
+
+module.exports.notifyAgent = notifyAgent;

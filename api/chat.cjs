@@ -1,13 +1,11 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 const { Chess } = require('chess.js');
-import { createClient } from '@supabase/supabase-js';
-import { notifyAgent } from './notify.js';
-import { sanitizeText, validateUUID } from './_utils/sanitize.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
+const { createClient } = require('@supabase/supabase-js');
+const { notifyAgent } = require('./notify.cjs');
+const { sanitizeText, validateUUID } = require('./_utils/sanitize.cjs');
+const { checkRateLimit } = require('./_utils/rateLimit.cjs');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
@@ -95,37 +93,14 @@ export default async function handler(req, res) {
     }));
   }
 
-  // Fetch full chat history from chat_messages table
-  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-  if (!chatError && chatData) {
-    const mappedChatData = chatData.map(msg => ({
-      ...msg,
-      text: msg.message,
-      timestamp: new Date(msg.created_at).getTime()
-    }));
-    if (mappedChatData.length >= (game.chat_history || []).length) {
-      game.chat_history = mappedChatData;
-    }
-  }
-
   const newMessage = {
-    game_id: id,
-    sender: sender,
-    message: sanitizedText,
-    type: type || 'text'
-  };
-
-  const { error: chatInsertError } = await supabase.from('chat_messages').insert(newMessage);
-  if (chatInsertError) {
-    console.warn("Error inserting chat, falling back to games table:", chatInsertError);
-  }
-
-  const newHistory = [...(game.chat_history || []), {
+    id: Date.now(),
     sender: sender,
     text: sanitizedText,
-    type: type || 'text',
-    timestamp: Date.now()
-  }];
+    timestamp: new Date().toISOString()
+  };
+
+  const newHistory = [...(game.chat_history || []), newMessage];
   
   const updates = {
     chat_history: newHistory,

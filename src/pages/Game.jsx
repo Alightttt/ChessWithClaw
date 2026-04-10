@@ -339,22 +339,6 @@ export default function Game() {
           data.move_history = [];
         }
 
-        // Fetch chat history from the new table
-        const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        if (chatError) {
-          console.warn('Could not fetch from chat_messages, falling back to games.chat_history', chatError);
-        } else if (chatData) {
-          const mappedChatData = chatData.map(msg => ({
-            ...msg,
-            text: msg.message,
-            timestamp: new Date(msg.created_at).getTime()
-          }));
-          // Use the longer array in case chat_messages insert failed but games update succeeded
-          if (mappedChatData.length >= (data.chat_history || []).length) {
-            data.chat_history = mappedChatData;
-          }
-        }
-
         // Fetch thinking log from the new table
         const { data: thoughtsData, error: thoughtsError } = await supabase.from('agent_thoughts').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
         if (thoughtsError) {
@@ -433,22 +417,6 @@ export default function Game() {
         });
         submittingRef.current = false;
         setBoardLocked(false);
-      });
-
-      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `game_id=eq.${gameId}` }, (payload) => {
-        setGame(prev => {
-          if (!prev) return prev;
-          const newMsg = {
-            ...payload.new,
-            text: payload.new.message,
-            timestamp: new Date(payload.new.created_at).getTime()
-          };
-          // Check if message already exists to prevent duplicates
-          if ((prev.chat_history || []).some(m => m.id === newMsg.id || (m.timestamp === newMsg.timestamp && m.text === newMsg.text))) {
-            return prev;
-          }
-          return { ...prev, chat_history: [...(prev.chat_history || []), newMsg] };
-        });
       });
 
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_thoughts', filter: `game_id=eq.${gameId}` }, (payload) => {

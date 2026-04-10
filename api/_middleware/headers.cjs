@@ -1,4 +1,4 @@
-export function applySecurityHeaders(res) {
+function applySecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -7,17 +7,17 @@ export function applySecurityHeaders(res) {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 }
 
-export function applyCacheControl(res) {
+function applyCacheControl(res) {
   res.setHeader('Cache-Control', 'no-store');
 }
 
-export function applyRateLimitHeaders(res, limit, remaining, resetTime) {
+function applyRateLimitHeaders(res, limit, remaining, resetTime) {
   res.setHeader('X-RateLimit-Limit', limit);
   res.setHeader('X-RateLimit-Remaining', remaining);
   res.setHeader('X-RateLimit-Reset', Math.floor(resetTime / 1000));
 }
 
-export function applyCorsHeaders(req, res) {
+function applyCorsHeaders(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   const origin = req.headers.origin;
   if (origin) {
@@ -28,3 +28,10 @@ export function applyCorsHeaders(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-game-token');
 }
+
+module.exports = {
+  applySecurityHeaders,
+  applyCacheControl,
+  applyRateLimitHeaders,
+  applyCorsHeaders
+};

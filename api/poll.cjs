@@ -1,7 +1,5 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 const { Chess } = require('chess.js');
-import { createClient } from '@supabase/supabase-js'
+const { createClient } = require('@supabase/supabase-js');
 
 function isValidUUID(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id||''))
@@ -21,7 +19,7 @@ function computeMaterial(chess) {
     difference:Math.abs(diff)}
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin','*')
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers',
@@ -66,16 +64,6 @@ export default async function handler(req, res) {
       from: m.from_square || m.from,
       to: m.to_square || m.to,
       uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-    }));
-  }
-
-  // Fetch chat history
-  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-  if (!chatError && chatData && chatData.length > 0) {
-    game.chat_history = chatData.map(msg => ({
-      ...msg,
-      text: msg.message,
-      timestamp: new Date(msg.created_at).getTime()
     }));
   }
 

@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'crypto';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
+const { createClient } = require('@supabase/supabase-js');
+const { randomUUID } = require('crypto');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.cjs');
+const { checkRateLimit } = require('./_utils/rateLimit.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');

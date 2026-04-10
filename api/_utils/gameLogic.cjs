@@ -1,4 +1,4 @@
-export function detectGameEvent(chessBefore, chessAfter, moveObj) {
+function detectGameEvent(chessBefore, chessAfter, moveObj) {
   if (chessAfter.isCheckmate()) return "checkmate";
   if (chessAfter.isStalemate()) return "stalemate";
   if (chessAfter.isCheck()) {
@@ -11,7 +11,7 @@ export function detectGameEvent(chessBefore, chessAfter, moveObj) {
   return "normal_move";
 }
 
-export function getMaterialBalance(fen) {
+function getMaterialBalance(fen) {
   const fenBoard = fen.split(' ')[0];
   const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
   for (let char of fenBoard) {
@@ -23,7 +23,7 @@ export function getMaterialBalance(fen) {
   };
 }
 
-export function getEmotionalContext(moveObj, chessAfter, wasInCheck) {
+function getEmotionalContext(moveObj, chessAfter, wasInCheck) {
   if (moveObj.captured) {
     return "human_captured_your_piece";
   } else if (chessAfter.isCheck() || wasInCheck) {
@@ -36,3 +36,9 @@ export function getEmotionalContext(moveObj, chessAfter, wasInCheck) {
     return "human_made_quiet_move";
   }
 }
+
+module.exports = {
+  detectGameEvent,
+  getMaterialBalance,
+  getEmotionalContext
+};

@@ -1,12 +1,91 @@
-import { createClient } from '@supabase/supabase-js';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+const { createClient } = require('@supabase/supabase-js');
 const { Chess } = require('chess.js');
-import { notifyAgent } from './notify.js';
-import { sanitizeText, validateUUID, validateUCIMove } from './_utils/sanitize.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
-import { detectGameEvent } from './_utils/gameLogic.js';
+
+function sanitizeText(input, maxLength = 500) {
+  if (typeof input !== 'string') return ''
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/on\w+=/gi, '')
+}
+
+function validateUUID(id) {
+  if (typeof id !== 'string') return false;
+  const trimmedId = id.trim();
+  const uuidRegex = 
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(trimmedId)
+}
+
+function validateUCIMove(move) {
+  return /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move)
+}
+
+const rateLimits = new Map();
+
+function checkRateLimit(ip, endpoint, limit, windowMs = 60000) {
+  const now = Date.now();
+  const key = `${ip}:${endpoint}`;
+  
+  if (!rateLimits.has(key)) {
+    rateLimits.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, remaining: limit - 1, resetTime: now + windowMs };
+  }
+  
+  const record = rateLimits.get(key);
+  
+  if (now > record.resetTime) {
+    record.count = 1;
+    record.resetTime = now + windowMs;
+    return { allowed: true, remaining: limit - 1, resetTime: record.resetTime };
+  }
+  
+  if (record.count >= limit) {
+    return { allowed: false, remaining: 0, resetTime: record.resetTime };
+  }
+  
+  record.count += 1;
+  return { allowed: true, remaining: limit - record.count, resetTime: record.resetTime };
+}
+
+function applySecurityHeaders(res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'none'");
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+}
+
+function applyCacheControl(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
+function applyRateLimitHeaders(res, limit, remaining, resetTime) {
+  res.setHeader('X-RateLimit-Limit', limit);
+  res.setHeader('X-RateLimit-Remaining', remaining);
+  res.setHeader('X-RateLimit-Reset', Math.floor(resetTime / 1000));
+}
+
+function applyCorsHeaders(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-game-token, x-agent-token');
+}
 
 function computeMaterial(chess) {
   const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -20,7 +99,7 @@ function computeMaterial(chess) {
   return { white: w, black: b, advantage: diff > 0 ? 'white' : diff < 0 ? 'black' : 'equal', difference: Math.abs(diff) };
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
@@ -158,6 +237,13 @@ export default async function handler(req, res) {
       error: `Invalid move format or illegal move: '${move}'. Please use UCI format (e.g., 'e2e4', 'g1f3', 'e7e8q') or standard algebraic notation (e.g., 'e4', 'Nf3').`, 
       legal_moves: legalMoves 
     });
+  }
+
+  if (isAgentMove) {
+    await supabase
+      .from('games')
+      .update({ current_thinking: sanitizedReasoning || '' })
+      .eq('id', id);
   }
 
   const moveNumber = Math.floor((game.move_history || []).length / 2) + 1;

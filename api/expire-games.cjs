@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import { applySecurityHeaders, applyCacheControl } from './_middleware/headers.js';
+const { createClient } = require('@supabase/supabase-js');
+const { applySecurityHeaders, applyCacheControl } = require('./_middleware/headers.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');

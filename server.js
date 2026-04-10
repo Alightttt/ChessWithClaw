@@ -18,8 +18,8 @@ async function startServer() {
   const files = fs.readdirSync(apiDir);
   
   for (const file of files) {
-    if (file.endsWith('.js')) {
-      const routeName = file.replace('.js', '');
+    if (file.endsWith('.cjs')) {
+      const routeName = file.replace('.cjs', '');
       const routePath = `/api/${routeName}`;
       const module = await import(`./api/${file}`);
       

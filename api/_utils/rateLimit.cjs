@@ -1,6 +1,6 @@
 const rateLimits = new Map();
 
-export function checkRateLimit(ip, endpoint, limit, windowMs = 60000) {
+function checkRateLimit(ip, endpoint, limit, windowMs = 60000) {
   const now = Date.now();
   const key = `${ip}:${endpoint}`;
   
@@ -24,3 +24,7 @@ export function checkRateLimit(ip, endpoint, limit, windowMs = 60000) {
   record.count += 1;
   return { allowed: true, remaining: limit - record.count, resetTime: record.resetTime };
 }
+
+module.exports = {
+  checkRateLimit
+};

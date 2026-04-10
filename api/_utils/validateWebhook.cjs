@@ -1,5 +1,5 @@
-import dns from 'dns';
-import { promisify } from 'util';
+const dns = require('dns');
+const { promisify } = require('util');
 
 const lookupAsync = promisify(dns.lookup);
 
@@ -15,7 +15,7 @@ function isBlockedIP(ip) {
   return false;
 }
 
-export async function validateWebhookURL(url) {
+async function validateWebhookURL(url) {
   try {
     const parsed = new URL(url)
     if (parsed.protocol !== 'https:') return false
@@ -41,3 +41,7 @@ export async function validateWebhookURL(url) {
     return true;
   } catch { return false }
 }
+
+module.exports = {
+  validateWebhookURL
+};

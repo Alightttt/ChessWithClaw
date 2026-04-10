@@ -1,12 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+const { createClient } = require('@supabase/supabase-js');
 const { Chess } = require('chess.js');
-import { sanitizeText, validateUUID } from './_utils/sanitize.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
+const { sanitizeText, validateUUID } = require('./_utils/sanitize.cjs');
+const { checkRateLimit } = require('./_utils/rateLimit.cjs');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
@@ -77,7 +75,7 @@ export default async function handler(req, res) {
       .eq('id', id).eq('agent_connected', false);
   }
 
-  // Fetch move history from the new table
+    // Fetch move history from the new table
   const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
   if (!movesError && movesData && movesData.length > 0) {
     game.move_history = movesData.map(m => ({
@@ -85,16 +83,6 @@ export default async function handler(req, res) {
       from: m.from_square || m.from,
       to: m.to_square || m.to,
       uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-    }));
-  }
-
-  // Fetch chat history from the new table
-  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-  if (!chatError && chatData && chatData.length > 0) {
-    game.chat_history = chatData.map(msg => ({
-      ...msg,
-      text: msg.message,
-      timestamp: new Date(msg.created_at).getTime()
     }));
   }
 

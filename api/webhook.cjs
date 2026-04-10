@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-import { notifyAgent } from './notify.js';
-import { sanitizeText, validateUUID } from './_utils/sanitize.js';
-import { validateWebhookURL } from './_utils/validateWebhook.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
+const { createClient } = require('@supabase/supabase-js');
+const { notifyAgent } = require('./notify.cjs');
+const { sanitizeText, validateUUID } = require('./_utils/sanitize.cjs');
+const { validateWebhookURL } = require('./_utils/validateWebhook.cjs');
+const { checkRateLimit } = require('./_utils/rateLimit.cjs');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, pending_events, agent_token').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, fen, turn, status, pending_events, agent_token, chat_history').eq('id', id).single();
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
@@ -76,14 +76,6 @@ export default async function handler(req, res) {
     from: m.from_square || m.from,
     to: m.to_square || m.to,
     uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-  }));
-
-  // Fetch chat history from the new table
-  const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-  game.chat_history = (chatData || []).map(msg => ({
-    ...msg,
-    text: msg.message,
-    timestamp: new Date(msg.created_at).getTime()
   }));
 
   const payload = {

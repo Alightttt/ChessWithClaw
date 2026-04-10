@@ -1,4 +1,4 @@
-export function sanitizeText(input, maxLength = 500) {
+function sanitizeText(input, maxLength = 500) {
   if (typeof input !== 'string') return ''
   return input
     .trim()
@@ -14,7 +14,7 @@ export function sanitizeText(input, maxLength = 500) {
     .replace(/on\w+=/gi, '')
 }
 
-export function validateUUID(id) {
+function validateUUID(id) {
   if (typeof id !== 'string') return false;
   const trimmedId = id.trim();
   const uuidRegex = 
@@ -22,6 +22,12 @@ export function validateUUID(id) {
   return uuidRegex.test(trimmedId)
 }
 
-export function validateUCIMove(move) {
+function validateUCIMove(move) {
   return /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move)
 }
+
+module.exports = {
+  sanitizeText,
+  validateUUID,
+  validateUCIMove
+};

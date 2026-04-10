@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-import { notifyAgent } from './notify.js';
-import { validateUUID } from './_utils/sanitize.js';
-import { checkRateLimit } from './_utils/rateLimit.js';
-import { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } from './_middleware/headers.js';
+const { createClient } = require('@supabase/supabase-js');
+const { notifyAgent } = require('./notify.cjs');
+const { validateUUID } = require('./_utils/sanitize.cjs');
+const { checkRateLimit } = require('./_utils/rateLimit.cjs');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.cjs');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
