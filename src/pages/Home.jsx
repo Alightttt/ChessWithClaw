@@ -425,10 +425,12 @@ export default function App() {
           <img
             src="/logo.png"
             alt="ChessWithClaw"
-            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
-            onError={e => { e.target.style.display = 'none' }}
+            width="32"
+            height="32"
+            style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+            loading="eager"
           />
-          <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
+          <span className="serif" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
         </div>
@@ -846,10 +848,11 @@ export default function App() {
           <img
             src="/logo.png"
             alt="ChessWithClaw"
-            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
-            onError={e => { e.target.style.display = 'none' }}
+            width="28"
+            height="28"
+            style={{ height: 28, width: 28, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
           />
-          <span className="serif" style={{fontSize:13,fontWeight:700,color:"#ccc"}}>ChessWithClaw</span>
+          <span className="serif" style={{fontSize:14,fontWeight:800,color:"#ccc"}}>ChessWithClaw</span>
           <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:16}}>

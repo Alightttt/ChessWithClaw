@@ -798,10 +798,12 @@ export default function Game() {
           <img
             src="/logo.png"
             alt="ChessWithClaw"
-            style={{ height: 24, width: 'auto', marginRight: 8, verticalAlign: 'middle' }}
-            onError={e => { e.target.style.display = 'none' }}
+            width="32"
+            height="32"
+            style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+            loading="eager"
           />
-          <span className="serif" style={{fontSize:14,fontWeight:700,letterSpacing:"-0.3px",color:"#f0f0f0"}}>
+          <span className="serif" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
         </div>
