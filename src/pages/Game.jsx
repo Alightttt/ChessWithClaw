@@ -163,25 +163,26 @@ export default function Game() {
 
   useEffect(() => {
     const text = game?.current_thinking || '';
-    if (!text) { 
-      setDisplayedThinking(''); 
-      return; 
-    }
+    if (!text) { setDisplayedThinking(''); return; }
     
     clearInterval(typerRef.current);
     let i = 0;
     setDisplayedThinking('');
+    
     typerRef.current = setInterval(() => {
       i++;
       setDisplayedThinking(text.slice(0, i));
       if (i >= text.length) clearInterval(typerRef.current);
-    }, 15);
+    }, 18);
     
     return () => clearInterval(typerRef.current);
   }, [game?.current_thinking]);
 
   useEffect(() => {
-    if (game?.turn === 'w') setDisplayedThinking('');
+    if (game?.turn === 'w') {
+      setDisplayedThinking('');
+      if (typerRef.current) clearInterval(typerRef.current);
+    }
   }, [game?.turn]);
 
   useEffect(() => {
@@ -322,8 +323,9 @@ export default function Game() {
   }, [game]);
 
   useEffect(() => {
+    const agentName = game?.agent_name || 'Your OpenClaw';
     if (game && prevAgentConnected.current === false && game.agent_connected === true) {
-      toast.success(`${game.agent_name || 'Your OpenClaw'} has arrived!`);
+      toast.success(`${agentName} has arrived!`);
       setJustConnected(true);
       setTimeout(() => setJustConnected(false), 1000);
     }
@@ -381,7 +383,9 @@ export default function Game() {
         }
 
         setGame(data);
-        if (data.status === 'finished' || data.status === 'abandoned') setShowGameOverModal(true);
+        if (data.status === 'finished' || data.status === 'abandoned') {
+          setTimeout(() => setShowGameOverModal(true), 600);
+        }
         fetch('/api/heartbeat', {
           method: 'POST',
           headers: { 
@@ -423,7 +427,9 @@ export default function Game() {
             body: JSON.stringify({ id: gameId, role: 'human' })
           }).catch(() => {});
         }
-        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') setShowGameOverModal(true);
+        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') {
+          setTimeout(() => setShowGameOverModal(true), 600);
+        }
       });
 
       channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` }, (payload) => {
@@ -498,6 +504,8 @@ export default function Game() {
     if (!game || game.turn !== (game.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
     
+    const agentName = game?.agent_name || 'Your OpenClaw';
+    
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
       return;
@@ -539,7 +547,7 @@ export default function Game() {
         submittingRef.current = false;
         setBoardLocked(false);
         if (errData.code === 'WAITING_FOR_AGENT') {
-          toast('Waiting for your OpenClaw to join...', {
+          toast(`Waiting for ${agentName} to join...`, {
             icon: '🦞',
             style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
           });
@@ -551,7 +559,7 @@ export default function Game() {
       }
     } catch (e) {
       if (e.message === 'WAITING_FOR_AGENT') {
-        toast('Waiting for your OpenClaw to join...', {
+        toast(`Waiting for ${agentName} to join...`, {
           icon: '🦞',
           style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
         });
@@ -646,14 +654,18 @@ export default function Game() {
   const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
   const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
   const handleShareResult = useCallback(async (e) => {
-    const textToShare = `I played chess vs my OpenClaw on ChessWithClaw! ${window.location.origin}`;
+    const resultText = (game?.result === (game?.player_color === 'w' ? 'white' : 'black'))
+      ? 'I just beat my OpenClaw at chess! 🦞'
+      : (game?.result === (game?.player_color === 'w' ? 'black' : 'white'))
+      ? 'My OpenClaw beat me at chess! Rematch time 🦞'
+      : 'Drew with my OpenClaw! 🤝';
+    const textToShare = resultText + '\n\nchesswithclaw.vercel.app';
     const btn = e.currentTarget;
     const oldText = btn.innerText;
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'ChessWithClaw',
           text: textToShare,
         });
       } else {
@@ -662,7 +674,6 @@ export default function Game() {
         setTimeout(() => btn.innerText = oldText, 2000);
       }
     } catch (err) {
-      // User cancelled share or clipboard failed
       if (err.name !== 'AbortError') {
         try {
           await navigator.clipboard.writeText(textToShare);
@@ -673,7 +684,7 @@ export default function Game() {
         }
       }
     }
-  }, []);
+  }, [game]);
 
   const handleLogoError = useCallback((e) => {
     e.target.style.display = 'none';
@@ -878,7 +889,7 @@ export default function Game() {
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
               color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
-              {agentTimeout ? "⏱ Your OpenClaw is taking longer than usual" :
+              {agentTimeout ? `⏱ ${agentName} is taking longer than usual` :
                !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
                game.turn === (game.player_color || 'w') ? "Watching you..." : 
                (<span>Thinking<span className="animate-pulse">...</span></span>)}
@@ -956,7 +967,7 @@ export default function Game() {
           ) : agentTimeout ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#d97706' }}>
-                Your OpenClaw is taking longer than usual
+                {agentName} is taking longer than usual
               </div>
             </div>
           ) : game.turn === 'b' && game.status === 'active' ? (
@@ -1439,7 +1450,10 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
-                  onClick={handleGoHome}
+                  onClick={() => {
+                    localStorage.removeItem('chesswithclaw_active_game');
+                    navigate('/');
+                  }}
                   style={{
                     background: '#e63946', color: '#fff', border: 'none',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
@@ -1463,7 +1477,7 @@ export default function Game() {
                   Share Result
                 </button>
                 <button 
-                  onClick={handleGoHome}
+                  onClick={() => navigate('/')}
                   style={{
                     background: 'transparent', color: '#888', border: 'none',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',

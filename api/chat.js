@@ -94,7 +94,7 @@ module.exports = async (req, res) => {
   }
 
   const newMessage = {
-    id: Date.now(),
+    id: Date.now().toString(),
     sender: sender,
     text: sanitizedText,
     timestamp: new Date().toISOString()

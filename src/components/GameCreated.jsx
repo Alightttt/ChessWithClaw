@@ -91,29 +91,30 @@ API: POST ${origin}/api/move
 Header: x-agent-token: ${agentToken}`;
 
   const handleShare = async () => {
+    const text = inviteMessage;
+    
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'ChessWithClaw Invite',
-          text: inviteMessage,
-        });
-        setCopyState('copied');
-        setTimeout(() => setCopyState('default'), 2000);
+        await navigator.share({ title: 'Chess Challenge 🦞', text });
         return;
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.error('Error sharing:', err);
-        }
+      } catch(e) {
+        if (e.name === 'AbortError') return;
       }
     }
     
-    // Fallback to clipboard
     try {
-      await navigator.clipboard.writeText(inviteMessage);
+      await navigator.clipboard.writeText(text);
       setCopyState('copied');
       setTimeout(() => setCopyState('default'), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+    } catch(e) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('default'), 2000);
     }
   };
 
