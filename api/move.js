@@ -294,7 +294,8 @@ module.exports = async (req, res) => {
     turn: isHumanMove ? 'b' : 'w',
     status: 'active',
     move_number: moveNumber,
-    current_thinking: sanitizedReasoning || ''
+    current_thinking: sanitizedReasoning || '',
+    last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
   let insertedThoughtId = null;

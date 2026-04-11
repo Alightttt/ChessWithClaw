@@ -59,7 +59,27 @@ export default function Game() {
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [displayedThinking, setDisplayedThinking] = useState('');
+  const [commentary, setCommentary] = useState('');
+  const [showCommentary, setShowCommentary] = useState(false);
   const createRipple = useRipple();
+
+  const computeMaterial = useCallback((fen) => {
+    if (!fen) return null;
+    try {
+      const chess = new Chess(fen);
+      const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+      let w = 0, b = 0;
+      chess.board().forEach(row => row && row.forEach(sq => {
+        if (!sq) return;
+        const v = vals[sq.type] || 0;
+        if (sq.color === 'w') w += v; else b += v;
+      }));
+      const diff = w - b;
+      return { white: w, black: b, advantage: diff > 0 ? 'white' : diff < 0 ? 'black' : 'equal', difference: Math.abs(diff) };
+    } catch (e) {
+      return null;
+    }
+  }, []);
   
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
@@ -139,35 +159,41 @@ export default function Game() {
   }, [game?.current_thinking, displayedThinking]);
 
   // Typewriter effect for thinking
+  const typerRef = useRef(null);
+
   useEffect(() => {
-    if (!game) return;
-
-    if (game.turn === (game.player_color || 'w')) {
-      setDisplayedThinking('');
-      return;
+    const text = game?.current_thinking || '';
+    if (!text) { 
+      setDisplayedThinking(''); 
+      return; 
     }
-
-    const targetText = game.current_thinking || '';
     
-    setDisplayedThinking(prev => {
-      if (targetText === prev) return prev;
-      if (targetText.length < prev.length) return targetText;
-      return prev;
-    });
-
-    const interval = setInterval(() => {
-      setDisplayedThinking(prev => {
-        if (prev.length < targetText.length) {
-          return targetText.slice(0, prev.length + 1);
-        }
-        clearInterval(interval);
-        return prev;
-      });
+    clearInterval(typerRef.current);
+    let i = 0;
+    setDisplayedThinking('');
+    typerRef.current = setInterval(() => {
+      i++;
+      setDisplayedThinking(text.slice(0, i));
+      if (i >= text.length) clearInterval(typerRef.current);
     }, 15);
+    
+    return () => clearInterval(typerRef.current);
+  }, [game?.current_thinking]);
 
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.current_thinking, game?.turn, game?.player_color]);
+  useEffect(() => {
+    if (game?.turn === 'w') setDisplayedThinking('');
+  }, [game?.turn]);
+
+  useEffect(() => {
+    if (game?.last_commentary) {
+      setCommentary(game.last_commentary);
+      setShowCommentary(true);
+      const timer = setTimeout(() => {
+        setShowCommentary(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [game?.last_commentary, game?.move_history?.length]);
 
   // Sound Effects
   const playSound = useMemo(() => (type) => {
@@ -672,6 +698,29 @@ export default function Game() {
     setChatInput(e.target.value);
   }, []);
 
+  const getAgentMood = () => {
+    if (!game || game.status === 'waiting') return 'idle'
+    if (game.turn === 'b') return 'thinking'
+    
+    // Compare material balance
+    const mat = game.material_balance || computeMaterial(game.fen)
+    if (!mat) return 'neutral'
+    if (mat.advantage === 'black') return 'winning'
+    if (mat.advantage === 'white') return 'losing'
+    return 'neutral'
+  }
+
+  const moodConfig = {
+    idle:     { emoji: '🦞', label: 'Waiting...', color: '#555555', bg: 'rgba(85,85,85,0.1)', border: 'rgba(85,85,85,0.25)' },
+    thinking: { emoji: '🦞', label: 'Thinking...', color: '#e63946', bg: 'rgba(230,57,70,0.1)', border: 'rgba(230,57,70,0.25)' },
+    winning:  { emoji: '🦞', label: 'Feeling good', color: '#739552', bg: 'rgba(115,149,82,0.1)', border: 'rgba(115,149,82,0.25)' },
+    losing:   { emoji: '🦞', label: 'Fighting back', color: '#c9b458', bg: 'rgba(201,180,88,0.1)', border: 'rgba(201,180,88,0.25)' },
+    neutral:  { emoji: '🦞', label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
+  }
+
+  const mood = getAgentMood()
+  const config = moodConfig[mood]
+
   if (loading) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: "'Inter', sans-serif" }}>
@@ -794,20 +843,25 @@ export default function Game() {
         overflow: 'hidden'
       }}>
         <div style={{
-          height: '52px',
+          height: '60px',
           padding: '0 14px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px'
         }}>
-          <div style={{
-            width: '32px', height: '32px',
-            background: '#1a1a1a', border: '1px solid #1a1a1a',
-            borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', flexShrink: 0,
-            animation: justConnected ? 'bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
-          }}>
-            🦞
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '50px' }}>
+            <div style={{
+              width: '40px', height: '40px',
+              background: config.bg, border: `1px solid ${config.border}`,
+              borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', flexShrink: 0,
+              animation: mood === 'thinking' ? 'avatarPulse 2s infinite' : (justConnected ? 'bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none')
+            }}>
+              {config.emoji}
+            </div>
+            <div style={{ color: config.color, fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, marginTop: '4px', lineHeight: 1, whiteSpace: 'nowrap' }}>
+              {config.label}
+            </div>
           </div>
           
           <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -905,21 +959,17 @@ export default function Game() {
                 Your OpenClaw is taking longer than usual
               </div>
             </div>
-          ) : !game.current_thinking && !lastThinking ? (
-            <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>
-              Waiting for {agentName} to move...
-            </div>
-          ) : (
+          ) : game.turn === 'b' && game.status === 'active' ? (
             <div 
               ref={thinkingScrollRef}
               style={{
-                borderLeft: `2px solid ${(game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#1a1a1a'}`,
-                background: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? 'linear-gradient(90deg, rgba(230,57,70,0.08) 0%, transparent 100%)' : 'transparent',
+                borderLeft: `2px solid #e63946`,
+                background: 'linear-gradient(90deg, rgba(230,57,70,0.08) 0%, transparent 100%)',
                 padding: '12px 12px 12px 16px',
                 marginTop: '8px',
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '13px' : '11px',
-                color: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e0e0e0' : '#666',
+                fontSize: '12px',
+                color: '#ccc',
                 lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -930,52 +980,68 @@ export default function Game() {
                 position: 'relative'
               }}
             >
-              {(game.current_thinking && game.turn !== (game.player_color || 'w')) && (
-                <div style={{ 
-                  fontFamily: "'Inter', sans-serif", 
-                  fontSize: '10px', 
-                  fontWeight: 700, 
-                  color: '#e63946', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px', 
-                  marginBottom: '8px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px' 
-                }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e63946' }} className="animate-pulse" />
-                  {agentName.toUpperCase()} IS THINKING
-                </div>
-              )}
-              {(!game.current_thinking || game.turn === (game.player_color || 'w')) && lastThinking && (
-                <div style={{ 
-                  fontFamily: "'Inter', sans-serif", 
-                  fontSize: '10px', 
-                  fontWeight: 600, 
-                  color: '#444', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.5px', 
-                  marginBottom: '6px' 
-                }}>
-                  LAST THOUGHT
-                </div>
-              )}
-              <div style={{ opacity: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? 1 : 0.7 }}>
-                {(game.current_thinking && game.turn !== (game.player_color || 'w')) ? displayedThinking : lastThinking?.text}
-                {game.current_thinking && game.turn !== (game.player_color || 'w') && (
-                  <span style={{ 
-                    animation: 'blink 1s step-end infinite', 
-                    display: 'inline-block', 
-                    width: '6px', 
-                    height: '13px', 
-                    background: '#e63946', 
-                    marginLeft: '4px', 
-                    verticalAlign: 'middle',
-                    position: 'relative',
-                    top: '-1px'
-                  }} />
-                )}
+              <div style={{ 
+                fontFamily: "'Inter', sans-serif", 
+                fontSize: '10px', 
+                fontWeight: 700, 
+                color: '#e63946', 
+                textTransform: 'uppercase', 
+                letterSpacing: '1px', 
+                marginBottom: '8px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px' 
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e63946' }} className="animate-pulse" />
+                {agentName.toUpperCase()} IS THINKING
               </div>
+              <div>
+                {displayedThinking ? displayedThinking : <span style={{color: '#444', fontStyle: 'italic'}}>Processing position...</span>}
+                <span style={{
+                  display:'inline-block', width:2, height:'1em',
+                  background:'#e63946', marginLeft:2,
+                  animation:'blink 1s step-end infinite'
+                }}/>
+              </div>
+            </div>
+          ) : lastThinking ? (
+            <div 
+              style={{
+                borderLeft: `2px solid #1a1a1a`,
+                background: 'transparent',
+                padding: '12px 12px 12px 16px',
+                marginTop: '8px',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '11px',
+                color: '#666',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '250px',
+                overflowY: 'auto',
+                scrollbarWidth: 'none',
+                transition: 'all 300ms ease',
+                position: 'relative'
+              }}
+            >
+              <div style={{ 
+                fontFamily: "'Inter', sans-serif", 
+                fontSize: '10px', 
+                fontWeight: 600, 
+                color: '#444', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px', 
+                marginBottom: '6px' 
+              }}>
+                LAST THOUGHT
+              </div>
+              <div style={{ opacity: 0.7 }}>
+                {lastThinking.text}
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '12px 0', textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>
+              Waiting for {agentName} to move...
             </div>
           )}
         </div>
@@ -1068,6 +1134,30 @@ export default function Game() {
               </div>
             </div>
           )}
+        </div>
+
+        <div style={{
+          width: `${boardSize}px`,
+          height: '28px',
+          background: 'rgba(255,255,255,0.03)',
+          borderTop: '1px solid #1a1a1a',
+          padding: '0 12px',
+          display: 'flex',
+          alignItems: 'center',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '11px',
+          color: '#666',
+          opacity: showCommentary ? 1 : 0,
+          transition: 'opacity 300ms ease',
+          marginTop: '8px',
+          borderRadius: '4px'
+        }}>
+          <span style={{ color: '#888', marginRight: '8px', flexShrink: 0 }}>
+            {game?.move_history?.length > 0 ? game.move_history[game.move_history.length - 1].san : ''}
+          </span>
+          <span style={{ color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {commentary}
+          </span>
         </div>
       </div>
       </div>
