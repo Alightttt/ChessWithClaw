@@ -1,9 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
-const { notifyAgent } = require('./notify.js');
-const { sanitizeText, validateUUID } = require('./_utils/sanitize.js');
-const { validateWebhookURL } = require('./_utils/validateWebhook.js');
-const { checkRateLimit } = require('./_utils/rateLimit.js');
-const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.js');
+const { notifyAgent } = require('../server-lib/notify.js');
+const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
+const { validateWebhookURL } = require('../server-lib/utils/validateWebhook.js');
+const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

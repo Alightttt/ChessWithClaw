@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { Chess } = require('chess.js');
-const { validateUUID } = require('./_utils/sanitize.js');
+const { validateUUID } = require('../server-lib/utils/sanitize.js');
 
 function computeMaterialBalance(chess) {
   const values = { p: 1, n: 3, b: 3, r: 5, q: 9 };

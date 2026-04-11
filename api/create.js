@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { randomUUID } = require('crypto');
-const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.js');
-const { checkRateLimit } = require('./_utils/rateLimit.js');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
+const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

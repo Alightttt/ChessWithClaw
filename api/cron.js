@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { applySecurityHeaders, applyCacheControl } = require('./_middleware/headers.js');
+const { applySecurityHeaders, applyCacheControl } = require('../server-lib/middleware/headers.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,10 +30,27 @@ module.exports = async (req, res) => {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
   
+  const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // --- Presence Check ---
+  // Disconnect agents
+  await supabase
+    .from('games')
+    .update({ agent_connected: false })
+    .eq('agent_connected', true)
+    .lt('agent_last_seen', thirtySecondsAgo);
+
+  // Disconnect humans
+  await supabase
+    .from('games')
+    .update({ human_connected: false })
+    .eq('human_connected', true)
+    .lt('human_last_seen', thirtySecondsAgo);
+
+  // --- Expire Games ---
   // Expire waiting games
   await supabase
     .from('games')
@@ -42,8 +59,6 @@ module.exports = async (req, res) => {
     .lt('created_at', twoHoursAgo);
 
   // Expire active games
-  // Note: We don't have an updated_at column in the schema, so we'll use created_at for now,
-  // or we can add updated_at. Let's add updated_at to the schema.
   await supabase
     .from('games')
     .update({ status: 'abandoned' })

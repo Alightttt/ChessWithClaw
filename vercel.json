@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/api/ping",
+      "destination": "/api/heartbeat"
+    },
+    {
+      "source": "/api/expire-games",
+      "destination": "/api/cron"
+    },
+    {
+      "source": "/api/presence-check",
+      "destination": "/api/cron"
+    },
+    {
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }

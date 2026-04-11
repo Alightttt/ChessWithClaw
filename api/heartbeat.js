@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
-const { notifyAgent } = require('./notify.js');
-const { validateUUID } = require('./_utils/sanitize.js');
-const { checkRateLimit } = require('./_utils/rateLimit.js');
-const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('./_middleware/headers.js');
+const { notifyAgent } = require('../server-lib/notify.js');
+const { validateUUID } = require('../server-lib/utils/sanitize.js');
+const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
+const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -39,8 +39,13 @@ module.exports = async (req, res) => {
   }
   
   let { id, role, token } = req.body || {};
-  if (!id || !role) return res.status(400).json({ error: 'Missing id or role in JSON body' });
+  if (!id) return res.status(400).json({ error: 'Missing id in JSON body' });
   id = id.trim();
+  
+  // If role is missing, assume it's an agent ping for backward compatibility
+  if (!role) {
+    role = 'agent';
+  }
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });
