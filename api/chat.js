@@ -93,6 +93,13 @@ module.exports = async (req, res) => {
     }));
   }
 
+  const { data: currentGame } = await supabase
+    .from('games')
+    .select('chat_history, chat_count')
+    .eq('id', id)
+    .single();
+
+  const history = currentGame?.chat_history || [];
   const newMessage = {
     id: Date.now().toString(),
     sender: sender,
@@ -100,11 +107,11 @@ module.exports = async (req, res) => {
     timestamp: new Date().toISOString()
   };
 
-  const newHistory = [...(game.chat_history || []), newMessage];
+  const newHistory = [...history, newMessage];
   
   const updates = {
     chat_history: newHistory,
-    chat_count: (game.chat_count || 0) + 1
+    chat_count: history.length + 1
   };
 
   if (sender === 'agent') {

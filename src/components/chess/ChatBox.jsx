@@ -109,7 +109,7 @@ export default function ChatBox({ chatHistory, onSendMessage, onAcceptResignatio
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Message your agent..."
+            placeholder={`Message ${displayName}...`}
             className="flex-1 bg-[var(--color-bg-base)] border-[var(--color-border-subtle)] focus:border-[var(--color-red-primary)]"
             maxLength={500}
           />

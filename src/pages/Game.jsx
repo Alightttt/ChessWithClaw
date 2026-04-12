@@ -158,32 +158,28 @@ export default function Game() {
     }
   }, [game?.current_thinking, displayedThinking]);
 
-  // Typewriter effect for thinking
-  const typerRef = useRef(null);
+  const typerRef = useRef(null)
 
   useEffect(() => {
-    const text = game?.current_thinking || '';
-    if (!text) { setDisplayedThinking(''); return; }
-    
-    clearInterval(typerRef.current);
-    let i = 0;
-    setDisplayedThinking('');
-    
+    const text = game?.current_thinking || ''
+    if (!text) { setDisplayedThinking(''); return }
+    clearInterval(typerRef.current)
+    let i = 0
+    setDisplayedThinking('')
     typerRef.current = setInterval(() => {
-      i++;
-      setDisplayedThinking(text.slice(0, i));
-      if (i >= text.length) clearInterval(typerRef.current);
-    }, 18);
-    
-    return () => clearInterval(typerRef.current);
-  }, [game?.current_thinking]);
+      i++
+      setDisplayedThinking(text.slice(0, i))
+      if (i >= text.length) clearInterval(typerRef.current)
+    }, 18)
+    return () => clearInterval(typerRef.current)
+  }, [game?.current_thinking])
 
   useEffect(() => {
     if (game?.turn === 'w') {
-      setDisplayedThinking('');
-      if (typerRef.current) clearInterval(typerRef.current);
+      setDisplayedThinking('')
+      clearInterval(typerRef.current)
     }
-  }, [game?.turn]);
+  }, [game?.turn])
 
   useEffect(() => {
     if (game?.last_commentary) {
@@ -303,6 +299,13 @@ export default function Game() {
     };
   }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at, gameId]);
 
+  useEffect(() => {
+    if (game?.status === 'finished' || game?.status === 'abandoned') {
+      localStorage.removeItem('chesswithclaw_active_game');
+      setTimeout(() => setShowGameOverModal(true), 600);
+    }
+  }, [game?.status]);
+
   const handleClaimVictory = useCallback(async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'abandoned'
@@ -383,9 +386,6 @@ export default function Game() {
         }
 
         setGame(data);
-        if (data.status === 'finished' || data.status === 'abandoned') {
-          setTimeout(() => setShowGameOverModal(true), 600);
-        }
         fetch('/api/heartbeat', {
           method: 'POST',
           headers: { 
@@ -426,9 +426,6 @@ export default function Game() {
             },
             body: JSON.stringify({ id: gameId, role: 'human' })
           }).catch(() => {});
-        }
-        if (payload.new.status === 'finished' || payload.new.status === 'abandoned') {
-          setTimeout(() => setShowGameOverModal(true), 600);
         }
       });
 
@@ -654,12 +651,7 @@ export default function Game() {
   const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
   const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
   const handleShareResult = useCallback(async (e) => {
-    const resultText = (game?.result === (game?.player_color === 'w' ? 'white' : 'black'))
-      ? 'I just beat my OpenClaw at chess! 🦞'
-      : (game?.result === (game?.player_color === 'w' ? 'black' : 'white'))
-      ? 'My OpenClaw beat me at chess! Rematch time 🦞'
-      : 'Drew with my OpenClaw! 🤝';
-    const textToShare = resultText + '\n\nchesswithclaw.vercel.app';
+    const textToShare = "I played chess vs my OpenClaw on ChessWithClaw! 🦞\nchesswithclaw.vercel.app";
     const btn = e.currentTarget;
     const oldText = btn.innerText;
 
@@ -684,7 +676,7 @@ export default function Game() {
         }
       }
     }
-  }, [game]);
+  }, []);
 
   const handleLogoError = useCallback((e) => {
     e.target.style.display = 'none';
@@ -1010,11 +1002,9 @@ export default function Game() {
               </div>
               <div>
                 {displayedThinking ? displayedThinking : <span style={{color: '#444', fontStyle: 'italic'}}>Processing position...</span>}
-                <span style={{
-                  display:'inline-block', width:2, height:'1em',
-                  background:'#e63946', marginLeft:2,
-                  animation:'blink 1s step-end infinite'
-                }}/>
+                <span style={{display:'inline-block',width:2,
+    height:'1em',background:'#e63946',marginLeft:2,
+    animation:'blink 1s step-end infinite'}}/>
               </div>
             </div>
           ) : lastThinking ? (
@@ -1416,13 +1406,13 @@ export default function Game() {
 
       {showGameOverModal && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100,
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 100,
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
             background: '#0e0e0e', border: '1px solid #1a1a1a', borderRadius: '12px',
-            padding: '32px 24px', maxWidth: '360px', width: 'calc(100% - 48px)', textAlign: 'center',
-            position: 'relative'
+            padding: '32px', maxWidth: '340px', width: 'calc(100% - 48px)', textAlign: 'center',
+            margin: 'auto', position: 'relative'
           }}>
             <button onClick={handleCloseGameOverModal} style={{
               position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px',
@@ -1437,7 +1427,7 @@ export default function Game() {
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
               {game.result === (game.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
             </div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#999', marginBottom: '24px' }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#777', marginBottom: '24px' }}>
                 {game.result_reason === 'checkmate' ? 'by checkmate' :
                  game.result_reason === 'stalemate' ? 'by stalemate' :
                  game.result_reason === 'insufficient_material' ? 'insufficient material' :
@@ -1452,10 +1442,7 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
-                  onClick={() => {
-                    localStorage.removeItem('chesswithclaw_active_game');
-                    navigate('/');
-                  }}
+                  onClick={handleShareResult}
                   style={{
                     background: '#e63946', color: '#fff', border: 'none',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
@@ -1464,10 +1451,13 @@ export default function Game() {
                   onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
                   onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
                 >
-                  Rematch
+                  Share Result
                 </button>
                 <button 
-                  onClick={handleShareResult}
+                  onClick={() => {
+                    localStorage.removeItem('chesswithclaw_active_game');
+                    navigate('/');
+                  }}
                   style={{
                     background: 'transparent', color: '#888', border: '1px solid #252525',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
@@ -1476,7 +1466,7 @@ export default function Game() {
                   onMouseEnter={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
                   onMouseLeave={e => { e.target.style.borderColor = '#252525'; e.target.style.color = '#888'; }}
                 >
-                  Share Result
+                  Rematch
                 </button>
                 <button 
                   onClick={() => navigate('/')}
@@ -1653,10 +1643,7 @@ export default function Game() {
           0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
           50% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); }
         }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         input::placeholder { color: #888; }
       `}} />
     </div>

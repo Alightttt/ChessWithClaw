@@ -60,7 +60,7 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
       {/* Header */}
       <div className="hidden md:flex px-4 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-white">Agent Thinking</span>
+          <span className="text-sm font-bold text-white">{agentName} Thinking</span>
           {isActive && <StatusDot status="warning" />}
         </div>
         {isActive && (
@@ -78,7 +78,7 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
         {!agentConnected ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-lg m-2 p-4 animate-pulse">
             <p className="text-[var(--color-text-muted)] text-sm font-bold tracking-widest uppercase">Waiting...</p>
-            <p className="text-[var(--color-text-muted)] text-xs">Agent disconnected. Share link to connect.</p>
+            <p className="text-[var(--color-text-muted)] text-xs">{agentName} disconnected. Share link to connect.</p>
             <Button 
               onClick={() => copyToClipboard(agentUrl)}
               variant="secondary"
@@ -95,7 +95,7 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
           </div>
         ) : isAgentTurn ? (
           <div className="text-[var(--color-text-muted)] italic flex items-center h-full">
-            Waiting for agent to start thinking...
+            Waiting for {agentName} to start thinking...
           </div>
         ) : lastThinking ? (
           <div className="flex flex-col gap-2 opacity-60">
@@ -106,7 +106,7 @@ export default function ThinkingPanel({ agentConnected, agentUrl, currentThinkin
           </div>
         ) : (
           <div className="text-[var(--color-text-muted)] italic flex items-center h-full">
-            Agent is waiting for your move.
+            {agentName} is waiting for your move.
           </div>
         )}
       </div>

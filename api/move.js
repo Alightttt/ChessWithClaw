@@ -242,7 +242,7 @@ module.exports = async (req, res) => {
   if (isAgentMove) {
     await supabase
       .from('games')
-      .update({ current_thinking: sanitizedReasoning || '' })
+      .update({ current_thinking: req.body?.reasoning || req.body?.thinking || '' })
       .eq('id', id);
   }
 
@@ -294,7 +294,7 @@ module.exports = async (req, res) => {
     turn: isHumanMove ? 'b' : 'w',
     status: 'active',
     move_number: moveNumber,
-    current_thinking: sanitizedReasoning || '',
+    current_thinking: req.body?.reasoning || req.body?.thinking || '',
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
