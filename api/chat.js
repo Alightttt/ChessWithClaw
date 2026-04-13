@@ -39,12 +39,13 @@ module.exports = async (req, res) => {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, text, type, sender = 'agent', token, reasoning, thinking } = req.body || {};
-  if (!id || !text) return res.status(400).json({ error: 'Missing id or text in JSON body' });
-  id = id.trim();
+  let { id, game_id, text, type, sender = 'agent', token, reasoning, thinking } = req.body || {};
+  let gameId = id || game_id;
+  if (!gameId || !text) return res.status(400).json({ error: 'Missing id or text in JSON body', code: 'MISSING_TEXT' });
+  gameId = gameId.trim();
   
-  if (!validateUUID(id)) {
-    return res.status(400).json({ error: 'Invalid game ID format' });
+  if (!validateUUID(gameId)) {
+    return res.status(400).json({ error: 'Invalid game ID format', code: 'GAME_NOT_FOUND' });
   }
 
   if (sender !== 'human' && sender !== 'agent') {
@@ -55,7 +56,7 @@ module.exports = async (req, res) => {
   const sanitizedText = sanitizeText(text, 500);
   const sanitizedReasoning = sanitizeText(actualReasoning, 300);
   if (!sanitizedText) {
-    return res.status(400).json({ error: 'Text is empty after sanitization' });
+    return res.status(400).json({ error: 'Text is empty after sanitization', code: 'MISSING_TEXT' });
   }
 
   const agentToken = req.headers['x-agent-token'] || token || '';
@@ -67,23 +68,23 @@ module.exports = async (req, res) => {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history, chat_count').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history, chat_count').eq('id', gameId).single();
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
 
   if (sender === 'human') {
     if (!gameToken || gameToken !== game.secret_token) {
-      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for human.', code: 'INVALID_GAME_TOKEN' });
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for human.', code: 'INVALID_TOKEN' });
     }
   } else if (sender === 'agent') {
     if (!agentToken || agentToken !== game.agent_token) {
-      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.', code: 'INVALID_AGENT_TOKEN' });
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.', code: 'INVALID_TOKEN' });
     }
   }
 
   // Fetch move history from the new table
-  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
+  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
   if (!movesError && movesData && movesData.length > 0) {
     game.move_history = movesData.map(m => ({
       ...m,
@@ -96,13 +97,13 @@ module.exports = async (req, res) => {
   const { data: currentGame } = await supabase
     .from('games')
     .select('chat_history, chat_count')
-    .eq('id', id)
+    .eq('id', gameId)
     .single();
 
   const history = currentGame?.chat_history || [];
   const newMessage = {
     id: Date.now().toString(),
-    sender: sender,
+    sender: sender || 'agent',
     text: sanitizedText,
     timestamp: new Date().toISOString()
   };
@@ -129,7 +130,7 @@ module.exports = async (req, res) => {
     
     const payload = {
       event: "human_sent_chat",
-      game_id: id,
+      game_id: gameId,
       human_message: sanitizedText,
       board: chess.ascii(),
       fen: game.fen,
@@ -143,7 +144,7 @@ module.exports = async (req, res) => {
   }
 
   if (Object.keys(updates).length > 0) {
-    await supabase.from('games').update(updates).eq('id', id);
+    await supabase.from('games').update(updates).eq('id', gameId);
   }
 
   res.status(200).json({ 

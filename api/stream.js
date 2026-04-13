@@ -166,9 +166,11 @@ module.exports = async (req, res) => {
     })
     .subscribe();
 
-  const heartbeatInterval = setInterval(() => {
+  const heartbeatInterval = setInterval(async () => {
     try {
       res.write(': heartbeat\n\n');
+      // Update agent_last_seen to prevent UI from thinking agent disconnected
+      await supabase.from('games').update({ agent_last_seen: new Date().toISOString() }).eq('id', id);
     } catch (e) {
       clearInterval(heartbeatInterval);
     }

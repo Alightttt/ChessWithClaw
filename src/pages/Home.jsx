@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from '../contexts/ToastContext';
-import { SoundToggle } from '../components/ui';
 
 /* ─── BOARD DATA ─── */
 const BOARD = [
@@ -74,13 +73,24 @@ function Typewriter({lines}) {
 
 /* ─── MAIN ─── */
 export default function App() {
+  const [scrollPct, setScrollPct] = useState(0)
+  
+  useEffect(() => {
+    const fn = () => {
+      const el = document.documentElement
+      const pct = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100
+      setScrollPct(pct)
+    }
+    window.addEventListener('scroll', fn)
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
   const [loaded,setLoaded]=useState(false);
   const [faq,setFaq]=useState(null);
   const [sp,setSp]=useState(0);
   const [bsize,setBsize]=useState(360);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const ref=useRef(null);
   const navigate = useNavigate();
 
@@ -400,15 +410,14 @@ export default function App() {
 
   return (
     <div ref={ref} style={{background:"#080808",color:"#f0f0f0",fontFamily:"'Inter',sans-serif",minHeight:"100vh",overflowY:"auto",overflowX:"hidden"}}>
-      <style>{css}</style>
-
-      {/* ═══ SCROLL PROGRESS ═══ */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, zIndex: 9999,
-        height: 2, background: '#e63946',
-        width: sp + '%',
-        transition: 'width 0.1s linear'
+        position:'fixed', top:0, left:0, zIndex:9999,
+        height:2, background:'#e63946',
+        width: scrollPct + '%',
+        transition:'width 0.1s linear',
+        pointerEvents:'none'
       }}/>
+      <style>{css}</style>
 
       {/* ═══ NAV ═══ */}
       <nav style={{
@@ -440,7 +449,6 @@ export default function App() {
             <a className="nav-link" href="#why">Why</a>
             <a className="nav-link" href="#faq">FAQ</a>
           </div>
-          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
           <button className="btn-primary" style={{padding:"8px 16px",fontSize:12}} onClick={handleStart} disabled={creating}>
             {creating ? "Creating..." : "Play Now →"}
           </button>
@@ -856,8 +864,13 @@ export default function App() {
           <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <SoundToggle soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} />
-          <span className="sans txt-xs" style={{color:"#333"}}>© 2025 ChessWithClaw</span>
+          <span className="sans txt-xs" style={{color:"#333"}}>© 2026 ChessWithClaw</span>
+          <a 
+            href="/privacy" 
+            style={{color:'#555',fontSize:12,marginLeft:16,textDecoration:'none'}}
+          >
+            Privacy Policy
+          </a>
         </div>
       </footer>
     </div>

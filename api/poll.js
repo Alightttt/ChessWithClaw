@@ -74,13 +74,14 @@ module.exports = async (req, res) => {
       detail:'Create a new game and send a fresh invite.'})
   }
 
-  // Set connected (service role bypasses RLS — always works)
-  if(!game.agent_connected){
-    await supabase.from('games')
-      .update({agent_connected:true,
-        updated_at:new Date().toISOString()})
-      .eq('id',gameId).eq('agent_connected',false)
-  }
+  // Set connected and update last seen
+  await supabase.from('games')
+    .update({
+      agent_connected: true,
+      agent_last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', gameId);
 
   if(game.status==='finished'){
     return res.json({

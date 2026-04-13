@@ -69,11 +69,13 @@ module.exports = async (req, res) => {
     return res.status(403).json({ error: 'Forbidden: Invalid or missing token.', code: 'INVALID_AGENT_TOKEN' });
   }
 
-  if (!game.agent_connected) {
-    await supabase.from('games')
-      .update({ agent_connected: true, updated_at: new Date().toISOString() })
-      .eq('id', id).eq('agent_connected', false);
-  }
+  await supabase.from('games')
+    .update({ 
+      agent_connected: true, 
+      agent_last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString() 
+    })
+    .eq('id', id);
 
     // Fetch move history from the new table
   const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });
@@ -95,6 +97,12 @@ module.exports = async (req, res) => {
       moveNumber: thought.move_number,
       timestamp: new Date(thought.created_at).getTime()
     }));
+  }
+
+  // Fetch chat history from the new table
+  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
+  if (!chatError && chatData && chatData.length > 0) {
+    game.chat_history = chatData;
   }
 
   let chess;
@@ -135,6 +143,11 @@ module.exports = async (req, res) => {
     game_phase = "middlegame";
   }
 
+  const lastMoveTime = game.updated_at 
+    ? new Date(game.updated_at).getTime() : null;
+  const idleSince = lastMoveTime 
+    ? Math.floor((Date.now() - lastMoveTime) / 1000) : 0;
+
   res.status(200).json({
     instructions: "You are BLACK. If current_turn is BLACK, choose a move from legal_moves and POST to /api/move. Consult your 'skill.md' and search the internet for chess theory to play smartly. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If you want to resign, send a chat message with type 'resign_request'. If you want to offer a draw, send a chat message with type 'draw_request'. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. If your move submission fails due to a network error or 5xx status, retry up to 3 times.",
     game_id: id,
@@ -166,6 +179,8 @@ module.exports = async (req, res) => {
     thinking_log: game.thinking_log || [],
     chat_history: game.chat_history || [],
     move_count: game.move_history?.length || 0,
-    chat_count: game.chat_history?.length || 0
+    chat_count: game.chat_history?.length || 0,
+    draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
+    opponent_idle_since: idleSince
   });
 }
