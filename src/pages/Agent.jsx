@@ -266,6 +266,22 @@ export default function Agent() {
           </div>
         </div>
 
+        {game.status === 'finished' || game.status === 'abandoned' ? (
+          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+            <button
+              data-testid="rematch-button"
+              onClick={() => window.location.href = '/'}
+              style={{
+                flex: 1, padding: '14px', background: '#e63946', color: '#fff',
+                border: 'none', borderRadius: '6px', fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600,
+                cursor: 'pointer', transition: 'background 0.15s'
+              }}
+            >
+              Rematch
+            </button>
+          </div>
+        ) : null}
+
       </div>
     </div>
   );

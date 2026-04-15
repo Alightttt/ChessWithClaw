@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   applyCacheControl(res);
   applyCorsHeaders(req, res);
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+  if (req.method !== 'POST' && req.method !== 'PATCH') return res.status(405).json({ error: 'Method not allowed. Use POST or PATCH.' });
 
   const contentLength = parseInt(req.headers['content-length'] || '0', 10);
   if (contentLength > 10240) {

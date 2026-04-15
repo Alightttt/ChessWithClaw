@@ -91,13 +91,23 @@ module.exports = async (req, res) => {
     .update(updateData)
     .eq('id', gameId);
 
-  if(game.status==='finished'){
+  if(game.status==='finished'||game.status==='abandoned'){
     return res.json({
-      event:'game_ended',result:game.result,
+      event:'game_ended',
+      status: game.result_reason === 'resignation' ? 'resigned' : game.result === 'draw' ? 'drawn' : game.result_reason === 'checkmate' ? 'checkmate' : game.status,
+      result:game.result,
       reason:game.result_reason,fen:game.fen,
       move_number:game.move_number,
       move_history:game.move_history})
   }
+
+  const lastMoveTimestamp = game.move_history && game.move_history.length > 0 
+    ? game.move_history[game.move_history.length - 1].created_at 
+    : game.created_at;
+
+  const opponentConnected = game.player_last_seen 
+    ? (new Date() - new Date(game.player_last_seen)) < 15000 
+    : false;
 
   if(game.turn==='b'&&game.move_count>lastMoveCount){
     let chess
@@ -108,6 +118,8 @@ module.exports = async (req, res) => {
       event:'your_turn',game_id:game.id,fen:game.fen,
       turn:'b',move_number:game.move_number,
       last_move:game.last_move,
+      last_move_timestamp: lastMoveTimestamp,
+      opponent_connected: opponentConnected,
       legal_moves:chess.moves(),
       legal_moves_uci:chess.moves({verbose:true})
         .map(m=>m.from+m.to+(m.promotion||'')),
@@ -124,11 +136,15 @@ module.exports = async (req, res) => {
   if(game.chat_count>lastChatCount){
     return res.json({
       event:'human_chatted',messages:game.chat_history,
+      last_move_timestamp: lastMoveTimestamp,
+      opponent_connected: opponentConnected,
       move_count:game.move_count,chat_count:game.chat_count})
   }
 
   return res.json({
     event:'waiting',turn:game.turn,status:game.status,
+    last_move_timestamp: lastMoveTimestamp,
+    opponent_connected: opponentConnected,
     move_count:game.move_count,chat_count:game.chat_count,
     retry_after:2})
 }

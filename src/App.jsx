@@ -57,6 +57,7 @@ function AnimatedRoutes() {
       <Route path="/game/:id" element={<PageTransition key={location.key}><Game /></PageTransition>} />
       <Route path="/created/:id" element={<PageTransition key={location.key}><GameCreatedWrapper /></PageTransition>} />
       <Route path="/Agent" element={<PageTransition key={location.key}><Agent /></PageTransition>} />
+      <Route path="/Board" element={<PageTransition key={location.key}><Agent /></PageTransition>} />
       <Route path="*" element={<PageTransition key={location.key}><NotFound /></PageTransition>} />
     </Routes>
   );
