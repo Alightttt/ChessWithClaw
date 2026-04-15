@@ -88,7 +88,38 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       const historyFen = initialChess.fen().split(' ')[0];
       const targetFen = newChess.fen().split(' ')[0];
       if (historyFen !== targetFen) {
-        return; // Wait for both fen and moveHistory to be in sync
+        console.warn("historyFen and targetFen mismatch", historyFen, targetFen);
+        // Fallback to customPieces but try to preserve IDs from currentPieces
+        const customPieces = [];
+        const availableCurrentPieces = [...currentPieces];
+        
+        for (let r of ranks) {
+          for (let f of files) {
+            const sq = f + r;
+            const p = newChess.get(sq);
+            if (p) {
+              // Find a matching piece in currentPieces to preserve its ID
+              // First try to find a piece of the same type/color at the EXACT SAME square
+              let matchingPieceIndex = availableCurrentPieces.findIndex(cp => cp.type === p.type && cp.color === p.color && cp.square === sq && !cp.captured);
+              
+              // If not found, find ANY piece of the same type/color
+              if (matchingPieceIndex === -1) {
+                matchingPieceIndex = availableCurrentPieces.findIndex(cp => cp.type === p.type && cp.color === p.color && !cp.captured);
+              }
+              
+              let id;
+              if (matchingPieceIndex !== -1) {
+                id = availableCurrentPieces[matchingPieceIndex].id;
+                availableCurrentPieces.splice(matchingPieceIndex, 1);
+              } else {
+                id = `${p.color}${p.type}-${sq}-${Date.now()}`;
+              }
+              customPieces.push({ id, type: p.type, color: p.color, square: sq });
+            }
+          }
+        }
+        setPieces(customPieces);
+        return;
       }
     } else {
       // If no move history (e.g. custom FEN), just use the current board state
@@ -216,7 +247,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   };
 
   return (
-    <div className={`flex flex-col select-none w-full h-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
+    <div data-testid="chess-board" className={`flex flex-col select-none w-full h-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
       <div className="relative w-full h-full aspect-square">
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
@@ -232,6 +263,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
             return (
               <div
                 key={sq}
+                data-testid={`square-${sq}`}
                 onClick={() => handleSquareClick(row, col)}
                 className="relative w-full h-full flex items-center justify-center cursor-pointer hover:bg-white/50 transition-colors"
                 style={{ backgroundColor: isLight(row, col) ? currentTheme.light : currentTheme.dark }}
@@ -240,7 +272,6 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 bg-[#e63946]/40 z-0" />}
                 {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,197,9,0.4)' }} />}
-                {isCheck && <div className="absolute inset-0 z-20" style={{ background: 'radial-gradient(circle, rgba(230,57,70,0.85) 0%, rgba(230,57,70,0) 70%)', pointerEvents: 'none' }} />}
                 {agentMoveFlash === sq && <div className="absolute inset-0 z-10" style={{ animation: 'agentFlash 400ms ease-out forwards' }} />}
                 
                 {/* Legal move indicators */}
@@ -308,6 +339,25 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
             </div>
           );
         })}
+
+        {/* Top Overlays Layer (Above Pieces) */}
+        <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 pointer-events-none z-20">
+          {ranks.map((rank, row) =>
+            files.map((file, col) => {
+              const sq = file + rank;
+              const piece = chess.get(sq);
+              const isCheck = isKingInCheck(sq, piece);
+              
+              if (!isCheck) return <div key={sq} />;
+              
+              return (
+                <div key={sq} className="relative w-full h-full">
+                  <div className="absolute inset-0" style={{ borderRadius: '50%', background: 'radial-gradient(circle, rgba(230,57,70,0.6) 0%, rgba(230,57,70,0.3) 40%, transparent 70%)', animation: 'checkPulse 1s ease-in-out infinite' }} />
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {promotionMove && (
           <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">

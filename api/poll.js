@@ -74,13 +74,21 @@ module.exports = async (req, res) => {
       detail:'Create a new game and send a fresh invite.'})
   }
 
+  const agentName = req.query.agent_name || req.headers['x-agent-name'] || null;
+
   // Set connected and update last seen
+  const updateData = {
+    agent_connected: true,
+    agent_last_seen: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  if (agentName && !game.agent_name) {
+    updateData.agent_name = agentName || game.agent_name || 'OpenClaw';
+  }
+
   await supabase.from('games')
-    .update({
-      agent_connected: true,
-      agent_last_seen: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData)
     .eq('id', gameId);
 
   if(game.status==='finished'){

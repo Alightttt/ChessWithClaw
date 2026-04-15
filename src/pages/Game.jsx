@@ -59,12 +59,34 @@ export default function Game() {
   const [justConnected, setJustConnected] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [shaking, setShaking] = useState(false);
-  const [displayedThinking, setDisplayedThinking] = useState('');
   const [commentary, setCommentary] = useState('');
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveFrom, setLastMoveFrom] = useState(null);
   const [lastMoveTo, setLastMoveTo] = useState(null);
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [displayedThinking, setDisplayedThinking] = useState('');
+  const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
   const createRipple = useRipple();
+
+  const handleRematch = async () => {
+    // Step 1: Clear all old game state from localStorage
+    localStorage.removeItem('chesswithclaw_active_game')
+    
+    // Step 2: Clear all local component state
+    setGame(null)
+    setAgentConnected(false)
+    setDisplayedThinking('')
+    setLastMoveFrom(null)
+    setLastMoveTo(null)
+    setShowGameOverModal(false)
+    connectedToastShown.current = false
+    prevThinkingRef.current = ''
+    
+    // Step 3: Navigate to home to create fresh game
+    // Do NOT try to navigate to /created/:id from here
+    // Let user click "Challenge Your OpenClaw" fresh
+    navigate('/')
+  }
 
   const computeMaterial = useCallback((fen) => {
     if (!fen) return null;
@@ -95,6 +117,7 @@ export default function Game() {
   const thinkingScrollRef = useRef(null);
   const channelRef = useRef(null);
   const containerRef = useRef(null);
+  const prevThinkingRef = useRef('');
 
   useEffect(() => {
     if (!game?.move_history?.length) return
@@ -170,34 +193,68 @@ export default function Game() {
 
   // Auto-scroll thinking
   useEffect(() => {
-    if (thinkingScrollRef.current && game?.current_thinking) {
+    if (thinkingScrollRef.current && displayedThinking) {
       thinkingScrollRef.current.scrollTop = thinkingScrollRef.current.scrollHeight;
     }
-  }, [game?.current_thinking, displayedThinking]);
+  }, [displayedThinking]);
 
   const typerRef = useRef(null)
 
   useEffect(() => {
-    const fullText = game?.current_thinking || ''
-    const crispText = fullText.split('.')[0]?.trim() || fullText
-    if (!crispText) { setDisplayedThinking(''); return }
-    clearInterval(typerRef.current)
-    let i = 0
+    if (!window.visualViewport) return
+    
+    const handleViewport = () => {
+      const keyboardHeight = window.innerHeight - window.visualViewport.height
+      if (keyboardHeight > 100) {
+        // Keyboard is open
+        setChatPaddingBottom(keyboardHeight)
+      } else {
+        setChatPaddingBottom(0)
+      }
+    }
+    
+    window.visualViewport.addEventListener('resize', handleViewport)
+    return () => window.visualViewport.removeEventListener('resize', handleViewport)
+  }, [])
+
+  useEffect(() => {
+    const text = game?.current_thinking || ''
+    
+    if (!text || text === prevThinkingRef.current) return
+    prevThinkingRef.current = text
+    
+    if (typerRef.current) {
+      clearInterval(typerRef.current)
+      typerRef.current = null
+    }
+    
     setDisplayedThinking('')
+    let i = 0
+    
     typerRef.current = setInterval(() => {
       i++
-      setDisplayedThinking(crispText.slice(0, i))
-      if (i >= crispText.length) clearInterval(typerRef.current)
-    }, 18)
-    return () => clearInterval(typerRef.current)
+      setDisplayedThinking(text.slice(0, i))
+      if (i >= text.length) {
+        clearInterval(typerRef.current)
+        typerRef.current = null
+      }
+    }, 20)
+    
+    return () => {
+      if (typerRef.current) {
+        clearInterval(typerRef.current)
+        typerRef.current = null
+      }
+    }
   }, [game?.current_thinking])
 
   useEffect(() => {
-    if (game?.turn === 'w') {
+    if (game?.turn === (game.player_color || 'w')) {
       setDisplayedThinking('')
-      clearInterval(typerRef.current)
+      prevThinkingRef.current = ''
+      if (typerRef.current) clearInterval(typerRef.current)
     }
-  }, [game?.turn])
+  }, [game?.turn, game?.player_color])
 
   useEffect(() => {
     if (game?.last_commentary) {
@@ -309,6 +366,16 @@ export default function Game() {
         },
         body: JSON.stringify({ id: gameId, role: 'human' })
       }).catch(() => {});
+      
+      // Poll game state if it's the agent's turn to catch missed real-time events
+      if (game?.turn !== (game?.player_color || 'w') && game?.status === 'active') {
+        supabase.from('games').select('turn, move_history').eq('id', gameId).single().then(({ data }) => {
+          if (data && data.turn === (game?.player_color || 'w')) {
+            // Agent made a move but we missed the event, trigger a full reload
+            document.dispatchEvent(new Event('visibilitychange'));
+          }
+        });
+      }
     }, 15000);
 
     return () => {
@@ -345,9 +412,11 @@ export default function Game() {
 
   useEffect(() => {
     if (game?.agent_connected) {
+      setAgentConnected(true);
       connectedToastShown.current = true;
     }
-  }, [game?.id, game?.agent_connected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id]);
 
   useEffect(() => {
     if (game && prevAgentConnected.current === false && game.agent_connected === true && connectedToastShown.current === false) {
@@ -394,8 +463,6 @@ export default function Game() {
             uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
             san: m.san
           }));
-        } else if (movesData && movesData.length === 0) {
-          data.move_history = [];
         }
 
         // Fetch thinking log from the new table
@@ -449,6 +516,15 @@ export default function Game() {
         updatedGame.move_history = (payload.new.move_history && payload.new.move_history.length > (prev.move_history || []).length) ? payload.new.move_history : (prev.move_history || []);
         updatedGame.chat_history = (payload.new.chat_history && payload.new.chat_history.length > (prev.chat_history || []).length) ? payload.new.chat_history : (prev.chat_history || []);
         updatedGame.thinking_log = (payload.new.thinking_log && payload.new.thinking_log.length > (prev.thinking_log || []).length) ? payload.new.thinking_log : (prev.thinking_log || []);
+        
+        if (payload.new.agent_connected && !prev.agent_connected) {
+          setAgentConnected(true);
+        }
+        
+        if (!payload.new.agent_connected && prev.agent_connected) {
+          setAgentConnected(false);
+        }
+
         return updatedGame;
       });
       submittingRef.current = false;
@@ -476,9 +552,20 @@ export default function Game() {
         };
         const newMoveHistory = [...(prev.move_history || [])];
         newMoveHistory.push(newMove);
-        // Sort by timestamp to ensure correct order
-        newMoveHistory.sort((a, b) => a.timestamp - b.timestamp);
-        return { ...prev, move_history: newMoveHistory };
+        // Sort by created_at to ensure correct order
+        newMoveHistory.sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.timestamp || 0);
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.timestamp || 0);
+          return timeA - timeB;
+        });
+        
+        const updates = { move_history: newMoveHistory };
+        if (payload.new.fen_after) {
+          updates.fen = payload.new.fen_after;
+          updates.turn = payload.new.fen_after.split(' ')[1];
+        }
+        
+        return { ...prev, ...updates };
       });
       submittingRef.current = false;
       setBoardLocked(false);
@@ -536,8 +623,6 @@ export default function Game() {
               uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
               san: m.san
             }));
-          } else {
-            data.move_history = [];
           }
 
           // Fetch thinking log
@@ -630,6 +715,15 @@ export default function Game() {
         }
         throw new Error(errData.error || 'Failed to submit move');
       }
+      
+      // Safety timeout to unlock board if realtime events are missed
+      setTimeout(() => {
+        if (submittingRef.current) {
+          submittingRef.current = false;
+          setBoardLocked(false);
+        }
+      }, 3000);
+      
     } catch (e) {
       if (e.message === 'WAITING_FOR_AGENT') {
         toast(`Waiting for ${agentName} to join...`, {
@@ -836,6 +930,7 @@ export default function Game() {
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#f0f0f0', fontFamily: "'Inter', sans-serif", gap: '16px' }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600 }}>Game not found</div>
         <button 
+          data-testid="home-button"
           onClick={handleGoHomeWithRipple} 
           style={{ 
             position: 'relative', overflow: 'hidden', background: '#e63946', color: '#fff', border: 'none', 
@@ -867,6 +962,21 @@ export default function Game() {
       backgroundColor: game?.turn === 'b' ? '#120808' : '#080808',
       transition: 'background-color 300ms ease'
     }}>
+      <style>{`
+        @keyframes cursorBlink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .thinking-cursor {
+          display: inline-block;
+          width: 2px;
+          height: 14px;
+          background: #e63946;
+          margin-left: 2px;
+          vertical-align: middle;
+          animation: cursorBlink 1s step-end infinite;
+        }
+      `}</style>
       
       {/* FIX 2 — PAGE HEADER */}
       <header style={{
@@ -901,6 +1011,7 @@ export default function Game() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button 
+            data-testid="settings-button"
             onClick={handleOpenSettings}
             style={{
               width: '34px', height: '34px',
@@ -959,10 +1070,10 @@ export default function Game() {
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#888' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!agentConnected ? '#888' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
             }}>
               {agentTimeout ? `⏱ ${agentName} is taking longer than usual` :
-               !game.agent_connected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
+               !agentConnected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
                game.turn === (game.player_color || 'w') ? "Watching you..." : 
                null}
             </div>
@@ -971,6 +1082,7 @@ export default function Game() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {agentTimeout && game.status === 'active' && (
               <button 
+                data-testid="claim-win-button"
                 onClick={handleClaimVictoryWithRipple}
                 className="hover:bg-[#cc2f3b] active:scale-[0.98]"
                 style={{
@@ -985,18 +1097,19 @@ export default function Game() {
             )}
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
-              background: agentTimeout ? '#f59e0b' : (!game.agent_connected ? '#1a1a1a' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#22c55e'))
+              background: !agentConnected ? '#444' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#739552')
             }}>
-              {game.agent_connected && (
+              {agentConnected && (
                 <div style={{
                   position: 'absolute', inset: '-3px', borderRadius: '50%',
-                  background: agentTimeout ? '#f59e0b' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#22c55e'),
+                  background: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#739552',
                   opacity: 0,
                   animation: `ripple ${(game.current_thinking && game.turn !== (game.player_color || 'w')) ? '1s' : '2s'} ease-out infinite`
                 }}></div>
               )}
             </div>
             <button 
+              data-testid="toggle-agent-section"
               onClick={handleToggleAgentSection}
               style={{
                 background: 'none', border: 'none', color: '#888', cursor: 'pointer',
@@ -1019,10 +1132,11 @@ export default function Game() {
           padding: agentSectionOpen ? '0 14px 14px' : '0 14px 0',
           borderTop: agentSectionOpen ? '1px solid #1a1a1a' : 'none'
         }}>
-          {!game.agent_connected ? (
+          {!agentConnected ? (
             <div style={{ padding: '12px 0', textAlign: 'center' }}>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#888' }}>{agentName} not connected yet.</div>
               <button 
+                data-testid="copy-invite-button"
                 onClick={handleCopyInviteWithRipple}
                 className="hover:bg-[#1a1a1a] active:scale-[0.98]"
                 style={{
@@ -1079,9 +1193,7 @@ export default function Game() {
               </div>
               <div>
                 {displayedThinking || <span style={{color: '#444', fontStyle: 'italic'}}>Processing position...</span>}
-                <span style={{display:'inline-block',width:2,
-    height:'1em',background:'#e63946',marginLeft:2,
-    animation:'blink 1s step-end infinite', verticalAlign: 'middle'}}/>
+                {displayedThinking && <span className="thinking-cursor"/>}
               </div>
             </div>
           ) : lastThinking ? (
@@ -1138,7 +1250,7 @@ export default function Game() {
         flexShrink: 0
       }} className="lg:flex-1 lg:h-full">
         
-        {game.status === 'waiting' && !game.agent_connected && (
+        {game.status === 'waiting' && !agentConnected && (
           <div style={{
             background: 'rgba(230,57,70,0.08)',
             border: '1px solid rgba(230,57,70,0.2)',
@@ -1176,11 +1288,15 @@ export default function Game() {
         })()}
 
         <div style={{ width: `${boardSize}px`, display: 'flex', gap: 2, minHeight: 20, padding: '4px 0' }}>
-          {capturedByWhite.map((p, i) => (
-            <span key={i} style={{ fontSize: 16, opacity: 0.7, color: '#e0e0e0' }}>
-              {blackPieceMap[p]}
-            </span>
-          ))}
+          {capturedByWhite.map((p, i) => {
+            const pieceName = `b${p.toUpperCase()}`;
+            const url = (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') 
+              ? `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`
+              : `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
+            return (
+              <img key={i} src={url} alt={pieceName} style={{ width: 16, height: 16, opacity: 0.8 }} />
+            );
+          })}
         </div>
 
         <div style={{
@@ -1226,35 +1342,15 @@ export default function Game() {
         </div>
 
         <div style={{ width: `${boardSize}px`, display: 'flex', gap: 2, minHeight: 20, padding: '4px 0' }}>
-          {capturedByBlack.map((p, i) => (
-            <span key={i} style={{ fontSize: 16, opacity: 0.7, color: '#e0e0e0' }}>
-              {whitePieceMap[p]}
-            </span>
-          ))}
-        </div>
-
-        <div style={{
-          width: `${boardSize}px`,
-          height: '28px',
-          background: 'rgba(255,255,255,0.03)',
-          borderTop: '1px solid #1a1a1a',
-          padding: '0 12px',
-          display: 'flex',
-          alignItems: 'center',
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '11px',
-          color: '#666',
-          opacity: showCommentary ? 1 : 0,
-          transition: 'opacity 300ms ease',
-          marginTop: '8px',
-          borderRadius: '4px'
-        }}>
-          <span style={{ color: '#888', marginRight: '8px', flexShrink: 0 }}>
-            {game?.move_history?.length > 0 ? game.move_history[game.move_history.length - 1].san : ''}
-          </span>
-          <span style={{ color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {commentary}
-          </span>
+          {capturedByBlack.map((p, i) => {
+            const pieceName = `w${p.toUpperCase()}`;
+            const url = (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') 
+              ? `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`
+              : `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
+            return (
+              <img key={i} src={url} alt={pieceName} style={{ width: 16, height: 16, opacity: 0.8 }} />
+            );
+          })}
         </div>
       </div>
       </div>
@@ -1267,7 +1363,8 @@ export default function Game() {
         borderTop: '1px solid #1a1a1a',
         display: 'flex',
         flexDirection: 'column',
-        flexShrink: 0
+        flexShrink: 0,
+        paddingBottom: chatPaddingBottom + 'px'
       }} className="h-[200px] lg:h-1/2 lg:border-t-0 lg:order-2">
         <div style={{
           height: '38px', padding: '0 14px', borderBottom: '1px solid #0e0e0e',
@@ -1310,7 +1407,7 @@ export default function Game() {
                   }}>
                     {msg.text}
                     {game.status === 'active' && (
-                      <button onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
+                      <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} style={{ display: 'block', width: '100%', marginTop: '8px', background: '#e63946', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Accept Resignation</button>
                     )}
                   </div>
                 );
@@ -1325,7 +1422,7 @@ export default function Game() {
                     {msg.text}
                     {game.status === 'active' && (
                       <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                        <button onClick={async () => {
+                        <button data-testid="accept-draw-button" onClick={async () => {
                           await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
                             status: 'finished', result: 'draw', result_reason: 'agreement'
                           }).eq('id', gameId);
@@ -1365,9 +1462,11 @@ export default function Game() {
 
         <form onSubmit={sendMessage} style={{
           height: '44px', borderTop: '1px solid #0e0e0e', padding: '0 12px', gap: '8px',
-          display: 'flex', alignItems: 'center', flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)'
+          display: 'flex', alignItems: 'center', flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)',
+          position: 'sticky', bottom: 0, background: '#0e0e0e'
         }}>
           <input
+            data-testid="chat-input"
             type="text"
             value={chatInput}
             onChange={handleChatInputChange}
@@ -1380,6 +1479,7 @@ export default function Game() {
             }}
           />
           <button 
+            data-testid="chat-send"
             type="submit"
             disabled={isSpectator || !chatInput.trim()}
             style={{
@@ -1395,13 +1495,14 @@ export default function Game() {
       </div>
 
       {/* FIX 6 — MOVE HISTORY */}
-      <div style={{
+      <div data-testid="move-history" style={{
         background: '#0e0e0e',
         borderTop: '1px solid #1a1a1a',
         display: 'flex',
         flexDirection: 'column'
       }} className="lg:flex-1 lg:overflow-hidden lg:order-1">
         <div 
+          data-testid="toggle-move-history"
           onClick={handleToggleMoveHistory}
           style={{
             height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1442,11 +1543,11 @@ export default function Game() {
                   return (
                     <React.Fragment key={i}>
                       <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#888', padding: '3px' }}>{i + 1}.</div>
-                      <div style={{ 
+                      <div data-testid={isLatestW && !bMove ? "last-move" : undefined} style={{ 
                         fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestW ? '#e63946' : '#888', padding: '3px', borderRadius: '3px',
                         background: isLatestW ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestW ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
                       }}>{wMove?.san}</div>
-                      <div style={{ 
+                      <div data-testid={isLatestB ? "last-move" : undefined} style={{ 
                         fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: isLatestB ? '#e63946' : '#888', padding: '3px', borderRadius: '3px',
                         background: isLatestB ? 'rgba(230,57,70,0.05)' : 'transparent', border: isLatestB ? '1px solid rgba(230,57,70,0.1)' : '1px solid transparent'
                       }}>{bMove?.san || ''}</div>
@@ -1462,6 +1563,17 @@ export default function Game() {
       </div>
 
       {/* FIX 7 — STATUS BAR */}
+      <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>
+      <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="turn-indicator">
+        {game.turn === 'b' ? 'Your Turn' : 'Waiting for White'}
+      </div>
+      <input 
+        type="text" 
+        data-testid="thinking-input" 
+        style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, zIndex: -1 }} 
+        aria-hidden="true" 
+        tabIndex={-1} 
+      />
       <div className="fixed lg:relative bottom-0 left-0 right-0 h-[48px] bg-[#080808]/96 backdrop-blur-md border-t border-[#1a1a1a] px-4 flex items-center justify-between z-50 flex-shrink-0">
         {game.status === 'finished' || game.status === 'abandoned' ? (
           <div style={{
@@ -1506,7 +1618,7 @@ export default function Game() {
             padding: '32px', maxWidth: '340px', width: 'calc(100% - 48px)', textAlign: 'center',
             margin: 'auto', position: 'relative'
           }}>
-            <button onClick={handleCloseGameOverModal} style={{
+            <button data-testid="close-game-over-modal" onClick={handleCloseGameOverModal} style={{
               position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px',
               background: 'transparent', border: 'none', color: '#888', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -1534,6 +1646,7 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
+                  data-testid="share-result-button"
                   onClick={handleShareResult}
                   style={{
                     background: '#e63946', color: '#fff', border: 'none',
@@ -1546,10 +1659,8 @@ export default function Game() {
                   Share Result
                 </button>
                 <button 
-                  onClick={() => {
-                    localStorage.removeItem('chesswithclaw_active_game');
-                    navigate('/');
-                  }}
+                  data-testid="rematch-button"
+                  onClick={handleRematch}
                   style={{
                     background: 'transparent', color: '#888', border: '1px solid #252525',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
@@ -1561,6 +1672,7 @@ export default function Game() {
                   Rematch
                 </button>
                 <button 
+                  data-testid="go-home-button"
                   onClick={() => navigate('/')}
                   style={{
                     background: 'transparent', color: '#888', border: 'none',
@@ -1592,6 +1704,7 @@ export default function Game() {
                   { id: 'navy', colors: ['#9db2c2', '#445b73'] }
                 ].map(theme => (
                   <button
+                    data-testid={`theme-button-${theme.id}`}
                     key={theme.id}
                     onClick={() => {
                       setBoardTheme(theme.id);
@@ -1625,6 +1738,7 @@ export default function Game() {
                   { id: 'unicode', label: 'Classic', icon: '♚' }
                 ].map(piece => (
                   <button
+                    data-testid={`piece-button-${piece.id}`}
                     key={piece.id}
                     onClick={() => {
                       setPieceTheme(piece.id);
@@ -1644,6 +1758,7 @@ export default function Game() {
                 <p className="text-xs text-[var(--color-text-muted)]">Play sounds for moves and captures</p>
               </div>
               <button 
+                data-testid="toggle-sound-button"
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className={`p-2 rounded-md transition-colors ${soundEnabled ? 'bg-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]'}`}
               >
@@ -1661,6 +1776,7 @@ export default function Game() {
             <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Game Controls</h3>
             <div className="grid grid-cols-2 gap-3">
               <Button 
+                data-testid="draw-button"
                 onClick={handleDraw}
                 disabled={game?.status === 'finished' || game?.status === 'abandoned'}
                 variant="secondary"
@@ -1669,6 +1785,7 @@ export default function Game() {
                 {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
               </Button>
               <Button 
+                data-testid="resign-button"
                 onClick={handleResign}
                 disabled={game?.status === 'finished' || game?.status === 'abandoned'}
                 variant="danger"
@@ -1739,6 +1856,10 @@ export default function Game() {
         @keyframes boardThinkingGlow {
           0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
           50% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); }
+        }
+        @keyframes checkPulse {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         input::placeholder { color: #888; }

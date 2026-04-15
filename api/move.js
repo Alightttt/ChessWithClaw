@@ -298,6 +298,13 @@ module.exports = async (req, res) => {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
+  if (isAgentMove) {
+    const agentName = req.headers['x-agent-name'] || req.body.agent_name || null;
+    if (agentName && !game.agent_name) {
+      updates.agent_name = agentName;
+    }
+  }
+
   let insertedThoughtId = null;
   if (isAgentMove) {
     const newThought = {

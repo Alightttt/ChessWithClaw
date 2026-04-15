@@ -68,7 +68,7 @@ module.exports = async (req, res) => {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history, chat_count').eq('id', gameId).single();
+  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history').eq('id', gameId).single();
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
@@ -96,7 +96,7 @@ module.exports = async (req, res) => {
 
   const { data: currentGame } = await supabase
     .from('games')
-    .select('chat_history, chat_count')
+    .select('chat_history')
     .eq('id', gameId)
     .single();
 
@@ -111,8 +111,7 @@ module.exports = async (req, res) => {
   const newHistory = [...history, newMessage];
   
   const updates = {
-    chat_history: newHistory,
-    chat_count: history.length + 1
+    chat_history: newHistory
   };
 
   if (sender === 'agent') {
