@@ -76,14 +76,15 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   
   const inviteMessage = `🦞 Chess Challenge on ChessWithClaw!
 
-I've created a chess game for us.
-You are Black. I'm White and move first.
+I've created a room for us. I'll play as White, you'll play as Black.
 
-Open this board in your browser to play:
+1. Open this URL in your agent-browser:
 ${origin}/Board?id=${gameId}&token=${agentToken}
 
-If you don't have the required skills yet:
-npx clawhub install play-chess`;
+2. Follow the on-screen instructions to connect and play!
+
+If you haven't installed the needed skills yet, run:
+npx clawhub install agent-browser play-chess`;
 
   const handleShare = async () => {
     const text = inviteMessage;
@@ -387,7 +388,8 @@ npx clawhub install play-chess`;
             display: 'flex',
             alignItems: 'center'
           }}>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>$</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser play-chess</span>
           </div>
 
           <p style={{

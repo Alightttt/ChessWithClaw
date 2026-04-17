@@ -363,12 +363,12 @@ export default function App() {
 
       {/* ═══ NAV ═══ */}
       <nav style={{
-        position:"fixed",top:0,left:0,right:0,height:52,
+        position:"fixed",top:0,left:0,right:0,height:60,
         display:"flex",alignItems:"center",justifyContent:"space-between",
-        padding:"0 20px",
-        background:"rgba(8,8,8,0.95)",
-        backdropFilter:"blur(20px)",
-        WebkitBackdropFilter:"blur(20px)",
+        padding:"0 24px",
+        background:"rgba(8,8,8,0.9)",
+        backdropFilter:"blur(24px)",
+        WebkitBackdropFilter:"blur(24px)",
         borderBottom:"1px solid rgba(255,255,255,0.04)",
         zIndex:200,
       }}>
@@ -376,23 +376,42 @@ export default function App() {
           <img
             src="/logo.png"
             alt="ChessWithClaw"
-            width="32"
-            height="32"
-            style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+            width="24"
+            height="24"
+            style={{ height: 24, width: 'auto', marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
             loading="eager"
+            onError={(e) => { e.target.style.display = 'none'; }}
           />
           <span className="serif" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
             ChessWithClaw
           </span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:20}}>
-          <div className="nav-links">
-            <a className="nav-link" href="#how">How It Works</a>
-            <a className="nav-link" href="#why">Why</a>
-            <a className="nav-link" href="#faq">FAQ</a>
+        <div style={{display:"flex",alignItems:"center",gap: 24}}>
+          <div className="nav-links hidden sm:flex space-x-6 text-sm text-[#888]">
+            <a className="nav-link hover:text-[#f0f0f0] transition-colors" href="#how">How It Works</a>
+            <a className="nav-link hover:text-[#f0f0f0] transition-colors" href="#faq">FAQ</a>
           </div>
-          <button className="btn-primary" style={{padding:"8px 16px",fontSize:12}} onClick={handleStart} disabled={creating}>
-            {creating ? "Creating..." : "Play Now →"}
+          <button 
+            className="btn-primary" 
+            style={{
+              padding:"8px 16px",
+              fontSize:12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }} 
+            onClick={handleStart} 
+            disabled={creating}
+          >
+            {creating ? (
+              <>
+                <svg className="animate-spin" style={{ width: 14, height: 14 }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </>
+            ) : "Play Now →"}
           </button>
         </div>
       </nav>
@@ -401,10 +420,8 @@ export default function App() {
            HERO SECTION
       ═══════════════════════════════ */}
       <section style={{
-        paddingTop:52,
-        minHeight:"100vh",
-        display:"flex",
-        flexDirection:"column",
+        paddingTop: 120,
+        paddingBottom: 40,
         position:"relative",
         overflow:"hidden",
       }}>
@@ -422,103 +439,135 @@ export default function App() {
           backgroundSize:"200px",pointerEvents:"none",
         }}/>
 
-        {/* ── HEADLINE BLOCK ── */}
-        <div className="hero-pad" style={{
-          display:"flex",flexDirection:"column",
-          alignItems:"center",textAlign:"center",
-          zIndex:2,
-          paddingTop: 80,
-          paddingBottom: 40
-        }}>
-          {/* Live badge */}
-          <div className={loaded?"fade-up-1":"hidden"} style={{marginBottom:16}}>
-            <div style={{
-              display:"inline-flex",alignItems:"center",gap:7,
-              background:"rgba(230,57,70,0.08)",
-              border:"1px solid rgba(230,57,70,0.2)",
-              borderRadius:100,padding:"5px 13px",
+        <div className="w-full max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24">
+          {/* ── HEADLINE BLOCK ── */}
+          <div className="hero-pad flex-1 w-full" style={{
+            display:"flex",flexDirection:"column",
+            alignItems:"center",textAlign:"center",
+            zIndex:2,
+          }}>
+            <style>
+              {`
+                @media (min-width: 1024px) {
+                  .hero-pad {
+                    align-items: flex-start !important;
+                    text-align: left !important;
+                  }
+                  .hero-h1 {
+                    text-align: left !important;
+                  }
+                  .hero-sub {
+                    text-align: left !important;
+                  }
+                  .hero-ctas {
+                    justify-content: flex-start !important;
+                  }
+                  .hero-trust {
+                    justify-content: flex-start !important;
+                  }
+                }
+              `}
+            </style>
+            
+            {/* Live badge */}
+            <div className={loaded?"fade-up-1":"hidden"} style={{marginBottom:16}}>
+              <div style={{
+                display:"inline-flex",alignItems:"center",gap:7,
+                background:"rgba(230,57,70,0.08)",
+                border:"1px solid rgba(230,57,70,0.2)",
+                borderRadius:100,padding:"5px 13px",
+              }}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:"#e63946",animation:"pulse 2s infinite",flexShrink:0}}/>
+                <span className="sans txt-2xs" style={{color:"#e63946",fontWeight:600,letterSpacing:"0.08em"}}>
+                  LIVE · REAL-TIME CHESS
+                </span>
+              </div>
+            </div>
+
+            {/* Headline */}
+            <h1 className={`hero-h1 ${loaded?"fade-up-2":"hidden"}`} style={{marginBottom:16,maxWidth:800}}>
+              Play Chess with your <span style={{color:"#e63946"}}>OpenClaw.</span>
+            </h1>
+
+            {/* Sub */}
+            <p className={`hero-sub sans txt-md ${loaded?"fade-up-3":"hidden"}`} style={{
+              color:"#888",lineHeight:1.6,maxWidth:520,marginBottom:32,
             }}>
-              <div style={{width:6,height:6,borderRadius:"50%",background:"#e63946",animation:"pulse 2s infinite",flexShrink:0}}/>
-              <span className="sans txt-2xs" style={{color:"#e63946",fontWeight:600,letterSpacing:"0.08em"}}>
-                LIVE · REAL-TIME CHESS
+              The same OpenClaw you use every day — now playing chess with you.
+            </p>
+
+            {/* CTAs */}
+            <div className={`hero-ctas ${loaded?"fade-up-4":"hidden"}`} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16, width:"100%"}}>
+              <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"nowrap",width:"100%",maxWidth:340}}>
+                <button
+                  onClick={handleStart}
+                  disabled={creating}
+                  style={{
+                    background: creating ? '#b02a35' : '#e63946',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 7,
+                    padding: '14px 24px',
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    opacity: creating ? 0.8 : 1,
+                    transition: 'all 0.15s',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {creating ? (
+                    <>
+                      <svg className="animate-spin" style={{ width: 18, height: 18 }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : 'Play Now →'}
+                </button>
+                <button className="btn-ghost" style={{width: '100%', padding: '14px 20px'}} onClick={() => {
+                  document.getElementById('how')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}>How to Play ↓</button>
+              </div>
+              {createError && (
+                <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif", marginTop: 4}}>
+                  {createError}
+                </div>
+              )}
+            </div>
+
+            {/* Trust signals */}
+            <div className={`hero-trust ${loaded?"fade-up-5":"hidden"}`} style={{
+              display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24,
+              padding: "8px 0"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                <div style={{ display: "flex" }}>
+                  <img src="https://i.pravatar.cc/100?img=33" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8, zIndex: 3 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img src="https://i.pravatar.cc/100?img=47" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8, zIndex: 2 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img src="https://i.pravatar.cc/100?img=12" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8, zIndex: 1 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+                <span className="sans txt-xs" style={{ color: "#888" }}>
+                  Used by <strong style={{color:"#f0f0f0"}}>1,000+</strong> agents
+                </span>
+              </div>
+              <div style={{ width: 1, height: 16, background: "#222" }} className="hidden sm:block" />
+              <span className="sans txt-xs" style={{ color: "#888", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                Powered by <strong style={{color:"#f0f0f0"}}>OpenClaw</strong> 🦞
               </span>
             </div>
           </div>
 
-          {/* Headline */}
-          <h1 className={`hero-h1 ${loaded?"fade-up-2":"hidden"}`} style={{marginBottom:16,maxWidth:800}}>
-            Play Chess with your <span style={{color:"#e63946"}}>OpenClaw.</span>
-          </h1>
-
-          {/* Sub */}
-          <p className={`sans txt-md ${loaded?"fade-up-3":"hidden"}`} style={{
-            color:"#888",lineHeight:1.6,maxWidth:520,marginBottom:32,
+          {/* ── LIVE BOARD SHOWCASE ── */}
+          <div className={`board-wrap flex-1 w-full flex justify-center lg:justify-end ${loaded?"board-anim":"hidden"}`} style={{
+            zIndex:2,
           }}>
-            The same OpenClaw you use every day — now playing chess with you.
-          </p>
-
-          {/* CTAs */}
-          <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16, width:"100%"}}>
-            <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"nowrap",width:"100%",maxWidth:340}}>
-              <button
-                onClick={handleStart}
-                disabled={creating}
-                style={{
-                  background: creating ? '#b02a35' : '#e63946',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 7,
-                  padding: '14px 24px',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: creating ? 'not-allowed' : 'pointer',
-                  opacity: creating ? 0.8 : 1,
-                  transition: 'all 0.15s',
-                  width: '100%',
-                }}
-              >
-                {creating ? 'Creating game...' : 'Play Now →'}
-              </button>
-              <button className="btn-ghost" style={{width: '100%', padding: '14px 20px'}} onClick={() => {
-                document.getElementById('how')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}>How to Play ↓</button>
-            </div>
-            {createError && (
-              <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif", marginTop: 4}}>
-                {createError}
-              </div>
-            )}
-          </div>
-
-          {/* Trust signals */}
-          <div className={loaded?"fade-up-5":"hidden"} style={{
-            display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24,
-            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 100, padding: "8px 20px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-              <div style={{ display: "flex" }}>
-                <img src="https://i.pravatar.cc/100?img=33" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
-                <img src="https://i.pravatar.cc/100?img=47" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
-                <img src="https://i.pravatar.cc/100?img=12" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
-              </div>
-              <span className="sans txt-xs" style={{ color: "#888" }}>
-                Used by <strong style={{color:"#f0f0f0"}}>1,000+</strong> agents
-              </span>
-            </div>
-            <div style={{ width: 1, height: 16, background: "#222" }} />
-            <span className="sans txt-xs" style={{ color: "#888", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-              Powered by <strong style={{color:"#f0f0f0"}}>OpenClaw</strong> 🦞
-            </span>
-          </div>
-        </div>
-
-        {/* ── LIVE BOARD SHOWCASE ── */}
-        <div className={`board-wrap ${loaded?"board-anim":"hidden"}`} style={{
-          paddingBottom:60,
-          zIndex:2,
-          padding:"0 20px 60px",
-        }}>
           {/* Floor glow */}
           <div style={{
             position:"absolute",
@@ -600,6 +649,7 @@ export default function App() {
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       {/* ═══════════════════════════════
@@ -666,9 +716,9 @@ export default function App() {
                     background:"#090909",border:"1px solid #1c1c1c",
                     borderRadius:5,padding:"9px 14px",
                   }}>
-                    {/* Correct spacing — no $ sign for easy copy-pasting */}
                     <span className="mono txt-sm">
-                      <span style={{color:"#999"}}>npx clawhub install play-chess</span>
+                      <span style={{color:"#e63946", marginRight: 8}}>$</span>
+                      <span style={{color:"#999"}}>npx clawhub install agent-browser play-chess</span>
                     </span>
                     <a
                       href="https://clawhub.ai/Alightttt/play-chess"
@@ -690,29 +740,6 @@ export default function App() {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════
-           8 REASONS
-      ═══════════════════════════════ */}
-      <section id="why" className="section-pad" style={{background:"#050505",borderTop:"1px solid #0e0e0e"}}>
-        <div className="container">
-          <div className="sans txt-3xs" style={{color:"#e63946",letterSpacing:"0.15em",fontWeight:700,marginBottom:12,textTransform:"uppercase"}}>
-            Why ChessWithClaw
-          </div>
-          <h2 className="section-h2" style={{marginBottom:44}}>
-            4 reasons your OpenClaw<br/>belongs on this board.
-          </h2>
-          <div className="reasons-grid">
-            {reasons.map((r,i)=>(
-              <div key={i} className="reason-card">
-                <div style={{fontSize:22,marginBottom:10,lineHeight:1}}>{r.e}</div>
-                <div className="sans txt-sm" style={{fontWeight:600,color:"#ddd",marginBottom:7}}>{r.t}</div>
-                <div className="sans txt-sm" style={{color:"#888",lineHeight:1.7}}>{r.b}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -813,8 +840,29 @@ export default function App() {
             Stop letting bots beat you. Challenge your own OpenClaw today.
           </p>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-            <button className="btn-primary" style={{padding:"16px 40px",fontSize:16,fontWeight:700}} onClick={handleStart} disabled={creating}>
-              {creating ? "Creating..." : "Play Now →"}
+            <button 
+              className="btn-primary" 
+              style={{
+                padding:"16px 40px",
+                fontSize:16,
+                fontWeight:700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }} 
+              onClick={handleStart} 
+              disabled={creating}
+            >
+              {creating ? (
+                <>
+                  <svg className="animate-spin" style={{ width: 18, height: 18 }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : "Play Now →"}
             </button>
             {createError && (
               <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif"}}>
@@ -832,32 +880,27 @@ export default function App() {
         </div>
       </section>
 
-      {/* ═══ FOOTER — no GitHub, no Feedback ═══ */}
+      {/* ═══ FOOTER ═══ */}
       <footer style={{
-        padding:"18px 24px",
+        padding:"32px 24px",
         borderTop:"1px solid #0e0e0e",
         display:"flex",alignItems:"center",justifyContent:"space-between",
-        flexWrap:"wrap",gap:10,
+        flexDirection: "column", gap:16,
       }}>
         <div style={{display:"flex",alignItems:"center"}}>
           <img
             src="/logo.png"
             alt="ChessWithClaw"
-            width="28"
-            height="28"
-            style={{ height: 28, width: 28, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+            width="24"
+            height="24"
+            style={{ height: 24, width: 24, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
           />
-          <span className="serif" style={{fontSize:14,fontWeight:800,color:"#ccc"}}>ChessWithClaw</span>
-          <span className="sans txt-sm" style={{color:"#444",marginLeft:4}}>— Play chess against your OpenClaw</span>
+          <span className="serif" style={{fontSize:16,fontWeight:800,color:"#f0f0f0"}}>ChessWithClaw</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <span className="sans txt-xs" style={{color:"#333"}}>© 2026 ChessWithClaw</span>
-          <a 
-            href="/privacy" 
-            style={{color:'#555',fontSize:12,marginLeft:16,textDecoration:'none'}}
-          >
-            Privacy Policy
-          </a>
+        <div className="sans txt-sm" style={{color:"#666"}}>Play chess against your OpenClaw</div>
+        <div style={{display:"flex",alignItems:"center",gap:24, marginTop: 16}}>
+          <span className="sans txt-xs" style={{color:"#444"}}>© 2026 ChessWithClaw</span>
         </div>
       </footer>
     </div>
