@@ -359,13 +359,6 @@ export default function App() {
 
   return (
     <div ref={ref} style={{background:"#080808",color:"#f0f0f0",fontFamily:"'Inter',sans-serif",minHeight:"100vh",overflowY:"auto",overflowX:"hidden"}}>
-      <div style={{
-        position:'fixed', top:0, left:0, zIndex:9999,
-        height:2, background:'#e63946',
-        width: scrollPct + '%',
-        transition:'width 0.1s linear',
-        pointerEvents:'none'
-      }}/>
       <style>{css}</style>
 
       {/* ═══ NAV ═══ */}
@@ -434,9 +427,11 @@ export default function App() {
           display:"flex",flexDirection:"column",
           alignItems:"center",textAlign:"center",
           zIndex:2,
+          paddingTop: 80,
+          paddingBottom: 40
         }}>
           {/* Live badge */}
-          <div className={loaded?"fade-up-1":"hidden"} style={{marginBottom:20}}>
+          <div className={loaded?"fade-up-1":"hidden"} style={{marginBottom:16}}>
             <div style={{
               display:"inline-flex",alignItems:"center",gap:7,
               background:"rgba(230,57,70,0.08)",
@@ -451,21 +446,20 @@ export default function App() {
           </div>
 
           {/* Headline */}
-          <h1 className={`hero-h1 ${loaded?"fade-up-2":"hidden"}`} style={{marginBottom:16,maxWidth:740}}>
-            Stop losing to bots.<br/>
-            Play chess against your <em style={{color:"#e63946",fontStyle:"italic"}}>own OpenClaw.</em>
+          <h1 className={`hero-h1 ${loaded?"fade-up-2":"hidden"}`} style={{marginBottom:16,maxWidth:800}}>
+            Play Chess with your <span style={{color:"#e63946"}}>OpenClaw.</span>
           </h1>
 
           {/* Sub */}
           <p className={`sans txt-md ${loaded?"fade-up-3":"hidden"}`} style={{
-            color:"#888",lineHeight:1.7,maxWidth:480,marginBottom:32,
+            color:"#888",lineHeight:1.6,maxWidth:520,marginBottom:32,
           }}>
-            The $2B chess market still runs on basic move-capture engines. It&apos;s time for a real challenge. The same OpenClaw you use every day — now sitting across the board, making moves, showing its thinking, playing live.
+            The same OpenClaw you use every day — now playing chess with you.
           </p>
 
           {/* CTAs */}
-          <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-            <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",width:"100%",maxWidth:360}}>
+          <div className={loaded?"fade-up-4":"hidden"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16, width:"100%"}}>
+            <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"nowrap",width:"100%",maxWidth:340}}>
               <button
                 onClick={handleStart}
                 disabled={creating}
@@ -474,7 +468,7 @@ export default function App() {
                   color: '#fff',
                   border: 'none',
                   borderRadius: 7,
-                  padding: '14px 28px',
+                  padding: '14px 24px',
                   fontFamily: "'Inter', sans-serif",
                   fontSize: 15,
                   fontWeight: 700,
@@ -486,9 +480,9 @@ export default function App() {
               >
                 {creating ? 'Creating game...' : 'Play Now →'}
               </button>
-              <button className="btn-ghost" style={{width: '100%'}} onClick={() => {
+              <button className="btn-ghost" style={{width: '100%', padding: '14px 20px'}} onClick={() => {
                 document.getElementById('how')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}>View Documentation ↓</button>
+              }}>How to Play ↓</button>
             </div>
             {createError && (
               <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif", marginTop: 4}}>
@@ -499,21 +493,21 @@ export default function App() {
 
           {/* Trust signals */}
           <div className={loaded?"fade-up-5":"hidden"} style={{
-            display:"flex",gap:24,justifyContent:"center",
-            marginTop:24,flexWrap:"wrap", alignItems: "center"
+            display: "flex", flexWrap: "nowrap", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 24,
+            background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 100, padding: "8px 20px"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ display: "flex", marginLeft: 10 }}>
-                <img src="https://picsum.photos/seed/user1/32/32" alt="User" style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #080808", marginLeft: -10 }} />
-                <img src="https://picsum.photos/seed/user2/32/32" alt="User" style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #080808", marginLeft: -10 }} />
-                <img src="https://picsum.photos/seed/user3/32/32" alt="User" style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #080808", marginLeft: -10 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+              <div style={{ display: "flex" }}>
+                <img src="https://i.pravatar.cc/100?img=33" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
+                <img src="https://i.pravatar.cc/100?img=47" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
+                <img src="https://i.pravatar.cc/100?img=12" alt="User" style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid #080808", marginLeft: -8 }} />
               </div>
-              <span className="sans txt-sm" style={{ color: "#666" }}>
+              <span className="sans txt-xs" style={{ color: "#888" }}>
                 Used by <strong style={{color:"#f0f0f0"}}>1,000+</strong> agents
               </span>
             </div>
-            <div style={{ width: 1, height: 24, background: "#1a1a1a" }} />
-            <span className="sans txt-sm" style={{ color: "#666", display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 1, height: 16, background: "#222" }} />
+            <span className="sans txt-xs" style={{ color: "#888", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               Powered by <strong style={{color:"#f0f0f0"}}>OpenClaw</strong> 🦞
             </span>
           </div>
@@ -568,7 +562,9 @@ export default function App() {
           {/* Board */}
           <div style={{
             width: bsize, height: bsize,
-            borderRadius: 6, overflow: "hidden",
+            borderRadius: 6, overflow: "visible",
+            position: 'relative',
+            zIndex: 10,
             boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 32px 80px rgba(0,0,0,0.85), 0 0 60px rgba(230,57,70,0.06)",
             pointerEvents: "none"
           }}>
@@ -606,25 +602,10 @@ export default function App() {
         </div>
       </section>
 
-      {/* ═══ STATS ═══ */}
-      <div className="stats-grid">
-        {[
-          {v:"<200ms",l:"Real-time latency"},
-          {v:"4",l:"Connection methods"},
-          {v:"0",l:"Signup required"},
-          {v:"Free",l:"Always"},
-        ].map((s,i)=>(
-          <div key={i} className="stat-cell">
-            <div className="serif" style={{fontSize:"min(28px,7vw)",fontWeight:800,color:"#efefef",letterSpacing:"-0.04em"}}>{s.v}</div>
-            <div className="sans txt-3xs" style={{color:"#666",marginTop:5,letterSpacing:"0.1em",fontWeight:500,textTransform:"uppercase"}}>{s.l}</div>
-          </div>
-        ))}
-      </div>
-
       {/* ═══════════════════════════════
            HOW IT WORKS
       ═══════════════════════════════ */}
-      <section id="how" className="section-pad" style={{background:"#080808"}}>
+      <section id="how" className="section-pad" style={{background:"#080808", borderTop:"1px solid #111"}}>
         <div className="container-sm">
           <div className="sans txt-3xs" style={{color:"#e63946",letterSpacing:"0.15em",fontWeight:700,marginBottom:12,textTransform:"uppercase"}}>
             Four Steps
@@ -637,11 +618,11 @@ export default function App() {
           </p>
 
           {[
-            {n:"01",t:"Teach your OpenClaw chess",badge:"one-time setup",
-              b:"Your OpenClaw has zero chess knowledge initially. Install the chess skill (skill.md) to give it full knowledge of the game, the app, and how to connect.",
+            {n:"01",t:"Create a board",badge:"10 seconds",
+              b:"Hit 'Play Now'. Your game room is created instantly. No login, no signup, no credit card required."},
+            {n:"02",t:"Teach your OpenClaw chess",badge:"one-time setup",
+              b:"Your OpenClaw has zero chess knowledge initially. Install the chess skill to give it full knowledge of the game, the app, and how to connect.",
               code:true},
-            {n:"02",t:"Create a board",badge:"10 seconds",
-              b:"Hit 'Challenge Your OpenClaw'. Your game room is created instantly. No login, no signup, no credit card required."},
             {n:"03",t:"Invite your OpenClaw",badge:"send anywhere",
               b:"Copy the game invite and send it to your OpenClaw on Telegram, Discord, or wherever it lives. It will use its new skill to connect automatically."},
             {n:"04",t:"Play together, live",badge:"real-time",

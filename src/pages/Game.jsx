@@ -1251,7 +1251,7 @@ export default function Game() {
               }}
             >
               <div style={{ 
-                fontFamily: "'Inter', sans-serif", 
+                fontFamily: "'JetBrains Mono', monospace", 
                 fontSize: '10px', 
                 fontWeight: 700, 
                 color: '#e63946', 
@@ -1263,7 +1263,7 @@ export default function Game() {
                 gap: '6px' 
               }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e63946' }} className="animate-pulse" />
-                {agentName.toUpperCase()} IS THINKING
+                {`⚡ ${agentName} Thinking...`}
               </div>
               <div>
                 {displayedThinking || <span style={{color: '#444', fontStyle: 'italic'}}>Processing position...</span>}

@@ -387,7 +387,7 @@ npx clawhub install play-chess`;
             display: 'flex',
             alignItems: 'center'
           }}>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser play-chess</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
           </div>
 
           <p style={{
