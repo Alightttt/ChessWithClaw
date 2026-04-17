@@ -386,10 +386,17 @@ npx clawhub install agent-browser play-chess`;
             padding: '12px 14px',
             marginBottom: '14px',
             display: 'flex',
-            alignItems: 'center'
+            flexDirection: 'column',
+            gap: '8px'
           }}>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>$</span>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser play-chess</span>
+            <div style={{display: 'flex', alignItems: 'center'}}>
+              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>&gt;</span>
+              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
+            </div>
+            <div style={{display: 'flex', alignItems: 'center'}}>
+              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>&gt;</span>
+              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser-clawdbot</span>
+            </div>
           </div>
 
           <p style={{

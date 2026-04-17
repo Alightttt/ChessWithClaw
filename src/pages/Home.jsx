@@ -460,6 +460,7 @@ export default function App() {
                     text-align: left !important;
                   }
                   .hero-ctas {
+                    align-items: flex-start !important;
                     justify-content: flex-start !important;
                   }
                   .hero-trust {
@@ -498,7 +499,7 @@ export default function App() {
 
             {/* CTAs */}
             <div className={`hero-ctas ${loaded?"fade-up-4":"hidden"}`} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16, width:"100%"}}>
-              <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"nowrap",width:"100%",maxWidth:340}}>
+              <div style={{display:"flex",flexDirection:"column",gap:12,justifyContent:"center",width:"100%",maxWidth:300}}>
                 <button
                   onClick={handleStart}
                   disabled={creating}
@@ -653,33 +654,27 @@ export default function App() {
       </section>
 
       {/* ═══════════════════════════════
-           HOW IT WORKS
+           HOW TO PLAY
       ═══════════════════════════════ */}
       <section id="how" className="section-pad" style={{background:"#080808", borderTop:"1px solid #111"}}>
         <div className="container-sm">
           <div className="sans txt-3xs" style={{color:"#e63946",letterSpacing:"0.15em",fontWeight:700,marginBottom:12,textTransform:"uppercase"}}>
-            Four Steps
+            How to Play
           </div>
-          <h2 className="section-h2" style={{marginBottom:8}}>
-            Works with any<br/>OpenClaw agent.
-          </h2>
-          <p className="sans txt-base" style={{color:"#777",marginBottom:56,lineHeight:1.7}}>
-            Teach it chess once. Play forever.
-          </p>
 
           {[
-            {n:"01",t:"Create a board",badge:"10 seconds",
-              b:"Hit 'Play Now'. Your game room is created instantly. No login, no signup, no credit card required."},
-            {n:"02",t:"Teach your OpenClaw chess",badge:"one-time setup",
-              b:"Your OpenClaw has zero chess knowledge initially. Install the chess skill to give it full knowledge of the game, the app, and how to connect.",
-              code:true},
-            {n:"03",t:"Invite your OpenClaw",badge:"send anywhere",
-              b:"Copy the game invite and send it to your OpenClaw on Telegram, Discord, or wherever it lives. It will use its new skill to connect automatically."},
-            {n:"04",t:"Play together, live",badge:"real-time",
-              b:"You move your pieces. Your OpenClaw thinks — you watch its reasoning appear live — then it moves. Until the game ends."},
+            {
+              n:"01",t:"Download skills",
+              b:"Install the required skills for your OpenClaw to connect and play.",
+              code:true
+            },
+            {
+              n:"02",t:"Play",
+              b:"Hit Play now button , invite your OpenClaw with the invite message , copy it and paste it anywhere where your OpenClaw lives. Then start playing."
+            }
           ].map((s,i)=>(
-            <div key={i} className="step-row" style={{marginBottom:i<3?48:0}}>
-              {i<3&&(
+            <div key={i} className="step-row" style={{marginBottom:i<1?48:0}}>
+              {i<1&&(
                 <div style={{
                   position:"absolute",left:15,top:36,
                   width:1,height:"calc(100% + 12px)",
@@ -700,14 +695,6 @@ export default function App() {
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
                   <h3 className="step-h3">{s.t}</h3>
-                  {/* All badges — same red style */}
-                  <span className="sans txt-3xs" style={{
-                    padding:"3px 9px",borderRadius:100,
-                    background:"rgba(230,57,70,0.09)",
-                    border:"1px solid rgba(230,57,70,0.18)",
-                    color:"#e63946",letterSpacing:"0.05em",fontWeight:600,
-                    whiteSpace:"nowrap",
-                  }}>{s.badge}</span>
                 </div>
                 <p className="sans txt-base" style={{color:"#888",lineHeight:1.75,maxWidth:440}}>{s.b}</p>
                 {s.code&&(
@@ -717,8 +704,8 @@ export default function App() {
                     borderRadius:5,padding:"9px 14px",
                   }}>
                     <span className="mono txt-sm">
-                      <span style={{color:"#e63946", marginRight: 8}}>$</span>
-                      <span style={{color:"#999"}}>npx clawhub install agent-browser play-chess</span>
+                      <span style={{color:"#e63946", marginRight: 8}}>&gt;</span>
+                      <span style={{color:"#999"}}>npx clawhub install play-chess</span>
                     </span>
                     <a
                       href="https://clawhub.ai/Alightttt/play-chess"
@@ -729,7 +716,28 @@ export default function App() {
                         fontSize:12,
                         color:'#666',
                         textDecoration:'none',
-                        marginTop:8,
+                        marginTop:4,
+                        marginBottom:16,
+                        display:'block'
+                      }}
+                    >
+                      View on ClawHub →
+                    </a>
+                    
+                    <span className="mono txt-sm">
+                      <span style={{color:"#e63946", marginRight: 8}}>&gt;</span>
+                      <span style={{color:"#999"}}>npx clawhub install agent-browser-clawdbot</span>
+                    </span>
+                    <a
+                      href="https://clawhub.ai/matrixy/agent-browser-clawdbot"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontFamily:"'Inter',sans-serif",
+                        fontSize:12,
+                        color:'#666',
+                        textDecoration:'none',
+                        marginTop:4,
                         display:'block'
                       }}
                     >
@@ -765,13 +773,13 @@ export default function App() {
             }}/>
             <div style={{ fontSize: 32, marginBottom: 20, color: "#e63946" }}>&quot;</div>
             <p className="serif" style={{ fontSize: 24, color: "#f0f0f0", lineHeight: 1.5, marginBottom: 32, fontStyle: "italic" }}>
-              Finally, a chess platform that doesn&apos;t just feel like playing against a cold engine. Seeing my OpenClaw&apos;s reasoning in real-time completely changes the game.
+              Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards new era of gaming with ai agents
             </p>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-              <img src="https://picsum.photos/seed/alex/48/48" alt="Alex" style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #1a1a1a" }} />
+              <img src="https://i.pravatar.cc/150?img=11" alt="Jake Reynolds" style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #1a1a1a" }} />
               <div style={{ textAlign: "left" }}>
-                <div className="sans txt-sm" style={{ fontWeight: 600, color: "#e0e0e0" }}>Alex Chen</div>
-                <div className="sans txt-xs" style={{ color: "#666" }}>AI Researcher & Chess Enthusiast</div>
+                <div className="sans txt-sm" style={{ fontWeight: 600, color: "#e0e0e0" }}>Jake Reynolds</div>
+                <div className="sans txt-xs" style={{ color: "#666" }}>Tech enthusiast</div>
               </div>
             </div>
           </div>
@@ -813,43 +821,57 @@ export default function App() {
       ═══════════════════════════════ */}
       <section className="section-pad" style={{
         textAlign:"center",
-        borderTop:"1px solid #0e0e0e",
-        background:"#060606",
-        position:"relative",overflow:"hidden",
+        borderTop:"1px solid #111",
+        background:"#030303",
+        position:"relative",
+        overflow:"hidden",
+        paddingTop: 80,
+        paddingBottom: 80,
       }}>
         {/* Center glow */}
         <div style={{
           position:"absolute",top:"50%",left:"50%",
           transform:"translate(-50%,-50%)",
-          width:"min(600px,90vw)",height:300,
-          background:"radial-gradient(ellipse,rgba(230,57,70,0.05) 0%,transparent 70%)",
+          width:"100%",maxWidth:800,height:400,
+          background:"radial-gradient(ellipse,rgba(230,57,70,0.06) 0%,transparent 70%)",
           pointerEvents:"none",
         }}/>
-        <div style={{position:"relative",zIndex:1}}>
-          <div style={{fontSize:44,marginBottom:20,display:"inline-block",animation:"float 3s ease-in-out infinite"}}>
-            🦞
+        <div style={{position:"relative",zIndex:1, maxWidth: 600, margin: "0 auto", padding: "0 20px"}}>
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%", background: "rgba(230,57,70,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 24px", border: "1px solid rgba(230,57,70,0.2)",
+            animation: "pulse 2s infinite"
+          }}>
+            <div style={{fontSize: 28, animation:"float 3s ease-in-out infinite"}}>🦞</div>
           </div>
-          <p className="sans txt-sm" style={{color:"#777",marginBottom:12}}>
-            Your OpenClaw is on the other side.
-          </p>
-          {/* Overflow-safe headline */}
-          <h2 className="section-h2" style={{marginBottom:12,padding:"0 16px"}}>
+          
+          <h2 className="serif" style={{
+            fontSize: "clamp(32px, 6vw, 48px)", fontWeight: 800, color: "#f2f2f2",
+            lineHeight: 1.1, marginBottom: 16, letterSpacing: "-0.5px"
+          }}>
             Ready to make your move?
           </h2>
-          <p className="sans txt-base" style={{color:"#777",marginBottom:32,padding:"0 16px"}}>
-            Stop letting bots beat you. Challenge your own OpenClaw today.
+          
+          <p className="sans" style={{
+            fontSize: "clamp(16px, 4vw, 18px)", color: "#888", marginBottom: 40, lineHeight: 1.6
+          }}>
+            Stop playing against predictable engines. Challenge your own OpenClaw and see how it thinks in real-time.
           </p>
+          
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
             <button 
               className="btn-primary" 
               style={{
-                padding:"16px 40px",
+                width: "100%", maxWidth: 280,
+                padding:"16px 24px",
                 fontSize:16,
                 fontWeight:700,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                borderRadius: 8
               }} 
               onClick={handleStart} 
               disabled={creating}
@@ -862,7 +884,7 @@ export default function App() {
                   </svg>
                   Creating...
                 </>
-              ) : "Play Now →"}
+              ) : "Start Playing →"}
             </button>
             {createError && (
               <div style={{color: '#e63946', fontSize: 13, fontFamily: "'Inter', sans-serif"}}>
@@ -870,10 +892,14 @@ export default function App() {
               </div>
             )}
           </div>
-          <div style={{display:"flex",gap:18,justifyContent:"center",marginTop:20,flexWrap:"wrap"}}>
-            {["No signup","Free to play","Any OpenClaw works"].map(t=>(
-              <span key={t} className="sans txt-sm" style={{color:"#666",display:"flex",alignItems:"center",gap:5}}>
-                <span style={{color:"#739552",fontSize:11}}>✓</span>{t}
+          
+          <div style={{
+            display:"flex",gap:24,justifyContent:"center",marginTop:32,flexWrap:"wrap",
+            paddingTop: 32, borderTop: "1px solid #111"
+          }}>
+            {["No Signup Required","Plays in Browser","Free Forever"].map(t=>(
+              <span key={t} className="sans" style={{color:"#666", fontSize: 13, display:"flex",alignItems:"center",gap:6, fontWeight: 500}}>
+                <span style={{color:"#e63946",fontSize:14}}>✓</span>{t}
               </span>
             ))}
           </div>
