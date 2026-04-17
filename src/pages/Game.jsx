@@ -48,6 +48,7 @@ export default function Game() {
   const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
+  const [boardPerspective, setBoardPerspective] = useState(() => localStorage.getItem('cwc_perspective') === '3d');
   const [soundEnabled, setSoundEnabled] = useState(true);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
@@ -66,7 +67,19 @@ export default function Game() {
   const [agentConnected, setAgentConnected] = useState(false);
   const [displayedThinking, setDisplayedThinking] = useState('');
   const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const createRipple = useRipple();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleRematch = async () => {
     // Step 1: Clear all old game state from localStorage
@@ -249,7 +262,7 @@ export default function Game() {
   }, [game?.current_thinking])
 
   useEffect(() => {
-    if (game?.turn === (game.player_color || 'w')) {
+    if (game?.turn === (game?.player_color || 'w')) {
       setDisplayedThinking('')
       prevThinkingRef.current = ''
       if (typerRef.current) clearInterval(typerRef.current)
@@ -320,7 +333,7 @@ export default function Game() {
     }
     
     if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
-      const isAgentWinner = game.result === (game.player_color === 'w' ? 'black' : 'white');
+      const isAgentWinner = game.result === (game?.player_color === 'b' ? 'white' : 'black');
       playSound(isAgentWinner ? 'agentEnd' : 'end');
     }
     
@@ -340,7 +353,7 @@ export default function Game() {
   // Agent Timeout Check
   const [agentTimeout, setAgentTimeout] = useState(false);
   useEffect(() => {
-    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game.player_color || 'w')) {
+    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game?.player_color || 'w')) {
       setAgentTimeout(false);
       return;
     }
@@ -388,8 +401,14 @@ export default function Game() {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
       localStorage.removeItem('chesswithclaw_active_game');
       setTimeout(() => setShowGameOverModal(true), 600);
+      
+      if (game?.result === (game?.player_color === 'b' ? 'black' : 'white')) {
+        setTimeout(() => {
+          toast.success('Achievement Unlocked: Bot Slayer! 🏆');
+        }, 1500);
+      }
     }
-  }, [game?.status]);
+  }, [game?.status, game?.result, game?.player_color, toast]);
 
   const handleClaimVictory = useCallback(async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
@@ -403,7 +422,7 @@ export default function Game() {
     const agentName = game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'Game Over | ChessWithClaw';
-    } else if (game.turn === (game.player_color || 'w')) {
+    } else if (game.turn === (game?.player_color || 'w')) {
       document.title = 'Your Turn | ChessWithClaw';
     } else {
       document.title = `⚡ ${agentName} Thinking... | ChessWithClaw`;
@@ -608,6 +627,30 @@ export default function Game() {
   }, [gameId]);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger shortcuts if user is typing in chat
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      if (e.key === 'h' || e.key === 'H') {
+        setMoveHistoryOpen(prev => !prev);
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) chatInput.focus();
+      } else if (e.key === 'R' && e.shiftKey) {
+        handleResign();
+      } else if (e.key === 'D' && e.shiftKey) {
+        handleDraw();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmResign, confirmDraw, handleDraw, handleResign]);
+
+  useEffect(() => {
     const handleVisibility = async () => {
       if (document.visibilityState === 'visible') {
         const { data } = await supabase
@@ -659,7 +702,7 @@ export default function Game() {
   }, [gameId]);
 
   const makeMove = async (from, to, promotion) => {
-    if (!game || game.turn !== (game.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
+    if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
     
     const agentName = game?.agent_name || 'Your OpenClaw';
@@ -768,7 +811,7 @@ export default function Game() {
     }
   };
 
-  const handleResign = async () => {
+  const handleResign = useCallback(async () => {
     if (!confirmResign) {
       setConfirmResign(true);
       setTimeout(() => setConfirmResign(false), 3000);
@@ -779,9 +822,9 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
-  };
+  }, [confirmResign, gameId, game?.player_color]);
 
-  const handleDraw = async () => {
+  const handleDraw = useCallback(async () => {
     if (!confirmDraw) {
       setConfirmDraw(true);
       setTimeout(() => setConfirmDraw(false), 3000);
@@ -792,7 +835,7 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmDraw(false);
-  };
+  }, [confirmDraw, gameId]);
 
   const acceptAgentResignation = async () => {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
@@ -919,8 +962,23 @@ export default function Game() {
 
   if (loading) {
     return (
-      <div style={{ height: '100dvh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontFamily: "'Inter', sans-serif" }}>
-        Loading game...
+      <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column' }} className="lg:flex-row">
+        {/* Sidebar Skeleton */}
+        <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', borderBottom: '1px solid #1a1a1a', background: '#0e0e0e' }} className="lg:w-[360px] lg:border-b-0 lg:border-r">
+          <div style={{ height: '52px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 16px', gap: '12px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+            <div style={{ width: '96px', height: '16px', borderRadius: '4px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+          </div>
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ width: '100%', height: '96px', borderRadius: '8px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+            <div style={{ width: '100%', height: '48px', borderRadius: '8px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+          </div>
+        </div>
+        {/* Board Skeleton */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '1/1', borderRadius: '4px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+          <div style={{ width: '100%', maxWidth: '400px', height: '32px', marginTop: '16px', borderRadius: '4px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+        </div>
       </div>
     );
   }
@@ -947,7 +1005,7 @@ export default function Game() {
   }
 
   const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
-  const isMyTurn = !isSpectator && game.turn === (game.player_color || 'w') && (game.status === 'active' || game.status === 'waiting');
+  const isMyTurn = !isSpectator && game?.turn === (game?.player_color || 'w') && (game?.status === 'active' || game?.status === 'waiting');
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
@@ -955,13 +1013,22 @@ export default function Game() {
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col"
+      className="flex flex-col relative"
       style={{
       height: 'var(--vh, 100dvh)',
       overflow: 'hidden',
       backgroundColor: game?.turn === 'b' ? '#120808' : '#080808',
       transition: 'background-color 300ms ease'
     }}>
+      {isOffline && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, background: '#e63946', color: '#fff',
+          fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, textAlign: 'center',
+          padding: '4px', zIndex: 1000
+        }}>
+          You are offline. Reconnecting...
+        </div>
+      )}
       <style>{`
         @keyframes cursorBlink {
           0%, 100% { opacity: 1; }
@@ -995,18 +1062,25 @@ export default function Game() {
         flexShrink: 0,
         overflow: 'hidden'
       }}>
-        <div style={{display:"flex",alignItems:"center",cursor:"pointer"}} onClick={handleGoHome}>
-          <img
-            src="/logo.png"
-            alt="ChessWithClaw"
-            width="32"
-            height="32"
-            style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
-            loading="eager"
-          />
-          <span className="serif" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
-            ChessWithClaw
-          </span>
+        <div style={{display:"flex",alignItems:"center", gap: '12px'}}>
+          <div style={{display:"flex",alignItems:"center",cursor:"pointer"}} onClick={handleGoHome}>
+            <img
+              src="/logo.png"
+              alt="ChessWithClaw"
+              width="32"
+              height="32"
+              style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+              loading="eager"
+            />
+            <span className="serif hidden sm:inline" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
+              ChessWithClaw
+            </span>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#666' }}>
+            <span className="hidden sm:inline">/</span>
+            <span style={{ color: '#f0f0f0' }}>Game {gameId.substring(0, 6)}</span>
+          </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1014,7 +1088,7 @@ export default function Game() {
             data-testid="settings-button"
             onClick={handleOpenSettings}
             style={{
-              width: '34px', height: '34px',
+              width: '44px', height: '44px',
               background: '#0e0e0e', border: '1px solid #1a1a1a',
               borderRadius: '8px', color: '#888',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1022,7 +1096,7 @@ export default function Game() {
             }}
             className="hover:text-[#888]"
           >
-            <Settings size={18} />
+            <Settings size={20} />
           </button>
         </div>
       </header>
@@ -1070,11 +1144,11 @@ export default function Game() {
             <div style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px', lineHeight: 1, whiteSpace: 'nowrap', marginTop: '3px',
-              color: agentTimeout ? '#f59e0b' : (!agentConnected ? '#888' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : (game.turn === (game.player_color || 'w') ? '#888' : '#e63946')))
+              color: agentTimeout ? '#f59e0b' : (!agentConnected ? '#888' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? '#e63946' : (game?.turn === (game?.player_color || 'w') ? '#888' : '#e63946')))
             }}>
               {agentTimeout ? `⏱ ${agentName} is taking longer than usual` :
                !agentConnected ? (<span>Not here yet... <span style={{color: '#888'}}>Send them the invite link.</span></span>) : 
-               game.turn === (game.player_color || 'w') ? "Watching you..." : 
+               game?.turn === (game?.player_color || 'w') ? "Watching you..." : 
                null}
             </div>
           </div>
@@ -1097,14 +1171,14 @@ export default function Game() {
             )}
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%', position: 'relative',
-              background: !agentConnected ? '#444' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#739552')
+              background: !agentConnected ? '#444' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? '#e63946' : '#739552')
             }}>
               {agentConnected && (
                 <div style={{
                   position: 'absolute', inset: '-3px', borderRadius: '50%',
-                  background: (game.current_thinking && game.turn !== (game.player_color || 'w')) ? '#e63946' : '#739552',
+                  background: (game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? '#e63946' : '#739552',
                   opacity: 0,
-                  animation: `ripple ${(game.current_thinking && game.turn !== (game.player_color || 'w')) ? '1s' : '2s'} ease-out infinite`
+                  animation: `ripple ${(game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? '1s' : '2s'} ease-out infinite`
                 }}></div>
               )}
             </div>
@@ -1280,23 +1354,46 @@ export default function Game() {
                 fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
                 borderRadius: '4px', marginBottom: '4px'
               }}>
-                {game.turn === (game.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
+                {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
               </div>
             );
           }
           return null;
         })()}
 
-        <div style={{ width: `${boardSize}px`, display: 'flex', gap: 2, minHeight: 20, padding: '4px 0' }}>
-          {capturedByWhite.map((p, i) => {
-            const pieceName = `b${p.toUpperCase()}`;
-            const url = (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') 
-              ? `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`
-              : `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
-            return (
-              <img key={i} src={url} alt={pieceName} style={{ width: 16, height: 16, opacity: 0.8 }} />
-            );
-          })}
+        <div style={{ width: `${boardSize}px`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 20, padding: '4px 0' }}>
+          <div style={{ display: 'flex', gap: 2 }}>
+            {capturedByWhite.map((p, i) => {
+              const pieceName = `b${p.toUpperCase()}`;
+              const url = (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') 
+                ? `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`
+                : `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
+              return (
+                <img key={i} src={url} alt={pieceName} style={{ width: 16, height: 16, opacity: 0.8 }} />
+              );
+            })}
+          </div>
+          <button
+            onClick={() => {
+              const newVal = !boardPerspective;
+              setBoardPerspective(newVal);
+              localStorage.setItem('cwc_perspective', newVal ? '3d' : '2d');
+            }}
+            style={{
+              background: boardPerspective ? '#e63946' : 'transparent',
+              color: boardPerspective ? '#fff' : '#888',
+              border: boardPerspective ? '1px solid #e63946' : '1px solid #252525',
+              borderRadius: '4px',
+              padding: '2px 6px',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '10px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            3D
+          </button>
         </div>
 
         <div style={{
@@ -1306,11 +1403,13 @@ export default function Game() {
           borderRadius: '3px',
           overflow: 'visible',
           border: '1px solid rgba(230,57,70,0.08)',
-          boxShadow: '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
+          boxShadow: boardPerspective ? '0 20px 40px rgba(0,0,0,0.9), 0 0 0 1px #0f0f0f' : '0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8)',
           flexShrink: 0,
           pointerEvents: boardLocked ? 'none' : 'auto',
-          animation: shaking ? 'boardShake 300ms ease-in-out' : ((game.current_thinking && game.turn !== (game.player_color || 'w')) ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none'),
-          transform: shaking ? 'translateX(0)' : 'none'
+          animation: shaking ? 'boardShake 300ms ease-in-out' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'boardThinkingGlow 2s ease-in-out infinite' : 'none'),
+          transform: `${shaking ? 'translateX(0)' : 'none'} ${boardPerspective ? 'perspective(1000px) rotateX(25deg) scale(0.95)' : ''}`,
+          transformOrigin: 'bottom center',
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease'
         }} ref={boardRef}>
           <ChessBoard 
             fen={game.fen} 
@@ -1320,8 +1419,12 @@ export default function Game() {
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
-            playerColor={game.player_color || 'w'}
+            playerColor={game?.player_color || 'w'}
             onIllegalMove={() => {
+              setShaking(true);
+              setTimeout(() => setShaking(false), 300);
+            }}
+            onCapture={() => {
               setShaking(true);
               setTimeout(() => setShaking(false), 300);
             }}
@@ -1335,7 +1438,7 @@ export default function Game() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#e63946', marginTop: '4px', fontWeight: 600 }}>
-                {game.status === 'abandoned' ? 'Game expired due to inactivity' : (game.result === 'draw' ? 'Draw by ' + game.result_reason : (game.result === (game.player_color === 'w' ? 'white' : 'black') ? 'You won by ' : agentName + ' won by ') + game.result_reason)}
+                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
               </div>
             </div>
           )}
@@ -1461,11 +1564,12 @@ export default function Game() {
         </div>
 
         <form onSubmit={sendMessage} style={{
-          height: '44px', borderTop: '1px solid #0e0e0e', padding: '0 12px', gap: '8px',
+          height: '52px', borderTop: '1px solid #0e0e0e', padding: '0 12px', gap: '8px',
           display: 'flex', alignItems: 'center', flexShrink: 0, paddingBottom: 'env(safe-area-inset-bottom)',
           position: 'sticky', bottom: 0, background: '#0e0e0e'
         }}>
           <input
+            id="chat-input"
             data-testid="chat-input"
             type="text"
             value={chatInput}
@@ -1475,7 +1579,7 @@ export default function Game() {
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#e0e0e0',
-              caretColor: '#e63946', touchAction: 'manipulation'
+              caretColor: '#e63946', touchAction: 'manipulation', height: '44px'
             }}
           />
           <button 
@@ -1483,13 +1587,13 @@ export default function Game() {
             type="submit"
             disabled={isSpectator || !chatInput.trim()}
             style={{
-              width: '30px', height: '30px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : '#1a1a1a',
+              width: '44px', height: '44px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : '#1a1a1a',
               border: 'none', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', touchAction: 'manipulation', transition: 'background 120ms',
               color: (!isSpectator && chatInput.trim()) ? 'white' : '#888'
             }}
           >
-            <Send size={14} />
+            <Send size={18} />
           </button>
         </form>
       </div>
@@ -1581,7 +1685,7 @@ export default function Game() {
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>GAME OVER</div>
-        ) : game.turn === (game.player_color || 'w') ? (
+        ) : game?.turn === (game?.player_color || 'w') ? (
           <div style={{
             background: '#e63946', color: 'white', height: '26px', padding: '0 10px', borderRadius: '6px',
             fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px', whiteSpace: 'nowrap',
@@ -1626,10 +1730,10 @@ export default function Game() {
               <X size={20} />
             </button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? '🏆' : game.result === 'draw' ? '🤝' : '🦞'}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '🦞'}
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', color: '#f2f2f2', marginBottom: '8px' }}>
-              {game.result === (game.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#777', marginBottom: '24px' }}>
                 {game.result_reason === 'checkmate' ? 'by checkmate' :
@@ -1646,8 +1750,11 @@ export default function Game() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button 
-                  data-testid="share-result-button"
-                  onClick={handleShareResult}
+                  data-testid="analyze-lichess-button"
+                  onClick={() => {
+                    const fen = game.fen.replace(/ /g, '_');
+                    window.open(`https://lichess.org/analysis/standard/${fen}`, '_blank');
+                  }}
                   style={{
                     background: '#e63946', color: '#fff', border: 'none',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, padding: '13px 26px',
@@ -1656,34 +1763,62 @@ export default function Game() {
                   onMouseEnter={e => { e.target.style.opacity = '0.9'; e.target.style.transform = 'translateY(-1px)'; }}
                   onMouseLeave={e => { e.target.style.opacity = '1'; e.target.style.transform = 'none'; }}
                 >
-                  Share Result
+                  Analyze on Lichess
+                </button>
+                <button 
+                  data-testid="review-game-button"
+                  onClick={() => setShowGameOverModal(false)}
+                  style={{
+                    background: 'transparent', color: '#f0f0f0', border: '1px solid #444',
+                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
+                    borderRadius: 7, width: '100%', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s'
+                  }}
+                  onMouseEnter={e => { e.target.style.borderColor = '#666'; e.target.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
+                >
+                  Review Board
                 </button>
                 <button 
                   data-testid="rematch-button"
                   onClick={handleRematch}
                   style={{
-                    background: 'transparent', color: '#888', border: '1px solid #252525',
+                    background: 'transparent', color: '#f0f0f0', border: '1px solid #444',
                     fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
                     borderRadius: 7, width: '100%', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s'
                   }}
-                  onMouseEnter={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
-                  onMouseLeave={e => { e.target.style.borderColor = '#252525'; e.target.style.color = '#888'; }}
+                  onMouseEnter={e => { e.target.style.borderColor = '#666'; e.target.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
                 >
                   Rematch
                 </button>
-                <button 
-                  data-testid="go-home-button"
-                  onClick={() => navigate('/')}
-                  style={{
-                    background: 'transparent', color: '#888', border: 'none',
-                    fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
-                    borderRadius: 7, width: '100%', cursor: 'pointer', transition: 'color 0.15s'
-                  }}
-                  onMouseEnter={e => { e.target.style.color = '#f0f0f0'; }}
-                  onMouseLeave={e => { e.target.style.color = '#888'; }}
-                >
-                  Go Home
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    data-testid="share-result-button"
+                    onClick={handleShareResult}
+                    style={{
+                      background: 'transparent', color: '#888', border: '1px solid #252525',
+                      fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
+                      borderRadius: 7, flex: 1, cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s'
+                    }}
+                    onMouseEnter={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
+                    onMouseLeave={e => { e.target.style.borderColor = '#252525'; e.target.style.color = '#888'; }}
+                  >
+                    Share
+                  </button>
+                  <button 
+                    data-testid="go-home-button"
+                    onClick={() => navigate('/')}
+                    style={{
+                      background: 'transparent', color: '#888', border: '1px solid #252525',
+                      fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 500, padding: '13px 22px',
+                      borderRadius: 7, flex: 1, cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s'
+                    }}
+                    onMouseEnter={e => { e.target.style.borderColor = '#444'; e.target.style.color = '#f0f0f0'; }}
+                    onMouseLeave={e => { e.target.style.borderColor = '#252525'; e.target.style.color = '#888'; }}
+                  >
+                    Home
+                  </button>
+                </div>
               </div>
           </div>
         </div>

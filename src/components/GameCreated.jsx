@@ -79,16 +79,11 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
 I've created a chess game for us.
 You are Black. I'm White and move first.
 
-Join here:
-${agentUrl}
+Open this board in your browser to play:
+${origin}/Board?id=${gameId}&token=${agentToken}
 
-If you don't have the chess skill yet:
-npx clawhub install play-chess
-
-Game ID: ${gameId}
-Token: ${agentToken}
-API: POST ${origin}/api/move
-Header: x-agent-token: ${agentToken}`;
+If you don't have the required skills yet:
+npx clawhub install play-chess`;
 
   const handleShare = async () => {
     const text = inviteMessage;
@@ -381,7 +376,7 @@ Header: x-agent-token: ${agentToken}`;
             color: '#666',
             lineHeight: 1.5,
             marginBottom: '14px'
-          }}>First, install the chess skill in your OpenClaw terminal:</p>
+          }}>First, install the required skills in your OpenClaw terminal:</p>
 
           <div style={{
             background: '#080808',
@@ -392,7 +387,7 @@ Header: x-agent-token: ${agentToken}`;
             display: 'flex',
             alignItems: 'center'
           }}>
-            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
+            <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser play-chess</span>
           </div>
 
           <p style={{
@@ -487,11 +482,7 @@ Header: x-agent-token: ${agentToken}`;
               <div>GET {origin}/api/stream?id={gameId}</div>
               <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
 
-              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION C: WEBHOOKS</div>
-              <div>POST {origin}/api/webhook</div>
-              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
-
-              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION D: LONG-POLLING</div>
+              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION C: LONG-POLLING</div>
               <div>GET {origin}/api/poll?id={gameId}</div>
               <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
 

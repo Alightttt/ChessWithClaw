@@ -49,6 +49,7 @@
   }
   @keyframes pieceCapture {
     0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; filter: drop-shadow(0 0 10px rgba(230,57,70,0.8)); }
     100% { transform: scale(0.5); opacity: 0; }
   }
   @keyframes boardShake {
@@ -72,6 +73,24 @@
     0%,100% { border-color: rgba(230,57,70,0.25) }
     50% { border-color: rgba(230,57,70,0.6) }
   }
+  @keyframes checkPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+}
+
+/* Global button hover effects */
+button {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+button:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(230,57,70,0.3);
 }
 
 /* Global scrollbar styling */

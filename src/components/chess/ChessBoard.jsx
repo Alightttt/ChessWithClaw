@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Chess } from 'chess.js/dist/cjs/chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, playerColor = 'w' }) {
+export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
   const [chess, setChess] = useState(new Chess(fen));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
   const [pieces, setPieces] = useState([]);
+  const prevMoveHistoryLength = useRef(0);
 
   useEffect(() => {
     const newChess = new Chess(fen);
@@ -34,8 +35,11 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       }
     }
     
+    let lastMoveWasCapture = false;
+
     if (moveHistory && moveHistory.length > 0) {
-      for (const moveInput of moveHistory) {
+      for (let i = 0; i < moveHistory.length; i++) {
+        const moveInput = moveHistory[i];
         let moveObj;
         try {
           moveObj = initialChess.move(typeof moveInput === 'string' ? moveInput : (moveInput.san || moveInput));
@@ -56,6 +60,9 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== moveObj.from);
         if (capturedIndex !== -1) {
           currentPieces[capturedIndex].captured = true;
+          if (i === moveHistory.length - 1) {
+            lastMoveWasCapture = true;
+          }
         }
         
         // Update moved piece
@@ -83,6 +90,11 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           }
         }
       }
+      
+      if (lastMoveWasCapture && moveHistory.length > prevMoveHistoryLength.current) {
+        if (onCapture) onCapture();
+      }
+      prevMoveHistoryLength.current = moveHistory.length;
       
       // Check if moveHistory matches fen to prevent flashing during split-second Realtime sync
       const historyFen = initialChess.fen().split(' ')[0];
@@ -138,7 +150,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     }
     
     setPieces(currentPieces);
-  }, [fen, moveHistory]);
+  }, [fen, moveHistory, onCapture]);
 
   const pieceMap = {
     wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -295,50 +307,55 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         )}
         </div>
         
-        {/* Pieces Layer */}
-        {pieces.map((piece, index) => {
-          const fileIndex = files.indexOf(piece.square[0]);
-          const rankIndex = ranks.indexOf(piece.square[1]);
-          const isSelected = selectedSquare === piece.square;
-          const isLastPlaced = lastMove && (typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to) === piece.square;
-          
-          // Calculate entrance delay based on rank (staggered entrance)
-          const entranceDelay = `${(rankIndex * 0.05) + (fileIndex * 0.02)}s`;
-          
-          let animationClass = '';
-          let animationStyle = {};
-          
-          if (piece.captured) {
-            animationClass = 'animate-[pieceCapture_200ms_ease-out_forwards]';
-          } else if (isSelected) {
-            animationClass = 'animate-[pieceLift_200ms_cubic-bezier(0.2,0,0,1)_forwards]';
-          } else if (isLastPlaced) {
-            animationClass = 'animate-[pieceDrop_150ms_cubic-bezier(0.2,0,0,1)_forwards]';
-          } else {
-            // Only apply entrance animation if there's no move history (initial load)
-            if (!moveHistory || moveHistory.length === 0) {
-              animationClass = 'animate-[pieceEntrance_400ms_cubic-bezier(0.2,0,0,1)_both]';
-              animationStyle = { animationDelay: entranceDelay };
-            }
-          }
+        {/* Animated Pieces Layer */}
+        <div className="absolute inset-0 pointer-events-none z-10">
+          <AnimatePresence>
+            {pieces.map((piece) => {
+              if (piece.captured) return null;
+              
+              const fileIndex = files.indexOf(piece.square[0]);
+              const rankIndex = ranks.indexOf(piece.square[1]);
+              const isSelected = selectedSquare === piece.square;
+              const isLastPlaced = lastMove && (typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to) === piece.square;
+              
+              // Calculate entrance delay based on rank (staggered entrance)
+              const entranceDelay = (rankIndex * 0.05) + (fileIndex * 0.02);
+              
+              let animationClass = '';
+              
+              if (isSelected) {
+                animationClass = 'animate-[pieceLift_200ms_cubic-bezier(0.2,0,0,1)_forwards]';
+              } else if (isLastPlaced) {
+                animationClass = 'animate-[pieceDrop_150ms_cubic-bezier(0.2,0,0,1)_forwards]';
+              }
 
-          return (
-            <div
-              key={piece.id}
-              className="absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center pointer-events-none z-10 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)] will-change-transform"
-              style={{ 
-                transform: `translate(${fileIndex * 100}%, ${rankIndex * 100}%)`
-              }}
-            >
-              <div 
-                className={`w-full h-full flex items-center justify-center ${animationClass}`}
-                style={animationStyle}
-              >
-                {renderPiece(piece)}
-              </div>
-            </div>
-          );
-        })}
+              return (
+                <motion.div
+                  key={piece.id}
+                  initial={(!moveHistory || moveHistory.length === 0) ? { y: -20, opacity: 0 } : false}
+                  animate={{ 
+                    x: `${fileIndex * 100}%`, 
+                    y: `${rankIndex * 100}%`,
+                    opacity: 1
+                  }}
+                  exit={{ scale: 0.5, opacity: 0, filter: 'drop-shadow(0 0 10px rgba(230,57,70,0.8))' }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 350, 
+                    damping: 25,
+                    opacity: { duration: 0.2 },
+                    delay: (!moveHistory || moveHistory.length === 0) ? entranceDelay : 0
+                  }}
+                  className="absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center z-10 will-change-transform"
+                >
+                  <div className={`w-full h-full flex items-center justify-center ${animationClass}`}>
+                    {renderPiece(piece)}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
 
         {/* Top Overlays Layer (Above Pieces) */}
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 pointer-events-none z-20">
