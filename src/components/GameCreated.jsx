@@ -11,6 +11,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [agentToken, setAgentToken] = useState(initialAgentToken || '');
   const [boardOpening, setBoardOpening] = useState(false);
   const [boardOpened, setBoardOpened] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -22,6 +23,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     if (!gameId) return;
 
     const fetchGame = async () => {
+      setLoading(true);
       const { data } = await supabase
         .from('games')
         .select('agent_connected, agent_name, agent_token')
@@ -37,6 +39,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       if (!agentToken && data?.agent_token) {
         setAgentToken(data.agent_token);
       }
+      setLoading(false);
     };
     fetchGame();
 
@@ -83,8 +86,10 @@ ${origin}/Board?id=${gameId}&token=${agentToken}
 
 2. Follow the on-screen instructions to connect and play!
 
-If you haven't installed the needed skills yet, run:
-npx clawhub install agent-browser play-chess`;
+If you haven't installed the needed skills yet, run these two commands:
+
+npx clawhub install play-chess
+npx clawhub install agent-browser-clawdbot`;
 
   const handleShare = async () => {
     const text = inviteMessage;
@@ -115,7 +120,7 @@ npx clawhub install agent-browser play-chess`;
   };
 
   const handleOpenBoard = (e) => {
-    if (boardOpened || boardOpening) return;
+    if (boardOpening) return;
     createRipple(e);
     setBoardOpening(true);
     window.open(`/game/${gameId}`, '_blank');
@@ -149,6 +154,35 @@ npx clawhub install agent-browser play-chess`;
       return <div key={i}>{line || ' '}</div>;
     });
   };
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: '#080808',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        <div style={{
+          maxWidth: '560px',
+          width: '100%',
+          margin: '0 auto',
+          padding: '40px 20px',
+        }}>
+          {/* Header Skeleton */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px', gap: '16px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+            <div style={{ flex: 1, height: '24px', borderRadius: '6px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+            <div style={{ width: '80px', height: '24px', borderRadius: '6px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+          </div>
+          {/* Card 1 Skeleton */}
+          <div style={{ width: '100%', height: '320px', borderRadius: '12px', background: '#0e0e0e', border: '1px solid #1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', marginBottom: '16px' }}></div>
+          {/* Card 2 Skeleton */}
+          <div style={{ width: '100%', height: '140px', borderRadius: '12px', background: '#0e0e0e', border: '1px solid #1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -209,7 +243,7 @@ npx clawhub install agent-browser play-chess`;
             fontWeight: 700,
             color: '#f2f2f2'
           }}>
-            Summon Your OpenClaw 🦞
+            Invite Your OpenClaw 🦞
           </div>
 
           <div style={{
@@ -455,50 +489,6 @@ npx clawhub install agent-browser play-chess`;
           >
             {copyState === 'copied' ? '✓ Copied!' : '📤 Share Invite'}
           </button>
-
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            style={{
-              marginTop: '16px',
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '13px',
-              color: '#666',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 0'
-            }}
-          >
-            ⚙️ Advanced connection options {showAdvanced ? '▲' : '▼'}
-          </button>
-
-          {showAdvanced && (
-            <div style={{
-              marginTop: '12px',
-              padding: '12px',
-              background: '#080808',
-              border: '1px solid #1a1a1a',
-              borderRadius: '8px',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '10px',
-              color: '#888',
-              lineHeight: 1.6
-            }}>
-              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION B: REAL-TIME API (SSE)</div>
-              <div>GET {origin}/api/stream?id={gameId}</div>
-              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
-
-              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>OPTION C: LONG-POLLING</div>
-              <div>GET {origin}/api/poll?id={gameId}</div>
-              <div style={{ marginBottom: '8px' }}>POST {origin}/api/move</div>
-
-              <div style={{ color: '#f2f2f2', marginBottom: '8px', fontWeight: 'bold' }}>HEADERS REQUIRED:</div>
-              <div>x-agent-token: {agentToken}</div>
-            </div>
-          )}
         </div>
 
         {/* CARD 2 — OPEN YOUR ARENA */}
@@ -556,11 +546,11 @@ npx clawhub install agent-browser play-chess`;
               fontFamily: "'Inter', sans-serif",
               fontSize: '14px',
               fontWeight: 600,
-              cursor: boardOpened || boardOpening ? 'default' : 'pointer',
+              cursor: boardOpening ? 'default' : 'pointer',
               position: 'relative',
               overflow: 'hidden',
               touchAction: 'manipulation',
-              pointerEvents: boardOpened || boardOpening ? 'none' : 'auto',
+              pointerEvents: boardOpening ? 'none' : 'auto',
               opacity: boardOpening ? 0.75 : 1,
               display: 'flex',
               alignItems: 'center',
@@ -568,7 +558,7 @@ npx clawhub install agent-browser play-chess`;
               gap: boardOpening ? '8px' : '0'
             }}
             onMouseDown={(e) => {
-              if (!boardOpened && !boardOpening) e.currentTarget.style.transform = 'scale(0.97)';
+              if (!boardOpening) e.currentTarget.style.transform = 'scale(0.97)';
             }}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -585,126 +575,8 @@ npx clawhub install agent-browser play-chess`;
                 }} />
                 Opening...
               </>
-            ) : boardOpened ? '✓ Arena Open' : 'Open Arena →'}
+            ) : boardOpened ? 'Arena Opened (Click to reopen)' : 'Open Arena →'}
           </button>
-        </div>
-
-        {/* CARD 3 — WAITING FOR YOUR OPENCLAW */}
-        <div 
-          style={{
-            background: '#0e0e0e',
-            border: '1px solid #1a1a1a',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '10px',
-            transition: 'border-color 200ms'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1a1a1a'}
-        >
-          <div style={{
-            display: 'inline-block',
-            marginBottom: '12px',
-            background: 'rgba(230,57,70,0.07)',
-            border: '1px solid rgba(230,57,70,0.14)',
-            borderRadius: '4px',
-            padding: '2px 8px',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '10px',
-            fontWeight: 500,
-            color: '#e63946'
-          }}>03</div>
-          
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '20px',
-            fontWeight: 700,
-            color: '#f2f2f2',
-            marginBottom: '14px'
-          }}>{agentConnected ? 'Your OpenClaw is Ready' : 'Waiting for Your OpenClaw'}</h2>
-          
-          <div style={{
-            background: agentConnected ? 'rgba(34,197,94,0.03)' : '#080808',
-            border: agentConnected ? '1px solid rgba(34,197,94,0.1)' : '1px solid #1a1a1a',
-            borderRadius: '8px',
-            padding: '22px',
-            textAlign: 'center',
-            minHeight: '90px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px'
-          }}>
-            {!agentConnected ? (
-              <>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  background: 'rgba(245,158,11,0.04)',
-                  border: '1px dashed rgba(245,158,11,0.14)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  opacity: 0.5,
-                  animation: 'floatLobster 2s ease-in-out infinite'
-                }}>
-                  🦞
-                </div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#666' }}>
-                  Your OpenClaw hasn&apos;t arrived yet...
-                </div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: '#666' }}>
-                  Send the invite above to summon them.
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  background: 'rgba(34,197,94,0.07)',
-                  border: '1px solid rgba(34,197,94,0.18)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  opacity: 1,
-                  animation: 'bounceLobster 400ms ease-out forwards'
-                }}>
-                  🦞
-                </div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#22c55e' }}>
-                  Your OpenClaw is ready to play! 🦞
-                </div>
-                <button
-                  onClick={() => navigate(`/game/${gameId}`)}
-                  style={{
-                    background: '#e63946',
-                    color: 'white',
-                    height: '42px',
-                    width: '100%',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginTop: '10px',
-                    animation: 'fadeUp 300ms ease forwards',
-                    animationDelay: '1s',
-                    opacity: 0,
-                    transform: 'translateY(10px)'
-                  }}
-                >
-                  Go to Battle →
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
       </div>

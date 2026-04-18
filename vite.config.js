@@ -3,13 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  optimizeDeps: {
-    include: ['chess.js'],
-  },
   build: {
-    commonjsOptions: {
-      include: [/chess\.js/, /node_modules/],
-    },
+    target: 'esnext'
   },
   server: {
     host: '0.0.0.0',
