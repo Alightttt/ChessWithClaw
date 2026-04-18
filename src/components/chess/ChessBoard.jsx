@@ -1,11 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
-  const [chess, setChess] = useState(new Chess(fen));
+  const [Chess, setChessClass] = useState(null);
+
+  useEffect(() => {
+    import('chess.js').then((mod) => {
+      setChessClass(() => mod.Chess);
+    }).catch(e => console.error('Failed to load chess.js:', e));
+  }, []);
+
+  const [chess, setChess] = useState(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
@@ -13,6 +20,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   const prevMoveHistoryLength = useRef(0);
 
   useEffect(() => {
+    if (!Chess) return;
     const newChess = new Chess(fen);
     setChess(newChess);
     setSelectedSquare(null);
@@ -150,7 +158,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     }
     
     setPieces(currentPieces);
-  }, [fen, moveHistory, onCapture]);
+  }, [fen, moveHistory, onCapture, Chess]);
 
   const pieceMap = {
     wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -257,6 +265,23 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] drop-shadow-md pointer-events-none" />;
     }
   };
+
+  if (!Chess || !chess) {
+    return (
+      <div style={{
+        width: '100%',
+        aspectRatio: '1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: boardTheme === 'dark' ? '#222' : '#739552',
+        color: '#fff',
+        fontFamily: "'Inter', sans-serif"
+      }}>
+        Loading board...
+      </div>
+    );
+  }
 
   return (
     <div data-testid="chess-board" className={`flex flex-col select-none w-full h-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>

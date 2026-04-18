@@ -51,10 +51,18 @@ export default function Game() {
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  const [Chess, setChess] = useState(null);
+
   useEffect(() => {
-    const checkCheck = async () => {
+    import('chess.js').then((mod) => {
+      setChess(() => mod.Chess);
+    }).catch(e => console.error('Failed to load chess.js:', e));
+  }, []);
+
+  useEffect(() => {
+    const checkCheck = () => {
+      if (!Chess) return;
       try {
-        const { Chess } = await import('chess.js');
         const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.isCheck());
       } catch (e) {
@@ -64,7 +72,7 @@ export default function Game() {
     if (game?.fen) {
       checkCheck();
     }
-  }, [game?.fen]);
+  }, [game?.fen, Chess]);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -116,16 +124,14 @@ export default function Game() {
     navigate('/')
   }
 
-  const computeMaterial = useCallback(async (fen) => {
-    if (!fen) return null;
+  const computeMaterial = useCallback((fen) => {
+    if (!fen || !Chess) return null;
     try {
       let chess;
       try {
-        const { Chess } = await import('chess.js');
         chess = new Chess(fen);
       } catch(e) {
         console.error('Invalid FEN:', fen);
-        const { Chess } = await import('chess.js');
         chess = new Chess();
       }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -140,7 +146,7 @@ export default function Game() {
     } catch (e) {
       return null;
     }
-  }, []);
+  }, [Chess]);
   
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
@@ -329,13 +335,12 @@ export default function Game() {
   }, [soundEnabled]);
 
   useEffect(() => {
-    if (!game) return;
+    if (!game || !Chess) return;
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
-      const runSoundLogic = async () => {
+      const runSoundLogic = () => {
         let chess;
         try {
-          const { Chess } = await import('chess.js');
           chess = new Chess();
         } catch(e) {
           chess = null;
@@ -735,7 +740,7 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
-    if (boardLocked || submittingRef.current) return;
+    if (boardLocked || submittingRef.current || !Chess) return;
     
     const agentName = game?.agent_name || 'Your OpenClaw';
     
@@ -748,7 +753,6 @@ export default function Game() {
     setBoardLocked(true);
     let chess;
     try {
-      const { Chess } = await import('chess.js');
       chess = new Chess();
     } catch(e) {
       chess = null;
@@ -973,41 +977,33 @@ export default function Game() {
   const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
 
   useEffect(() => {
-    let active = true;
-    const run = async () => {
-      let chess;
+    if (!Chess) return;
+    let chess;
+    try {
+      chess = new Chess();
+    } catch(e) {
+      return;
+    }
+    
+    const capturedW = [];
+    const capturedB = [];
+    
+    for (const move of game?.move_history || []) {
       try {
-        const { Chess } = await import('chess.js');
-        chess = new Chess();
-      } catch(e) {
-        console.error('chess.js load failed', e);
-        return;
-      }
-      
-      const capturedByWhite = [];
-      const capturedByBlack = [];
-      
-      for (const move of game?.move_history || []) {
-        try {
-          const result = chess.move(move);
-          if (result?.captured) {
-            if (result.color === 'w') {
-              capturedByWhite.push(result.captured);
-            } else {
-              capturedByBlack.push(result.captured);
-            }
+        const result = chess.move(move);
+        if (result?.captured) {
+          if (result.color === 'w') {
+            capturedW.push(result.captured);
+          } else {
+            capturedB.push(result.captured);
           }
-        } catch(e) {
-          // ignore
         }
+      } catch(e) {
+        // ignore
       }
-      if (active) {
-        setCapturedPieces({ capturedByWhite, capturedByBlack });
-      }
-    };
-    run();
-    return () => { active = false; };
-  }, [game?.move_history]);
+    }
+    setCapturedPieces({ capturedByWhite: capturedW, capturedByBlack: capturedB });
+  }, [game?.move_history, Chess]);
 
   const { capturedByWhite, capturedByBlack } = capturedPieces;
 
@@ -1017,7 +1013,7 @@ export default function Game() {
   const mood = getAgentMood()
   const config = moodConfig[mood]
 
-  if (loading) {
+  if (!Chess || loading) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column' }} className="lg:flex-row">
         {/* Sidebar Skeleton */}
