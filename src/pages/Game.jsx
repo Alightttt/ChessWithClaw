@@ -104,7 +104,13 @@ export default function Game() {
   const computeMaterial = useCallback((fen) => {
     if (!fen) return null;
     try {
-      const chess = new Chess(fen);
+      let chess;
+      try {
+        chess = new Chess(fen);
+      } catch(e) {
+        console.error('Invalid FEN:', fen);
+        chess = new Chess();
+      }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       let w = 0, b = 0;
       chess.board().forEach(row => row && row.forEach(sq => {
@@ -309,7 +315,12 @@ export default function Game() {
     if (!game) return;
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
-      const chess = new Chess();
+      let chess;
+      try {
+        chess = new Chess();
+      } catch(e) {
+        chess = null;
+      }
       if (game.move_history && game.move_history.length > 0) {
         game.move_history.forEach(m => {
           try { chess.move(m.san); } catch (e) {}
@@ -714,7 +725,12 @@ export default function Game() {
 
     submittingRef.current = true;
     setBoardLocked(true);
-    const chess = new Chess();
+    let chess;
+    try {
+      chess = new Chess();
+    } catch(e) {
+      chess = null;
+    }
     if (game.move_history && game.move_history.length > 0) {
       game.move_history.forEach(m => {
         try { chess.move(typeof m === 'string' ? m : (m.san || m)); } catch (e) {}
@@ -933,7 +949,12 @@ export default function Game() {
   }
 
   const { capturedByWhite, capturedByBlack } = useMemo(() => {
-    const chess = new Chess()
+    let chess;
+    try {
+      chess = new Chess();
+    } catch(e) {
+      chess = null;
+    }
     const capturedByWhite = []
     const capturedByBlack = []
     
@@ -1346,7 +1367,13 @@ export default function Game() {
         )}
 
         {(() => {
-          const chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+          let chess;
+          try {
+            chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+          } catch(e) {
+            console.error('Invalid FEN:', game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+            chess = new Chess();
+          }
           if (chess.isCheck() && game.status === 'active') {
             return (
               <div style={{

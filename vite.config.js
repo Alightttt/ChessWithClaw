@@ -5,15 +5,23 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     include: ['chess.js'],
+    force: true,
   },
   build: {
-    target: 'esnext',
     commonjsOptions: {
       include: [/chess\.js/, /node_modules/],
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          chess: ['chess.js'],
+        },
+      },
     },
   },
   server: {
     host: '0.0.0.0',
-    port: 3000
-  }
+    port: 3000,
+  },
 })
