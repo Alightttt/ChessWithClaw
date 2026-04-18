@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Chess } from 'chess.js';
 import { useToast } from '../contexts/ToastContext';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -49,7 +48,23 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
   const [boardPerspective, setBoardPerspective] = useState(() => localStorage.getItem('cwc_perspective') === '3d');
+  const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  useEffect(() => {
+    const checkCheck = async () => {
+      try {
+        const { Chess } = await import('chess.js');
+        const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        setIsCheckState(chess.isCheck());
+      } catch (e) {
+        setIsCheckState(false);
+      }
+    };
+    if (game?.fen) {
+      checkCheck();
+    }
+  }, [game?.fen]);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -101,14 +116,16 @@ export default function Game() {
     navigate('/')
   }
 
-  const computeMaterial = useCallback((fen) => {
+  const computeMaterial = useCallback(async (fen) => {
     if (!fen) return null;
     try {
       let chess;
       try {
+        const { Chess } = await import('chess.js');
         chess = new Chess(fen);
       } catch(e) {
         console.error('Invalid FEN:', fen);
+        const { Chess } = await import('chess.js');
         chess = new Chess();
       }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
@@ -315,32 +332,36 @@ export default function Game() {
     if (!game) return;
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
-      let chess;
-      try {
-        chess = new Chess();
-      } catch(e) {
-        chess = null;
-      }
-      if (game.move_history && game.move_history.length > 0) {
-        game.move_history.forEach(m => {
-          try { chess.move(m.san); } catch (e) {}
-        });
-      } else if (game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-        chess.load(game.fen);
-      }
-      const lastMove = game.move_history[currentMoveCount - 1];
-      
-      const isAgent = lastMove?.color === 'b';
-      
-      if (chess.isCheckmate()) {
-        playSound(isAgent ? 'agentCheckmate' : 'checkmate');
-      } else if (chess.isCheck()) {
-        playSound(isAgent ? 'agentCheck' : 'check');
-      } else if (lastMove && lastMove.san.includes('x')) {
-        playSound(isAgent ? 'agentCapture' : 'capture');
-      } else {
-        playSound(isAgent ? 'agentMove' : 'move');
-      }
+      const runSoundLogic = async () => {
+        let chess;
+        try {
+          const { Chess } = await import('chess.js');
+          chess = new Chess();
+        } catch(e) {
+          chess = null;
+        }
+        if (chess && game.move_history && game.move_history.length > 0) {
+          game.move_history.forEach(m => {
+            try { chess.move(m.san); } catch (e) {}
+          });
+        } else if (chess && game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+          chess.load(game.fen);
+        }
+        if (chess) {
+          const lastMove = game.move_history[currentMoveCount - 1];
+          const isAgent = lastMove?.color === 'b';
+          if (chess.isCheckmate()) {
+            playSound(isAgent ? 'agentCheckmate' : 'checkmate');
+          } else if (chess.isCheck()) {
+            playSound(isAgent ? 'agentCheck' : 'check');
+          } else if (lastMove && lastMove.san.includes('x')) {
+            playSound(isAgent ? 'agentCapture' : 'capture');
+          } else {
+            playSound(isAgent ? 'agentMove' : 'move');
+          }
+        }
+      };
+      runSoundLogic();
     }
     
     if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
@@ -727,20 +748,21 @@ export default function Game() {
     setBoardLocked(true);
     let chess;
     try {
+      const { Chess } = await import('chess.js');
       chess = new Chess();
     } catch(e) {
       chess = null;
     }
-    if (game.move_history && game.move_history.length > 0) {
+    if (chess && game.move_history && game.move_history.length > 0) {
       game.move_history.forEach(m => {
         try { chess.move(typeof m === 'string' ? m : (m.san || m)); } catch (e) {}
       });
-    } else if (game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+    } else if (chess && game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
       chess.load(game.fen);
     }
     try {
       const moveObj = promotion ? { from, to, promotion } : { from, to };
-      const move = chess.move(moveObj);
+      const move = chess ? chess.move(moveObj) : null;
       if (!move) {
         submittingRef.current = false;
         setBoardLocked(false);
@@ -948,32 +970,46 @@ export default function Game() {
     neutral:  { label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
   }
 
-  const { capturedByWhite, capturedByBlack } = useMemo(() => {
-    let chess;
-    try {
-      chess = new Chess();
-    } catch(e) {
-      chess = null;
-    }
-    const capturedByWhite = []
-    const capturedByBlack = []
-    
-    for (const move of game?.move_history || []) {
+  const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
+
+  useEffect(() => {
+    let active = true;
+    const run = async () => {
+      let chess;
       try {
-        const result = chess.move(move)
-        if (result?.captured) {
-          if (result.color === 'w') {
-            capturedByWhite.push(result.captured)
-          } else {
-            capturedByBlack.push(result.captured)
-          }
-        }
+        const { Chess } = await import('chess.js');
+        chess = new Chess();
       } catch(e) {
-        // ignore
+        console.error('chess.js load failed', e);
+        return;
       }
-    }
-    return { capturedByWhite, capturedByBlack }
-  }, [game?.move_history])
+      
+      const capturedByWhite = [];
+      const capturedByBlack = [];
+      
+      for (const move of game?.move_history || []) {
+        try {
+          const result = chess.move(move);
+          if (result?.captured) {
+            if (result.color === 'w') {
+              capturedByWhite.push(result.captured);
+            } else {
+              capturedByBlack.push(result.captured);
+            }
+          }
+        } catch(e) {
+          // ignore
+        }
+      }
+      if (active) {
+        setCapturedPieces({ capturedByWhite, capturedByBlack });
+      }
+    };
+    run();
+    return () => { active = false; };
+  }, [game?.move_history]);
+
+  const { capturedByWhite, capturedByBlack } = capturedPieces;
 
   const blackPieceMap = { p:'♟', n:'♞', b:'♝', r:'♜', q:'♛' } // black pieces (captured by white)
   const whitePieceMap = { p:'♙', n:'♘', b:'♗', r:'♖', q:'♕' } // white pieces (captured by black)
@@ -1366,27 +1402,15 @@ export default function Game() {
           </div>
         )}
 
-        {(() => {
-          let chess;
-          try {
-            chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-          } catch(e) {
-            console.error('Invalid FEN:', game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-            chess = new Chess();
-          }
-          if (chess.isCheck() && game.status === 'active') {
-            return (
-              <div style={{
-                width: `${boardSize}px`, padding: '8px 16px', background: '#e63946', color: 'white', 
-                fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
-                borderRadius: '4px', marginBottom: '4px'
-              }}>
-                {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
-              </div>
-            );
-          }
-          return null;
-        })()}
+        {isCheckState && game.status === 'active' && (
+          <div style={{
+            width: `${boardSize}px`, padding: '8px 16px', background: '#e63946', color: 'white', 
+            fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center',
+            borderRadius: '4px', marginBottom: '4px'
+          }}>
+            {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
+          </div>
+        )}
 
         <div style={{ width: `${boardSize}px`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 20, padding: '4px 0' }}>
           <div style={{ display: 'flex', gap: 2 }}>

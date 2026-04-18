@@ -5,17 +5,26 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     include: ['chess.js'],
-    force: true,
+    esbuildOptions: {
+      target: 'es2020',
+    },
   },
   build: {
+    target: 'es2020',
     commonjsOptions: {
       include: [/chess\.js/, /node_modules/],
       transformMixedEsModules: true,
+      requireReturnsDefault: 'auto',
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          chess: ['chess.js'],
+        manualChunks(id) {
+          if (id.includes('chess.js')) {
+            return 'chess-vendor'
+          }
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
         },
       },
     },
