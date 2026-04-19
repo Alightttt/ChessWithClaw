@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Chess } from 'chess.js';
 import { useToast } from '../contexts/ToastContext';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -52,8 +51,17 @@ export default function Game() {
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  const [Chess, setChess] = useState(null);
+
+  useEffect(() => {
+    import('chess.js').then((mod) => {
+      setChess(() => mod.Chess);
+    }).catch(e => console.error('Failed to load chess.js:', e));
+  }, []);
+
   useEffect(() => {
     const checkCheck = () => {
+      if (!Chess) return;
       try {
         const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
@@ -64,7 +72,7 @@ export default function Game() {
     if (game?.fen) {
       checkCheck();
     }
-  }, [game?.fen]);
+  }, [game?.fen, Chess]);
   
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -117,7 +125,7 @@ export default function Game() {
   }
 
   const computeMaterial = useCallback((fen) => {
-    if (!fen) return null;
+    if (!fen || !Chess) return null;
     try {
       let chess;
       try {
@@ -138,7 +146,7 @@ export default function Game() {
     } catch (e) {
       return null;
     }
-  }, []);
+  }, [Chess]);
   
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
@@ -327,7 +335,7 @@ export default function Game() {
   }, [soundEnabled]);
 
   useEffect(() => {
-    if (!game) return;
+    if (!game || !Chess) return;
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
       const runSoundLogic = () => {
@@ -380,7 +388,7 @@ export default function Game() {
     prevMoveCountRef.current = currentMoveCount;
     prevStatusRef.current = game.status;
     prevStatusRef.current_thinking = game.current_thinking;
-  }, [game, playSound]);
+  }, [game, playSound, Chess]);
 
   // Agent Timeout Check
   const [agentTimeout, setAgentTimeout] = useState(false);
@@ -735,7 +743,7 @@ export default function Game() {
 
   const makeMove = async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
-    if (boardLocked || submittingRef.current) return;
+    if (boardLocked || submittingRef.current || !Chess) return;
     
     const agentName = game?.agent_name || 'Your OpenClaw';
     
@@ -972,6 +980,7 @@ export default function Game() {
   const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
 
   useEffect(() => {
+    if (!Chess) return;
     let chess;
     try {
       chess = new Chess();
@@ -997,7 +1006,7 @@ export default function Game() {
       }
     }
     setCapturedPieces({ capturedByWhite: capturedW, capturedByBlack: capturedB });
-  }, [game?.move_history]);
+  }, [game?.move_history, Chess]);
 
   const { capturedByWhite, capturedByBlack } = capturedPieces;
 
@@ -1007,7 +1016,7 @@ export default function Game() {
   const mood = getAgentMood()
   const config = moodConfig[mood]
 
-  if (loading) {
+  if (!Chess || loading) {
     return (
       <div style={{ height: '100dvh', background: '#080808', display: 'flex', flexDirection: 'column' }} className="lg:flex-row">
         {/* Sidebar Skeleton */}
