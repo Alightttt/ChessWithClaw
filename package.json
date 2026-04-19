@@ -2,7 +2,13 @@
   "name": "chess-vs-openclaw",
   "private": true,
   "version": "0.0.0",
-  "keywords": ["chess", "ai-agent", "openclaw", "real-time", "supabase"],
+  "keywords": [
+    "chess",
+    "ai-agent",
+    "openclaw",
+    "real-time",
+    "supabase"
+  ],
   "scripts": {
     "dev": "tsx server.mjs",
     "build": "vite build",
@@ -14,7 +20,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
-    "chess.js": "0.13.4",
+    "chess.js": "^1.4.0",
     "clsx": "^2.1.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
