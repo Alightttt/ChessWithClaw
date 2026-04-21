@@ -56,7 +56,7 @@ export default function Game() {
     const checkCheck = () => {
       try {
         const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-        setIsCheckState(chess.isCheck ? chess.isCheck() : false);
+        setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
       } catch (e) {
         setIsCheckState(false);
       }
@@ -347,8 +347,8 @@ export default function Game() {
         if (chess) {
           const lastMove = game.move_history[currentMoveCount - 1];
           const isAgent = lastMove?.color === 'b';
-          const isMate = chess.isCheckmate ? chess.isCheckmate() : false;
-          const isCh = chess.isCheck ? chess.isCheck() : false;
+          const isMate = chess.in_checkmate ? chess.in_checkmate() : chess.isCheckmate ? chess.isCheckmate() : false;
+          const isCh = chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false;
           
           if (isMate) {
             playSound(isAgent ? 'agentCheckmate' : 'checkmate');

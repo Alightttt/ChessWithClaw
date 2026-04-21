@@ -210,7 +210,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   
   const isLegalDestination = (sq) => legalMoves.some(m => m.to === sq);
   const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
-  const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && (chess.isCheck ? chess.isCheck() : false);
+  const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && (chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
 
   const [agentMoveFlash, setAgentMoveFlash] = useState(null);
 
