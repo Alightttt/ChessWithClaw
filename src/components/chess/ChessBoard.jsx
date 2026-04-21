@@ -5,7 +5,13 @@ import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
-  const [chess, setChess] = useState(null);
+  const [chess, setChess] = useState(() => {
+    try {
+      return new Chess(fen);
+    } catch(e) {
+      return new Chess();
+    }
+  });
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
@@ -231,8 +237,6 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   };
 
   const currentTheme = themes[boardTheme] || themes.green;
-
-  if (!chess) return null;
 
   const renderPiece = (piece) => {
     if (!piece) return null;

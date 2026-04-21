@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Chess } from 'chess.js';
 import { useToast } from '../components/Toast';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -38,18 +39,6 @@ export default function Game() {
   const location = useLocation();
   const { toast } = useToast();
 
-  const chessRef = useRef(null);
-  const [chessReady, setChessReady] = useState(false);
-
-  useEffect(() => {
-    import('chess.js').then(({ Chess }) => {
-      if (!chessRef.current) {
-        chessRef.current = new Chess();
-      }
-      setChessReady(true);
-    });
-  }, []);
-
   const agentToken = location.state?.agentToken;
   
   const [game, setGame] = useState(null);
@@ -70,10 +59,8 @@ export default function Game() {
 
   useEffect(() => {
     const checkCheck = () => {
-      const chess = chessRef.current;
-      if (!chess) return;
       try {
-        chess.load(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
       } catch (e) {
         setIsCheckState(false);
@@ -136,14 +123,13 @@ export default function Game() {
 
   const computeMaterial = useCallback((fen) => {
     if (!fen) return null;
-    let chess = chessRef.current;
-    if (!chess) return null;
     try {
+      let chess;
       try {
-        chess.load(fen);
+        chess = new Chess(fen);
       } catch(e) {
         console.error('Invalid FEN:', fen);
-        chess.reset();
+        chess = new Chess();
       }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       let w = 0, b = 0;
@@ -350,10 +336,9 @@ export default function Game() {
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
       const runSoundLogic = () => {
-        let chess = chessRef.current;
-        if (!chess) return;
+        let chess;
         try {
-          chess.reset();
+          chess = new Chess();
         } catch(e) {
           chess = null;
         }
@@ -766,14 +751,9 @@ export default function Game() {
 
     submittingRef.current = true;
     setBoardLocked(true);
-    let chess = chessRef.current;
-    if (!chess) {
-      submittingRef.current = false;
-      setBoardLocked(false);
-      return;
-    }
+    let chess;
     try {
-      chess.reset();
+      chess = new Chess();
     } catch(e) {
       chess = null;
     }
@@ -997,10 +977,9 @@ export default function Game() {
   const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
 
   useEffect(() => {
-    let chess = chessRef.current;
-    if (!chess) return;
+    let chess;
     try {
-      chess.reset();
+      chess = new Chess();
     } catch(e) {
       return;
     }
@@ -1083,7 +1062,6 @@ export default function Game() {
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
 
-  if (!chessReady || !chessRef.current) return <div style={{color:'#f2f2f2',background:'#0a0a0a',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>Loading board...</div>;
   if (!game) return null;
 
   return (
