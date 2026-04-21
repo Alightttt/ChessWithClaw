@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
-import { Button, Input } from '../ui';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChatBox({ chatHistory, onSendMessage, onAcceptResignation, onAcceptDraw, agentName, agentAvatar, hideInput }) {

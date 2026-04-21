@@ -3,12 +3,17 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Chess } from 'chess.js';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../components/Toast';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import ChessBoard from '../components/chess/ChessBoard';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
-import { Button, Card, Modal, StatusDot, Divider, Badge } from '../components/ui';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Modal from '../components/ui/Modal';
+import StatusDot from '../components/ui/StatusDot';
+import Divider from '../components/ui/Divider';
+import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
 function GameTimer({ startTime, status }) {

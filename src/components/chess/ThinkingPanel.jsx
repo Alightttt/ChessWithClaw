@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Clock, CheckCircle2 } from 'lucide-react';
-import { useToast } from '../../contexts/ToastContext';
-import { Button, StatusDot } from '../ui';
+import { useToast } from '../../components/Toast';
+import Button from '../ui/Button';
+import StatusDot from '../ui/StatusDot';
 
 export default function ThinkingPanel({ agentConnected, agentUrl, currentThinking, lastThinking, isAgentTurn, isHumanTurn, agentName, agentAvatar, agentTagline }) {
   const [displayedThinking, setDisplayedThinking] = useState('');

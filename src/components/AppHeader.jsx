@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link as LinkIcon, Menu, X } from 'lucide-react';
-import { Button } from './ui';
+import Button from './ui/Button';
 
 export default function AppHeader() {
   const [scrolled, setScrolled] = useState(false);

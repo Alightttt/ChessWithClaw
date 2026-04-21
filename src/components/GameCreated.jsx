@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRipple } from '../hooks/useRipple';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../components/Toast';
 
 export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copyState, setCopyState] = useState('default');

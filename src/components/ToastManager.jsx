@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../Toast';
 import { CheckCircle, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 const Toast = ({ toast, onRemove }) => {
