@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Chess } from 'chess.js';
+// Keep this import but also add this useMemo initialization below
 import { useToast } from '../components/Toast';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -1061,6 +1062,8 @@ export default function Game() {
   const currentMoveNumber = Math.floor((game.move_history || []).length / 2) + 1;
   const lastThinking = (game.thinking_log || [])[(game.thinking_log || []).length - 1] || null;
   const unreadCount = (game.chat_history || []).filter(m => m.sender === 'agent').length; // Simplified for UI
+
+  if (!game) return null;
 
   return (
     <div 
