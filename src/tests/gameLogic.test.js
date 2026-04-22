@@ -1,20 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { Chess } from 'chess.js';
 import { detectGameEvent, getMaterialBalance, getEmotionalContext } from '../../api/_utils/gameLogic';
 
 describe('gameLogic', () => {
   describe('detectGameEvent', () => {
     it('detects normal move', () => {
-      const chessBefore = new Chess();
-      const chessAfter = new Chess();
+      const chessBefore = new window.Chess();
+      const chessAfter = new window.Chess();
       chessAfter.move('e4');
       const moveObj = { san: 'e4', color: 'w' };
       expect(detectGameEvent(chessBefore, chessAfter, moveObj)).toBe('normal_move');
     });
 
     it('detects checkmate', () => {
-      const chessBefore = new Chess();
-      const chessAfter = new Chess('rnb1kbnr/pppp1ppp/8/4p3/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 1 3');
+      const chessBefore = new window.Chess();
+      const chessAfter = new window.Chess('rnb1kbnr/pppp1ppp/8/4p3/5PPq/8/PPPPP2P/RNBQKBNR w KQkq - 1 3');
       const moveObj = { san: 'Qh4#', color: 'b' };
       expect(detectGameEvent(chessBefore, chessAfter, moveObj)).toBe('checkmate');
     });
@@ -31,7 +30,7 @@ describe('gameLogic', () => {
 
   describe('getEmotionalContext', () => {
     it('detects capture', () => {
-      const chessAfter = new Chess();
+      const chessAfter = new window.Chess();
       const moveObj = { captured: 'p', san: 'exd5' };
       expect(getEmotionalContext(moveObj, chessAfter, false)).toBe('human_captured_your_piece');
     });

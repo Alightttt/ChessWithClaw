@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Chess } from 'chess.js';
 import { useToast } from '../components/Toast';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -60,7 +59,7 @@ export default function Game() {
   useEffect(() => {
     const checkCheck = () => {
       try {
-        const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        const chess = new window.Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
       } catch (e) {
         setIsCheckState(false);
@@ -126,10 +125,10 @@ export default function Game() {
     try {
       let chess;
       try {
-        chess = new Chess(fen);
+        chess = new window.Chess(fen);
       } catch(e) {
         console.error('Invalid FEN:', fen);
-        chess = new Chess();
+        chess = new window.Chess();
       }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       let w = 0, b = 0;
@@ -338,7 +337,7 @@ export default function Game() {
       const runSoundLogic = () => {
         let chess;
         try {
-          chess = new Chess();
+          chess = new window.Chess();
         } catch(e) {
           chess = null;
         }
@@ -753,7 +752,7 @@ export default function Game() {
     setBoardLocked(true);
     let chess;
     try {
-      chess = new Chess();
+      chess = new window.Chess();
     } catch(e) {
       chess = null;
     }
@@ -979,7 +978,7 @@ export default function Game() {
   useEffect(() => {
     let chess;
     try {
-      chess = new Chess();
+      chess = new window.Chess();
     } catch(e) {
       return;
     }
