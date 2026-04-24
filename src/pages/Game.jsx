@@ -58,6 +58,7 @@ export default function Game() {
 
   useEffect(() => {
     const checkCheck = () => {
+      if (typeof window.Chess !== 'function') return;
       try {
         const chess = new window.Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
@@ -122,6 +123,7 @@ export default function Game() {
 
   const computeMaterial = useCallback((fen) => {
     if (!fen) return null;
+    if (typeof window.Chess !== 'function') return null;
     try {
       let chess;
       try {
@@ -335,6 +337,7 @@ export default function Game() {
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
       const runSoundLogic = () => {
+        if (typeof window.Chess !== 'function') return;
         let chess;
         try {
           chess = new window.Chess();
@@ -750,6 +753,11 @@ export default function Game() {
 
     submittingRef.current = true;
     setBoardLocked(true);
+    if (typeof window.Chess !== 'function') {
+      submittingRef.current = false;
+      setBoardLocked(false);
+      return;
+    }
     let chess;
     try {
       chess = new window.Chess();
@@ -976,6 +984,7 @@ export default function Game() {
   const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
 
   useEffect(() => {
+    if (typeof window.Chess !== 'function') return;
     let chess;
     try {
       chess = new window.Chess();

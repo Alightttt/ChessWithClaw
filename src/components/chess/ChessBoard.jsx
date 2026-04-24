@@ -4,13 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
-  const [chess, setChess] = useState(() => {
-    try {
-      return new window.Chess(fen);
-    } catch(e) {
-      return new window.Chess();
-    }
-  });
+  const [engineReady, setEngineReady] = useState(typeof window !== 'undefined' && typeof window.Chess === 'function');
+  const [chess, setChess] = useState(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
@@ -18,7 +13,27 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   const prevMoveHistoryLength = useRef(0);
 
   useEffect(() => {
-    const newChess = new window.Chess(fen);
+    if (engineReady) return;
+    const interval = setInterval(() => {
+      if (typeof window.Chess === 'function') {
+        setEngineReady(true);
+        clearInterval(interval);
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, [engineReady]);
+
+  useEffect(() => {
+    if (!engineReady) return;
+
+    // Use current state or initialize
+    let newChess;
+    try {
+      newChess = new window.Chess(fen);
+    } catch(e) {
+      newChess = new window.Chess();
+    }
+    
     setChess(newChess);
     setSelectedSquare(null);
     setLegalMoves([]);
@@ -155,7 +170,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     }
     
     setPieces(currentPieces);
-  }, [fen, moveHistory, onCapture]);
+  }, [fen, moveHistory, onCapture, engineReady]);
 
   const pieceMap = {
     wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -262,6 +277,14 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] drop-shadow-md pointer-events-none" />;
     }
   };
+
+  if (!chess) {
+    return (
+      <div className="w-full h-full aspect-square flex items-center justify-center" style={{ backgroundColor: currentTheme.dark }}>
+        <span className="font-mono text-sm opacity-50">Initializing engine...</span>
+      </div>
+    );
+  }
 
   return (
     <div data-testid="chess-board" className={`flex flex-col select-none w-full h-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
