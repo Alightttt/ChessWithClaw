@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Chess } from 'chess.js';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
@@ -58,9 +59,8 @@ export default function Game() {
 
   useEffect(() => {
     const checkCheck = () => {
-      if (typeof window.Chess !== 'function') return;
       try {
-        const chess = new window.Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         setIsCheckState(chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
       } catch (e) {
         setIsCheckState(false);
@@ -123,14 +123,13 @@ export default function Game() {
 
   const computeMaterial = useCallback((fen) => {
     if (!fen) return null;
-    if (typeof window.Chess !== 'function') return null;
     try {
       let chess;
       try {
-        chess = new window.Chess(fen);
+        chess = new Chess(fen);
       } catch(e) {
         console.error('Invalid FEN:', fen);
-        chess = new window.Chess();
+        chess = new Chess();
       }
       const vals = { p: 1, n: 3, b: 3, r: 5, q: 9 };
       let w = 0, b = 0;
@@ -337,10 +336,9 @@ export default function Game() {
     const currentMoveCount = (game.move_history || []).length;
     if (currentMoveCount > prevMoveCountRef.current) {
       const runSoundLogic = () => {
-        if (typeof window.Chess !== 'function') return;
         let chess;
         try {
-          chess = new window.Chess();
+          chess = new Chess();
         } catch(e) {
           chess = null;
         }
@@ -753,14 +751,9 @@ export default function Game() {
 
     submittingRef.current = true;
     setBoardLocked(true);
-    if (typeof window.Chess !== 'function') {
-      submittingRef.current = false;
-      setBoardLocked(false);
-      return;
-    }
     let chess;
     try {
-      chess = new window.Chess();
+      chess = new Chess();
     } catch(e) {
       chess = null;
     }
@@ -984,10 +977,9 @@ export default function Game() {
   const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
 
   useEffect(() => {
-    if (typeof window.Chess !== 'function') return;
     let chess;
     try {
-      chess = new window.Chess();
+      chess = new Chess();
     } catch(e) {
       return;
     }
