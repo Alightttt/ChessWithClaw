@@ -4,8 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
-  const [engineReady, setEngineReady] = useState(typeof window !== 'undefined' && typeof window.Chess === 'function');
-  const [chess, setChess] = useState(null);
+  const [chess, setChess] = useState(() => {
+    if (typeof window.Chess !== 'function') return null;
+    try {
+      return new window.Chess(fen);
+    } catch(e) {
+      return new window.Chess();
+    }
+  });
+
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
@@ -13,20 +20,8 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   const prevMoveHistoryLength = useRef(0);
 
   useEffect(() => {
-    if (engineReady) return;
-    const interval = setInterval(() => {
-      if (typeof window.Chess === 'function') {
-        setEngineReady(true);
-        clearInterval(interval);
-      }
-    }, 50);
-    return () => clearInterval(interval);
-  }, [engineReady]);
+    if (typeof window.Chess !== 'function') return;
 
-  useEffect(() => {
-    if (!engineReady) return;
-
-    // Use current state or initialize
     let newChess;
     try {
       newChess = new window.Chess(fen);
@@ -170,7 +165,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     }
     
     setPieces(currentPieces);
-  }, [fen, moveHistory, onCapture, engineReady]);
+  }, [fen, moveHistory, onCapture]);
 
   const pieceMap = {
     wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
