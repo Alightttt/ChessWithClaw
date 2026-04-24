@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
   const [chess, setChess] = useState(() => {
+    if (typeof window.Chess !== 'function') return null;
     try {
-      return new Chess(fen);
+      return new window.Chess(fen);
     } catch(e) {
-      return new Chess();
+      return new window.Chess();
     }
   });
 
@@ -20,11 +20,13 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   const prevMoveHistoryLength = useRef(0);
 
   useEffect(() => {
+    if (typeof window.Chess !== 'function') return;
+
     let newChess;
     try {
-      newChess = new Chess(fen);
+      newChess = new window.Chess(fen);
     } catch(e) {
-      newChess = new Chess();
+      newChess = new window.Chess();
     }
     
     setChess(newChess);
@@ -33,7 +35,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     setPromotionMove(null);
     
     // Generate stable pieces for animation
-    const initialChess = new Chess();
+    const initialChess = new window.Chess();
     const currentPieces = [];
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
