@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X as XIcon } from 'lucide-react';
 
 export default function Modal({
   open,
@@ -67,7 +67,7 @@ export default function Modal({
             aria-label="Close modal"
             className="text-[var(--color-text-muted)] hover:text-white transition-colors p-1.5 rounded-md hover:bg-[var(--color-bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-red-primary)] focus:ring-offset-2 focus:ring-offset-black"
           >
-            <X size={20} />
+            <XIcon size={20} />
           </button>
         </div>
         <div className="overflow-y-auto p-4 sm:p-6">

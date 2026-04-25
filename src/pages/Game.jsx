@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../components/Toast';
-import { Settings, X, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
+import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import ChessBoard from '../components/chess/ChessBoard';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import Button from '../components/ui/Button';
@@ -1782,7 +1782,7 @@ export default function Game() {
               background: 'transparent', border: 'none', color: '#888', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
-              <X size={20} />
+              <XIcon size={20} />
             </button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
               {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '🦞'}

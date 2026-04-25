@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link as LinkIcon, Menu, X } from 'lucide-react';
+import { Link as LinkIcon, Menu, X as XIcon } from 'lucide-react';
 import Button from './ui/Button';
 
 export default function AppHeader() {
@@ -62,7 +62,7 @@ export default function AppHeader() {
             className="md:hidden p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            {menuOpen ? <XIcon size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </header>

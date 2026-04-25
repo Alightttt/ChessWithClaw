@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
-import { CheckCircle, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, AlertTriangle, X as XIcon } from 'lucide-react';
 
 const Toast = ({ toast, onRemove }) => {
   const [progress, setProgress] = useState(100);
@@ -43,7 +43,7 @@ const Toast = ({ toast, onRemove }) => {
           <p className="text-sm text-[var(--color-text-secondary)]">{toast.message}</p>
         </div>
         <button onClick={() => onRemove(toast.id)} className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
-          <X size={16} />
+          <XIcon size={16} />
         </button>
       </div>
       <div className="absolute bottom-0 left-0 h-1 bg-[var(--color-bg-hover)] w-full">
