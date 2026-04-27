@@ -664,6 +664,32 @@ export default function Game() {
     };
   }, [gameId]);
 
+  const handleResign = useCallback(async () => {
+    if (!confirmResign) {
+      setConfirmResign(true);
+      setTimeout(() => setConfirmResign(false), 3000);
+      return;
+    }
+    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+      status: 'finished', result: game?.player_color === 'b' ? 'white' : 'black', result_reason: 'resignation'
+    }).eq('id', gameId);
+    setShowSettings(false);
+    setConfirmResign(false);
+  }, [confirmResign, game?.player_color, gameId]);
+
+  const handleDraw = useCallback(async () => {
+    if (!confirmDraw) {
+      setConfirmDraw(true);
+      setTimeout(() => setConfirmDraw(false), 3000);
+      return;
+    }
+    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+      status: 'finished', result: 'draw', result_reason: 'agreement'
+    }).eq('id', gameId);
+    setShowSettings(false);
+    setConfirmDraw(false);
+  }, [confirmDraw, gameId]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't trigger shortcuts if user is typing in chat
@@ -859,31 +885,7 @@ export default function Game() {
     }
   };
 
-  const handleResign = useCallback(async () => {
-    if (!confirmResign) {
-      setConfirmResign(true);
-      setTimeout(() => setConfirmResign(false), 3000);
-      return;
-    }
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: game?.player_color === 'b' ? 'white' : 'black', result_reason: 'resignation'
-    }).eq('id', gameId);
-    setShowSettings(false);
-    setConfirmResign(false);
-  }, [confirmResign, game?.player_color, gameId]);
 
-  const handleDraw = useCallback(async () => {
-    if (!confirmDraw) {
-      setConfirmDraw(true);
-      setTimeout(() => setConfirmDraw(false), 3000);
-      return;
-    }
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: 'draw', result_reason: 'agreement'
-    }).eq('id', gameId);
-    setShowSettings(false);
-    setConfirmDraw(false);
-  }, [confirmDraw, gameId]);
 
   async function acceptAgentResignation() {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
