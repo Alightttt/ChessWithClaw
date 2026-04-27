@@ -100,7 +100,7 @@ export default function Game() {
     };
   }, []);
 
-  const handleRematch = async () => {
+  async function handleRematch() {
     // Step 1: Clear all old game state from localStorage
     localStorage.removeItem('chesswithclaw_active_game')
     
@@ -448,12 +448,12 @@ export default function Game() {
     }
   }, [game?.status, game?.result, game?.player_color, toast]);
 
-  const handleClaimVictory = useCallback(async () => {
+  async function handleClaimVictory() {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'abandoned'
     }).eq('id', gameId);
     setAgentTimeout(false);
-  }, [gameId, game?.player_color]);
+  }
 
   useEffect(() => {
     if (!game) return;
@@ -859,7 +859,7 @@ export default function Game() {
     }
   };
 
-  const handleResign = useCallback(async () => {
+  async function handleResign() {
     if (!confirmResign) {
       setConfirmResign(true);
       setTimeout(() => setConfirmResign(false), 3000);
@@ -870,9 +870,9 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
-  }, [confirmResign, gameId, game?.player_color]);
+  }
 
-  const handleDraw = useCallback(async () => {
+  async function handleDraw() {
     if (!confirmDraw) {
       setConfirmDraw(true);
       setTimeout(() => setConfirmDraw(false), 3000);
@@ -883,33 +883,33 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmDraw(false);
-  }, [confirmDraw, gameId]);
+  }
 
-  const acceptAgentResignation = async () => {
+  async function acceptAgentResignation() {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'resignation'
     }).eq('id', gameId);
   };
 
-  const copyRoomCode = () => {
+  function copyRoomCode() {
     navigator.clipboard.writeText(gameId);
     setCopiedRoom(true);
     setTimeout(() => setCopiedRoom(false), 2000);
   };
 
-  const copyInvite = useCallback(() => {
+  function copyInvite() {
     const url = `${window.location.origin}/Agent?id=${gameId}${agentToken ? `&token=${agentToken}` : ''}`;
     navigator.clipboard.writeText(url);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);
-  }, [gameId, agentToken]);
+  }
 
-  const handleGoHome = useCallback(() => navigate('/'), [navigate]);
-  const handleOpenSettings = useCallback(() => setShowSettings(true), []);
-  const handleToggleAgentSection = useCallback(() => setAgentSectionOpen(prev => !prev), []);
-  const handleToggleMoveHistory = useCallback(() => setMoveHistoryOpen(prev => !prev), []);
-  const handleCloseGameOverModal = useCallback(() => setShowGameOverModal(false), []);
-  const handleShareResult = useCallback(async (e) => {
+  function handleGoHome() { navigate('/') }
+  function handleOpenSettings() { setShowSettings(true) }
+  function handleToggleAgentSection() { setAgentSectionOpen(prev => !prev) }
+  function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
+  function handleCloseGameOverModal() { setShowGameOverModal(false) }
+  async function handleShareResult(e) {
     const textToShare = "I played chess vs my OpenClaw on ChessWithClaw! 🦞\nchesswithclaw.vercel.app";
     const btn = e.currentTarget;
     const oldText = btn.innerText;
@@ -935,30 +935,30 @@ export default function Game() {
         }
       }
     }
-  }, []);
+  }
 
-  const handleLogoError = useCallback((e) => {
+  function handleLogoError(e) {
     e.target.style.display = 'none';
-  }, []);
+  }
 
-  const handleGoHomeWithRipple = useCallback((e) => {
+  function handleGoHomeWithRipple(e) {
     createRipple(e);
     handleGoHome();
-  }, [createRipple, handleGoHome]);
+  }
 
-  const handleClaimVictoryWithRipple = useCallback((e) => {
+  function handleClaimVictoryWithRipple(e) {
     createRipple(e);
     handleClaimVictory();
-  }, [createRipple, handleClaimVictory]);
+  }
 
-  const handleCopyInviteWithRipple = useCallback((e) => {
+  function handleCopyInviteWithRipple(e) {
     createRipple(e);
     copyInvite();
-  }, [createRipple, copyInvite]);
+  }
 
-  const handleChatInputChange = useCallback((e) => {
+  function handleChatInputChange(e) {
     setChatInput(e.target.value);
-  }, []);
+  }
 
   const getAgentMood = () => {
     if (!game || game.status === 'waiting') return 'idle'

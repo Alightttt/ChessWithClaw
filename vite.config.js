@@ -11,8 +11,5 @@ export default defineConfig({
     alias: {
       'chess.js': resolve(__dirname, './src/chess-shim.js')
     }
-  },
-  build: {
-    minify: false
   }
 })
