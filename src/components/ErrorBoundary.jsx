@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -21,80 +22,19 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div
-          style={{
-            background: '#080808',
-            minHeight: '100dvh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: '32px',
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          <span
-            style={{
-              fontSize: '48px',
-              display: 'block',
-              color: '#1a1a1a',
-              marginBottom: '16px',
-            }}
-          >
-            ♚
-          </span>
-          <h1
-            style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: '26px',
-              fontWeight: 800,
-              color: '#e0e0e0',
-              marginBottom: '8px',
-            }}
-          >
-            Something went wrong
-          </h1>
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '13px',
-              color: '#444',
-              maxWidth: '260px',
-              margin: '0 auto 24px',
-            }}
-          >
-            {this.state.error?.message || 'Unexpected error occurred'}
+        <div className="min-h-screen bg-black text-white font-sans flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-6">
+            <AlertCircle size={32} />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
+          <p className="text-neutral-400 text-sm max-w-sm mx-auto mb-8 line-clamp-3">
+            {this.state.error?.message || 'An unexpected error occurred in the application layer.'}
           </p>
           <button
             onClick={() => window.location.reload()}
-            style={{
-              background: '#e63946',
-              color: 'white',
-              height: '44px',
-              padding: '0 28px',
-              border: 'none',
-              borderRadius: '8px',
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: '17px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              letterSpacing: '0.3px',
-              transition: 'background 120ms ease, transform 80ms ease',
-              touchAction: 'manipulation',
-              userSelect: 'none',
-              WebkitTapHighlightColor: 'transparent',
-              willChange: 'transform, opacity',
-              WebkitBackfaceVisibility: 'hidden',
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#cc2f3b')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#e63946')}
-            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-neutral-200 transition-colors active:scale-95"
           >
-            Reload
+            <RefreshCw size={16} /> Reload Application
           </button>
         </div>
       );

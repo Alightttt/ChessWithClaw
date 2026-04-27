@@ -1,10 +1,10 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRipple } from '../hooks/useRipple';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
+import { motion } from 'motion/react';
+import { ClipboardCopy, Terminal, Play, CheckCircle2, ChevronLeft } from 'lucide-react';
 
 export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copyState, setCopyState] = useState('default');
@@ -14,8 +14,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const createRipple = useRipple();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,15 +28,9 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
         .eq('id', gameId)
         .single();
       
-      if (data?.agent_name) {
-        setAgentName(data.agent_name);
-      }
-      if (data?.agent_connected !== undefined) {
-        setAgentConnected(!!data.agent_connected);
-      }
-      if (!agentToken && data?.agent_token) {
-        setAgentToken(data.agent_token);
-      }
+      if (data?.agent_name) setAgentName(data.agent_name);
+      if (data?.agent_connected !== undefined) setAgentConnected(!!data.agent_connected);
+      if (!agentToken && data?.agent_token) setAgentToken(data.agent_token);
       setLoading(false);
     };
     fetchGame();
@@ -51,9 +43,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
         table: 'games',
         filter: `id=eq.${gameId}`
       }, (payload) => {
-        if (payload.new.agent_name) {
-          setAgentName(payload.new.agent_name);
-        }
+        if (payload.new.agent_name) setAgentName(payload.new.agent_name);
         if (payload.new.agent_connected !== undefined) {
           const isConnected = !!payload.new.agent_connected;
           setAgentConnected(prev => {
@@ -68,14 +58,10 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId, toast]);
+    return () => supabase.removeChannel(subscription);
+  }, [gameId, toast, agentToken]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const agentUrl = `${origin}/Agent?id=${gameId}&token=${agentToken}`;
   
   const inviteMessage = `🦞 Chess Challenge on ChessWithClaw!
 
@@ -92,24 +78,21 @@ npx clawhub install play-chess
 npx clawhub install agent-browser-clawdbot`;
 
   const handleShare = async () => {
-    const text = inviteMessage;
-    
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Chess Challenge 🦞', text });
+        await navigator.share({ title: 'Chess Challenge 🦞', text: inviteMessage });
         return;
       } catch(e) {
         if (e.name === 'AbortError') return;
       }
     }
-    
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(inviteMessage);
       setCopyState('copied');
       setTimeout(() => setCopyState('default'), 2000);
     } catch(e) {
       const el = document.createElement('textarea');
-      el.value = text;
+      el.value = inviteMessage;
       document.body.appendChild(el);
       el.select();
       document.execCommand('copy');
@@ -119,9 +102,8 @@ npx clawhub install agent-browser-clawdbot`;
     }
   };
 
-  const handleOpenBoard = (e) => {
+  const handleOpenBoard = () => {
     if (boardOpening) return;
-    createRipple(e);
     setBoardOpening(true);
     window.open(`/game/${gameId}`, '_blank');
     setTimeout(() => {
@@ -130,481 +112,126 @@ npx clawhub install agent-browser-clawdbot`;
     }, 1400);
   };
 
-  const handleBack = () => {
-    window.location.href = '/';
-  };
-
-  const renderMessageContent = () => {
-    const lines = inviteMessage.split('\n');
-    return lines.map((line, i) => {
-      if (line.startsWith('http')) {
-        return (
-          <div key={i}>
-            <span style={{ color: '#e63946' }}>{line}</span>
-          </div>
-        );
-      }
-      if (line.startsWith('npx clawhub')) {
-        return (
-          <div key={i} style={{ fontFamily: "'JetBrains Mono', monospace", color: '#999' }}>
-            {line}
-          </div>
-        );
-      }
-      return <div key={i}>{line || ' '}</div>;
-    });
-  };
-
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100dvh',
-        background: '#080808',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <div style={{
-          maxWidth: '560px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '40px 20px',
-        }}>
-          {/* Header Skeleton */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-            <div style={{ flex: 1, height: '24px', borderRadius: '6px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-            <div style={{ width: '80px', height: '24px', borderRadius: '6px', background: '#1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-          </div>
-          {/* Card 1 Skeleton */}
-          <div style={{ width: '100%', height: '320px', borderRadius: '12px', background: '#0e0e0e', border: '1px solid #1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', marginBottom: '16px' }}></div>
-          {/* Card 2 Skeleton */}
-          <div style={{ width: '100%', height: '140px', borderRadius: '12px', background: '#0e0e0e', border: '1px solid #1a1a1a', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+          <div className="w-8 h-8 border-4 border-red-500/30 border-t-red-500 rounded-full" />
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      background: '#080808',
-      minHeight: '100dvh',
-      overflowX: 'hidden',
-      padding: '16px',
-      fontFamily: "'Inter', sans-serif"
-    }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        
-        {/* TOP BAR */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px',
-          gap: '8px'
-        }}>
+    <div className="min-h-[100dvh] bg-black text-white font-sans p-4 sm:p-8 overflow-hidden relative selection:bg-red-500/30">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[400px] bg-red-500/10 blur-[100px] pointer-events-none" />
+
+      <div className="max-w-xl mx-auto w-full relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
           <button 
-            onClick={handleBack}
-            style={{
-              background: '#1a1a1a',
-              border: '1px solid #1a1a1a',
-              borderRadius: '8px',
-              color: '#666',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-              width: '36px',
-              height: '36px',
-              fontSize: '16px',
-              touchAction: 'manipulation',
-              transition: 'all 150ms'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.borderColor = '#333';
-              e.currentTarget.style.color = '#888';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.borderColor = '#1a1a1a';
-              e.currentTarget.style.color = '#555';
-            }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.93)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onClick={() => navigate('/')}
+            className="w-10 h-10 rounded-full glass border-white/5 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition-all active:scale-95"
           >
-            ←
+            <ChevronLeft size={20} />
           </button>
+          <div className="font-bold text-xl tracking-tight">Invite OpenClaw 🦞</div>
+          <div className="px-3 py-1 rounded-md glass font-mono text-xs text-red-500 font-medium">#{gameId?.slice(0,6)}</div>
+        </div>
 
-          <div style={{
-            flex: 1,
-            textAlign: 'center',
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '20px',
-            fontWeight: 700,
-            color: '#f2f2f2'
-          }}>
-            Invite Your OpenClaw 🦞
+        {/* Stepper */}
+        <div className="flex items-center justify-between relative mb-12 px-4">
+          <div className="absolute left-[34px] right-[34px] top-1/2 -translate-y-1/2 h-0.5 bg-neutral-900 -z-10" />
+          <div className="absolute left-[34px] top-1/2 -translate-y-1/2 h-0.5 bg-red-500 -z-10 transition-all duration-500" style={{ right: agentConnected ? '34px' : boardOpened ? '50%' : 'calc(100% - 34px)' }} />
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+              <CheckCircle2 size={20} />
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-red-500">Invite</div>
           </div>
 
-          <div style={{
-            flexShrink: 0,
-            background: '#1a1a1a',
-            border: '1px solid #1a1a1a',
-            borderRadius: '6px',
-            padding: '5px 10px',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '12px',
-            color: '#e63946'
-          }}>
-            #{gameId ? gameId.slice(0, 6).toUpperCase() : 'XXXXXX'}
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${boardOpened ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-neutral-900 text-neutral-500 border-2 border-neutral-800'}`}>
+              {boardOpened ? <CheckCircle2 size={20} /> : <span className="font-bold">2</span>}
+            </div>
+            <div className={`text-[10px] font-bold uppercase tracking-widest ${boardOpened ? 'text-red-500' : 'text-neutral-500'}`}>Board</div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${agentConnected ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-neutral-900 text-neutral-500 border-2 border-neutral-800'}`}>
+              {agentConnected ? <CheckCircle2 size={20} /> : <span className="font-bold">3</span>}
+            </div>
+            <div className={`text-[10px] font-bold uppercase tracking-widest ${agentConnected ? 'text-red-500' : 'text-neutral-500'}`}>Battle</div>
           </div>
         </div>
 
-        {/* PROGRESS STEPPER */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          marginBottom: '24px',
-          position: 'relative'
-        }}>
-          <div style={{
-            position: 'absolute',
-            left: '19px',
-            top: '19px',
-            bottom: '19px',
-            width: '1px',
-            background: 'linear-gradient(to bottom, #e63946, rgba(230,57,70,0.3), #1a1a1a)',
-            zIndex: 0
-          }}></div>
-
-          {/* Step 1: Invite */}
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div style={{
-              width: '38px', height: '38px',
-              borderRadius: '8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: '#e63946',
-              border: 'none',
-              boxShadow: '0 0 0 3px rgba(230,57,70,0.15)',
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '14px',
-              fontWeight: 700,
-              color: 'white'
-            }}>✓</div>
-            <div style={{
-              fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-              width: '44px', textAlign: 'center', marginTop: '6px',
-              color: '#e63946'
-            }}>Invite</div>
-          </div>
-
-          <div style={{ flex: 1, height: '1px', marginTop: '19px', background: boardOpened ? '#e63946' : '#1a1a1a', transition: 'background 300ms ease' }}></div>
-
-          {/* Step 2: Board */}
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div style={{
-              width: '38px', height: '38px',
-              borderRadius: '8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: boardOpened ? '#e63946' : 'transparent',
-              border: boardOpened ? 'none' : '2px solid #e63946',
-              boxShadow: boardOpened ? '0 0 0 3px rgba(230,57,70,0.15)' : 'none',
-              fontFamily: boardOpened ? "'Inter', sans-serif" : "'JetBrains Mono', monospace",
-              fontSize: boardOpened ? '14px' : '12px',
-              fontWeight: boardOpened ? 700 : 600,
-              color: boardOpened ? 'white' : '#e63946',
-              position: 'relative'
-            }}>
-              {boardOpened ? '✓' : '2'}
-              {!boardOpened && (
-                <div style={{
-                  position: 'absolute', inset: '-5px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(230,57,70,0.2)',
-                  animation: 'stepPulse 2s ease-in-out infinite'
-                }}></div>
-              )}
-            </div>
-            <div style={{
-              fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-              width: '44px', textAlign: 'center', marginTop: '6px',
-              color: boardOpened ? '#e63946' : '#666'
-            }}>Board</div>
-          </div>
-
-          <div style={{ flex: 1, height: '1px', marginTop: '19px', background: agentConnected ? '#e63946' : '#1a1a1a', transition: 'background 300ms ease' }}></div>
-
-          {/* Step 3: Battle */}
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-            <div style={{
-              width: '38px', height: '38px',
-              borderRadius: '8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: agentConnected ? '#e63946' : '#1a1a1a',
-              border: agentConnected ? 'none' : '1px solid #1a1a1a',
-              boxShadow: agentConnected ? '0 0 0 3px rgba(230,57,70,0.15)' : 'none',
-              fontFamily: agentConnected ? "'Inter', sans-serif" : "'JetBrains Mono', monospace",
-              fontSize: agentConnected ? '14px' : '12px',
-              fontWeight: agentConnected ? 700 : 400,
-              color: agentConnected ? 'white' : '#666',
-              position: 'relative'
-            }}>
-              {agentConnected ? '✓' : '3'}
-              {agentConnected && (
-                <div style={{
-                  position: 'absolute', inset: '-5px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(230,57,70,0.2)',
-                  animation: 'stepPulse 2s ease-in-out infinite'
-                }}></div>
-              )}
-            </div>
-            <div style={{
-              fontFamily: "'Inter', sans-serif", fontSize: '9px', fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.5px',
-              width: '44px', textAlign: 'center', marginTop: '6px',
-              color: agentConnected ? '#e63946' : '#666'
-            }}>Battle</div>
-          </div>
-        </div>
-
-        {/* CARD 1 — SUMMON YOUR OPENCLAW */}
-        <div 
-          style={{
-            background: '#0e0e0e',
-            border: '1px solid #1a1a1a',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '10px',
-            transition: 'border-color 200ms'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1a1a1a'}
-        >
-          <div style={{
-            display: 'inline-block',
-            marginBottom: '12px',
-            background: 'rgba(230,57,70,0.07)',
-            border: '1px solid rgba(230,57,70,0.14)',
-            borderRadius: '4px',
-            padding: '2px 8px',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '10px',
-            fontWeight: 500,
-            color: '#e63946'
-          }}>01</div>
-          
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '20px',
-            fontWeight: 700,
-            color: '#f2f2f2',
-            marginBottom: '5px'
-          }}>Summon Your OpenClaw</h2>
-          
-          <p style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '13px',
-            fontWeight: 400,
-            color: '#666',
-            lineHeight: 1.5,
-            marginBottom: '14px'
-          }}>First, install the required skills in your OpenClaw terminal:</p>
-
-          <div style={{
-            background: '#080808',
-            border: '1px solid #1a1a1a',
-            borderRadius: '8px',
-            padding: '12px 14px',
-            marginBottom: '14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{display: 'flex', alignItems: 'center'}}>
-              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>&gt;</span>
-              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install play-chess</span>
-            </div>
-            <div style={{display: 'flex', alignItems: 'center'}}>
-              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#e63946', marginRight: 8}}>&gt;</span>
-              <span style={{fontFamily:"'JetBrains Mono', monospace", color:'#999'}}>npx clawhub install agent-browser-clawdbot</span>
-            </div>
-          </div>
-
-          <p style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '13px',
-            fontWeight: 400,
-            color: '#666',
-            lineHeight: 1.5,
-            marginBottom: '10px'
-          }}>Then send your OpenClaw this invite:</p>
-
-          <div style={{
-            background: '#080808',
-            border: '1px solid #1a1a1a',
-            borderRadius: '8px',
-            padding: '14px',
-            marginBottom: '10px',
-            maxHeight: '220px',
-            overflowY: 'auto',
-            scrollbarWidth: 'none',
-            cursor: 'text'
-          }}>
-            <div style={{
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '11px',
-              lineHeight: 1.6,
-              color: '#f2f2f2',
-              userSelect: 'all',
-              margin: 0
-            }}>
-              {renderMessageContent()}
-            </div>
-          </div>
-
-          <button
-            onClick={handleShare}
-            style={{
-              width: '100%',
-              height: '42px',
-              background: '#1a1a1a',
-              border: `1px solid ${copyState === 'copied' ? 'rgba(34,197,94,0.2)' : '#1a1a1a'}`,
-              borderRadius: '8px',
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '7px',
-              touchAction: 'manipulation',
-              color: copyState === 'copied' ? '#22c55e' : '#f2f2f2',
-            }}
+        {/* Action Cards */}
+        <div className="space-y-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6"
           >
-            {copyState === 'copied' ? '✓ Copied!' : '📤 Share Invite'}
-          </button>
-        </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-bold font-mono text-sm">01</div>
+              <h2 className="text-xl font-bold">Summon Your OpenClaw</h2>
+            </div>
+            
+            <p className="text-sm text-neutral-400 mb-4">First, install the required skills in your OpenClaw terminal:</p>
+            <div className="glass break-all p-4 rounded-xl border-white/5 mb-6 space-y-3 font-mono text-xs">
+              <div className="flex items-center gap-3">
+                <Terminal size={14} className="text-red-500 shrink-0" />
+                <span className="text-neutral-300">npx clawhub install play-chess</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Terminal size={14} className="text-red-500 shrink-0" />
+                <span className="text-neutral-300">npx clawhub install agent-browser-clawdbot</span>
+              </div>
+            </div>
 
-        {/* CARD 2 — OPEN YOUR ARENA */}
-        <div 
-          style={{
-            background: '#0e0e0e',
-            border: '1px solid #1a1a1a',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '10px',
-            transition: 'border-color 200ms'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.borderColor = '#333333'}
-          onMouseOut={(e) => e.currentTarget.style.borderColor = '#1a1a1a'}
-        >
-          <div style={{
-            display: 'inline-block',
-            marginBottom: '12px',
-            background: 'rgba(230,57,70,0.07)',
-            border: '1px solid rgba(230,57,70,0.14)',
-            borderRadius: '4px',
-            padding: '2px 8px',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '10px',
-            fontWeight: 500,
-            color: '#e63946'
-          }}>02</div>
-          
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '20px',
-            fontWeight: 700,
-            color: '#f2f2f2',
-            marginBottom: '5px'
-          }}>Open Your Arena</h2>
-          
-          <p style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '13px',
-            fontWeight: 400,
-            color: '#666',
-            lineHeight: 1.5,
-            marginBottom: '14px'
-          }}>Open the board in a new tab.<br/>Your battlefield is ready.</p>
+            <p className="text-sm text-neutral-400 mb-3">Then send your OpenClaw this invite:</p>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-red-500/0 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
+              <div className="relative glass p-4 rounded-xl h-48 overflow-y-auto mb-4 border-white/10 font-mono text-xs leading-relaxed text-neutral-300 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
+                {inviteMessage}
+              </div>
+            </div>
 
-          <button
-            onClick={handleOpenBoard}
-            style={{
-              background: boardOpened ? 'rgba(34,197,94,0.05)' : '#e63946',
-              color: boardOpened ? '#22c55e' : 'white',
-              height: '46px',
-              width: '100%',
-              border: boardOpened ? '1px solid rgba(34,197,94,0.15)' : 'none',
-              borderRadius: '8px',
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: boardOpening ? 'default' : 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-              touchAction: 'manipulation',
-              pointerEvents: boardOpening ? 'none' : 'auto',
-              opacity: boardOpening ? 0.75 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: boardOpening ? '8px' : '0'
-            }}
-            onMouseDown={(e) => {
-              if (!boardOpening) e.currentTarget.style.transform = 'scale(0.97)';
-            }}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            <button 
+              onClick={handleShare}
+              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${copyState === 'copied' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-white text-black hover:bg-neutral-200'}`}
+            >
+              {copyState === 'copied' ? <><CheckCircle2 size={18} /> Copied!</> : <><ClipboardCopy size={18} /> Copy Invite Message</>}
+            </button>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className={`glass-card p-6 border-2 transition-colors duration-500 ${boardOpened ? 'border-red-500/30 bg-red-500/5' : 'border-white/5 bg-transparent'}`}
           >
-            {boardOpening ? (
-              <>
-                <div style={{
-                  width: '16px', height: '16px',
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderTopColor: 'white',
-                  borderRadius: '50%',
-                  animation: 'spin 500ms linear infinite',
-                  flexShrink: 0
-                }} />
-                Opening...
-              </>
-            ) : boardOpened ? 'Arena Opened (Click to reopen)' : 'Open Arena →'}
-          </button>
-        </div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono text-sm transition-colors ${boardOpened ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500'}`}>02</div>
+                <h2 className="text-xl font-bold">Open Your Arena</h2>
+              </div>
+              {boardOpened && <div className="text-xs font-semibold text-red-500 px-3 py-1 glass rounded-full">Active</div>}
+            </div>
+            
+            <p className="text-sm text-neutral-400 mb-6">Open the board in a new tab. Your battlefield is ready.</p>
 
+            <button 
+              onClick={handleOpenBoard} disabled={boardOpening}
+              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${boardOpened ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]'}`}
+            >
+              {boardOpening ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
+                </motion.div>
+              ) : boardOpened ? <><Play size={18} /> Open Arena Again</> : <><Play size={18} /> Open Arena</>}
+            </button>
+          </motion.div>
+        </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes stepPulse {
-          0%,100%{ opacity:0.6; transform:scale(1) }
-          50%    { opacity:0; transform:scale(1.2) }
-        }
-        @keyframes spin {
-          to { transform:rotate(360deg) }
-        }
-        @keyframes floatLobster {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes bounceLobster {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.3); }
-          100% { transform: scale(1); }
-        }
-        @keyframes arrives {
-          from{ transform:scale(0.5); opacity:0 }
-          to  { transform:scale(1);   opacity:1 }
-        }
-        @keyframes fadeUp {
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}} />
     </div>
   );
 }

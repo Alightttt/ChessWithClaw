@@ -859,7 +859,7 @@ export default function Game() {
     }
   };
 
-  async function handleResign() {
+  const handleResign = useCallback(async () => {
     if (!confirmResign) {
       setConfirmResign(true);
       setTimeout(() => setConfirmResign(false), 3000);
@@ -870,9 +870,9 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
-  }
+  }, [confirmResign, game?.player_color, gameId]);
 
-  async function handleDraw() {
+  const handleDraw = useCallback(async () => {
     if (!confirmDraw) {
       setConfirmDraw(true);
       setTimeout(() => setConfirmDraw(false), 3000);
@@ -883,19 +883,19 @@ export default function Game() {
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmDraw(false);
-  }
+  }, [confirmDraw, gameId]);
 
   async function acceptAgentResignation() {
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'resignation'
     }).eq('id', gameId);
-  };
+  }
 
   function copyRoomCode() {
     navigator.clipboard.writeText(gameId);
     setCopiedRoom(true);
     setTimeout(() => setCopiedRoom(false), 2000);
-  };
+  }
 
   function copyInvite() {
     const url = `${window.location.origin}/Agent?id=${gameId}${agentToken ? `&token=${agentToken}` : ''}`;
@@ -1107,57 +1107,35 @@ export default function Game() {
       `}</style>
       
       {/* FIX 2 — PAGE HEADER */}
-      <header style={{
-        height: '52px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        background: 'rgba(8,8,8,0.96)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid #1a1a1a',
-        padding: '0 14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        overflow: 'hidden'
-      }}>
-        <div style={{display:"flex",alignItems:"center", gap: '12px'}}>
-          <div style={{display:"flex",alignItems:"center",cursor:"pointer"}} onClick={handleGoHome}>
+      <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 px-4 lg:px-8 flex items-center justify-between shrink-0 bg-black/80 backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome}>
             <img
               src="/logo.png"
               alt="ChessWithClaw"
-              width="32"
-              height="32"
-              style={{ height: 32, width: 32, marginRight: 10, verticalAlign: 'middle', objectFit: 'contain' }}
+              width="24"
+              height="24"
+              className="h-6 w-auto object-contain mr-2"
               loading="eager"
             />
-            <span className="serif hidden sm:inline" style={{fontSize:16,fontWeight:800,letterSpacing:"-0.4px",color:"#f0f0f0"}}>
+            <span className="font-bold tracking-tight text-lg text-white hidden sm:inline">
               ChessWithClaw
             </span>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#666' }}>
+          <div className="flex items-center gap-2 font-mono text-xs text-neutral-500 font-semibold uppercase tracking-wider">
             <span className="hidden sm:inline">/</span>
-            <span style={{ color: '#f0f0f0' }}>Game {gameId.substring(0, 6)}</span>
+            <span className="text-red-500 px-2 py-1 glass rounded-md border-white/5 bg-white/5">Game #{gameId.substring(0, 6)}</span>
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center gap-2">
           <button 
             data-testid="settings-button"
             onClick={handleOpenSettings}
-            style={{
-              width: '44px', height: '44px',
-              background: '#0e0e0e', border: '1px solid #1a1a1a',
-              borderRadius: '8px', color: '#888',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'color 150ms'
-            }}
-            className="hover:text-[#888]"
+            className="w-10 h-10 rounded-full glass border-white/5 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition-all active:scale-95 bg-white/5"
           >
-            <Settings size={20} />
+            <Settings size={18} />
           </button>
         </div>
       </header>
