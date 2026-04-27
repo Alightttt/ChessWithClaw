@@ -1,5 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Chess } = require('chess.js');
 const { validateUUID } = require('../server-lib/utils/sanitize.js');
 
 function computeMaterialBalance(chess) {
@@ -112,6 +111,8 @@ module.exports = async (req, res) => {
         timestamp: new Date(thought.created_at).getTime()
       }));
     }
+
+    const { Chess } = await import('chess.js');
 
     let chess;
     try {

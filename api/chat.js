@@ -1,4 +1,3 @@
-const { Chess } = require('chess.js');
 const { createClient } = require('@supabase/supabase-js');
 const { notifyAgent } = require('../server-lib/notify.js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
@@ -22,6 +21,8 @@ module.exports = async (req, res) => {
   applySecurityHeaders(res);
   applyCacheControl(res);
   applyCorsHeaders(req, res);
+
+  const { Chess } = await import('chess.js');
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
 

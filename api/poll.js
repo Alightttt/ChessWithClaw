@@ -1,4 +1,3 @@
-const { Chess } = require('chess.js');
 const { createClient } = require('@supabase/supabase-js');
 
 function isValidUUID(id) {
@@ -108,6 +107,8 @@ module.exports = async (req, res) => {
   const opponentConnected = game.player_last_seen 
     ? (new Date() - new Date(game.player_last_seen)) < 15000 
     : false;
+
+  const { Chess } = await import('chess.js');
 
   if(game.turn==='b'&&game.move_count>lastMoveCount){
     let chess

@@ -1,5 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Chess } = require('chess.js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
 const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
@@ -31,6 +30,8 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const { Chess } = await import('chess.js');
 
   const rateLimitResult = checkRateLimit(ip, '/api/state:get', 120, 60000);
   applyRateLimitHeaders(res, 120, rateLimitResult.remaining, rateLimitResult.resetTime);
