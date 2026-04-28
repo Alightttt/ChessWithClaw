@@ -14,23 +14,6 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
-function GameTimer({ startTime, status }) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!startTime || status === 'finished') return;
-    const start = new Date(startTime).getTime();
-    const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - start) / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [startTime, status]);
-
-  const mins = Math.floor(elapsed / 60);
-  const secs = elapsed % 60;
-  return <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{mins}:{secs.toString().padStart(2, '0')}</span>;
-}
-
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
@@ -1138,7 +1121,7 @@ export default function Game() {
         <div className="h-[60px] px-4 flex items-center gap-3">
           <div className="flex flex-col items-center justify-center shrink-0 w-[50px]">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${mood === 'thinking' ? 'animate-pulse' : ''} ${justConnected ? 'animate-bounce' : ''}`} style={{ background: config.bg, borderColor: config.border }}>
-              <img src="/logo.png" alt="Agent" className="w-6 h-6 object-contain" onError={e => e.target.style.display='none'} />
+              <img src="/logo.png" alt={agentName} className="w-6 h-6 object-contain" onError={e => e.target.style.display='none'} />
             </div>
             <div className="text-[10px] font-semibold mt-1 leading-none whitespace-nowrap" style={{ color: config.color }}>
               {config.label}
@@ -1234,7 +1217,7 @@ export default function Game() {
             borderRadius: 8, padding: '10px 16px',
             display: 'flex', alignItems: 'center', gap: 10,
             marginBottom: 12,
-            width: `${boardSize}px`
+            width: '100%', maxWidth: '100vw'
           }}>
             <span style={{animation: 'floatLobster 2s ease-in-out infinite'}}>🦞</span>
             <div>
@@ -1251,13 +1234,13 @@ export default function Game() {
         {isCheckState && game.status === 'active' && (
           <div 
             className="px-4 py-2 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded-md mb-2 shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse"
-            style={{ width: `${boardSize}px` }}
+            style={{ width: '100%', maxWidth: '100vw' }}
           >
             {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
           </div>
         )}
 
-        <div className="flex justify-between items-center min-h-[20px] py-1" style={{ width: `${boardSize}px` }}>
+        <div className="flex justify-between items-center min-h-[20px] py-1" style={{ width: '100%', maxWidth: '100vw' }}>
           <div className="flex gap-0.5">
             {capturedByWhite.map((p, i) => {
               const pieceName = `b${p.toUpperCase()}`;
@@ -1283,10 +1266,12 @@ export default function Game() {
 
         <div 
           ref={boardRef}
-          className={`relative rounded-md overflow-visible shrink-0 transition-all duration-300 ring-1 ring-white/5 ${boardLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${shaking ? 'animate-board-shake' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'animate-board-thinking' : 'shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]')} ${boardPerspective ? 'shadow-[0_30px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]' : ''}`}
+          className={`relative rounded-md shrink-0 transition-all duration-300 ring-1 ring-white/5 ${boardLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${shaking ? 'animate-board-shake' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'animate-board-thinking' : 'shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]')} ${boardPerspective ? 'shadow-[0_30px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]' : ''}`}
           style={{
-            width: `${boardSize}px`,
-            height: `${boardSize}px`,
+            width: '100%',
+            maxWidth: '100vw',
+            aspectRatio: '1 / 1',
+            overflow: 'hidden',
             transform: `${shaking ? 'translateX(0)' : 'none'} ${boardPerspective ? 'perspective(1000px) rotateX(25deg) scale(0.95)' : ''}`,
             transformOrigin: 'bottom center',
           }}
@@ -1321,7 +1306,7 @@ export default function Game() {
           )}
         </div>
 
-        <div className="flex gap-0.5 min-h-[20px] py-1" style={{ width: `${boardSize}px` }}>
+        <div className="flex gap-0.5 min-h-[20px] py-1" style={{ width: '100%', maxWidth: '100vw' }}>
           {capturedByBlack.map((p, i) => {
             const pieceName = `w${p.toUpperCase()}`;
             const url = (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') 
@@ -1339,8 +1324,12 @@ export default function Game() {
       <div className="w-full lg:w-[360px] flex flex-col bg-black/60 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/5 flex-shrink-0 lg:h-full lg:overflow-hidden relative z-10">
         {/* FIX 5 — LIVE CHAT */}
         <div style={{
-          paddingBottom: chatPaddingBottom + 'px'
-        }} className="h-[200px] lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10">
+          paddingBottom: chatPaddingBottom + 'px',
+          height: 'auto',
+          minHeight: '200px',
+          maxHeight: '400px',
+          overflowY: 'auto'
+        }} className="lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10">
         <div className="h-10 px-4 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm text-neutral-300">{`Chat with ${agentName}`}</span>
@@ -1527,7 +1516,6 @@ export default function Game() {
         </div>
         
         <div className="font-mono text-xs text-neutral-500 flex items-center gap-3 font-semibold">
-          <GameTimer startTime={game.created_at} status={game.status} />
         </div>
       </div>
 
