@@ -52,20 +52,6 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [bsize, setBsize] = useState(360);
-
-  useEffect(() => {
-    const calcBoard = () => {
-      const vw = window.innerWidth;
-      if(vw < 420) setBsize(vw - 48);
-      else if(vw < 640) setBsize(Math.min(vw - 64, 380));
-      else if(vw < 1024) setBsize(420);
-      else setBsize(480);
-    };
-    calcBoard();
-    window.addEventListener("resize", calcBoard);
-    return () => window.removeEventListener("resize", calcBoard);
-  }, []);
 
   const handleStart = async () => {
     if (creating) return;
@@ -220,8 +206,7 @@ export default function Home() {
             
             {/* Board */}
             <div 
-              style={{ width: bsize, height: bsize }}
-              className="rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
+              className="w-full aspect-square max-w-[480px] mx-auto rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
             >
               <ChessBoard 
                 fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"

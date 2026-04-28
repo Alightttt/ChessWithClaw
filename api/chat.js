@@ -3,6 +3,7 @@ const { notifyAgent } = require('../server-lib/notify.js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
 const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
+const { Chess } = require('chess.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,8 +22,6 @@ module.exports = async (req, res) => {
   applySecurityHeaders(res);
   applyCacheControl(res);
   applyCorsHeaders(req, res);
-
-  const { Chess } = await import('chess.js');
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
 
@@ -95,21 +94,20 @@ module.exports = async (req, res) => {
     }));
   }
 
-  const { data: currentGame } = await supabase
+  const { data: gameRow } = await supabase
     .from('games')
     .select('chat_history')
     .eq('id', gameId)
     .single();
 
-  const history = currentGame?.chat_history || [];
-  const newMessage = {
-    id: Date.now().toString(),
-    sender: sender || 'agent',
-    text: sanitizedText,
-    timestamp: new Date().toISOString()
+  const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
+  const newMsg = {
+    role: req.body.role || sender || 'human',
+    text: req.body.message || text || req.body.text,
+    timestamp: Date.now()
   };
 
-  const newHistory = [...history, newMessage];
+  const newHistory = [...existing, newMsg];
   
   const updates = {
     chat_history: newHistory

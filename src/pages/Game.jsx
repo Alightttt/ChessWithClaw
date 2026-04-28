@@ -389,19 +389,19 @@ export default function Game() {
   }, [game, playSound]);
 
   // Agent Timeout Check
-  const [agentTimeout, setAgentTimeout] = useState(false);
+  const [agentWarning, setAgentWarning] = useState(false);
   useEffect(() => {
     if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game?.player_color || 'w')) {
-      setAgentTimeout(false);
+      setAgentWarning(false);
       return;
     }
     
     const checkTimeout = () => {
       const lastUpdated = new Date(game.agent_last_seen || game.updated_at || game.created_at).getTime();
       if (Date.now() - lastUpdated > 90000) { // 90 seconds
-        setAgentTimeout(true);
+        setAgentWarning(true);
       } else {
-        setAgentTimeout(false);
+        setAgentWarning(false);
       }
     };
     
@@ -447,13 +447,6 @@ export default function Game() {
       }
     }
   }, [game?.status, game?.result, game?.player_color, toast]);
-
-  async function handleClaimVictory() {
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'abandoned'
-    }).eq('id', gameId);
-    setAgentTimeout(false);
-  }
 
   useEffect(() => {
     if (!game) return;
@@ -948,11 +941,6 @@ export default function Game() {
     handleGoHome();
   }
 
-  function handleClaimVictoryWithRipple(e) {
-    createRipple(e);
-    handleClaimVictory();
-  }
-
   function handleCopyInviteWithRipple(e) {
     createRipple(e);
     copyInvite();
@@ -1129,11 +1117,6 @@ export default function Game() {
               ChessWithClaw
             </span>
           </div>
-          
-          <div className="flex items-center gap-2 font-mono text-xs text-neutral-500 font-semibold uppercase tracking-wider">
-            <span className="hidden sm:inline">/</span>
-            <span className="text-red-500 px-2 py-1 glass rounded-md border-white/5 bg-white/5">Game #{gameId.substring(0, 6)}</span>
-          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -1166,8 +1149,8 @@ export default function Game() {
             <div className="font-serif text-base font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis leading-none">
               {agentName}
             </div>
-            <div className={`text-[11px] leading-none whitespace-nowrap mt-1 ${agentTimeout ? 'text-amber-500' : (!agentConnected ? 'text-neutral-500' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'text-red-500' : (game?.turn === (game?.player_color || 'w') ? 'text-neutral-500' : 'text-red-500')))}`}>
-              {agentTimeout ? `⏱ ${agentName} is taking longer than usual` :
+            <div className={`text-[11px] font-sans leading-none whitespace-nowrap mt-1 ${agentWarning ? 'text-[#e63946]' : (!agentConnected ? 'text-neutral-500' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'text-red-500' : (game?.turn === (game?.player_color || 'w') ? 'text-neutral-500' : 'text-red-500')))}`}>
+              {agentWarning ? `${agentName} seems to be away` :
                !agentConnected ? (<span>Not here yet... <span className="text-neutral-500">Send them the invite link.</span></span>) : 
                game?.turn === (game?.player_color || 'w') ? "Watching you..." : 
                null}
@@ -1175,15 +1158,6 @@ export default function Game() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {agentTimeout && game.status === 'active' && (
-              <button 
-                data-testid="claim-win-button"
-                onClick={handleClaimVictoryWithRipple}
-                className="relative overflow-hidden bg-red-600 text-white border-none py-1 px-2 rounded font-bold text-xs cursor-pointer transition-all hover:bg-red-700 active:scale-95 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-              >
-                Claim Win
-              </button>
-            )}
             <div className={`w-2 h-2 rounded-full relative ${!agentConnected ? 'bg-neutral-700' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'bg-red-500' : 'bg-green-500')}`}>
               {agentConnected && (
                 <div className={`absolute -inset-1 rounded-full opacity-0 ${((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'bg-red-500 animate-[ripple_1s_ease-out_infinite]' : 'bg-green-500 animate-[ripple_2s_ease-out_infinite]')}`}></div>
@@ -1211,10 +1185,10 @@ export default function Game() {
                 {copiedInvite ? 'Copied!' : 'Copy Invite Link'}
               </button>
             </div>
-          ) : agentTimeout ? (
+          ) : agentWarning ? (
             <div className="py-3 text-center">
-              <div className="text-xs text-amber-500">
-                {agentName} is taking longer than usual
+              <div className="text-xs text-[#e63946] font-sans">
+                {agentName} seems to be away
               </div>
             </div>
           ) : game.turn === 'b' && game.status === 'active' ? (
@@ -1227,11 +1201,11 @@ export default function Game() {
                 {`⚡ ${agentName} Thinking...`}
               </div>
               <div>
-                {displayedThinking || <span className="text-neutral-600 italic">Processing position...</span>}
+                {displayedThinking || <span className="text-neutral-600 italic">Thinking...</span>}
                 {displayedThinking && <span className="thinking-cursor"/>}
               </div>
             </div>
-          ) : lastThinking ? (
+          ) : game?.current_thinking ? (
             <div 
               className="border-l-2 border-white/10 bg-transparent p-3 pl-4 mt-2 font-mono text-[11px] text-neutral-400 leading-relaxed break-words max-h-[250px] overflow-y-auto scrollbar-none transition-all duration-300 relative"
             >
@@ -1239,7 +1213,7 @@ export default function Game() {
                 LAST THOUGHT
               </div>
               <div className="opacity-70">
-                {lastThinking.text}
+                {game?.current_thinking}
               </div>
             </div>
           ) : (
