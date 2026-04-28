@@ -201,7 +201,7 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="flex-1 w-full flex justify-center lg:justify-end z-10"
         >
-          <div className="relative animate-float">
+          <div className="relative">
             {/* Agent Bar */}
             <div className="flex items-center justify-between mb-4 px-1 w-full max-w-[480px]">
               <div className="flex items-center gap-3">
