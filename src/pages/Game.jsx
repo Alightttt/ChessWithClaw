@@ -229,7 +229,9 @@ export default function Game() {
   }, [])
 
   useEffect(() => {
-    const text = game?.current_thinking || ''
+    let baseText = game?.current_thinking || ''
+    if (baseText.length > 120) baseText = baseText.substring(0, 120) + '...'
+    const text = baseText
     
     if (!text || text === prevThinkingRef.current) return
     prevThinkingRef.current = text
@@ -249,7 +251,7 @@ export default function Game() {
         clearInterval(typerRef.current)
         typerRef.current = null
       }
-    }, 20)
+    }, 30)
     
     return () => {
       if (typerRef.current) {
@@ -1011,28 +1013,31 @@ export default function Game() {
 
   if (loading) {
     return (
-      <div className="flex flex-col lg:flex-row min-h-screen bg-black text-white selection:bg-red-500/30">
-        {/* Background Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] blur-[120px] rounded-full pointer-events-none bg-red-500/5 transition-colors duration-1000" />
-        
-        {/* Board Skeleton */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
-          <div className="w-full max-w-[400px] aspect-square rounded-md bg-white/5 animate-pulse border border-white/5" />
-          <div className="w-full max-w-[400px] h-8 mt-4 rounded-md bg-white/5 animate-pulse border border-white/5" />
-        </div>
+      <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
+        <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex flex-col shrink-0 bg-black/80 backdrop-blur-xl">
+        </header>
 
-        {/* Sidebar Skeleton */}
-        <div className="w-full lg:w-[360px] shrink-0 flex flex-col bg-black/60 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/5 relative z-10 transition-all">
-          <div className="h-[60px] border-b border-white/5 flex items-center px-4 gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/5 animate-pulse shrink-0" />
-            <div className="flex-1 flex gap-2 flex-col">
-               <div className="w-24 h-4 rounded px-2 bg-white/5 animate-pulse" />
-               <div className="w-32 h-3 rounded px-2 bg-white/5 animate-pulse" />
+        <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
+          <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative z-10">
+            <div className="h-[60px] border-b border-white/5 flex items-center px-4 gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/5 animate-pulse shrink-0" />
+              <div className="flex-1 flex gap-2 flex-col">
+                 <div className="w-24 h-4 rounded px-2 bg-white/5 animate-pulse" />
+                 <div className="w-32 h-3 rounded px-2 bg-white/5 animate-pulse" />
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
+              <div className="w-full max-w-[400px] aspect-square rounded-md bg-white/5 animate-pulse border border-white/5" />
             </div>
           </div>
-          <div className="p-4 flex flex-col gap-4">
-            <div className="w-full h-24 rounded-lg bg-white/5 animate-pulse border border-white/5" />
-            <div className="w-full h-12 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+
+          <div className="w-full lg:w-[360px] shrink-0 flex flex-col bg-black/60 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/5 relative z-10 transition-all">
+            <div className="lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10 p-4">
+               <div className="w-full h-24 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            </div>
+            <div className="flex flex-col bg-[#111] border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full p-4 mb-12 lg:mb-0">
+               <div className="w-full h-12 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            </div>
           </div>
         </div>
       </div>
@@ -1047,7 +1052,7 @@ export default function Game() {
           <div className="text-5xl drop-shadow-md">🦞</div>
           <div className="font-serif text-3xl font-bold tracking-wide">Game not found</div>
           <div className="text-neutral-400 text-sm font-sans">
-            It looks like this game doesn't exist anymore or you have the wrong link.
+            It looks like this game doesn&apos;t exist anymore or you have the wrong link.
           </div>
           <button 
             data-testid="home-button"
@@ -1201,7 +1206,8 @@ export default function Game() {
                 {`⚡ ${agentName}`}
               </div>
               <div className="italic">
-                {game.current_thinking ? (game.current_thinking.length > 120 ? game.current_thinking.substring(0, 120) + '...' : game.current_thinking) : 'Thinking...'}
+                {displayedThinking || 'Thinking...'}
+                {displayedThinking && <span className="thinking-cursor"/>}
               </div>
             </div>
           ) : game?.current_thinking ? (
@@ -1284,10 +1290,9 @@ export default function Game() {
           ref={boardRef}
           className={`relative rounded-md shrink-0 transition-all duration-300 ring-1 ring-white/5 ${boardLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${shaking ? 'animate-board-shake' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'animate-board-thinking' : 'shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]')} ${boardPerspective ? 'shadow-[0_30px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]' : ''}`}
           style={{
-            width: '100%',
-            maxWidth: '100vw',
-            aspectRatio: '1 / 1',
-            overflow: 'hidden',
+            width: boardSize,
+            height: boardSize,
+            boxSizing: 'border-box',
             transform: `${shaking ? 'translateX(0)' : 'none'} ${boardPerspective ? 'perspective(1000px) rotateX(25deg) scale(0.95)' : ''}`,
             transformOrigin: 'bottom center',
           }}
@@ -1342,8 +1347,7 @@ export default function Game() {
         <div style={{
           paddingBottom: chatPaddingBottom + 'px',
           height: 'auto',
-          minHeight: '200px',
-          maxHeight: '400px',
+          maxHeight: '350px',
           overflowY: 'auto'
         }} className="lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10">
         <div className="h-10 px-4 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/5">
@@ -1444,28 +1448,18 @@ export default function Game() {
       </div>
 
       {/* FIX 6 — MOVE HISTORY */}
-      <div data-testid="move-history" className="flex flex-col bg-black/20 border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10">
-        <div 
-          data-testid="toggle-move-history"
-          onClick={handleToggleMoveHistory}
-          className="h-11 px-4 flex items-center justify-between cursor-pointer shrink-0 lg:pointer-events-none hover:bg-white/5 transition-colors"
-          style={{ touchAction: 'manipulation' }}
-        >
-          <span className="font-sans text-sm font-bold text-neutral-400">Move History</span>
+      <div data-testid="move-history" className="flex flex-col bg-[#111] border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full mb-12 lg:mb-0">
+        <div className="h-11 px-4 flex items-center justify-between shrink-0 bg-black/40 border-b border-white/5">
+          <span className="font-sans text-sm font-bold text-neutral-300">Move History</span>
           <div className="flex gap-2 items-center">
-            <span className="bg-white/5 border border-white/5 rounded-md px-2 py-0.5 font-mono text-[11px] text-neutral-400">
-              {(game.move_history || []).length}
+            <span className="bg-white/10 text-neutral-300 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold">
+              {(game.move_history || []).length} moves
             </span>
-            <ChevronDown size={14} className="text-neutral-500 lg:hidden transition-transform duration-200" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
           </div>
         </div>
 
-        <div style={{
-          maxHeight: moveHistoryOpen ? '200px' : '0px',
-          overflow: 'hidden',
-          transition: 'max-height 220ms cubic-bezier(0.4, 0, 0.2, 1)'
-        }} className="lg:!max-h-none lg:flex-1 lg:flex lg:flex-col">
-          <div className="max-h-[200px] lg:max-h-none lg:flex-1 py-2 px-3 overflow-y-auto scrollbar-none">
+        <div className="max-h-[250px] lg:max-h-none lg:flex-1 py-1 px-1 overflow-y-auto scrollbar-none bg-[#111]">
+          <div className="py-2 px-3">
             {!(game.move_history || []).length ? (
               <div className="font-sans text-xs text-neutral-500 text-center py-4">No moves yet</div>
             ) : (

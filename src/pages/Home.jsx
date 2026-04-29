@@ -141,7 +141,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-neutral-400 text-lg sm:text-xl max-w-lg mb-10 leading-relaxed font-normal"
           >
-            The same AI agent you use every day — now playing chess with you in a beautiful, real-time arena.
+            The same AI you use every day — now playing chess with you in a beautiful, real-time arena.
           </motion.p>
           
           <motion.div 
@@ -187,15 +187,26 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="flex-1 w-full flex justify-center lg:justify-end z-10"
         >
-          <div className="relative">
+          <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', boxSizing: 'border-box' }} className="relative">
             {/* Agent Bar */}
-            <div className="flex items-center justify-between mb-4 px-1 w-full max-w-[480px]">
+            <div className="flex items-center justify-between mb-4 px-1 w-full">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(239,68,68,0.15)]">🦞</div>
                 <div>
-                  <div className="text-sm font-semibold text-neutral-100">OpenClaw Agent</div>
-                  <div className="text-xs text-red-500 font-mono mt-0.5 uppercase tracking-wider flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"/> Thinking...
+                  <div className="text-sm font-semibold text-neutral-100">OpenClaw</div>
+                  <div 
+                    style={{
+                      color: '#e63946',
+                      fontSize: '13px',
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: '600',
+                      letterSpacing: '0.1em',
+                      opacity: 1,
+                      visibility: 'visible'
+                    }}
+                    className="mt-0.5 uppercase flex items-center gap-2"
+                  >
+                    <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse"/> THINKING...
                   </div>
                 </div>
               </div>
@@ -206,7 +217,8 @@ export default function Home() {
             
             {/* Board */}
             <div 
-              className="w-full aspect-square max-w-[480px] mx-auto rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
+              style={{ width: '100%', maxWidth: '480px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box' }}
+              className="rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
             >
               <ChessBoard 
                 fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
@@ -219,7 +231,7 @@ export default function Home() {
             </div>
             
             {/* Human Bar */}
-            <div className="flex items-center justify-between mt-4 px-1 w-full max-w-[480px]">
+            <div className="flex items-center justify-between mt-4 px-1 w-full">
                <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-white/10 flex items-center justify-center text-xl text-neutral-500">♙</div>
                 <div>
@@ -242,7 +254,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
-            { icon: Bot, title: "Agent Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { icon: Bot, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="glass-card p-8 group">
@@ -279,8 +291,8 @@ export default function Home() {
                 }
               ]
             },
-            { tag: "02", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your agent." },
-            { tag: "03", title: "Send the invite", desc: "Copy the agent invite text and drop it into your CLI or web interface to start." }
+            { tag: "02", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your OpenClaw." },
+            { tag: "03", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
           ].map((step, i) => (
             <div key={i} className="flex gap-8 relative">
               <div className="w-12 h-12 rounded-full border border-red-500/20 bg-black flex items-center justify-center shrink-0 z-10 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
@@ -318,21 +330,23 @@ export default function Home() {
       {/* Testimonial */}
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5">
         <div 
-          className="relative max-w-4xl mx-auto transition-shadow duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.15)] text-center flex flex-col items-center"
+          className="relative max-w-4xl mx-auto transition-shadow duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.2),0_8px_32px_rgba(0,0,0,0.4)] text-center flex flex-col items-center"
           style={{
             background: '#111111',
             border: '1px solid #222222',
             borderRadius: '16px',
-            padding: '28px 24px'
+            padding: '28px 24px',
+            transition: 'box-shadow 0.3s ease'
           }}
         >
           <div 
             style={{
               color: '#e63946',
-              fontSize: '48px',
+              fontSize: '56px',
               fontFamily: "'Playfair Display', serif",
               lineHeight: '1',
-              marginBottom: '4px' // adjusting slightly to fit perfectly above
+              marginBottom: '8px',
+              display: 'block'
             }}
           >
             &quot;
@@ -343,21 +357,21 @@ export default function Home() {
               fontStyle: 'italic',
               fontSize: 'min(18px, 5vw)',
               color: '#f2f2f2',
-              lineHeight: '1.7',
-              marginBottom: '24px'
+              lineHeight: '1.75'
             }}
           >
             Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with AI agents.
           </p>
+          <div style={{ height: '1px', background: '#222222', width: '100%', margin: '20px 0' }} />
           <div className="flex items-center justify-center gap-4">
             <img 
               src="https://i.pravatar.cc/150?img=11" 
               alt="Jake" 
               style={{
                 borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                border: '2px solid #222222'
+                width: '44px',
+                height: '44px',
+                border: '2px solid #333333'
               }}
             />
             <div className="text-left">
@@ -365,8 +379,8 @@ export default function Home() {
                 style={{
                   fontFamily: "'Inter', sans-serif",
                   fontWeight: '600',
-                  color: '#f2f2f2',
-                  lineHeight: '1.2'
+                  fontSize: '15px',
+                  color: '#f2f2f2'
                 }}
               >
                 Jake Reynolds
@@ -374,8 +388,8 @@ export default function Home() {
               <div 
                 style={{
                   fontFamily: "'Inter', sans-serif",
-                  color: '#555555',
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  color: '#555555'
                 }}
               >
                 Tech Enthusiast

@@ -7,5 +7,3 @@ coverage/
 .env*
 !.env.example
 metadata.json
-server.mjs
-server.js
