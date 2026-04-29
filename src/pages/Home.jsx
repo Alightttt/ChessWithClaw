@@ -89,7 +89,7 @@ export default function Home() {
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 h-16 z-50 glass flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Logo" className="h-6 w-auto object-contain" onError={e => e.target.style.display='none'} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" className="h-6 w-auto object-contain" onError={e => e.target.style.display='none'} />
           <span className="font-bold tracking-tight text-lg text-white">ChessWithClaw</span>
         </div>
         <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-neutral-400">

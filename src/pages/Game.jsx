@@ -1111,7 +1111,7 @@ export default function Game() {
         <div className="flex items-center gap-4">
           <div className="flex items-center cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome}>
             <img
-              src="/logo.png"
+              src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png"
               alt="ChessWithClaw"
               width="24"
               height="24"
@@ -1143,7 +1143,7 @@ export default function Game() {
         <div className="h-[60px] px-4 flex items-center gap-3">
           <div className="flex flex-col items-center justify-center shrink-0 w-[50px]">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${mood === 'thinking' ? 'animate-pulse' : ''} ${justConnected ? 'animate-bounce' : ''}`} style={{ background: config.bg, borderColor: config.border }}>
-              <img src="/logo.png" alt={agentName} className="w-6 h-6 object-contain" onError={e => e.target.style.display='none'} />
+              <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt={agentName} className="w-6 h-6 object-contain" onError={e => e.target.style.display='none'} />
             </div>
             <div className="text-[10px] font-semibold mt-1 leading-none whitespace-nowrap" style={{ color: config.color }}>
               {config.label}
