@@ -141,18 +141,7 @@ export default function Game() {
   const containerRef = useRef(null);
   const prevThinkingRef = useRef('');
 
-  useEffect(() => {
-    if (!game?.move_history?.length) return
-    const lastMove = game.move_history[game.move_history.length - 1]
-    if (lastMove && typeof lastMove === 'string' && lastMove.length >= 4) {
-      setLastMoveFrom(lastMove.slice(0, 2))
-      setLastMoveTo(lastMove.slice(2, 4))
-    } else if (lastMove?.from && lastMove?.to) {
-      setLastMoveFrom(lastMove.from)
-      setLastMoveTo(lastMove.to)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.id]) // only on game ID change = initial load
+
 
   // Calculate Board Size and Viewport Height
   useEffect(() => {
@@ -523,6 +512,24 @@ export default function Game() {
           data.chat_history = [];
         }
 
+        if (typeof data.move_history === 'string') {
+          try { data.move_history = JSON.parse(data.move_history); } catch(e) {}
+        }
+        if (data.move_history && data.move_history.length > 0) {
+          const lastMove = data.move_history[data.move_history.length - 1];
+          if (lastMove && typeof lastMove === 'string' && lastMove.length >= 4) {
+            setLastMoveFrom(lastMove.slice(0, 2));
+            setLastMoveTo(lastMove.slice(2, 4));
+          } else if (lastMove?.from && lastMove?.to) {
+            setLastMoveFrom(lastMove.from);
+            setLastMoveTo(lastMove.to);
+          }
+        }
+        
+        if (data.agent_connected) {
+          connectedToastShown.current = true;
+        }
+
         setGame(data);
         fetch('/api/heartbeat', {
           method: 'POST',
@@ -631,11 +638,21 @@ export default function Game() {
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
     };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadGame();
+        channel.subscribe(); // Re-subscribe if it was dropped
+      }
+    };
+    
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
     };
   }, [gameId]);
@@ -1174,18 +1191,17 @@ export default function Game() {
                 {agentName} seems to be away
               </div>
             </div>
-          ) : game.turn === 'b' && game.status === 'active' ? (
+          ) : game.turn !== (game?.player_color || 'w') && game.status === 'active' ? (
             <div 
               ref={thinkingScrollRef}
               className="border-l-2 border-red-500 bg-gradient-to-r from-red-500/10 to-transparent p-3 pl-4 mt-2 font-mono text-xs text-neutral-300 leading-relaxed break-words max-h-[250px] overflow-y-auto scrollbar-none transition-all duration-300 relative"
             >
               <div className="font-mono text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                {`⚡ ${agentName} Thinking...`}
+                {`⚡ ${agentName}`}
               </div>
-              <div>
-                {displayedThinking || <span className="text-neutral-600 italic">Thinking...</span>}
-                {displayedThinking && <span className="thinking-cursor"/>}
+              <div className="italic">
+                {game.current_thinking ? (game.current_thinking.length > 120 ? game.current_thinking.substring(0, 120) + '...' : game.current_thinking) : 'Thinking...'}
               </div>
             </div>
           ) : game?.current_thinking ? (

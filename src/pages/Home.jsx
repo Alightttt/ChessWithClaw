@@ -100,11 +100,11 @@ export default function Home() {
         <button 
           onClick={handleStart} 
           disabled={creating}
-          className="bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-neutral-200 transition-colors flex items-center gap-2 active:scale-95"
+          className="bg-[#e63946] text-[#ffffff] px-5 py-2 rounded-full text-sm font-semibold hover:bg-[#d62828] transition-colors flex items-center gap-2 active:scale-95"
         >
           {creating ? (
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full" />
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
             </motion.div>
           ) : (
             <>Play Now <ArrowRight size={16} /></>
@@ -264,7 +264,21 @@ export default function Home() {
           <div className="absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-red-500/50 to-transparent" />
           
           {[
-            { tag: "01", title: "Install the plugin", desc: "Give your OpenClaw the ability to play.", code: "npx clawhub install play-chess" },
+            { 
+              tag: "01", 
+              title: "Install the plugin", 
+              desc: "Give your OpenClaw the ability to play.", 
+              commands: [
+                {
+                  code: "npx clawhub install play-chess",
+                  link: "https://clawhub.ai/Alightttt/play-chess"
+                },
+                {
+                  code: "npx clawhub install agent-browser-clawdbot",
+                  link: "https://clawhub.ai/Alightttt/agent-browser-clawdbot"
+                }
+              ]
+            },
             { tag: "02", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your agent." },
             { tag: "03", title: "Send the invite", desc: "Copy the agent invite text and drop it into your CLI or web interface to start." }
           ].map((step, i) => (
@@ -275,12 +289,26 @@ export default function Home() {
               <div className="pt-2">
                 <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
                 <p className="text-neutral-400 mb-5 leading-relaxed">{step.desc}</p>
-                {step.code && (
-                  <div className="inline-flex glass border-white/10 px-5 py-3 rounded-lg font-mono text-sm items-center gap-3">
-                    <Terminal size={16} className="text-red-500" />
-                    <span className="text-neutral-300">{step.code}</span>
+                {step.commands ? (
+                  <div className="flex flex-col gap-4 w-fit">
+                    {step.commands.map((cmd, j) => (
+                      <div key={j} className="flex flex-col gap-2">
+                        <div className="inline-flex glass border-white/10 px-5 py-3 rounded-lg font-mono text-sm items-center gap-3">
+                          <span className="text-[#e63946] font-bold">{'>'}</span>
+                          <span className="text-neutral-300" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{cmd.code}</span>
+                        </div>
+                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="text-[#e63946] text-sm font-semibold hover:underline w-fit" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                          View on ClawHub →
+                        </a>
+                      </div>
+                    ))}
                   </div>
-                )}
+                ) : step.code ? (
+                  <div className="inline-flex glass border-white/10 px-5 py-3 rounded-lg font-mono text-sm items-center gap-3">
+                    <span className="text-[#e63946] font-bold">{'>'}</span>
+                    <span className="text-neutral-300" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{step.code}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -289,17 +317,69 @@ export default function Home() {
 
       {/* Testimonial */}
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5">
-        <div className="glass-card p-10 md:p-16 text-center relative overflow-hidden max-w-4xl mx-auto">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-32 bg-red-500/10 blur-[60px] pointer-events-none" />
-          <div className="text-5xl text-red-500 mb-6 opacity-50">&quot;</div>
-          <p className="text-2xl md:text-3xl font-medium leading-relaxed mb-10 text-neutral-200">
+        <div 
+          className="relative max-w-4xl mx-auto transition-shadow duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.15)] text-center flex flex-col items-center"
+          style={{
+            background: '#111111',
+            border: '1px solid #222222',
+            borderRadius: '16px',
+            padding: '28px 24px'
+          }}
+        >
+          <div 
+            style={{
+              color: '#e63946',
+              fontSize: '48px',
+              fontFamily: "'Playfair Display', serif",
+              lineHeight: '1',
+              marginBottom: '4px' // adjusting slightly to fit perfectly above
+            }}
+          >
+            &quot;
+          </div>
+          <p 
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: 'italic',
+              fontSize: 'min(18px, 5vw)',
+              color: '#f2f2f2',
+              lineHeight: '1.7',
+              marginBottom: '24px'
+            }}
+          >
             Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with AI agents.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <img src="https://i.pravatar.cc/150?img=11" alt="Jake" className="w-12 h-12 rounded-full border border-white/10" />
+            <img 
+              src="https://i.pravatar.cc/150?img=11" 
+              alt="Jake" 
+              style={{
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                border: '2px solid #222222'
+              }}
+            />
             <div className="text-left">
-              <div className="font-bold text-white tracking-wide">Jake Reynolds</div>
-              <div className="text-sm text-neutral-500">Tech Enthusiast</div>
+              <div 
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: '600',
+                  color: '#f2f2f2',
+                  lineHeight: '1.2'
+                }}
+              >
+                Jake Reynolds
+              </div>
+              <div 
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  color: '#555555',
+                  fontSize: '13px'
+                }}
+              >
+                Tech Enthusiast
+              </div>
             </div>
           </div>
         </div>
@@ -325,9 +405,7 @@ export default function Home() {
         <div className="font-bold text-xl tracking-tight mb-2">ChessWithClaw</div>
         <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">Built for OpenClaw. Open-source, real-time, zero-friction.</p>
         <div className="flex items-center justify-center gap-6 text-sm">
-          <a href="#" className="text-neutral-400 hover:text-white transition-colors">Twitter</a>
-          <a href="#" className="text-neutral-400 hover:text-white transition-colors">ClawHub</a>
-          <a href="#" className="text-neutral-400 hover:text-white transition-colors">GitHub</a>
+          <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-white transition-colors">𝕏 Twitter</a>
         </div>
       </footer>
     </div>
