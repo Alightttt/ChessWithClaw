@@ -182,6 +182,11 @@ module.exports = async (req, res) => {
     chat_count: game.chat_history?.length || 0,
     draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
     draw_offer_pending: game.draw_offer_pending || false,
+    agent_name: game.agent_name,
+    current_thinking: game.current_thinking,
+    agent_connected: game.agent_connected,
+    agent_last_seen: game.agent_last_seen,
+    turn: game.turn,
     opponent_idle_since: idleSince
   });
 }

@@ -907,7 +907,7 @@ export default function Game() {
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
   function handleCloseGameOverModal() { setShowGameOverModal(false) }
   async function handleShareResult(e) {
-    const textToShare = "I played chess vs my OpenClaw on ChessWithClaw! 🦞\nchesswithclaw.vercel.app";
+    const textToShare = `I played chess vs ${agentName} on ChessWithClaw! 🦞\nchesswithclaw.vercel.app`;
     const btn = e.currentTarget;
     const oldText = btn.innerText;
 
@@ -1057,7 +1057,7 @@ export default function Game() {
           <button 
             data-testid="home-button"
             onClick={handleGoHomeWithRipple} 
-            className="mt-2 bg-white text-black font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 hover:bg-neutral-200"
+            className="mt-2 bg-red-600 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 hover:bg-red-500"
           >
             Go Home
           </button>
@@ -1135,14 +1135,30 @@ export default function Game() {
         </div>
       </header>
 
-      <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
+      <div 
+        className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0"
+        style={{
+          transition: 'background 0.4s ease',
+          background: (game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'rgba(15,5,5,1)' : '#0a0a0a'
+        }}
+      >
         {/* LEFT COLUMN: BOARD */}
-        <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative z-10">
+        <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative z-10 pt-4 lg:pt-6">
           {/* FIX 3 — MERGED AGENT SECTION */}
-          <div className="glass border-b border-white/5 overflow-hidden">
-        <div className="h-[60px] px-4 flex items-center gap-3">
-          <div className="flex flex-col items-center justify-center shrink-0 w-[50px]">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${mood === 'thinking' ? 'animate-pulse' : ''} ${justConnected ? 'animate-bounce' : ''}`} style={{ background: config.bg, borderColor: config.border }}>
+          <div 
+            className="overflow-hidden mx-4 lg:mx-auto mb-4 w-full max-w-lg"
+            style={{
+              background: 'linear-gradient(135deg, #111111 0%, #0e0e0e 100%)',
+              border: '1px solid #222222',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: (game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? '0 0 20px rgba(230,57,70,0.08)' : 'none',
+              transition: 'box-shadow 0.4s ease'
+            }}
+          >
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center justify-center shrink-0">
+            <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${mood === 'thinking' ? 'animate-pulse' : ''} ${justConnected ? 'animate-bounce' : ''}`} style={{ background: 'linear-gradient(135deg, #1a0000 0%, #2d0808 100%)', border: '2px solid #e63946', borderRadius: '12px' }}>
               <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt={agentName} className="w-6 h-6 object-contain" onError={e => e.target.style.display='none'} />
             </div>
             <div className="text-[10px] font-semibold mt-1 leading-none whitespace-nowrap" style={{ color: config.color }}>
@@ -1205,19 +1221,19 @@ export default function Game() {
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 {`⚡ ${agentName}`}
               </div>
-              <div className="italic">
+              <div className="italic" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#e63946', letterSpacing: '0.05em' }}>
                 {displayedThinking || 'Thinking...'}
-                {displayedThinking && <span className="thinking-cursor"/>}
+                {displayedThinking && <span style={{ opacity: 1, animation: 'blink 0.8s infinite' }}>|</span>}
               </div>
             </div>
           ) : game?.current_thinking ? (
             <div 
-              className="border-l-2 border-white/10 bg-transparent p-3 pl-4 mt-2 font-mono text-[11px] text-neutral-400 leading-relaxed break-words max-h-[250px] overflow-y-auto scrollbar-none transition-all duration-300 relative"
+              className="border-l-2 border-white/10 bg-transparent p-3 pl-4 mt-2 leading-relaxed break-words max-h-[250px] overflow-y-auto scrollbar-none transition-all duration-300 relative"
             >
               <div className="font-sans text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
                 LAST THOUGHT
               </div>
-              <div className="opacity-70">
+              <div className="opacity-70" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#555555', letterSpacing: '0.05em' }}>
                 {game?.current_thinking}
               </div>
             </div>
@@ -1230,7 +1246,7 @@ export default function Game() {
       </div>
 
       {/* FIX 4 — BOARD CONTAINER */}
-      <div className="flex-col justify-center items-center px-3 bg-transparent shrink-0 lg:flex-1 lg:flex lg:h-full relative z-10">
+      <div className="flex-col justify-center items-center px-4 md:px-3 bg-transparent shrink-0 lg:flex-1 lg:flex lg:h-[calc(100%-120px)] relative z-10 w-full max-w-[600px] mx-auto">
         
         {game.status === 'waiting' && !agentConnected && (
           <div style={{
@@ -1247,7 +1263,7 @@ export default function Game() {
                 {`Waiting for ${agentName} to join...`}
               </div>
               <div style={{fontFamily: "'Inter', sans-serif", fontSize:12,color:'#888',marginTop:2}}>
-                Send the invite link to your OpenClaw to start the game.
+                {`Send the invite link to ${agentName} to start the game.`}
               </div>
             </div>
           </div>
@@ -1290,9 +1306,10 @@ export default function Game() {
           ref={boardRef}
           className={`relative rounded-md shrink-0 transition-all duration-300 ring-1 ring-white/5 ${boardLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${shaking ? 'animate-board-shake' : ((game?.current_thinking && game?.turn !== (game?.player_color || 'w')) ? 'animate-board-thinking' : 'shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]')} ${boardPerspective ? 'shadow-[0_30px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)]' : ''}`}
           style={{
-            width: boardSize,
-            height: boardSize,
+            width: '100%',
+            maxWidth: '100vw',
             boxSizing: 'border-box',
+            overflow: 'hidden',
             transform: `${shaking ? 'translateX(0)' : 'none'} ${boardPerspective ? 'perspective(1000px) rotateX(25deg) scale(0.95)' : ''}`,
             transformOrigin: 'bottom center',
           }}
@@ -1432,14 +1449,16 @@ export default function Game() {
             onChange={handleChatInputChange}
             placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
             disabled={isSpectator}
-            className="flex-1 bg-transparent border-none outline-none font-sans text-sm text-neutral-200 h-11"
-            style={{ touchAction: 'manipulation' }}
+            className="flex-1 bg-[#0e0e0e] border border-[#222222] rounded-lg text-[#f2f2f2] outline-none transition-all h-11 px-3 focus:border-[#e63946]"
+            style={{ touchAction: 'manipulation', fontFamily: "'Inter', sans-serif", fontSize: '14px', boxShadow: '0 0 0 0 rgba(230,57,70,0)' }}
+            onFocus={(e) => { e.target.style.boxShadow = '0 0 0 2px rgba(230,57,70,0.1)' }}
+            onBlur={(e) => { e.target.style.boxShadow = '0 0 0 0 rgba(230,57,70,0)' }}
           />
           <button 
             data-testid="chat-send"
             type="submit"
             disabled={isSpectator || !chatInput.trim()}
-            className={`w-11 h-11 rounded-lg flex items-center justify-center transition-colors ${!isSpectator && chatInput.trim() ? 'bg-red-600 text-white cursor-pointer hover:bg-red-500' : 'bg-white/5 text-neutral-500 cursor-default'}`}
+            className={`w-11 h-11 rounded-lg flex items-center justify-center transition-colors ${!isSpectator && chatInput.trim() ? 'bg-[#e63946] text-white cursor-pointer hover:bg-[#e63946]' : 'bg-[#e63946]/50 text-white/50 cursor-default'}`}
             style={{ touchAction: 'manipulation' }}
           >
             <Send size={18} />
@@ -1448,26 +1467,27 @@ export default function Game() {
       </div>
 
       {/* FIX 6 — MOVE HISTORY */}
-      <div data-testid="move-history" className="flex flex-col bg-[#111] border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full mb-12 lg:mb-0">
-        <div className="h-11 px-4 flex items-center justify-between shrink-0 bg-black/40 border-b border-white/5">
+      <div data-testid="move-history" className="flex flex-col border-t lg:border-t-0 border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full mb-12 lg:mb-0" style={{ background: '#0e0e0e', borderLeft: '1px solid #1a1a1a' }}>
+        <div className="h-11 px-4 flex items-center justify-between shrink-0 bg-[#0e0e0e] border-b" style={{ borderColor: '#1a1a1a' }}>
           <span className="font-sans text-sm font-bold text-neutral-300">Move History</span>
           <div className="flex gap-2 items-center">
-            <span className="bg-white/10 text-neutral-300 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold">
+            <span className="bg-[#1a1a1a] text-neutral-300 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold border border-[#222222]">
               {(game.move_history || []).length} moves
             </span>
           </div>
         </div>
 
-        <div className="max-h-[250px] lg:max-h-none lg:flex-1 py-1 px-1 overflow-y-auto scrollbar-none bg-[#111]">
+        <div className="max-h-[250px] lg:max-h-none lg:flex-1 py-1 px-1 overflow-y-auto scrollbar-none bg-[#0e0e0e]">
           <div className="py-2 px-3">
             {!(game.move_history || []).length ? (
               <div className="font-sans text-xs text-neutral-500 text-center py-4">No moves yet</div>
             ) : (
-              <div className="grid grid-cols-[28px_1fr_1fr] gap-x-2 gap-y-1">
-                <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-white/5 pb-1 mb-1">#</div>
-                <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-white/5 pb-1 mb-1">You</div>
-                <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-white/5 pb-1 mb-1">{agentName}</div>
-                
+              <div className="flex flex-col gap-1">
+                <div className="grid grid-cols-[28px_1fr_1fr] gap-x-2 gap-y-1 mb-2">
+                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">#</div>
+                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">You</div>
+                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">{agentName}</div>
+                </div>
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const wMove = game.move_history[i * 2];
                   const bMove = game.move_history[i * 2 + 1];
@@ -1475,15 +1495,15 @@ export default function Game() {
                   const isLatestB = i * 2 + 1 === game.move_history.length - 1;
                   
                   return (
-                    <React.Fragment key={i}>
-                      <div className="font-mono text-xs text-neutral-600 py-1">{i + 1}.</div>
-                      <div data-testid={isLatestW && !bMove ? "last-move" : undefined} className={`font-mono text-xs py-1 px-1.5 rounded transition-all ${isLatestW ? 'text-red-400 bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]' : 'text-neutral-400 border border-transparent'}`}>
+                    <div key={i} className="grid grid-cols-[28px_1fr_1fr] gap-x-2 items-center py-1 px-1 rounded transition-colors group hover:bg-[#141414] cursor-default border border-transparent">
+                      <div style={{ color: '#555555', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>{i + 1}.</div>
+                      <div data-testid={isLatestW && !bMove ? "last-move" : undefined} className={`py-1 px-1.5 rounded transition-all ${isLatestW ? 'bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] text-[#e63946]' : 'border-transparent text-[#f2f2f2]'}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>
                         {wMove?.san}
                       </div>
-                      <div data-testid={isLatestB ? "last-move" : undefined} className={`font-mono text-xs py-1 px-1.5 rounded transition-all ${isLatestB ? 'text-red-400 bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]' : 'text-neutral-400 border border-transparent'}`}>
+                      <div data-testid={isLatestB ? "last-move" : undefined} className={`py-1 px-1.5 rounded transition-all ${isLatestB ? 'bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] text-[#e63946]' : 'border-transparent text-[#f2f2f2]'}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>
                         {bMove?.san || ''}
                       </div>
-                    </React.Fragment>
+                    </div>
                   );
                 })}
               </div>
@@ -1506,18 +1526,18 @@ export default function Game() {
         aria-hidden="true" 
         tabIndex={-1} 
       />
-      <div className="fixed lg:relative bottom-0 left-0 right-0 h-12 bg-black/80 backdrop-blur-xl border-t border-white/5 px-4 flex items-center justify-between z-50 flex-shrink-0">
+      <div className="fixed lg:relative bottom-0 left-0 right-0 h-12 bg-[#0e0e0e] border-t border-[#1a1a1a] px-4 flex items-center justify-between z-50 flex-shrink-0">
         {game.status === 'finished' || game.status === 'abandoned' ? (
-          <div className="bg-white/5 border border-white/10 text-red-500 h-[26px] px-2.5 rounded-md font-sans text-xs font-bold tracking-wide flex items-center justify-center">
+          <div className="bg-white/5 border border-white/10 text-red-500 flex items-center justify-center font-bold" style={{ height: '26px', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
             GAME OVER
           </div>
         ) : game?.turn === (game?.player_color || 'w') ? (
-          <div className="bg-red-600 text-white h-[26px] px-2.5 rounded-md font-sans text-xs font-bold tracking-wide flex items-center justify-center animate-pulse">
+          <div className="flex items-center justify-center font-bold" style={{ background: '#e63946', color: 'white', height: '26px', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
             YOUR TURN
           </div>
         ) : (
-          <div className="bg-red-600/20 text-red-400 border border-red-500/30 h-[26px] px-2.5 rounded-md font-sans text-xs font-bold tracking-wide flex items-center justify-center">
-            {`${agentName}'s Turn`}
+          <div className="flex items-center justify-center font-bold" style={{ background: '#1a1a1a', color: '#555555', height: '26px', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+            WAITING
           </div>
         )}
         

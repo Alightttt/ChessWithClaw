@@ -112,7 +112,7 @@ module.exports = async (req, res) => {
       }));
     }
 
-    const { Chess } = await import('chess.js');
+    const { Chess } = require('chess.js');
 
     let chess;
     try {

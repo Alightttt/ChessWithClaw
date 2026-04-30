@@ -294,15 +294,14 @@ module.exports = async function handler(req, res) {
     turn: isHumanMove ? 'b' : 'w',
     status: 'active',
     move_number: moveNumber,
-    current_thinking: req.body?.reasoning || req.body?.thinking || '',
+    current_thinking: req.body?.thinking || req.body?.reasoning || '',
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
   if (isAgentMove) {
-    const agentName = req.headers['x-agent-name'] || req.body.agent_name || null;
-    if (agentName && !game.agent_name) {
-      updates.agent_name = agentName;
-    }
+    const agentName = req.headers['x-agent-name'];
+    if (agentName) updates.agent_name = agentName;
+    updates.agent_connected = true;
   }
 
   let insertedThoughtId = null;

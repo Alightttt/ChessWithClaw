@@ -102,8 +102,8 @@ module.exports = async (req, res) => {
 
   const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
   const newMsg = {
-    role: req.body.role || sender || 'human',
-    text: req.body.message || text || req.body.text,
+    role: req.body.role || 'human',
+    text: req.body.message || req.body.text || '',
     timestamp: Date.now()
   };
 

@@ -282,7 +282,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }
 
   return (
-    <div data-testid="chess-board" className={`flex flex-col select-none w-full h-full ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`}>
+    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', borderRadius: '4px' }}>
       <div className="relative w-full h-full aspect-square">
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
@@ -306,7 +306,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
               >
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 bg-[#e63946]/40 z-0" />}
-                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,197,9,0.4)' }} />}
+                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.35)' }} />}
                 {agentMoveFlash === sq && <div className="absolute inset-0 z-10" style={{ animation: 'agentFlash 400ms ease-out forwards' }} />}
                 
                 {/* Legal move indicators */}

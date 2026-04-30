@@ -217,7 +217,7 @@ export default function Home() {
             
             {/* Board */}
             <div 
-              style={{ width: '100%', maxWidth: '480px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box' }}
+              style={{ width: '100%', maxWidth: '420px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box' }}
               className="rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
             >
               <ChessBoard 
@@ -254,7 +254,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
-            { icon: Bot, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { icon: () => <span className="text-2xl group-hover:drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] transition-all">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="glass-card p-8 group">
@@ -418,6 +418,9 @@ export default function Home() {
       <footer className="py-12 px-6 text-center border-t border-white/5 bg-black/50">
         <div className="font-bold text-xl tracking-tight mb-2">ChessWithClaw</div>
         <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">Built for OpenClaw. Open-source, real-time, zero-friction.</p>
+        <div style={{ fontFamily: "'Inter', sans-serif", color: '#555555', fontSize: '13px' }} className="mb-4">
+          © 2026 ChessWithClaw
+        </div>
         <div className="flex items-center justify-center gap-6 text-sm">
           <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-white transition-colors">𝕏 Twitter</a>
         </div>

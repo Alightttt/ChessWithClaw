@@ -199,7 +199,7 @@ npx clawhub install agent-browser-clawdbot`;
 
             <button 
               onClick={handleShare}
-              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${copyState === 'copied' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-white text-black hover:bg-neutral-200'}`}
+              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${copyState === 'copied' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]'}`}
             >
               {copyState === 'copied' ? <><CheckCircle2 size={18} /> Copied!</> : <><ClipboardCopy size={18} /> Copy Invite Message</>}
             </button>

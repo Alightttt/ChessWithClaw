@@ -26,7 +26,7 @@ export default function NotFound() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => navigate('/')}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-neutral-200 transition-all active:scale-95"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-500 transition-all active:scale-95"
           >
             <ArrowLeft size={16} /> Return to Home
           </button>
