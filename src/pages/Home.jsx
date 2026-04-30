@@ -53,6 +53,39 @@ export default function Home() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const thinkingExamples = [
+    "e5 — fight for center",
+    "Nf6 — centralizing knight",
+    "d5 — challenge the center",
+    "Bc5 — active bishop",
+    "O-O — king safety first",
+    "Nc6 — develop, control",
+  ];
+  const [thinkingIndex, setThinkingIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setThinkingIndex(prev => (prev + 1) % thinkingExamples.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [thinkingExamples.length]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target); // only once
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.fade-in-section').forEach(el => {
+      observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const handleStart = async () => {
     if (creating) return;
     setCreating(true);
@@ -86,10 +119,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans overflow-x-hidden selection:bg-red-500/30">
+      <style>{`
+        .fade-in-section {
+          opacity: 0.01;
+          transform: translateY(24px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .fade-in-section.is-visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        img { 
+          max-width: 100%; 
+          height: auto;
+        }
+      `}</style>
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 h-16 z-50 glass flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-3">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" className="h-6 w-auto object-contain" onError={e => e.target.style.display='none'} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" width="32" height="32" loading="eager" fetchPriority="high" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
           <span className="font-bold tracking-tight text-lg text-white">ChessWithClaw</span>
         </div>
         <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-neutral-400">
@@ -173,9 +221,9 @@ export default function Home() {
             className="mt-12 flex items-center gap-4 text-sm text-neutral-500"
           >
             <div className="flex -space-x-3">
-              <img src="https://i.pravatar.cc/100?img=33" alt="" className="w-8 h-8 rounded-full border-2 border-black" />
-              <img src="https://i.pravatar.cc/100?img=47" alt="" className="w-8 h-8 rounded-full border-2 border-black" />
-              <img src="https://i.pravatar.cc/100?img=12" alt="" className="w-8 h-8 rounded-full border-2 border-black" />
+              <img src="https://i.pravatar.cc/100?img=33" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
+              <img src="https://i.pravatar.cc/100?img=47" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
+              <img src="https://i.pravatar.cc/100?img=12" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
             </div>
             <span>Used by <strong className="text-white">1,000+</strong> agents</span>
           </motion.div>
@@ -196,17 +244,20 @@ export default function Home() {
                   <div className="text-sm font-semibold text-neutral-100">OpenClaw</div>
                   <div 
                     style={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                      display: 'block',
+                      fontSize: '12px',
                       color: '#e63946',
-                      fontSize: '13px',
-                      fontFamily: "'Inter', sans-serif",
-                      fontWeight: '600',
-                      letterSpacing: '0.1em',
-                      opacity: 1,
-                      visibility: 'visible'
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 600,
+                      letterSpacing: '0.05em'
                     }}
                     className="mt-0.5 uppercase flex items-center gap-2"
                   >
-                    <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse"/> THINKING...
+                    <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse flex-shrink-0"/> {thinkingExamples[thinkingIndex]}
                   </div>
                 </div>
               </div>
@@ -245,7 +296,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 px-6 lg:px-12 max-w-7xl mx-auto">
+      <section id="features" className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Precision Engineering.</h2>
           <p className="text-neutral-400 text-lg">Everything you need for a seamless agentic chess experience.</p>
@@ -269,7 +320,7 @@ export default function Home() {
       </section>
 
       {/* How it Works */}
-      <section id="how" className="py-24 px-6 lg:px-12 max-w-4xl mx-auto border-t border-white/5">
+      <section id="how" className="fade-in-section py-24 px-6 lg:px-12 max-w-4xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-16 text-center">How to Connect</h2>
         
         <div className="space-y-12 relative">
@@ -328,7 +379,7 @@ export default function Home() {
       </section>
 
       {/* Testimonial */}
-      <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5">
+      <section className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <div 
           className="relative max-w-4xl mx-auto transition-shadow duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.2),0_8px_32px_rgba(0,0,0,0.4)] text-center flex flex-col items-center"
           style={{
@@ -400,7 +451,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 px-6 lg:px-12 max-w-3xl mx-auto border-t border-white/5">
+      <section id="faq" className="fade-in-section py-24 px-6 lg:px-12 max-w-3xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-white/10 text-neutral-400 text-xs font-semibold tracking-wider font-mono mb-4 uppercase">
             <HelpCircle size={14} /> FAQ
