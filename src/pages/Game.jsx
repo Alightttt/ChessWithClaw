@@ -1124,7 +1124,6 @@ export default function Game() {
             width="32"
             height="32"
             loading="eager"
-            fetchPriority="high"
             style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }}
           />
           <span className="font-bold tracking-tight text-base text-white">

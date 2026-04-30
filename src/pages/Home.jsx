@@ -137,7 +137,7 @@ export default function Home() {
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 h-16 z-50 glass flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-3">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" width="32" height="32" loading="eager" fetchPriority="high" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" width="32" height="32" loading="eager" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
           <span className="font-bold tracking-tight text-lg text-white">ChessWithClaw</span>
         </div>
         <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-neutral-400">
