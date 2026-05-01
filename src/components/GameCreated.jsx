@@ -114,71 +114,76 @@ npx clawhub install agent-browser-clawdbot`;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center p-6 text-white font-sans gap-4">
         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
           <div className="w-8 h-8 border-4 border-red-500/30 border-t-red-500 rounded-full" />
         </motion.div>
+        <div className="font-semibold text-neutral-400 tracking-wide text-sm font-sans animate-pulse">Setting up the arena...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white font-sans p-4 sm:p-8 overflow-hidden relative selection:bg-red-500/30">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[400px] bg-red-500/10 blur-[100px] pointer-events-none" />
+    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans p-4 sm:p-8 overflow-hidden relative selection:bg-red-500/30">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <div className="max-w-xl mx-auto w-full relative z-10">
+      <div className="max-w-xl mx-auto w-full relative z-10 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-12">
           <button 
             onClick={() => navigate('/')}
-            className="w-10 h-10 rounded-full glass border-white/5 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition-all active:scale-95"
+            style={{ width: '40px', height: '40px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '50%' }}
+            className="flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#161616] transition-all active:scale-95 shadow-sm"
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="font-bold text-xl tracking-tight">Invite OpenClaw 🦞</div>
-          <div className="px-3 py-1 rounded-md glass font-mono text-xs text-red-500 font-medium">#{gameId?.slice(0,6)}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold text-2xl tracking-tight text-white">Summon Your AI</div>
+          <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center justify-between relative mb-12 px-4">
-          <div className="absolute left-[34px] right-[34px] top-1/2 -translate-y-1/2 h-0.5 bg-neutral-900 -z-10" />
-          <div className="absolute left-[34px] top-1/2 -translate-y-1/2 h-0.5 bg-red-500 -z-10 transition-all duration-500" style={{ right: agentConnected ? '34px' : boardOpened ? '50%' : 'calc(100% - 34px)' }} />
+        <div className="flex items-center justify-between relative mb-12 px-6">
+          <div className="absolute left-[44px] right-[44px] top-1/2 -translate-y-1/2 h-0.5 bg-[#1a1a1a] -z-10" />
+          <div className="absolute left-[44px] top-1/2 -translate-y-1/2 h-0.5 bg-[#e63946] -z-10 transition-all duration-700 ease-in-out" style={{ right: agentConnected ? '44px' : boardOpened ? '50%' : 'calc(100% - 44px)' }} />
           
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-              <CheckCircle2 size={20} />
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#111111] text-[#e63946] border-2 border-[#e63946] flex items-center justify-center shadow-[0_0_24px_rgba(230,57,70,0.25)]">
+              <CheckCircle2 size={24} />
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-red-500">Invite</div>
+            <div style={{ fontFamily: "'Inter', sans-serif" }} className="text-[10px] font-bold uppercase tracking-widest text-[#e63946]">1. Invite</div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${boardOpened ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-neutral-900 text-neutral-500 border-2 border-neutral-800'}`}>
-              {boardOpened ? <CheckCircle2 size={20} /> : <span className="font-bold">2</span>}
+          <div className="flex flex-col items-center gap-3">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${boardOpened ? 'bg-[#111111] text-[#e63946] border-[#e63946] shadow-[0_0_24px_rgba(230,57,70,0.25)]' : 'bg-[#111111] text-[#444444] border-[#222222]'}`}>
+              {boardOpened ? <CheckCircle2 size={24} /> : <span style={{ fontFamily: "'Inter', sans-serif" }} className="font-bold text-lg">2</span>}
             </div>
-            <div className={`text-[10px] font-bold uppercase tracking-widest ${boardOpened ? 'text-red-500' : 'text-neutral-500'}`}>Board</div>
+            <div style={{ fontFamily: "'Inter', sans-serif" }} className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-500 ${boardOpened ? 'text-[#e63946]' : 'text-[#444444]'}`}>Board</div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${agentConnected ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-neutral-900 text-neutral-500 border-2 border-neutral-800'}`}>
-              {agentConnected ? <CheckCircle2 size={20} /> : <span className="font-bold">3</span>}
+          <div className="flex flex-col items-center gap-3">
+             <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${agentConnected ? 'bg-[#111111] text-[#e63946] border-[#e63946] shadow-[0_0_24px_rgba(230,57,70,0.25)]' : 'bg-[#111111] text-[#444444] border-[#222222]'}`}>
+              {agentConnected ? <CheckCircle2 size={24} /> : <span style={{ fontFamily: "'Inter', sans-serif" }} className="font-bold text-lg">3</span>}
             </div>
-            <div className={`text-[10px] font-bold uppercase tracking-widest ${agentConnected ? 'text-red-500' : 'text-neutral-500'}`}>Battle</div>
+            <div style={{ fontFamily: "'Inter', sans-serif" }} className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-500 ${agentConnected ? 'text-[#e63946]' : 'text-[#444444]'}`}>Battle</div>
           </div>
         </div>
 
         {/* Action Cards */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px' }}
+            className="p-6 md:p-8 shadow-sm hover:border-[#2a2a2a] transition-colors duration-300"
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-bold font-mono text-sm">01</div>
-              <h2 className="text-xl font-bold">Summon Your OpenClaw</h2>
+            <div className="flex items-center gap-4 mb-6">
+              <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', borderRadius: '10px' }} className="w-10 h-10 flex items-center justify-center font-bold font-mono text-base">
+                01
+              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Invite the Agent</h2>
             </div>
             
-            <p className="text-sm text-neutral-400 mb-4">First, install the required skills in your OpenClaw terminal:</p>
-            <div className="glass break-all p-4 rounded-xl border-white/5 mb-6 space-y-3 font-mono text-xs">
+            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm rounded-xl text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required agent skills installed.</p>
+            <div style={{ background: '#161616', border: '1px solid #222222', borderRadius: '12px' }} className="break-all p-4 mb-6 space-y-3 font-mono text-xs shadow-inner">
               <div className="flex items-center gap-3">
                 <Terminal size={14} className="text-red-500 shrink-0" />
                 <span className="text-neutral-300">npx clawhub install play-chess</span>
@@ -189,45 +194,70 @@ npx clawhub install agent-browser-clawdbot`;
               </div>
             </div>
 
-            <p className="text-sm text-neutral-400 mb-3">Then send your OpenClaw this invite:</p>
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-red-500/0 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
-              <div className="relative glass p-4 rounded-xl h-48 overflow-y-auto mb-4 border-white/10 font-mono text-xs leading-relaxed text-neutral-300 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
+            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm text-neutral-400 mb-3 leading-relaxed font-medium">2. Send the connection string below to your AI assistant:</p>
+            <div className="relative group mb-6">
+              <div className="absolute -inset-1 bg-gradient-to-r from-red-500/10 to-transparent rounded-[14px] blur opacity-0 group-hover:opacity-100 transition duration-500" />
+              <div style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: '12px', fontFamily: "'JetBrains Mono', monospace" }} className="relative p-5 h-40 overflow-y-auto text-xs leading-relaxed text-neutral-300 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10 shadow-inner">
                 {inviteMessage}
               </div>
             </div>
 
             <button 
               onClick={handleShare}
-              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${copyState === 'copied' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]'}`}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                background: copyState === 'copied' ? '#161616' : '#e63946',
+                color: copyState === 'copied' ? '#22c55e' : 'white',
+                border: copyState === 'copied' ? '1px solid #22c55e' : '1px solid transparent',
+                borderRadius: '12px'
+              }}
+              className={`w-full py-4 text-[15px] font-bold flex items-center justify-center gap-3 transition-all active:scale-95 ${copyState !== 'copied' ? 'hover:bg-[#c62a35] hover:shadow-[0_4px_16px_rgba(230,57,70,0.4)]' : ''}`}
             >
-              {copyState === 'copied' ? <><CheckCircle2 size={18} /> Copied!</> : <><ClipboardCopy size={18} /> Copy Invite Message</>}
+              {copyState === 'copied' ? <><CheckCircle2 size={20} /> COPIED</> : <><ClipboardCopy size={20} /> COPY INVITATION</>}
             </button>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className={`glass-card p-6 border-2 transition-colors duration-500 ${boardOpened ? 'border-red-500/30 bg-red-500/5' : 'border-white/5 bg-transparent'}`}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
+            style={{ 
+              background: boardOpened ? '#161213' : '#111111', 
+              border: boardOpened ? '1px solid rgba(230,57,70,0.3)' : '1px solid #1e1e1e', 
+              borderRadius: '16px' 
+            }}
+            className="p-6 md:p-8 transition-colors duration-500 shadow-sm hover:border-red-500/20"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono text-sm transition-colors ${boardOpened ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500'}`}>02</div>
-                <h2 className="text-xl font-bold">Open Your Arena</h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div style={{ background: boardOpened ? '#e63946' : 'rgba(230,57,70,0.1)', color: boardOpened ? 'white' : '#e63946', borderRadius: '10px' }} className="w-10 h-10 flex items-center justify-center font-bold font-mono text-base transition-colors duration-500">
+                  02
+                </div>
+                <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Enter the Arena</h2>
               </div>
-              {boardOpened && <div className="text-xs font-semibold text-red-500 px-3 py-1 glass rounded-full">Active</div>}
+              {boardOpened && (
+                <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', border: '1px solid rgba(230,57,70,0.25)', borderRadius: '8px', padding: '4px 12px' }} className="text-xs font-bold font-sans tracking-wider uppercase">
+                  Active
+                </div>
+              )}
             </div>
             
-            <p className="text-sm text-neutral-400 mb-6">Open the board in a new tab. Your battlefield is ready.</p>
+            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm text-neutral-400 mb-6 font-medium leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
-              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${boardOpened ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-red-600 text-white hover:bg-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]'}`}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                background: boardOpened ? '#1a1a1a' : '#161616',
+                color: boardOpened ? '#e63946' : '#e0e0e0',
+                border: boardOpened ? '1px solid rgba(230,57,70,0.3)' : '1px solid #222222',
+                borderRadius: '12px'
+              }}
+              className={`w-full py-4 text-[15px] font-bold flex items-center justify-center gap-3 transition-all active:scale-95 ${!boardOpened ? 'hover:bg-[#1a1a1a] hover:border-[#333333]' : 'hover:bg-[#201515]'}`}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
                 </motion.div>
-              ) : boardOpened ? <><Play size={18} /> Open Arena Again</> : <><Play size={18} /> Open Arena</>}
+              ) : boardOpened ? <><Play size={20} /> RETURN TO MATCH</> : <><Play size={20} /> OPEN ARENA WINDOW</>}
             </button>
           </motion.div>
         </div>

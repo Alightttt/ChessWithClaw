@@ -50,6 +50,8 @@ function Typewriter({ lines }) {
 
 export default function Home() {
   const [creating, setCreating] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -69,6 +71,18 @@ export default function Home() {
     }, 2000);
     return () => clearInterval(interval);
   }, [thinkingExamples.length]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scroll = `${totalScroll / windowHeight}`;
+      setScrollProgress(scroll * 100);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -118,7 +132,10 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans overflow-x-hidden selection:bg-red-500/30">
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
+      {/* Scroll Progress Bar */}
+      <div style={{ position: 'fixed', top: 0, left: 0, height: '2px', background: '#e63946', zIndex: 9999, width: `${scrollProgress}%`, transition: 'width 0.1s ease' }} />
+
       <style>{`
         .fade-in-section {
           opacity: 0.01;
@@ -133,14 +150,108 @@ export default function Home() {
           max-width: 100%; 
           height: auto;
         }
+        .premium-card {
+          background: #111111;
+          border: 1px solid #1e1e1e;
+          border-radius: 16px;
+          padding: 24px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .premium-card:hover {
+          background: #161616;
+          border-color: #2a2a2a;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          transform: translateY(-2px);
+        }
+        .premium-button {
+          background: #e63946;
+          color: white;
+          border-radius: 12px;
+          padding: 14px 28px;
+          font-weight: 600;
+          font-size: 16px;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          font-family: 'Inter', sans-serif;
+        }
+        .premium-button:hover:not(:disabled) {
+          background: #c62a35;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(230,57,70,0.3);
+        }
+        .premium-button:active:not(:disabled) {
+          transform: scale(0.98);
+          box-shadow: none;
+        }
+        .secondary-button {
+          background: transparent;
+          color: #888888;
+          border-radius: 12px;
+          padding: 14px 28px;
+          font-weight: 600;
+          font-size: 16px;
+          border: 1px solid #333333;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          font-family: 'Inter', sans-serif;
+          text-decoration: none;
+        }
+        .secondary-button:hover {
+          border-color: #444;
+          color: #f2f2f2;
+          background: rgba(255,255,255,0.02);
+          transform: translateY(-1px);
+        }
+        .secondary-button:active {
+          transform: scale(0.98);
+        }
+        .clawhub-link {
+          color: #e63946;
+          opacity: 0.7;
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          display: inline-block;
+          font-family: 'Inter', sans-serif;
+          transition: all 0.15s ease;
+        }
+        .clawhub-link:hover {
+          opacity: 1;
+          transform: translateX(2px);
+        }
+        .social-proof {
+          border-left: 2px solid transparent;
+          padding-left: 16px;
+          transition: all 0.2s ease;
+        }
+        .social-proof:hover {
+          border-left: 2px solid #e63946;
+        }
       `}</style>
       {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 h-16 z-50 glass flex items-center justify-between px-6 lg:px-12">
+      <nav 
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: '64px', zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
+          backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(12px)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          transition: 'all 0.3s ease'
+        }}
+      >
         <div className="flex items-center gap-3">
           <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" width="32" height="32" loading="eager" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
-          <span className="font-bold tracking-tight text-lg text-white">ChessWithClaw</span>
+          <span style={{ fontWeight: 700, letterSpacing: '-0.02em', fontSize: '18px', color: '#f2f2f2' }}>ChessWithClaw</span>
         </div>
-        <div className="hidden sm:flex items-center gap-8 text-sm font-medium text-neutral-400">
+        <div className="hidden sm:flex items-center gap-8 text-sm font-medium" style={{ color: '#888888' }}>
           <a href="#features" className="hover:text-white transition-colors">Features</a>
           <a href="#how" className="hover:text-white transition-colors">How it Works</a>
           <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
@@ -148,7 +259,8 @@ export default function Home() {
         <button 
           onClick={handleStart} 
           disabled={creating}
-          className="bg-[#e63946] text-[#ffffff] px-5 py-2 rounded-full text-sm font-semibold hover:bg-[#d62828] transition-colors flex items-center gap-2 active:scale-95"
+          className="premium-button"
+          style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '100px' }}
         >
           {creating ? (
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
@@ -161,33 +273,63 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 lg:px-12 flex flex-col lg:flex-row items-center gap-16 lg:gap-24 max-w-7xl mx-auto">
+      <section style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(230,57,70,0.08) 0%, transparent 70%)', paddingTop: '160px', paddingBottom: '128px', paddingLeft: '16px', paddingRight: '16px', marginBottom: '128px' }} className="relative flex flex-col lg:flex-row items-center gap-24 max-w-7xl mx-auto md:mb-[128px] mb-[96px]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/10 blur-[120px] rounded-full pointer-events-none animate-glow-pulse" />
         
-        <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10 w-full">
+        <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10 w-full" style={{ gap: '24px' }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-semibold tracking-wider font-mono mb-8"
+            style={{
+              background: 'rgba(230,57,70,0.12)',
+              border: '1px solid rgba(230,57,70,0.25)',
+              borderRadius: '100px',
+              padding: '6px 16px',
+              color: '#e63946',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              textTransform: 'uppercase'
+            }}
           >
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            LIVE REAL-TIME CHESS
+            LIVE · REAL-TIME CHESS
           </motion.div>
           
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.05] mb-6"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 'min(56px, 14vw)',
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+              color: '#f2f2f2'
+            }}
           >
-            Play Chess with your <span className="text-gradient-red">OpenClaw.</span>
+            Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
           </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-neutral-400 text-lg sm:text-xl max-w-lg mb-10 leading-relaxed font-normal"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '16px',
+              fontWeight: 400,
+              lineHeight: 1.65,
+              color: '#666666',
+              maxWidth: '480px',
+              margin: '0 auto',
+              textAlign: 'center',
+            }}
           >
             The same AI you use every day — now playing chess with you in a beautiful, real-time arena.
           </motion.p>
@@ -196,18 +338,19 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start w-full sm:w-auto"
+            style={{ gap: '16px' }}
           >
             <button 
               onClick={handleStart}
               disabled={creating}
-              className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold text-lg transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_40px_-10px_rgba(220,38,38,0.5)]"
+              className="premium-button w-full sm:w-auto"
             >
               {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
             </button>
             <a 
               href="#how"
-              className="w-full sm:w-auto px-8 py-4 text-white rounded-xl font-semibold text-lg transition-all active:scale-95 flex items-center justify-center border border-white/10 hover:bg-white/5"
+              className="secondary-button w-full sm:w-auto"
             >
               How it works
             </a>
@@ -218,14 +361,14 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="mt-12 flex items-center gap-4 text-sm text-neutral-500"
+            className="mt-4 flex items-center gap-4 text-sm social-proof"
           >
             <div className="flex -space-x-3">
               <img src="https://i.pravatar.cc/100?img=33" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
               <img src="https://i.pravatar.cc/100?img=47" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
               <img src="https://i.pravatar.cc/100?img=12" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
             </div>
-            <span>Used by <strong className="text-white">1,000+</strong> agents</span>
+            <span style={{ color: '#888888', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}>Used by <strong style={{ color: '#f2f2f2', fontWeight: 600 }}>1,000+</strong> agents</span>
           </motion.div>
         </div>
 
@@ -237,11 +380,11 @@ export default function Home() {
         >
           <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', boxSizing: 'border-box' }} className="relative">
             {/* Agent Bar */}
-            <div className="flex items-center justify-between mb-4 px-1 w-full">
+            <div className="flex items-center justify-between mb-4 px-1 w-full" style={{ gap: '24px' }}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(239,68,68,0.15)]">🦞</div>
+                <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🦞</div>
                 <div>
-                  <div className="text-sm font-semibold text-neutral-100">OpenClaw</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '14px', color: '#f2f2f2' }}>OpenClaw</div>
                   <div 
                     style={{
                       whiteSpace: 'nowrap',
@@ -249,27 +392,28 @@ export default function Home() {
                       textOverflow: 'ellipsis',
                       maxWidth: '100%',
                       display: 'block',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       color: '#e63946',
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 600,
-                      letterSpacing: '0.05em'
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: 500,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase'
                     }}
-                    className="mt-0.5 uppercase flex items-center gap-2"
+                    className="mt-0.5 flex items-center gap-2"
                   >
                     <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse flex-shrink-0"/> {thinkingExamples[thinkingIndex]}
                   </div>
                 </div>
               </div>
-              <div className="glass px-4 py-2.5 rounded-lg max-w-[160px] truncate border-white/10 hidden sm:block">
+              <div className="premium-card truncate hidden sm:block" style={{ padding: '12px 16px', maxWidth: '160px' }}>
                 <Typewriter lines={LINES} />
               </div>
             </div>
             
             {/* Board */}
             <div 
-              style={{ width: '100%', maxWidth: '420px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box' }}
-              className="rounded-xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1),0_0_40px_-10px_rgba(239,68,68,0.15)] border border-white/10 ring-1 ring-white/5"
+              style={{ width: '100%', maxWidth: '420px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px' }}
+              className="overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]"
             >
               <ChessBoard 
                 fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
@@ -282,12 +426,12 @@ export default function Home() {
             </div>
             
             {/* Human Bar */}
-            <div className="flex items-center justify-between mt-4 px-1 w-full">
+            <div className="flex items-center justify-between mt-4 px-1 w-full" style={{ gap: '24px' }}>
                <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-white/10 flex items-center justify-center text-xl text-neutral-500">♙</div>
+                <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: '#888888' }}>♙</div>
                 <div>
-                  <div className="text-sm font-semibold text-neutral-300">You</div>
-                  <div className="text-xs text-neutral-500 mt-0.5">White · your turn next</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '14px', color: '#b0b0b0' }}>You</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '13px', color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase' }} className="mt-0.5">White · your turn next</div>
                 </div>
               </div>
             </div>
@@ -296,10 +440,10 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Precision Engineering.</h2>
-          <p className="text-neutral-400 text-lg">Everything you need for a seamless agentic chess experience.</p>
+      <section id="features" className="fade-in-section max-w-7xl mx-auto md:mb-[128px] mb-[96px]" style={{ padding: '0 16px' }}>
+        <div className="text-center mb-16" style={{ gap: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, margin: 0 }}>Precision Engineering.</h2>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>Everything you need for a seamless agentic chess experience.</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -308,22 +452,24 @@ export default function Home() {
             { icon: () => <span className="text-2xl group-hover:drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] transition-all">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
-            <div key={i} className="glass-card p-8 group">
-              <div className="w-14 h-14 rounded-full bg-neutral-900 border border-white/10 flex items-center justify-center mb-6 group-hover:bg-red-500/10 group-hover:border-red-500/20 group-hover:text-red-500 transition-colors">
-                <f.icon className="text-neutral-400 group-hover:text-red-500 transition-colors" size={28} />
+            <div key={i} className="premium-card group" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: '#0a0a0a', border: '1px solid #1e1e1e', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="group-hover:border-[#e63946] transition-colors">
+                <f.icon className="text-neutral-400 group-hover:text-[#e63946] transition-colors" size={28} />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white">{f.title}</h3>
-              <p className="text-neutral-400 leading-relaxed text-sm">{f.desc}</p>
+              <div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600, lineHeight: 1.3, marginBottom: '12px', color: '#f2f2f2' }}>{f.title}</h3>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
       {/* How it Works */}
-      <section id="how" className="fade-in-section py-24 px-6 lg:px-12 max-w-4xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-        <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-16 text-center">How to Connect</h2>
+      <section id="how" className="fade-in-section max-w-4xl mx-auto md:mb-[128px] mb-[96px]" style={{ padding: '0 16px' }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px' }}>How to Connect</h2>
         
-        <div className="space-y-12 relative">
+        <div className="space-y-12 relative" style={{ gap: '48px', display: 'flex', flexDirection: 'column' }}>
           <div className="absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-red-500/50 to-transparent" />
           
           {[
@@ -346,30 +492,50 @@ export default function Home() {
             { tag: "03", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
           ].map((step, i) => (
             <div key={i} className="flex gap-8 relative">
-              <div className="w-12 h-12 rounded-full border border-red-500/20 bg-black flex items-center justify-center shrink-0 z-10 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                <span className="font-mono text-red-500 text-sm font-bold">{step.tag}</span>
+              <div 
+                style={{
+                  background: 'rgba(230,57,70,0.15)',
+                  border: '1px solid rgba(230,57,70,0.3)',
+                  color: '#e63946',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  zIndex: 10,
+                  marginTop: '8px'
+                }}
+              >
+                {step.tag}
               </div>
-              <div className="pt-2">
-                <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                <p className="text-neutral-400 mb-5 leading-relaxed">{step.desc}</p>
+              <div className="pt-2" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
+                <div>
+                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600, lineHeight: 1.3, marginBottom: '12px', color: '#f2f2f2' }}>{step.title}</h3>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>{step.desc}</p>
+                </div>
                 {step.commands ? (
                   <div className="flex flex-col gap-4 w-fit">
                     {step.commands.map((cmd, j) => (
                       <div key={j} className="flex flex-col gap-2">
-                        <div className="inline-flex glass border-white/10 px-5 py-3 rounded-lg font-mono text-sm items-center gap-3">
+                        <div className="premium-card inline-flex items-center gap-3" style={{ padding: '12px 20px' }}>
                           <span className="text-[#e63946] font-bold">{'>'}</span>
-                          <span className="text-neutral-300" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{cmd.code}</span>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', color: '#b0b0b0' }}>{cmd.code}</span>
                         </div>
-                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="text-[#e63946] text-sm font-semibold hover:underline w-fit" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="clawhub-link w-fit">
                           View on ClawHub →
                         </a>
                       </div>
                     ))}
                   </div>
                 ) : step.code ? (
-                  <div className="inline-flex glass border-white/10 px-5 py-3 rounded-lg font-mono text-sm items-center gap-3">
+                  <div className="premium-card inline-flex items-center gap-3" style={{ padding: '12px 20px' }}>
                     <span className="text-[#e63946] font-bold">{'>'}</span>
-                    <span className="text-neutral-300" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{step.code}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', color: '#b0b0b0' }}>{step.code}</span>
                   </div>
                 ) : null}
               </div>

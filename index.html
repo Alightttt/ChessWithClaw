@@ -53,7 +53,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap&subset=latin" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap&subset=latin"></noscript>
+    
+    <style>
+      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+      h1, h2, h3, .headline { font-family: 'Playfair Display', Georgia, serif; }
+      code, pre, .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+    </style>
     
     <style>
       :root {
