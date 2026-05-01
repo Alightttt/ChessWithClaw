@@ -368,7 +368,7 @@ export default function Home() {
               <img src="https://i.pravatar.cc/100?img=47" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
               <img src="https://i.pravatar.cc/100?img=12" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
             </div>
-            <span style={{ color: '#888888', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}>Used by <strong style={{ color: '#f2f2f2', fontWeight: 600 }}>1,000+</strong> agents</span>
+            <span style={{ color: '#888888', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}>Used by <strong style={{ color: '#f2f2f2', fontWeight: 600 }}>1,000+</strong> OpenClaws</span>
           </motion.div>
         </div>
 
@@ -443,7 +443,7 @@ export default function Home() {
       <section id="features" className="fade-in-section max-w-7xl mx-auto md:mb-[128px] mb-[96px]" style={{ padding: '0 16px' }}>
         <div className="text-center mb-16" style={{ gap: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, margin: 0 }}>Precision Engineering.</h2>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>Everything you need for a seamless agentic chess experience.</p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>Everything you need for a seamless OpenClaw chess experience.</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -545,25 +545,27 @@ export default function Home() {
       </section>
 
       {/* Testimonial */}
-      <section className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
+      <section className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-[#222222]" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <div 
-          className="relative max-w-4xl mx-auto transition-shadow duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.2),0_8px_32px_rgba(0,0,0,0.4)] text-center flex flex-col items-center"
+          className="relative max-w-4xl mx-auto transition-all duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.2),0_12px_40px_rgba(0,0,0,0.4)] text-center flex flex-col items-center hover:-translate-y-1"
           style={{
-            background: '#111111',
+            background: 'rgba(17,17,17,0.8)',
+            backdropFilter: 'blur(16px)',
             border: '1px solid #222222',
+            boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05)',
             borderRadius: '16px',
-            padding: '28px 24px',
-            transition: 'box-shadow 0.3s ease'
+            padding: '40px 32px',
           }}
         >
           <div 
             style={{
               color: '#e63946',
-              fontSize: '56px',
+              fontSize: '80px',
               fontFamily: "'Playfair Display', serif",
               lineHeight: '1',
-              marginBottom: '8px',
-              display: 'block'
+              marginBottom: '16px',
+              display: 'block',
+              marginTop: '-20px'
             }}
           >
             &quot;
@@ -572,23 +574,23 @@ export default function Home() {
             style={{
               fontFamily: "'Playfair Display', serif",
               fontStyle: 'italic',
-              fontSize: 'min(18px, 5vw)',
+              fontSize: 'min(24px, 5vw)',
               color: '#f2f2f2',
-              lineHeight: '1.75'
+              lineHeight: '1.6'
             }}
           >
-            Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with AI agents.
+            Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
           </p>
-          <div style={{ height: '1px', background: '#222222', width: '100%', margin: '20px 0' }} />
+          <div style={{ height: '1px', background: '#222222', width: '40%', margin: '32px 0' }} />
           <div className="flex items-center justify-center gap-4">
             <img 
               src="https://i.pravatar.cc/150?img=11" 
               alt="Jake" 
               style={{
                 borderRadius: '50%',
-                width: '44px',
-                height: '44px',
-                border: '2px solid #333333'
+                width: '48px',
+                height: '48px',
+                border: '2px solid #222222'
               }}
             />
             <div className="text-left">
@@ -606,7 +608,7 @@ export default function Home() {
                 style={{
                   fontFamily: "'Inter', sans-serif",
                   fontSize: '13px',
-                  color: '#555555'
+                  color: '#888888'
                 }}
               >
                 Tech Enthusiast
@@ -617,22 +619,38 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="fade-in-section py-24 px-6 lg:px-12 max-w-3xl mx-auto border-t border-white/5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
+      <section id="faq" className="fade-in-section py-24 px-6 lg:px-12 max-w-3xl mx-auto border-t border-[#222222]" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-white/10 text-neutral-400 text-xs font-semibold tracking-wider font-mono mb-4 uppercase">
-            <HelpCircle size={14} /> FAQ
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#111111] border border-[#222222] text-[#888888] text-xs font-semibold tracking-wider font-mono mb-6 uppercase">
+            <HelpCircle size={14} className="text-[#e63946]" /> FAQ
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Questions you<br/>probably have.</h2>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, margin: 0 }}>Questions you<br/>probably have.</h2>
         </div>
-        <div className="divide-y divide-white/10 border-y border-white/10">
+        <div className="divide-y divide-[#222222] border-y border-[#222222]">
           {faqs.map((faq, i) => (
             <FAQAccordion key={i} question={faq.q} answer={faq.a} />
           ))}
         </div>
       </section>
-      
+
+      {/* CTA Section */}
+      <section className="fade-in-section py-32 px-6 lg:px-12 border-t border-[#222222] text-center" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(230,57,70,0.08) 0%, transparent 60%)' }}>
+        <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
+          <div style={{ fontSize: '48px' }} className="animate-[pulse_3s_ease-in-out_infinite]">🦞</div>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(48px, 11vw)', fontWeight: 700, lineHeight: 1.1, color: '#f2f2f2' }}>Ready to challenge<br />OpenClaw?</h2>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '18px', color: '#888888', marginBottom: '16px' }}>Start a match instantly. No sign-up required.</p>
+          <button 
+             onClick={handleStart}
+             disabled={creating}
+             className="premium-button text-lg px-8 py-5"
+          >
+             {creating ? 'Taking you to the board...' : 'Enter the Arena'}
+          </button>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="py-12 px-6 text-center border-t border-white/5 bg-black/50">
+      <footer className="py-12 px-6 text-center border-t border-[#222222] bg-[#050505]">
         <div className="font-bold text-xl tracking-tight mb-2">ChessWithClaw</div>
         <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">Built for OpenClaw. Open-source, real-time, zero-friction.</p>
         <div style={{ fontFamily: "'Inter', sans-serif", color: '#555555', fontSize: '13px' }} className="mb-4">
@@ -651,8 +669,8 @@ function FAQAccordion({ question, answer }) {
   return (
     <div className="py-6 cursor-pointer group" onClick={() => setOpen(!open)}>
       <div className="flex justify-between items-center text-left">
-        <h3 className="text-lg font-medium text-neutral-200 group-hover:text-red-400 transition-colors pr-8">{question}</h3>
-        <ChevronDown className={`shrink-0 text-neutral-500 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} size={20} />
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', color: '#f2f2f2' }} className="group-hover:text-[#e63946] transition-colors pr-8">{question}</h3>
+        <ChevronDown className={`shrink-0 text-[#555555] transition-transform duration-300 ${open ? 'rotate-180 text-[#e63946]' : ''}`} size={20} />
       </div>
       <AnimatePresence>
         {open && (
@@ -661,8 +679,9 @@ function FAQAccordion({ question, answer }) {
              animate={{ height: "auto", opacity: 1 }}
              exit={{ height: 0, opacity: 0 }}
              className="overflow-hidden"
+             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
            >
-             <p className="pt-4 text-neutral-400 leading-relaxed text-sm pr-8">{answer}</p>
+             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', lineHeight: 1.6, color: '#888888', marginTop: '16px' }} className="pr-8">{answer}</p>
            </motion.div>
         )}
       </AnimatePresence>

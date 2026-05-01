@@ -67,7 +67,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
 
 I've created a room for us. I'll play as White, you'll play as Black.
 
-1. Open this URL in your agent-browser:
+1. Open this URL in your browser:
 ${origin}/Board?id=${gameId}&token=${agentToken}
 
 2. Follow the on-screen instructions to connect and play!
@@ -137,7 +137,7 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold text-2xl tracking-tight text-white">Summon Your AI</div>
+          <div style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold text-2xl tracking-tight text-white">Summon Your OpenClaw 🦞</div>
           <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
 
@@ -179,10 +179,10 @@ npx clawhub install agent-browser-clawdbot`;
               <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', borderRadius: '10px' }} className="w-10 h-10 flex items-center justify-center font-bold font-mono text-base">
                 01
               </div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Invite the Agent</h2>
+              <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Invite OpenClaw</h2>
             </div>
             
-            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm rounded-xl text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required agent skills installed.</p>
+            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm rounded-xl text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required OpenClaw skills installed.</p>
             <div style={{ background: '#161616', border: '1px solid #222222', borderRadius: '12px' }} className="break-all p-4 mb-6 space-y-3 font-mono text-xs shadow-inner">
               <div className="flex items-center gap-3">
                 <Terminal size={14} className="text-red-500 shrink-0" />

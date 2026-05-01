@@ -1132,7 +1132,7 @@ export default function Game() {
             loading="eager"
             style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }}
           />
-          <span className="font-bold tracking-tight text-base text-white">
+          <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold tracking-tight text-base text-white">
             ChessWithClaw
           </span>
         </div>
@@ -1196,7 +1196,7 @@ export default function Game() {
                >
                  THINKING...
                </span>
-             ) : <span className="text-neutral-500">Waiting to move...</span>}
+             ) : <span className="text-neutral-500">Waiting for {agentName} to start thinking...</span>}
           </div>
         </div>
         
@@ -1309,14 +1309,13 @@ export default function Game() {
       <div 
         style={{
           flexShrink: 0,
-          height: '240px', // slightly taller for new layout
+          height: '180px',
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
           zIndex: 10,
           background: '#0e0e0e',
-          borderTop: '1px solid #1a1a1a',
-          marginTop: 'auto'
+          borderTop: '1px solid #1a1a1a'
         }}
       >
         <div 
@@ -1332,9 +1331,8 @@ export default function Game() {
           className="scrollbar-none scroll-smooth"
         >
           {!(game.chat_history || []).length ? (
-            <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '24px' }}>🦞</span>
-              {`Play your move — ${agentName} is watching`}
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <span className="text-xs italic text-center">No messages yet. Start the conversation with {agentName}.</span>
             </div>
           ) : (
             (game.chat_history || []).map((msg, i) => {
@@ -1403,13 +1401,13 @@ export default function Game() {
           onSubmit={sendMessage} 
           style={{
             flexShrink: 0,
-            height: '60px',
+            height: '44px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            padding: '0 16px',
-            background: '#080808',
-            borderTop: '1px solid #1e1e1e',
+            gap: '8px',
+            padding: '0 12px',
+            background: '#0a0a0a',
+            borderTop: '1px solid #1a1a1a',
             boxSizing: 'border-box'
           }}
         >
@@ -1423,30 +1421,30 @@ export default function Game() {
             disabled={isSpectator}
             style={{ 
               flex: 1,
-              height: '42px',
-              background: '#080808',
-              border: '1px solid #1e1e1e',
-              borderRadius: '10px',
+              height: '36px',
+              background: '#0e0e0e',
+              border: '1px solid #222222',
+              borderRadius: '8px',
               color: '#f2f2f2',
               fontSize: '14px',
-              padding: '10px 14px',
+              padding: '0 12px',
               fontFamily: "'Inter', sans-serif",
               outline: 'none',
               boxSizing: 'border-box',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
-            onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = '0 0 0 3px rgba(230,57,70,0.08)'; }}
-            onBlur={(e) => { e.target.style.borderColor = '#1e1e1e'; e.target.style.boxShadow = 'none'; }}
+            onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = '0 0 0 2px rgba(230,57,70,0.12)'; }}
+            onBlur={(e) => { e.target.style.borderColor = '#222222'; e.target.style.boxShadow = 'none'; }}
           />
           <button 
             data-testid="chat-send"
             type="submit"
             disabled={isSpectator || !chatInput.trim()}
             style={{
-              width: '42px',
-              height: '42px',
+              width: '36px',
+              height: '36px',
               background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)',
-              borderRadius: '10px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1455,7 +1453,7 @@ export default function Game() {
               color: 'white',
               transition: 'all 0.15s ease'
             }}
-            className={(!isSpectator && chatInput.trim()) ? "active:scale-92" : ""}
+            className={(!isSpectator && chatInput.trim()) ? "hover:bg-[#c62a35] active:scale-95 shadow-[0_2px_8px_rgba(230,57,70,0.4)]" : ""}
           >
             <Send size={16} />
           </button>
@@ -1464,26 +1462,43 @@ export default function Game() {
 
       {/* GAME INFOBAR & MOVE HISTORY (Mobile Desktop unified) */}
       <div 
-        className="flex flex-col bg-[#050505] border-t border-[#1a1a1a] flex-1 min-h-0"
-        style={{ zIndex: 10 }}
+        className="flex flex-col bg-[#050505] border-t border-[#1a1a1a] flex-1 min-h-0 shrink-0"
+        style={{ zIndex: 10, flexShrink: 0 }}
       >
         <div 
           onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-          className="flex justify-between items-center py-3 px-4 cursor-pointer"
+          className="flex justify-between items-center px-4 cursor-pointer"
+          style={{ height: '44px', flexShrink: 0 }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-white font-sans text-sm font-semibold tracking-wide">
-              {game?.player_color === 'w' ? 'WHITE' : 'BLACK'}
-            </span>
+          <div className="flex items-center gap-3">
+            {game?.status === 'waiting' && !agentConnected ? (
+              <div className="flex items-center gap-2">
+                <span className="font-sans text-xs font-semibold text-neutral-500">Waiting...</span>
+              </div>
+            ) : game?.status === 'finished' || game?.status === 'abandoned' ? (
+              <div className="bg-white/5 border border-white/10 text-[#e63946] flex items-center justify-center font-bold" style={{ height: '24px', padding: '0 8px', borderRadius: '4px', fontSize: '10px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                GAME OVER
+              </div>
+            ) : game?.turn === (game?.player_color || 'w') ? (
+               <div className="bg-[#e63946] text-white flex items-center justify-center font-bold" style={{ height: '24px', padding: '0 8px', borderRadius: '4px', fontSize: '10px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                YOUR TURN
+              </div>
+            ) : (
+               <div className="bg-[#1a1a1a] border border-[#2a2a2a] text-[#555555] flex items-center justify-center font-bold" style={{ height: '24px', padding: '0 8px', borderRadius: '4px', fontSize: '10px', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                WAITING
+              </div>
+            )}
+            <div className="font-mono text-xs text-neutral-500 font-semibold tracking-wider">
+              Move {currentMoveNumber}
+            </div>
+            {!agentConnected && <div className="text-[10px] text-[#e63946] font-sans">OpenClaw offline</div>}
           </div>
 
           <div className="flex items-center gap-3">
-            {game?.status === 'active' && (
-              <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${isMyTurn ? 'bg-red-600/20 text-red-500 animate-[pulse_2s_infinite] border border-red-500/30' : 'bg-neutral-800 text-neutral-400'}`}>
-                {isMyTurn ? "Your turn" : "Waiting"}
-              </div>
-            )}
-            <ChevronDown size={18} className={`text-neutral-500 transition-transform duration-300 ${moveHistoryOpen ? 'rotate-180' : ''}`} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px' }} className="text-neutral-500 font-semibold tracking-wide">
+              {moveHistoryOpen ? 'Hide History' : 'View History'}
+            </span>
+            <ChevronDown size={16} className={`text-neutral-500 transition-transform duration-300 ${moveHistoryOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 
