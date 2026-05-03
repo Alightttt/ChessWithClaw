@@ -135,13 +135,15 @@ export default function Home() {
         
         .design-card {
           background: #111111;
-          border: 1px solid #1e1e1e;
+          border: 1px solid rgba(255,255,255,0.06);
           border-radius: 16px;
           padding: 24px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+          transition: border-color 0.2s ease, transform 0.2s ease;
         }
         .design-card:hover {
-          border-color: #2e2e2e;
+          border-color: rgba(255,255,255,0.12);
           transform: translateY(-2px);
         }
         
@@ -160,11 +162,15 @@ export default function Home() {
           justify-content: center;
           gap: 12px;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.4);
+          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 4px 12px 0px;
+        }
+        .design-btn-primary:hover:not(:disabled) {
+          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.4) 0px 8px 20px 0px;
+          transform: translateY(-1px);
         }
         .design-btn-primary:active:not(:disabled) {
-          transform: scale(0.98);
-          opacity: 0.9;
+          transform: translateY(0px) scale(0.985);
+          box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
         }
         
         .design-btn-nav {
@@ -180,12 +186,16 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          transition: all 0.2s ease;
-          box-shadow: inset 0px 0.5px 0px rgba(255,255,255,0.08), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 2px 8px 0px;
+        }
+        .design-btn-nav:hover:not(:disabled) {
+          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.4) 0px 4px 12px 0px;
+          transform: translateY(-1px);
         }
         .design-btn-nav:active:not(:disabled) {
-          transform: scale(0.98);
-          opacity: 0.85;
+          transform: translateY(0px) scale(0.985);
+          box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
         }
         
         .design-btn-secondary {
@@ -207,6 +217,7 @@ export default function Home() {
         .design-btn-secondary:hover:not(:disabled) {
           color: rgba(242,242,242,0.9);
           border-color: rgba(242,242,242,0.3);
+          background: rgba(242,242,242,0.04);
         }
         .design-btn-secondary:active:not(:disabled) {
           transform: scale(0.98);
@@ -229,7 +240,7 @@ export default function Home() {
           background: rgba(17,17,17,0.9);
           border: 1px solid #1e1e1e;
           border-radius: 16px;
-          padding: 40px 32px;
+          padding: 28px;
           transition: all 0.2s ease;
           text-align: left;
         }
@@ -264,16 +275,30 @@ export default function Home() {
 
       <section 
         style={{ 
-          background: 'radial-gradient(ellipse 80% 40% at 50% 0%, rgba(230,57,70,0.06) 0%, transparent 70%)', 
+          background: 'none', 
           paddingTop: 'clamp(80px, 15vh, 120px)', 
           paddingBottom: 'clamp(64px, 10vh, 96px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
-          marginBottom: '96px' 
+          marginBottom: '96px',
+          position: 'relative',
+          overflow: 'hidden'
         }} 
-        className="relative flex flex-col items-center max-w-7xl mx-auto"
+        className="flex flex-col items-center max-w-7xl mx-auto"
       >
-        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '24px' }}>
+        <div style={{
+          position: 'absolute',
+          top: '-10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          height: '600px',
+          background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(230,57,70,0.08) 0%, rgba(230,57,70,0.02) 40%, transparent 70%)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }} />
+
+        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '24px', position: 'relative', zIndex: 1 }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -282,13 +307,13 @@ export default function Home() {
               border: '1px solid rgba(230,57,70,0.2)',
               borderRadius: '9999px',
               padding: '6px 16px',
-              color: '#e63946',
+              color: '#f2f2f2',
               fontFamily: "'Inter', sans-serif",
               fontSize: '13px',
               fontWeight: 500,
             }}
           >
-            Real-time infrastructure for OpenClaws
+            <span style={{ color: '#e63946' }}>●</span> LIVE · REAL-TIME CHESS
           </motion.div>
           
           <motion.h1 
@@ -323,13 +348,43 @@ export default function Home() {
           >
             The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
           </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full z-10 mx-auto"
+            style={{ maxWidth: '360px', position: 'relative', marginTop: '16px' }}
+          >
+            <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
+              <div className="flex items-center justify-between mb-3 px-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🦞</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
+                </div>
+                <Typewriter lines={LINES} />
+              </div>
+              <div 
+                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+              >
+                <ChessBoard 
+                  fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
+                  interactive={false}
+                  showCoordinates={false}
+                  boardTheme="green"
+                  pieceTheme="merida"
+                  lastMove={{ from: 'c4', to: 'd5' }}
+                />
+              </div>
+            </div>
+          </motion.div>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
             className="flex flex-col sm:flex-row items-center justify-center w-full sm:w-auto"
-            style={{ gap: '16px', marginTop: '16px' }}
+            style={{ gap: '16px', marginTop: '24px' }}
           >
             <button 
               onClick={handleStart}
@@ -346,41 +401,11 @@ export default function Home() {
             </a>
           </motion.div>
         </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full mt-16 z-10"
-          style={{ maxWidth: '380px' }}
-        >
-          <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px' }}>
-            <div className="flex items-center justify-between mb-3 px-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🦞</span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
-              </div>
-              <Typewriter lines={LINES} />
-            </div>
-            <div 
-              style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
-            >
-              <ChessBoard 
-                fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
-                interactive={false}
-                showCoordinates={false}
-                boardTheme="green"
-                pieceTheme="merida"
-                lastMove={{ from: 'c4', to: 'd5' }}
-              />
-            </div>
-          </div>
-        </motion.div>
       </section>
 
-      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
-        <div className="text-center mb-16" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, margin: 0 }}>Precision Engineering.</h2>
+      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '96px', padding: '72px 20px 0' }}>
+        <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(40px, 10vw)', fontWeight: 700, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.02em', textAlign: 'center' }}>Built for the game.</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -472,11 +497,18 @@ export default function Home() {
 
       <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
         <div className="social-proof-card">
-          <div style={{ color: '#e63946', fontSize: '56px', fontFamily: "'Playfair Display', serif", lineHeight: 1, marginBottom: '16px' }}>&quot;</div>
-          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '32px' }}>
-            Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
-          </p>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '15px', color: '#f2f2f2' }}>Jake Reynolds</div>
+          <div className="flex gap-4">
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #e63946, #8b1a21)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '16px', fontWeight: '700', fontFamily: "'Inter', sans-serif", border: '2px solid rgba(230,57,70,0.3)', flexShrink: 0 }}>
+              J
+            </div>
+            <div>
+              <div style={{ color: '#e63946', fontSize: '48px', fontFamily: "'Playfair Display', serif", lineHeight: 1, marginBottom: '8px', marginTop: '-12px' }}>&quot;</div>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '16px', marginTop: '-16px' }}>
+                Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
+              </p>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '15px', color: '#f2f2f2' }}>Jake Reynolds</div>
+            </div>
+          </div>
         </div>
       </section>
 

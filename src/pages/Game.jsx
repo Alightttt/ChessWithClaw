@@ -1325,7 +1325,7 @@ export default function Game() {
         }}
       >
         <div style={{ padding: '8px 16px 0', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
-          Live Chat
+          CHAT WITH {agentName.toUpperCase()}
         </div>
         <div 
           ref={chatMessagesRef}

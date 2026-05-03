@@ -168,7 +168,7 @@ npx clawhub install agent-browser-clawdbot`;
             border-radius: 10px;
             height: 52px;
             padding: 0 24px;
-            box-shadow: inset 0px 1px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3);
+            box-shadow: rgba(255,255,255,0.12) 0px 1px 0px 0px inset, rgba(0,0,0,0.35) 0px -1px 0px 0px inset, rgba(0,0,0,0.2) 0px 4px 16px 0px;
             color: white;
             font-family: 'Inter', sans-serif;
             font-weight: 600;
@@ -178,11 +178,16 @@ npx clawhub install agent-browser-clawdbot`;
             justify-content: center;
             gap: 12px;
             border: none;
-            transition: transform 0.2s ease, opacity 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
           }
+          .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: rgba(255,255,255,0.12) 0px 1px 0px 0px inset, rgba(0,0,0,0.35) 0px -1px 0px 0px inset, rgba(0,0,0,0.3) 0px 8px 24px 0px;
+          }
           .action-btn:active {
-            transform: scale(0.97);
+            transform: translateY(1px) scale(0.98);
+            box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
           }
           .card-container {
             background: #0e0e0e;
@@ -305,7 +310,7 @@ npx clawhub install agent-browser-clawdbot`;
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
               className="action-btn"
-              style={{ background: boardOpened ? '#111111' : '#e63946', border: boardOpened ? '1px solid #222222' : 'none', boxShadow: boardOpened ? 'none' : 'inset 0px 1px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3)', color: boardOpened ? '#e63946' : 'white' }}
+              style={{ background: boardOpened ? '#111111' : '#e63946', border: boardOpened ? '1px solid #222222' : 'none', boxShadow: boardOpened ? 'none' : undefined, color: boardOpened ? '#e63946' : 'white' }}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
