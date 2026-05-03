@@ -143,119 +143,166 @@ npx clawhub install agent-browser-clawdbot`;
 
         {/* Stepper */}
         <style>{`
-          @keyframes clawPresence {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.96); }
+          @keyframes clawPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
           }
           @keyframes scaleIn {
             0% { transform: scale(0.8); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
           }
           .connector-line {
-            background: linear-gradient(to right, #e63946 50%, #222222 50%);
+            background: linear-gradient(to right, #e63946 50%, rgba(255,255,255,0.08) 50%);
             background-size: 200% 100%;
             transition: background-position 0.7s ease-in-out;
-            height: 1px;
+            height: 2px;
             position: absolute;
-            left: 44px;
-            right: 44px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: -10;
+            left: 54px;
+            right: 54px;
+            top: 22px;
+            z-index: 0;
           }
           .action-btn {
             background: #e63946;
-            border-radius: 10px;
-            height: 52px;
-            padding: 0 24px;
-            box-shadow: rgba(255,255,255,0.12) 0px 1px 0px 0px inset, rgba(0,0,0,0.35) 0px -1px 0px 0px inset, rgba(0,0,0,0.2) 0px 4px 16px 0px;
-            color: white;
+            color: #ffffff;
+            border-radius: 8px;
+            height: 48px;
+            width: 100%;
             font-family: 'Inter', sans-serif;
             font-weight: 600;
             font-size: 14px;
+            letter-spacing: -0.25px;
+            border: none;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            border: none;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 100%;
+            box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.12) 0px 2px 2px -1px;
+            transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
             box-sizing: border-box;
-            min-height: 52px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
           .action-btn:hover {
             transform: translateY(-1px);
-            box-shadow: rgba(255,255,255,0.12) 0px 1px 0px 0px inset, rgba(0,0,0,0.35) 0px -1px 0px 0px inset, rgba(0,0,0,0.3) 0px 8px 24px 0px;
+            opacity: 0.95;
+            box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.12) 0px 4px 6px -2px;
           }
           .action-btn:active {
-            transform: translateY(1px) scale(0.98);
-            box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
+            transform: translateY(0px) scale(0.98);
+            box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
+          }
+          .action-btn.copied {
+            background: #1a7a3a;
           }
           .card-container {
             background: #0e0e0e;
-            border: 1px solid #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.06);
             border-radius: 16px;
             padding: 20px 16px;
             width: 100%;
             box-sizing: border-box;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
           }
           .install-cmd-box {
             background: #080808;
-            border: 1px solid #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.06);
             border-radius: 8px;
             font-family: 'JetBrains Mono', monospace;
-            padding: 12px;
-            font-size: 12px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: rgba(242,242,242,0.7);
+            line-height: 1.8;
             width: 100%;
             box-sizing: border-box;
             overflow-x: auto;
             word-break: break-all;
           }
+          .invite-msg-box {
+            background: #080808;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 14px;
+            font-size: 12px;
+            color: rgba(242,242,242,0.6);
+            line-height: 1.8;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-break: break-word;
+          }
+          .stepper-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            position: relative;
+            z-index: 1;
+          }
+          .stepper-circle.done {
+            background: #e63946;
+            border: none;
+            color: white;
+            box-shadow: rgba(255,255,255,0.15) 0px 1px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px inset;
+          }
+          .stepper-circle.active {
+            background: rgba(230,57,70,0.1);
+            border: 2px solid #e63946;
+            color: #e63946;
+          }
+          .stepper-circle.future {
+            background: #111111;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(242,242,242,0.25);
+          }
+          .stepper-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
         `}</style>
-        <div className="relative mb-12" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px', width: '100%', overflowX: 'hidden' }}>
+        <div className="relative mb-12" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 20px', width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
           <div className="connector-line" style={{ backgroundPosition: agentConnected ? '0% 0' : boardOpened ? '50% 0' : '100% 0' }} />
           
-          <div className="flex flex-col items-center gap-3">
-            <div style={{ background: '#e63946', borderRadius: '50%', color: 'white', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
+            <div className="stepper-circle done">
               <CheckCircle2 size={18} color="white" />
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: '#e63946', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Invite</div>
+            <div className="stepper-label text-[#e63946]">Invite</div>
           </div>
 
-          <div className="flex flex-col items-center gap-3">
-             <div style={
-               boardOpened
-                 ? { background: '#e63946', borderRadius: '50%', color: 'white', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-                 : { background: 'rgba(230,57,70,0.1)', border: '2px solid #e63946', color: '#e63946', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-             }>
-              {boardOpened ? <CheckCircle2 size={18} color="white" /> : <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 'bold', fontSize: '14px' }}>2</span>}
+          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
+             <div className={`stepper-circle ${boardOpened ? 'done' : 'active'}`}>
+              {boardOpened ? <CheckCircle2 size={18} color="white" /> : "2"}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: boardOpened ? '#e63946' : '#e63946', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Board</div>
+            <div className={`stepper-label ${boardOpened || !agentConnected ? 'text-[#e63946]' : 'text-[rgba(242,242,242,0.2)]'}`}>Board</div>
           </div>
 
-          <div className="flex flex-col items-center gap-3">
-             <div style={
-               agentConnected
-                 ? { background: '#e63946', borderRadius: '50%', color: 'white', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-                 : boardOpened
-                   ? { background: 'rgba(230,57,70,0.1)', border: '2px solid #e63946', color: '#e63946', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-                   : { background: '#111111', border: '1px solid #222222', color: 'rgba(242,242,242,0.3)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-             }>
+          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
+             <div className={`stepper-circle ${agentConnected ? 'done' : boardOpened ? 'active' : 'future'}`}>
               {agentConnected ? (
                 <div style={{ animation: 'scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
                    <div className="flex items-center justify-center">
-                     <span className="text-xl" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.3))' }}>🦞</span>
+                     <CheckCircle2 size={18} color="white" />
                    </div>
                 </div>
               ) : (
-                <span className="text-lg" style={boardOpened ? { animation: 'clawPresence 2.5s ease-in-out infinite' } : {}}>🦞</span>
+                <span className="text-lg" style={boardOpened ? { animation: 'clawPulse 2s ease-in-out infinite' } : {}}>3</span>
               )}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: agentConnected ? '#e63946' : boardOpened ? '#e63946' : 'rgba(242,242,242,0.3)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Battle</div>
+            <div className={`stepper-label ${agentConnected || boardOpened ? 'text-[#e63946]' : 'text-[rgba(242,242,242,0.2)]'}`}>Battle</div>
           </div>
         </div>
 
@@ -284,7 +331,7 @@ npx clawhub install agent-browser-clawdbot`;
 
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-3 leading-relaxed font-medium">2. Send the connection string below to your OpenClaw:</p>
             <div className="relative mb-6">
-              <div style={{ background: '#080808', border: '1px solid #1e1e1e', borderRadius: '10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', lineHeight: 1.8, color: 'rgba(242,242,242,0.7)', width: '100%', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }} className="relative p-5 h-40 overflow-y-auto whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
+              <div className="invite-msg-box relative h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 whitespace-pre-wrap">
                 {inviteMessage.split('\n').map((line, i) => (
                   <React.Fragment key={i}>
                     {line.startsWith(origin) ? (
@@ -300,7 +347,7 @@ npx clawhub install agent-browser-clawdbot`;
 
             <button 
               onClick={handleShare}
-              className="action-btn"
+              className={`action-btn ${copyState === 'copied' ? 'copied' : ''}`}
             >
               {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
@@ -322,7 +369,7 @@ npx clawhub install agent-browser-clawdbot`;
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
               className="action-btn"
-              style={{ background: boardOpened ? '#111111' : '#e63946', border: boardOpened ? '1px solid #222222' : 'none', boxShadow: boardOpened ? 'none' : undefined, color: boardOpened ? '#e63946' : 'white' }}
+              style={boardOpened ? { background: '#111111', border: '1px solid #222222', boxShadow: 'none', color: '#e63946' } : {}}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>

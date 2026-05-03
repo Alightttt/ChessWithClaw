@@ -34,7 +34,6 @@ export default function Game() {
   const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
-  const [boardPerspective, setBoardPerspective] = useState(() => localStorage.getItem('cwc_perspective') === '3d');
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1088,13 +1087,12 @@ export default function Game() {
   return (
     <div 
       ref={containerRef}
-      className={`relative text-white font-sans selection:bg-red-500/30 transition-colors duration-700 box-border`}
+      className={`relative text-white font-sans selection:bg-red-500/30 transition-colors duration-700 box-border scrollbar-none`}
       style={{
-        height: '100dvh',
-        maxHeight: '100dvh',
+        minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        paddingBottom: '56px',
         background: isAgentThinking ? 'rgba(10,3,3,1)' : '#0a0a0a',
         position: 'relative'
       }}
@@ -1106,7 +1104,7 @@ export default function Game() {
       )}
       
       {/* HEADER (Fixed 48px) */}
-      <header style={{ height: '48px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50 }}>
+      <header style={{ height: '48px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
         <div className="flex items-center cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome} style={{ gap: '8px' }}>
           <img
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png"
@@ -1127,8 +1125,8 @@ export default function Game() {
         </button>
       </header>
 
-      {/* SCROLLABLE MIDDLE SECTION */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: '56px' }} className="scrollbar-none">
+      {/* MAIN CONTENT SECTION */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isAgentThinking ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
@@ -1155,7 +1153,7 @@ export default function Game() {
         </div>
 
         {/* B) CHESS BOARD */}
-        <div style={{ width: '100%', aspectRatio: '1/1', maxHeight: 'calc(100dvh - 48px - 80px - 180px - 48px)', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: '100%', aspectRatio: '1/1', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           {isCheckState && game.status === 'active' && (
             <div 
               className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
@@ -1263,7 +1261,7 @@ export default function Game() {
           </div>
           <form 
             onSubmit={sendMessage} 
-            style={{ padding: '8px 12px', borderTop: '1px solid #111', display: 'flex', gap: '8px' }}
+            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
           >
             <input
               id="chat-input"
@@ -1273,15 +1271,18 @@ export default function Game() {
               onChange={handleChatInputChange}
               placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
               disabled={isSpectator}
-              style={{ flex: 1, height: '36px', background: '#080808', border: '1px solid #1e1e1e', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease' }}
-              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = '0 0 0 2px rgba(230,57,70,0.1)'; }}
-              onBlur={(e) => { e.target.style.borderColor = '#1e1e1e'; e.target.style.boxShadow = 'none'; }}
+              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
             />
             <button 
               data-testid="chat-send"
               type="submit"
               disabled={isSpectator || !chatInput.trim()}
-              style={{ width: '36px', height: '36px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0 }}
+              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
               <Send size={16} />
             </button>
@@ -1563,8 +1564,8 @@ export default function Game() {
           100% { background-color: rgba(255, 255, 255, 0); }
         }
         @keyframes pieceLift {
-          0% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
-          100% { transform: scale(1.15) translateY(-4px); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); }
+          0% { transform: scale(1) translateY(0); filter: none; }
+          100% { transform: scale(1.15) translateY(-4px); filter: none; }
         }
         @keyframes pieceDrop {
           0% { transform: scale(1.15) translateY(-4px); }

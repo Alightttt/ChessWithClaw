@@ -257,7 +257,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
           style={{
             fontSize: '85cqw', // Actually wait, container query width isn't active on piece. What about 8.5cqw or something?
             color: isWhite ? '#ffffff' : '#1a1a1a',
-            textShadow: isWhite ? '0 1px 4px rgba(0,0,0,0.6), 0 0 1px rgba(0,0,0,0.8)' : '0 1px 2px rgba(255,255,255,0.1)'
+            textShadow: 'none'
           }}
         >
           {pieceMap[piece.color + piece.type.toUpperCase()]}
@@ -271,7 +271,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       } else {
         url = `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
       }
-      return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: isWhite ? 'drop-shadow(0 1px 4px rgba(0,0,0,0.6)) drop-shadow(0 0 1px rgba(0,0,0,0.8))' : 'drop-shadow(0 1px 2px rgba(255,255,255,0.1))' }} />;
+      return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: 'none' }} />;
     }
   };
 
@@ -284,7 +284,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }
 
   return (
-    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', boxShadow: '0 4px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)', borderRadius: '2px' }}>
+    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box' }}>
       <div className="relative w-full h-full aspect-square">
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
@@ -363,7 +363,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
                     y: `${rankIndex * 100}%`,
                     opacity: 1
                   }}
-                  exit={{ scale: 0.5, opacity: 0, filter: 'drop-shadow(0 0 10px rgba(230,57,70,0.8))' }}
+                  exit={{ scale: 0.5, opacity: 0, filter: 'none' }}
                   transition={{ 
                     type: 'spring', 
                     stiffness: 350, 

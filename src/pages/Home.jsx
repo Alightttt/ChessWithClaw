@@ -51,15 +51,12 @@ function Typewriter({ lines }) {
 export default function Home() {
   const [creating, setCreating] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-      const totalScroll = document.documentElement.scrollTop;
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -157,16 +154,16 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 12px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 4px 12px 0px;
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px;
         }
         .design-btn-primary:hover:not(:disabled) {
-          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.4) 0px 8px 20px 0px;
+          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px, rgba(0,0,0,0.25) 0px 8px 20px 0px;
           transform: translateY(-1px);
         }
         .design-btn-primary:active:not(:disabled) {
-          transform: translateY(0px) scale(0.985);
-          box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
+          transform: translateY(1px);
+          box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
         }
         
         .design-btn-nav {
@@ -182,22 +179,22 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 2px 8px 0px;
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px;
         }
         .design-btn-nav:hover:not(:disabled) {
-          box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -1px 0px 0px inset, rgba(0,0,0,0.4) 0px 4px 12px 0px;
+          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px, rgba(0,0,0,0.25) 0px 8px 20px 0px;
           transform: translateY(-1px);
         }
         .design-btn-nav:active:not(:disabled) {
-          transform: translateY(0px) scale(0.985);
-          box-shadow: rgba(255,255,255,0.1) 0px 1px 0px 0px inset, rgba(0,0,0,0.5) 0px -1px 0px 0px inset;
+          transform: translateY(1px);
+          box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
         }
         
         .design-btn-secondary {
           background: transparent;
           color: rgba(242,242,242,0.6);
-          border: 1px solid rgba(242,242,242,0.15);
+          border: 1px solid rgba(255,255,255,0.12);
           border-radius: 8px;
           height: 56px;
           padding: 0 32px;
@@ -207,13 +204,13 @@ export default function Home() {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.15s ease;
           text-decoration: none;
         }
         .design-btn-secondary:hover:not(:disabled) {
           color: rgba(242,242,242,0.9);
-          border-color: rgba(242,242,242,0.3);
-          background: rgba(242,242,242,0.04);
+          border-color: rgba(255,255,255,0.25);
+          background: rgba(255,255,255,0.04);
         }
         .design-btn-secondary:active:not(:disabled) {
           transform: scale(0.98);
