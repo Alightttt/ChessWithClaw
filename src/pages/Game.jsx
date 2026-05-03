@@ -1081,6 +1081,7 @@ export default function Game() {
       className={`relative text-white font-sans selection:bg-red-500/30 transition-colors duration-500 box-border`}
       style={{
         height: '100dvh',
+        maxHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -1234,16 +1235,6 @@ export default function Game() {
               );
             })}
           </div>
-          <button
-            onClick={() => {
-              const newVal = !boardPerspective;
-              setBoardPerspective(newVal);
-              localStorage.setItem('cwc_perspective', newVal ? '3d' : '2d');
-            }}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider transition-all border ${boardPerspective ? 'bg-red-600 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]' : 'bg-transparent text-neutral-500 border-white/10 hover:border-white/20 hover:text-neutral-300'}`}
-          >
-            3D
-          </button>
         </div>
 
         <div 
@@ -1251,15 +1242,15 @@ export default function Game() {
           className={`relative rounded-md shrink-0 transition-all duration-300 ${boardLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${shaking ? 'animate-board-shake' : ''}`}
           style={{
             width: '100%',
-            maxWidth: '600px',
+            aspectRatio: '1/1',
+            maxHeight: 'calc(100dvh - 48px - 80px - 180px - 48px)',
+            flexShrink: 0,
+            overflow: 'hidden',
             margin: '0 auto',
             boxSizing: 'border-box',
-            overflow: 'hidden',
-            aspectRatio: '1/1',
             padding: '0',
             border: isAgentThinking ? '1px solid rgba(230,57,70,0.1)' : '1px solid #1e1e1e',
             borderRadius: '8px',
-            maxHeight: 'calc(100dvh - 48px - 72px - 180px - 44px)',
             transform: `${shaking ? 'translateX(0)' : 'none'} ${boardPerspective ? 'perspective(1000px) rotateX(25deg) scale(0.95)' : ''}`,
             transformOrigin: 'bottom center',
             boxShadow: isAgentThinking 
@@ -1470,87 +1461,14 @@ export default function Game() {
         </form>
       </div>
 
-      {/* GAME INFOBAR & MOVE HISTORY (Mobile Desktop unified) */}
-      <div 
-        className="flex flex-col bg-[#050505] border-t border-[#1a1a1a] flex-1 min-h-0 shrink-0"
-        style={{ zIndex: 10, flexShrink: 0 }}
-      >
-        <div 
-          onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-          className="flex justify-between items-center px-4 cursor-pointer"
-          style={{ height: '44px', flexShrink: 0 }}
-        >
-          <div className="flex items-center gap-3">
-            {game?.status === 'waiting' && !agentConnected ? (
-              <span style={{ background: '#1a1a1a', color: 'rgba(242,242,242,0.3)', fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '11px', letterSpacing: '0.1em', borderRadius: '6px', padding: '4px 12px', transition: 'all 0.3s ease' }}>
-                WAITING
-              </span>
-            ) : game?.status === 'finished' || game?.status === 'abandoned' ? (
-              <span style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '11px', letterSpacing: '0.1em', borderRadius: '6px', padding: '4px 12px', transition: 'all 0.3s ease' }}>
-                GAME OVER
-              </span>
-            ) : game?.turn === (game?.player_color || 'w') ? (
-              <span style={{ background: '#e63946', color: 'white', fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '11px', letterSpacing: '0.1em', borderRadius: '6px', padding: '4px 12px', transition: 'all 0.3s ease' }}>
-                YOUR TURN
-              </span>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span style={{ background: '#1a1a1a', color: 'rgba(242,242,242,0.3)', fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '11px', letterSpacing: '0.1em', borderRadius: '6px', padding: '4px 12px', transition: 'all 0.3s ease' }}>
-                  WAITING
-                </span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
-                  Waiting for {agentName}...
-                </span>
-              </div>
-            )}
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.3)' }}>
-              Move {currentMoveNumber}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.35)' }}>
-              {moveHistoryOpen ? 'MOVE HISTORY · ' + ((game.move_history || []).length) + ' MOVES' : 'MOVE HISTORY · ' + ((game.move_history || []).length) + ' MOVES'}
-            </span>
-            <ChevronDown size={16} className={`text-neutral-500 transition-transform duration-300 ${moveHistoryOpen ? 'rotate-180' : ''}`} />
-          </div>
-        </div>
-
-        <div className={`overflow-y-auto scrollbar-none bg-[#0a0a0a] transition-all duration-300 ${moveHistoryOpen ? 'opacity-100 py-1 px-1' : 'opacity-0 h-0 hidden'}`} style={{ maxHeight: '150px' }}>
-          <div className="py-2 px-3">
-            {!(game.move_history || []).length ? (
-              <div className="font-sans text-xs text-neutral-500 text-center py-4 flex flex-col items-center gap-1">
-                <span className="text-lg opacity-40">🦞</span>
-                No moves yet
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <div className="grid grid-cols-[28px_1fr_1fr] gap-x-2 gap-y-1 mb-2">
-                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">#</div>
-                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">You</div>
-                  <div className="font-sans text-[9px] text-neutral-500 uppercase tracking-widest border-b border-[#1a1a1a] pb-1 mb-1">{agentName}</div>
-                </div>
-                {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
-                  const wMove = game.move_history[i * 2];
-                  const bMove = game.move_history[i * 2 + 1];
-                  const isLatestW = i * 2 === game.move_history.length - 1;
-                  const isLatestB = i * 2 + 1 === game.move_history.length - 1;
-                  return (
-                    <div key={i} className="grid grid-cols-[28px_1fr_1fr] gap-x-2 items-center py-1 px-1 rounded transition-colors group hover:bg-[#141414] cursor-default border border-transparent">
-                      <div style={{ color: 'rgba(242,242,242,0.3)', fontFamily: "'JetBrains Mono', monospace", fontSize: '11px' }}>{i + 1}.</div>
-                      <div className={`py-1 px-1.5 rounded transition-all flex items-center h-6 ${isLatestW ? 'bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] text-[#e63946]' : 'border-transparent'}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: isLatestW ? '#e63946' : '#f2f2f2' }}>
-                        {wMove?.san}
-                      </div>
-                      <div className={`py-1 px-1.5 rounded transition-all flex items-center h-6 ${isLatestB ? 'bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] text-[#e63946]' : 'border-transparent'}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: isLatestB ? '#e63946' : (bMove ? '#f2f2f2' : 'transparent') }}>
-                        {bMove?.san || ''}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* GAME INFOBAR (Mobile Desktop unified) */}
+      <div style={{ flexShrink: 0, height: '48px', borderTop: '1px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', background: '#0a0a0a' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
+          {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+          Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
+        </span>
       </div>
 
       {/* STATUS BAR */}
