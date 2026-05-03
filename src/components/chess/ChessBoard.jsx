@@ -249,13 +249,15 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
 
   const renderPiece = (piece) => {
     if (!piece) return null;
+    const isWhite = piece.color === 'w';
     if (pieceTheme === 'unicode') {
       return (
         <span
-          className="relative z-10 drop-shadow-md text-[9vw] sm:text-5xl leading-none"
+          className="relative z-10 leading-none"
           style={{
-            color: piece.color === 'w' ? '#ffffff' : '#000000',
-            textShadow: piece.color === 'w' ? '0 0 2px #000' : '0 0 2px #fff'
+            fontSize: '85cqw', // Actually wait, container query width isn't active on piece. What about 8.5cqw or something?
+            color: isWhite ? '#ffffff' : '#1a1a1a',
+            textShadow: isWhite ? '0 1px 4px rgba(0,0,0,0.6), 0 0 1px rgba(0,0,0,0.8)' : '0 1px 2px rgba(255,255,255,0.1)'
           }}
         >
           {pieceMap[piece.color + piece.type.toUpperCase()]}
@@ -269,7 +271,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
       } else {
         url = `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
       }
-      return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] drop-shadow-md pointer-events-none" />;
+      return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: isWhite ? 'drop-shadow(0 1px 4px rgba(0,0,0,0.6)) drop-shadow(0 0 1px rgba(0,0,0,0.8))' : 'drop-shadow(0 1px 2px rgba(255,255,255,0.1))' }} />;
     }
   };
 
@@ -282,7 +284,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }
 
   return (
-    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', borderRadius: '4px' }}>
+    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', boxShadow: '0 4px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)', borderRadius: '2px' }}>
       <div className="relative w-full h-full aspect-square">
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
@@ -305,22 +307,22 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
                 aria-label={`${sq}, ${piece ? (piece.color === 'w' ? 'white ' : 'black ') + piece.type : 'empty'}`}
               >
                 {/* Overlays */}
-                {isSelected && <div className="absolute inset-0 bg-[#e63946]/40 z-0" />}
-                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.35)' }} />}
+                {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
+                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
                 {agentMoveFlash === sq && <div className="absolute inset-0 z-10" style={{ animation: 'agentFlash 400ms ease-out forwards' }} />}
                 
                 {/* Legal move indicators */}
-                {isLegal && !isCap && <div className="absolute w-[25%] h-[25%] rounded-full bg-[#e63946]/60 z-0" />}
-                {isLegal && isCap && <div className="absolute inset-0 border-[6px] border-[#e63946]/60 opacity-80 z-0" />}
+                {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}
+                {isLegal && isCap && <div className="absolute inset-0 border-[4px] opacity-80 z-0" style={{ borderColor: 'rgba(0,0,0,0.2)' }} />}
 
                 {/* Coordinates */}
                 {showCoordinates && col === 0 && (
-                  <span className={`absolute top-0.5 left-1 text-[10px] sm:text-xs font-bold z-0 ${isLight(row, col) ? 'text-black/50' : 'text-white/60'}`}>
+                  <span className="absolute top-0.5 left-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
                     {rank}
                   </span>
                 )}
                 {showCoordinates && row === 7 && (
-                  <span className={`absolute bottom-0.5 right-1 text-[10px] sm:text-xs font-bold z-0 ${isLight(row, col) ? 'text-black/50' : 'text-white/60'}`}>
+                  <span className="absolute bottom-0 right-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
                     {file}
                   </span>
                 )}
@@ -392,7 +394,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
               
               return (
                 <div key={sq} className="relative w-full h-full">
-                  <div className="absolute inset-0" style={{ borderRadius: '50%', background: 'radial-gradient(circle, rgba(230,57,70,0.6) 0%, rgba(230,57,70,0.3) 40%, transparent 70%)', animation: 'checkPulse 1s ease-in-out infinite' }} />
+                  <div className="absolute inset-0" style={{ borderRadius: '50%', background: 'radial-gradient(circle, rgba(230,57,70,0.8) 0%, rgba(230,57,70,0.4) 50%, transparent 80%)', animation: 'checkPulse 1s ease-in-out infinite' }} />
                 </div>
               );
             })

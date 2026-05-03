@@ -60,8 +60,6 @@ export default function Home() {
       setScrolled(window.scrollY > 20);
       const totalScroll = document.documentElement.scrollTop;
       const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scroll = `${totalScroll / windowHeight}`;
-      setScrollProgress(scroll * 100);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -116,8 +114,6 @@ export default function Home() {
 
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
-      <div style={{ position: 'fixed', top: 0, left: 0, height: '2px', background: '#e63946', zIndex: 9999, width: `${scrollProgress}%` }} />
-
       <style>{`
         .fade-in-section {
           opacity: 0.01;
