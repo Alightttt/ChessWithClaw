@@ -137,34 +137,108 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <ChevronLeft size={20} />
           </button>
-          <div style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold text-2xl tracking-tight text-white">Summon Your OpenClaw 🦞</div>
-          <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 600 }} className="text-white">Summon Your OpenClaw 🦞</div>
+          <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
 
         {/* Stepper */}
+        <style>{`
+          @keyframes clawPresence {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.96); }
+          }
+          @keyframes scaleIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          .connector-line {
+            background: linear-gradient(to right, #e63946 50%, #222222 50%);
+            background-size: 200% 100%;
+            transition: background-position 0.7s ease-in-out;
+            height: 1px;
+            position: absolute;
+            left: 44px;
+            right: 44px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: -10;
+          }
+          .action-btn {
+            background: #e63946;
+            border-radius: 10px;
+            height: 52px;
+            padding: 0 24px;
+            box-shadow: inset 0px 1px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            width: 100%;
+          }
+          .action-btn:active {
+            transform: scale(0.97);
+          }
+          .card-container {
+            background: #0e0e0e;
+            border: 1px solid #1e1e1e;
+            border-radius: 16px;
+            padding: 24px;
+          }
+          .install-cmd-box {
+            background: #080808;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 12px;
+            font-size: 13px;
+          }
+        `}</style>
         <div className="flex items-center justify-between relative mb-12 px-6">
-          <div className="absolute left-[44px] right-[44px] top-1/2 -translate-y-1/2 h-0.5 bg-[#1a1a1a] -z-10" />
-          <div className="absolute left-[44px] top-1/2 -translate-y-1/2 h-0.5 bg-[#e63946] -z-10 transition-all duration-700 ease-in-out" style={{ right: agentConnected ? '44px' : boardOpened ? '50%' : 'calc(100% - 44px)' }} />
+          <div className="connector-line" style={{ backgroundPosition: agentConnected ? '0% 0' : boardOpened ? '50% 0' : '100% 0' }} />
           
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#111111] text-[#e63946] border-2 border-[#e63946] flex items-center justify-center shadow-[0_0_24px_rgba(230,57,70,0.25)]">
-              <CheckCircle2 size={24} />
+            <div style={{ background: '#e63946', borderRadius: '50%', color: 'white', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={24} color="white" />
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif" }} className="text-[10px] font-bold uppercase tracking-widest text-[#e63946]">1. Invite</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: '#e63946', textTransform: 'uppercase' }}>Invite</div>
           </div>
 
           <div className="flex flex-col items-center gap-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${boardOpened ? 'bg-[#111111] text-[#e63946] border-[#e63946] shadow-[0_0_24px_rgba(230,57,70,0.25)]' : 'bg-[#111111] text-[#444444] border-[#222222]'}`}>
-              {boardOpened ? <CheckCircle2 size={24} /> : <span style={{ fontFamily: "'Inter', sans-serif" }} className="font-bold text-lg">2</span>}
+             <div style={
+               boardOpened
+                 ? { background: '#e63946', borderRadius: '50%', color: 'white', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                 : { background: 'rgba(230,57,70,0.1)', border: '2px solid #e63946', color: '#e63946', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+             }>
+              {boardOpened ? <CheckCircle2 size={24} color="white" /> : <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 'bold', fontSize: '18px' }}>2</span>}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif" }} className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-500 ${boardOpened ? 'text-[#e63946]' : 'text-[#444444]'}`}>Board</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: boardOpened ? '#e63946' : '#e63946', textTransform: 'uppercase' }}>Board</div>
           </div>
 
           <div className="flex flex-col items-center gap-3">
-             <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${agentConnected ? 'bg-[#111111] text-[#e63946] border-[#e63946] shadow-[0_0_24px_rgba(230,57,70,0.25)]' : 'bg-[#111111] text-[#444444] border-[#222222]'}`}>
-              {agentConnected ? <CheckCircle2 size={24} /> : <span style={{ fontFamily: "'Inter', sans-serif" }} className="font-bold text-lg">3</span>}
+             <div style={
+               agentConnected
+                 ? { background: '#e63946', borderRadius: '50%', color: 'white', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                 : boardOpened
+                   ? { background: 'rgba(230,57,70,0.1)', border: '2px solid #e63946', color: '#e63946', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                   : { background: '#111111', border: '1px solid #222222', color: 'rgba(242,242,242,0.3)', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+             }>
+              {agentConnected ? (
+                <div style={{ animation: 'scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+                   <div className="flex items-center justify-center">
+                     <span className="text-2xl" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.3))' }}>🦞</span>
+                   </div>
+                </div>
+              ) : (
+                <span className="text-xl" style={boardOpened ? { animation: 'clawPresence 2.5s ease-in-out infinite' } : {}}>🦞</span>
+              )}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif" }} className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-500 ${agentConnected ? 'text-[#e63946]' : 'text-[#444444]'}`}>Battle</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: agentConnected ? '#e63946' : boardOpened ? '#e63946' : 'rgba(242,242,242,0.3)', textTransform: 'uppercase' }}>Battle</div>
           </div>
         </div>
 
@@ -172,92 +246,72 @@ npx clawhub install agent-browser-clawdbot`;
         <div className="space-y-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
-            style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px' }}
-            className="p-6 md:p-8 shadow-sm hover:border-[#2a2a2a] transition-colors duration-300"
+            className="card-container"
           >
             <div className="flex items-center gap-4 mb-6">
-              <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', borderRadius: '10px' }} className="w-10 h-10 flex items-center justify-center font-bold font-mono text-base">
-                01
-              </div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Invite OpenClaw</h2>
+              <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>01</div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Invite OpenClaw</h2>
             </div>
             
-            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm rounded-xl text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required OpenClaw skills installed.</p>
-            <div style={{ background: '#161616', border: '1px solid #222222', borderRadius: '12px' }} className="break-all p-4 mb-6 space-y-3 font-mono text-xs shadow-inner">
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required OpenClaw skills installed.</p>
+            <div className="install-cmd-box mb-6 space-y-3">
               <div className="flex items-center gap-3">
-                <Terminal size={14} className="text-red-500 shrink-0" />
-                <span className="text-neutral-300">npx clawhub install play-chess</span>
+                <span style={{ color: '#e63946', fontWeight: 'bold' }}>{'>'}</span>
+                <span style={{ color: 'rgba(242,242,242,0.7)' }}>npx clawhub install play-chess</span>
               </div>
               <div className="flex items-center gap-3">
-                <Terminal size={14} className="text-red-500 shrink-0" />
-                <span className="text-neutral-300">npx clawhub install agent-browser-clawdbot</span>
+                <span style={{ color: '#e63946', fontWeight: 'bold' }}>{'>'}</span>
+                <span style={{ color: 'rgba(242,242,242,0.7)' }}>npx clawhub install agent-browser-clawdbot</span>
               </div>
             </div>
 
-            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm text-neutral-400 mb-3 leading-relaxed font-medium">2. Send the connection string below to your AI assistant:</p>
-            <div className="relative group mb-6">
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-500/10 to-transparent rounded-[14px] blur opacity-0 group-hover:opacity-100 transition duration-500" />
-              <div style={{ background: '#161616', border: '1px solid #2a2a2a', borderRadius: '12px', fontFamily: "'JetBrains Mono', monospace" }} className="relative p-5 h-40 overflow-y-auto text-xs leading-relaxed text-neutral-300 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10 shadow-inner">
-                {inviteMessage}
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-3 leading-relaxed font-medium">2. Send the connection string below to your OpenClaw:</p>
+            <div className="relative mb-6">
+              <div style={{ background: '#080808', border: '1px solid #1e1e1e', borderRadius: '10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', lineHeight: 1.8, color: 'rgba(242,242,242,0.7)' }} className="relative p-5 h-40 overflow-y-auto whitespace-pre-wrap scrollbar-thin scrollbar-thumb-white/10">
+                {inviteMessage.split('\n').map((line, i) => (
+                  <React.Fragment key={i}>
+                    {line.startsWith(origin) ? (
+                      <span style={{ color: '#e63946' }}>{line}</span>
+                    ) : (
+                      line
+                    )}
+                    <br />
+                  </React.Fragment>
+                ))}
               </div>
             </div>
 
             <button 
               onClick={handleShare}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                background: copyState === 'copied' ? '#161616' : '#e63946',
-                color: copyState === 'copied' ? '#22c55e' : 'white',
-                border: copyState === 'copied' ? '1px solid #22c55e' : '1px solid transparent',
-                borderRadius: '12px'
-              }}
-              className={`w-full py-4 text-[15px] font-bold flex items-center justify-center gap-3 transition-all active:scale-95 ${copyState !== 'copied' ? 'hover:bg-[#c62a35] hover:shadow-[0_4px_16px_rgba(230,57,70,0.4)]' : ''}`}
+              className="action-btn"
             >
-              {copyState === 'copied' ? <><CheckCircle2 size={20} /> COPIED</> : <><ClipboardCopy size={20} /> COPY INVITATION</>}
+              {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
           </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            style={{ 
-              background: boardOpened ? '#161213' : '#111111', 
-              border: boardOpened ? '1px solid rgba(230,57,70,0.3)' : '1px solid #1e1e1e', 
-              borderRadius: '16px' 
-            }}
-            className="p-6 md:p-8 transition-colors duration-500 shadow-sm hover:border-red-500/20"
+            className="card-container"
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div style={{ background: boardOpened ? '#e63946' : 'rgba(230,57,70,0.1)', color: boardOpened ? 'white' : '#e63946', borderRadius: '10px' }} className="w-10 h-10 flex items-center justify-center font-bold font-mono text-base transition-colors duration-500">
-                  02
-                </div>
-                <h2 style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold tracking-wide">Enter the Arena</h2>
+                <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>02</div>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Enter the Arena</h2>
               </div>
-              {boardOpened && (
-                <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', border: '1px solid rgba(230,57,70,0.25)', borderRadius: '8px', padding: '4px 12px' }} className="text-xs font-bold font-sans tracking-wider uppercase">
-                  Active
-                </div>
-              )}
             </div>
             
-            <p style={{ fontFamily: "'Inter', sans-serif" }} className="text-sm text-neutral-400 mb-6 font-medium leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-6 font-medium leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                background: boardOpened ? '#1a1a1a' : '#161616',
-                color: boardOpened ? '#e63946' : '#e0e0e0',
-                border: boardOpened ? '1px solid rgba(230,57,70,0.3)' : '1px solid #222222',
-                borderRadius: '12px'
-              }}
-              className={`w-full py-4 text-[15px] font-bold flex items-center justify-center gap-3 transition-all active:scale-95 ${!boardOpened ? 'hover:bg-[#1a1a1a] hover:border-[#333333]' : 'hover:bg-[#201515]'}`}
+              className="action-btn"
+              style={{ background: boardOpened ? '#111111' : '#e63946', border: boardOpened ? '1px solid #222222' : 'none', boxShadow: boardOpened ? 'none' : 'inset 0px 1px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3)', color: boardOpened ? '#e63946' : 'white' }}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
                 </motion.div>
-              ) : boardOpened ? <><Play size={20} /> RETURN TO MATCH</> : <><Play size={20} /> OPEN ARENA WINDOW</>}
+              ) : boardOpened ? "RETURN TO MATCH" : "OPEN ARENA WINDOW"}
             </button>
           </motion.div>
         </div>

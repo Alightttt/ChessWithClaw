@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import ChessBoard from '../components/chess/ChessBoard';
-import { ArrowRight, ChevronDown, CheckCircle2, Play, Users, Bot, Zap, Shield, HelpCircle, FileTerminal, Terminal } from "lucide-react";
+import { ChevronDown, Zap, Shield } from "lucide-react";
 
 const LINES = [
   "Analyzing d5 push...",
@@ -37,12 +37,12 @@ function Typewriter({ lines }) {
   }, [li, ci, lines]);
 
   return (
-    <span className="font-mono text-xs text-neutral-400 flex items-center">
+    <span className="font-mono text-xs flex items-center" style={{ color: '#e63946', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>
       {txt}
       <motion.span 
         animate={{ opacity: [1, 0, 1] }} 
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        className="inline-block w-1.5 h-3.5 bg-red-500 ml-1.5"
+        className="inline-block w-1.5 h-3.5 bg-[#e63946] ml-1.5"
       />
     </span>
   );
@@ -54,23 +54,6 @@ export default function Home() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const thinkingExamples = [
-    "e5 — fight for center",
-    "Nf6 — centralizing knight",
-    "d5 — challenge the center",
-    "Bc5 — active bishop",
-    "O-O — king safety first",
-    "Nc6 — develop, control",
-  ];
-  const [thinkingIndex, setThinkingIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setThinkingIndex(prev => (prev + 1) % thinkingExamples.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [thinkingExamples.length]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,7 +72,7 @@ export default function Home() {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target); // only once
+          observer.unobserve(entry.target);
         }
       });
     }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
@@ -133,8 +116,7 @@ export default function Home() {
 
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
-      {/* Scroll Progress Bar */}
-      <div style={{ position: 'fixed', top: 0, left: 0, height: '2px', background: '#e63946', zIndex: 9999, width: `${scrollProgress}%`, transition: 'width 0.1s ease' }} />
+      <div style={{ position: 'fixed', top: 0, left: 0, height: '2px', background: '#e63946', zIndex: 9999, width: `${scrollProgress}%` }} />
 
       <style>{`
         .fade-in-section {
@@ -150,24 +132,26 @@ export default function Home() {
           max-width: 100%; 
           height: auto;
         }
-        .premium-card {
+        
+        .design-card {
           background: #111111;
           border: 1px solid #1e1e1e;
           border-radius: 16px;
           padding: 24px;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .premium-card:hover {
-          background: #161616;
-          border-color: #2a2a2a;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        .design-card:hover {
+          border-color: #2e2e2e;
           transform: translateY(-2px);
         }
-        .premium-button {
+        
+        .design-btn-primary {
           background: #e63946;
           color: white;
-          border-radius: 12px;
-          padding: 14px 28px;
+          border-radius: 8px;
+          height: 56px;
+          padding: 0 32px;
+          font-family: 'Inter', sans-serif;
           font-weight: 600;
           font-size: 16px;
           border: none;
@@ -176,128 +160,135 @@ export default function Home() {
           justify-content: center;
           gap: 12px;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          font-family: 'Inter', sans-serif;
+          box-shadow: inset 0px 1px 0px 0px rgba(255,255,255,0.1), inset 0px 0px 0px 0.5px rgba(0,0,0,0.4);
         }
-        .premium-button:hover:not(:disabled) {
-          background: #c62a35;
-          transform: translateY(-1px);
-          box-shadow: 0 8px 24px rgba(230,57,70,0.3);
-        }
-        .premium-button:active:not(:disabled) {
+        .design-btn-primary:active:not(:disabled) {
           transform: scale(0.98);
-          box-shadow: none;
+          opacity: 0.9;
         }
-        .secondary-button {
-          background: transparent;
-          color: #888888;
-          border-radius: 12px;
-          padding: 14px 28px;
+        
+        .design-btn-nav {
+          background: #e63946;
+          color: white;
+          border-radius: 8px;
+          padding: 8px 16px;
+          font-family: 'Inter', sans-serif;
           font-weight: 600;
-          font-size: 16px;
-          border: 1px solid #333333;
+          font-size: 14px;
+          border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 8px;
+          transition: all 0.2s ease;
+          box-shadow: inset 0px 0.5px 0px rgba(255,255,255,0.08), inset 0px 0px 0px 0.5px rgba(0,0,0,0.3);
+        }
+        .design-btn-nav:active:not(:disabled) {
+          transform: scale(0.98);
+          opacity: 0.85;
+        }
+        
+        .design-btn-secondary {
+          background: transparent;
+          color: rgba(242,242,242,0.6);
+          border: 1px solid rgba(242,242,242,0.15);
+          border-radius: 8px;
+          height: 56px;
+          padding: 0 32px;
           font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          font-size: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
         }
-        .secondary-button:hover {
-          border-color: #444;
-          color: #f2f2f2;
-          background: rgba(255,255,255,0.02);
-          transform: translateY(-1px);
+        .design-btn-secondary:hover:not(:disabled) {
+          color: rgba(242,242,242,0.9);
+          border-color: rgba(242,242,242,0.3);
         }
-        .secondary-button:active {
+        .design-btn-secondary:active:not(:disabled) {
           transform: scale(0.98);
         }
+
         .clawhub-link {
           color: #e63946;
           opacity: 0.7;
-          font-size: 14px;
-          font-weight: 600;
+          font-size: 13px;
+          font-family: 'Inter', sans-serif;
           text-decoration: none;
           display: inline-block;
-          font-family: 'Inter', sans-serif;
           transition: all 0.15s ease;
         }
         .clawhub-link:hover {
           opacity: 1;
-          transform: translateX(2px);
         }
-        .social-proof {
-          border-left: 2px solid transparent;
-          padding-left: 16px;
+
+        .social-proof-card {
+          background: rgba(17,17,17,0.9);
+          border: 1px solid #1e1e1e;
+          border-radius: 16px;
+          padding: 40px 32px;
           transition: all 0.2s ease;
+          text-align: left;
         }
-        .social-proof:hover {
+        .social-proof-card:hover {
           border-left: 2px solid #e63946;
         }
       `}</style>
-      {/* Navbar */}
+      
       <nav 
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, height: '64px', zIndex: 50,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(12px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
-          transition: 'all 0.3s ease'
+          backdropFilter: scrolled ? 'blur(16px)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
+          transition: 'all 0.3s ease',
+          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
         }}
       >
         <div className="flex items-center gap-3">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" width="32" height="32" loading="eager" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
-          <span style={{ fontWeight: 700, letterSpacing: '-0.02em', fontSize: '18px', color: '#f2f2f2' }}>ChessWithClaw</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-8 text-sm font-medium" style={{ color: '#888888' }}>
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#how" className="hover:text-white transition-colors">How it Works</a>
-          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 600, fontSize: '18px', color: '#f2f2f2' }}>ChessWithClaw</span>
         </div>
         <button 
           onClick={handleStart} 
           disabled={creating}
-          className="premium-button"
-          style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '100px' }}
+          className="design-btn-nav"
         >
-          {creating ? (
-            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-            </motion.div>
-          ) : (
-            <>Play Now <ArrowRight size={16} /></>
-          )}
+          {creating ? 'Loading...' : 'Play Now'}
         </button>
       </nav>
 
-      {/* Hero */}
-      <section style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(230,57,70,0.08) 0%, transparent 70%)', paddingTop: '160px', paddingBottom: '128px', paddingLeft: '16px', paddingRight: '16px', marginBottom: '128px' }} className="relative flex flex-col lg:flex-row items-center gap-24 max-w-7xl mx-auto md:mb-[128px] mb-[96px]">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/10 blur-[120px] rounded-full pointer-events-none animate-glow-pulse" />
-        
-        <div className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10 w-full" style={{ gap: '24px' }}>
+      <section 
+        style={{ 
+          background: 'radial-gradient(ellipse 80% 40% at 50% 0%, rgba(230,57,70,0.06) 0%, transparent 70%)', 
+          paddingTop: 'clamp(80px, 15vh, 120px)', 
+          paddingBottom: 'clamp(64px, 10vh, 96px)', 
+          paddingLeft: '20px', 
+          paddingRight: '20px', 
+          marginBottom: '96px' 
+        }} 
+        className="relative flex flex-col items-center max-w-7xl mx-auto"
+      >
+        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '24px' }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              background: 'rgba(230,57,70,0.12)',
-              border: '1px solid rgba(230,57,70,0.25)',
-              borderRadius: '100px',
+              background: 'rgba(230,57,70,0.1)',
+              border: '1px solid rgba(230,57,70,0.2)',
+              borderRadius: '9999px',
               padding: '6px 16px',
               color: '#e63946',
               fontFamily: "'Inter', sans-serif",
-              fontSize: '12px',
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              textTransform: 'uppercase'
+              fontSize: '13px',
+              fontWeight: 500,
             }}
           >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            LIVE · REAL-TIME CHESS
+            Real-time infrastructure for OpenClaws
           </motion.div>
           
           <motion.h1 
@@ -306,11 +297,11 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: 'min(56px, 14vw)',
+              fontSize: 'min(64px, 15vw)',
               fontWeight: 700,
-              lineHeight: 1.1,
-              letterSpacing: '-0.02em',
-              color: '#f2f2f2'
+              lineHeight: 1.08,
+              letterSpacing: '-0.03em',
+              color: '#f2f2f2',
             }}
           >
             Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
@@ -322,98 +313,57 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: '16px',
+              fontSize: '18px',
               fontWeight: 400,
-              lineHeight: 1.65,
-              color: '#666666',
-              maxWidth: '480px',
+              lineHeight: 1.6,
+              color: 'rgba(242,242,242,0.5)',
+              maxWidth: '560px',
               margin: '0 auto',
-              textAlign: 'center',
             }}
           >
-            The same AI you use every day — now playing chess with you in a beautiful, real-time arena.
+            The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
           </motion.p>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start w-full sm:w-auto"
-            style={{ gap: '16px' }}
+            className="flex flex-col sm:flex-row items-center justify-center w-full sm:w-auto"
+            style={{ gap: '16px', marginTop: '16px' }}
           >
             <button 
               onClick={handleStart}
               disabled={creating}
-              className="premium-button w-full sm:w-auto"
+              className="design-btn-primary w-full sm:w-auto"
             >
               {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
             </button>
             <a 
               href="#how"
-              className="secondary-button w-full sm:w-auto"
+              className="design-btn-secondary w-full sm:w-auto"
             >
               How it works
             </a>
           </motion.div>
-
-          {/* Social Proof */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 flex items-center gap-4 text-sm social-proof"
-          >
-            <div className="flex -space-x-3">
-              <img src="https://i.pravatar.cc/100?img=33" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
-              <img src="https://i.pravatar.cc/100?img=47" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
-              <img src="https://i.pravatar.cc/100?img=12" alt="" className="w-8 h-8 rounded-full border-2 border-black" style={{ maxWidth: '100%', height: 'auto' }} />
-            </div>
-            <span style={{ color: '#888888', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}>Used by <strong style={{ color: '#f2f2f2', fontWeight: 600 }}>1,000+</strong> OpenClaws</span>
-          </motion.div>
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="flex-1 w-full flex justify-center lg:justify-end z-10"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full mt-16 z-10"
+          style={{ maxWidth: '380px' }}
         >
-          <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', boxSizing: 'border-box' }} className="relative">
-            {/* Agent Bar */}
-            <div className="flex items-center justify-between mb-4 px-1 w-full" style={{ gap: '24px' }}>
-              <div className="flex items-center gap-3">
-                <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🦞</div>
-                <div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '14px', color: '#f2f2f2' }}>OpenClaw</div>
-                  <div 
-                    style={{
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                      display: 'block',
-                      fontSize: '13px',
-                      color: '#e63946',
-                      fontFamily: "'Inter', sans-serif",
-                      fontWeight: 500,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase'
-                    }}
-                    className="mt-0.5 flex items-center gap-2"
-                  >
-                    <div className="w-1.5 h-1.5 bg-[#e63946] rounded-full animate-pulse flex-shrink-0"/> {thinkingExamples[thinkingIndex]}
-                  </div>
-                </div>
+          <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px' }}>
+            <div className="flex items-center justify-between mb-3 px-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🦞</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
               </div>
-              <div className="premium-card truncate hidden sm:block" style={{ padding: '12px 16px', maxWidth: '160px' }}>
-                <Typewriter lines={LINES} />
-              </div>
+              <Typewriter lines={LINES} />
             </div>
-            
-            {/* Board */}
             <div 
-              style={{ width: '100%', maxWidth: '420px', margin: '0 auto', aspectRatio: '1/1', boxSizing: 'border-box', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px' }}
-              className="overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,1)]"
+              style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
             >
               <ChessBoard 
                 fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
@@ -424,54 +374,36 @@ export default function Home() {
                 lastMove={{ from: 'c4', to: 'd5' }}
               />
             </div>
-            
-            {/* Human Bar */}
-            <div className="flex items-center justify-between mt-4 px-1 w-full" style={{ gap: '24px' }}>
-               <div className="flex items-center gap-3">
-                <div style={{ background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: '#888888' }}>♙</div>
-                <div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '14px', color: '#b0b0b0' }}>You</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '13px', color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase' }} className="mt-0.5">White · your turn next</div>
-                </div>
-              </div>
-            </div>
           </div>
         </motion.div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="fade-in-section max-w-7xl mx-auto md:mb-[128px] mb-[96px]" style={{ padding: '0 16px' }}>
-        <div className="text-center mb-16" style={{ gap: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, margin: 0 }}>Precision Engineering.</h2>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>Everything you need for a seamless OpenClaw chess experience.</p>
+      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
+        <div className="text-center mb-16" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, margin: 0 }}>Precision Engineering.</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
-            { icon: () => <span className="text-2xl group-hover:drop-shadow-[0_0_10px_rgba(239,68,68,0.8)] transition-all">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { icon: () => <span className="text-2xl">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
-            <div key={i} className="premium-card group" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ background: '#0a0a0a', border: '1px solid #1e1e1e', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="group-hover:border-[#e63946] transition-colors">
-                <f.icon className="text-neutral-400 group-hover:text-[#e63946] transition-colors" size={28} />
-              </div>
+            <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
+              <f.icon className="text-[#e63946]" size={28} />
               <div>
-                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600, lineHeight: 1.3, marginBottom: '12px', color: '#f2f2f2' }}>{f.title}</h3>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>{f.desc}</p>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{f.title}</h3>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 400, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* How it Works */}
-      <section id="how" className="fade-in-section max-w-4xl mx-auto md:mb-[128px] mb-[96px]" style={{ padding: '0 16px' }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px' }}>How to Connect</h2>
+      <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px' }}>How to Connect</h2>
         
-        <div className="space-y-12 relative" style={{ gap: '48px', display: 'flex', flexDirection: 'column' }}>
-          <div className="absolute top-0 bottom-0 left-[23px] w-px bg-gradient-to-b from-red-500/50 to-transparent" />
-          
+        <div className="space-y-12" style={{ gap: '48px', display: 'flex', flexDirection: 'column' }}>
           {[
             { 
               tag: "01", 
@@ -491,173 +423,90 @@ export default function Home() {
             { tag: "02", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your OpenClaw." },
             { tag: "03", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
           ].map((step, i) => (
-            <div key={i} className="flex gap-8 relative">
+            <div key={i} className="flex gap-6 sm:gap-8">
               <div 
                 style={{
-                  background: 'rgba(230,57,70,0.15)',
-                  border: '1px solid rgba(230,57,70,0.3)',
+                  background: 'rgba(230,57,70,0.12)',
+                  border: '1px solid rgba(230,57,70,0.2)',
                   color: '#e63946',
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: 600,
                   width: '32px',
                   height: '32px',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  zIndex: 10,
-                  marginTop: '8px'
+                  marginTop: '4px'
                 }}
               >
                 {step.tag}
               </div>
-              <div className="pt-2" style={{ gap: '24px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ gap: '16px', display: 'flex', flexDirection: 'column' }}>
                 <div>
-                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600, lineHeight: 1.3, marginBottom: '12px', color: '#f2f2f2' }}>{step.title}</h3>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '16px', fontWeight: 400, lineHeight: 1.65, color: '#b0b0b0', margin: 0 }}>{step.desc}</p>
+                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{step.title}</h3>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 400, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{step.desc}</p>
                 </div>
-                {step.commands ? (
+                {step.commands && (
                   <div className="flex flex-col gap-4 w-fit">
                     {step.commands.map((cmd, j) => (
                       <div key={j} className="flex flex-col gap-2">
-                        <div className="premium-card inline-flex items-center gap-3" style={{ padding: '12px 20px' }}>
-                          <span className="text-[#e63946] font-bold">{'>'}</span>
-                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', color: '#b0b0b0' }}>{cmd.code}</span>
+                        <div style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ color: '#e63946', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>{'>'}</span>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: 'rgba(242,242,242,0.7)' }}>{cmd.code}</span>
                         </div>
-                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="clawhub-link w-fit">
+                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="clawhub-link">
                           View on ClawHub →
                         </a>
                       </div>
                     ))}
                   </div>
-                ) : step.code ? (
-                  <div className="premium-card inline-flex items-center gap-3" style={{ padding: '12px 20px' }}>
-                    <span className="text-[#e63946] font-bold">{'>'}</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', color: '#b0b0b0' }}>{step.code}</span>
-                  </div>
-                ) : null}
+                )}
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Testimonial */}
-      <section className="fade-in-section py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-[#222222]" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-        <div 
-          className="relative max-w-4xl mx-auto transition-all duration-300 ease-in-out hover:shadow-[0_0_0_1px_rgba(230,57,70,0.2),0_12px_40px_rgba(0,0,0,0.4)] text-center flex flex-col items-center hover:-translate-y-1"
-          style={{
-            background: 'rgba(17,17,17,0.8)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid #222222',
-            boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05)',
-            borderRadius: '16px',
-            padding: '40px 32px',
-          }}
-        >
-          <div 
-            style={{
-              color: '#e63946',
-              fontSize: '80px',
-              fontFamily: "'Playfair Display', serif",
-              lineHeight: '1',
-              marginBottom: '16px',
-              display: 'block',
-              marginTop: '-20px'
-            }}
-          >
-            &quot;
-          </div>
-          <p 
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontStyle: 'italic',
-              fontSize: 'min(24px, 5vw)',
-              color: '#f2f2f2',
-              lineHeight: '1.6'
-            }}
-          >
+      <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
+        <div className="social-proof-card">
+          <div style={{ color: '#e63946', fontSize: '56px', fontFamily: "'Playfair Display', serif", lineHeight: 1, marginBottom: '16px' }}>&quot;</div>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '32px' }}>
             Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
           </p>
-          <div style={{ height: '1px', background: '#222222', width: '40%', margin: '32px 0' }} />
-          <div className="flex items-center justify-center gap-4">
-            <img 
-              src="https://i.pravatar.cc/150?img=11" 
-              alt="Jake" 
-              style={{
-                borderRadius: '50%',
-                width: '48px',
-                height: '48px',
-                border: '2px solid #222222'
-              }}
-            />
-            <div className="text-left">
-              <div 
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  color: '#f2f2f2'
-                }}
-              >
-                Jake Reynolds
-              </div>
-              <div 
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '13px',
-                  color: '#888888'
-                }}
-              >
-                Tech Enthusiast
-              </div>
-            </div>
-          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '15px', color: '#f2f2f2' }}>Jake Reynolds</div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="fade-in-section py-24 px-6 lg:px-12 max-w-3xl mx-auto border-t border-[#222222]" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#111111] border border-[#222222] text-[#888888] text-xs font-semibold tracking-wider font-mono mb-6 uppercase">
-            <HelpCircle size={14} className="text-[#e63946]" /> FAQ
-          </div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 600, lineHeight: 1.2, margin: 0 }}>Questions you<br/>probably have.</h2>
-        </div>
-        <div className="divide-y divide-[#222222] border-y border-[#222222]">
+      <section id="faq" className="fade-in-section max-w-3xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px' }}>Questions</h2>
+        <div style={{ borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }} className="divide-y divide-[#1a1a1a]">
           {faqs.map((faq, i) => (
             <FAQAccordion key={i} question={faq.q} answer={faq.a} />
           ))}
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="fade-in-section py-32 px-6 lg:px-12 border-t border-[#222222] text-center" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 100%, rgba(230,57,70,0.08) 0%, transparent 60%)' }}>
+      <section className="fade-in-section text-center" style={{ marginBottom: '96px', padding: '0 20px' }}>
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
-          <div style={{ fontSize: '48px' }} className="animate-[pulse_3s_ease-in-out_infinite]">🦞</div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(48px, 11vw)', fontWeight: 700, lineHeight: 1.1, color: '#f2f2f2' }}>Ready to challenge<br />OpenClaw?</h2>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '18px', color: '#888888', marginBottom: '16px' }}>Start a match instantly. No sign-up required.</p>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(48px, 11vw)', fontWeight: 700, lineHeight: 1.1, color: '#f2f2f2' }}>Ready to challenge OpenClaw?</h2>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
           <button 
              onClick={handleStart}
              disabled={creating}
-             className="premium-button text-lg px-8 py-5"
+             className="design-btn-primary"
           >
              {creating ? 'Taking you to the board...' : 'Enter the Arena'}
           </button>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-6 text-center border-t border-[#222222] bg-[#050505]">
-        <div className="font-bold text-xl tracking-tight mb-2">ChessWithClaw</div>
-        <p className="text-neutral-500 text-sm mb-6 max-w-sm mx-auto">Built for OpenClaw. Open-source, real-time, zero-friction.</p>
-        <div style={{ fontFamily: "'Inter', sans-serif", color: '#555555', fontSize: '13px' }} className="mb-4">
-          © 2026 ChessWithClaw
-        </div>
-        <div className="flex items-center justify-center gap-6 text-sm">
-          <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-white transition-colors">𝕏 Twitter</a>
+      <footer style={{ borderTop: '1px solid #1a1a1a', padding: '48px 24px', textAlign: 'center', background: '#0a0a0a' }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.3)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <span>© 2026 ChessWithClaw</span>
+          <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(242,242,242,0.5)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={e => e.currentTarget.style.color = '#f2f2f2'} onMouseOut={e => e.currentTarget.style.color = 'rgba(242,242,242,0.5)'}>x.com/0xalyt</a>
         </div>
       </footer>
     </div>
@@ -669,7 +518,7 @@ function FAQAccordion({ question, answer }) {
   return (
     <div className="py-6 cursor-pointer group" onClick={() => setOpen(!open)}>
       <div className="flex justify-between items-center text-left">
-        <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', color: '#f2f2f2' }} className="group-hover:text-[#e63946] transition-colors pr-8">{question}</h3>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px', color: '#f2f2f2' }} className="pr-8">{question}</h3>
         <ChevronDown className={`shrink-0 text-[#555555] transition-transform duration-300 ${open ? 'rotate-180 text-[#e63946]' : ''}`} size={20} />
       </div>
       <AnimatePresence>
@@ -681,7 +530,7 @@ function FAQAccordion({ question, answer }) {
              className="overflow-hidden"
              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
            >
-             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', lineHeight: 1.6, color: '#888888', marginTop: '16px' }} className="pr-8">{answer}</p>
+             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', marginTop: '16px' }} className="pr-8">{answer}</p>
            </motion.div>
         )}
       </AnimatePresence>

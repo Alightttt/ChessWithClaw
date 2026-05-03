@@ -85,7 +85,7 @@ export default function Agent() {
     <div className="min-h-screen bg-black text-white p-4 font-sans max-w-2xl mx-auto flex flex-col gap-4">
       <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-lg">
         <h1 className="font-bold text-xl flex items-center gap-2">
-          <span className="text-2xl">🦞</span> Agent View
+          <span className="text-2xl">🦞</span> OpenClaw View
         </h1>
         <div data-testid="turn-indicator" className={`px-4 py-2 font-bold rounded-md ${isMyTurn ? 'bg-red-500 text-white' : 'bg-neutral-800 text-neutral-400'}`}>
           {isMyTurn ? 'your-turn' : 'waiting'}
