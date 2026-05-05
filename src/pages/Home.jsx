@@ -262,7 +262,7 @@ export default function Home() {
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
             style={{ 
-              width: '120px', 
+              width: '150px', 
               height: 'auto', 
               objectFit: 'contain', 
               flexShrink: 0, 

@@ -144,7 +144,7 @@ npx clawhub install agent-browser-clawdbot`;
               draggable={false}
               onContextMenu={(e) => e.preventDefault()}
               style={{ 
-                width: '100px', 
+                width: '150px', 
                 height: 'auto', 
                 objectFit: 'contain', 
                 flexShrink: 0, 

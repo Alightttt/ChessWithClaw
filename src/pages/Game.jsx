@@ -1142,7 +1142,7 @@ export default function Game() {
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
             style={{ 
-              width: '100px', 
+              width: '150px', 
               height: 'auto', 
               objectFit: 'contain', 
               flexShrink: 0, 
