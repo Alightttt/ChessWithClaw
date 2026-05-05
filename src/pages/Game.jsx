@@ -33,7 +33,7 @@ export default function Game() {
   
   const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
-  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'merida');
+  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1433,9 +1433,9 @@ export default function Game() {
               <label className="text-sm text-[var(--color-text-secondary)]">Board Theme</label>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { id: 'green', colors: ['#f0d9b5', '#739552'] },
+                  { id: 'green', colors: ['#ebecd0', '#739552'] },
                   { id: 'brown', colors: ['#f0d9b5', '#b58863'] },
-                  { id: 'slate', colors: ['#8ca2ad', '#4f6f7e'] },
+                  { id: 'blue', colors: ['#dee3e6', '#8ca2ad'] },
                   { id: 'navy', colors: ['#9db2c2', '#445b73'] }
                 ].map(theme => (
                   <button
@@ -1467,10 +1467,10 @@ export default function Game() {
               <label className="text-sm text-[var(--color-text-secondary)]">Piece Style</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'merida', label: 'Merida', icon: '♘' },
-                  { id: 'cburnett', label: 'Standard', icon: '♞' },
-                  { id: 'alpha', label: 'Alpha', icon: '♙' },
-                  { id: 'unicode', label: 'Classic', icon: '♚' }
+                  { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="32" height="32" alt="neo" /> },
+                  { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="32" height="32" alt="tournament" /> },
+                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="32" height="32" alt="ocean" /> },
+                  { id: 'unicode', label: 'Classic', icon: <span className="text-[32px] leading-none">♚</span> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}
@@ -1481,7 +1481,7 @@ export default function Game() {
                     }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >
-                    <span className="text-2xl leading-none">{piece.icon}</span>
+                    <div className="flex items-center justify-center w-8 h-8">{piece.icon}</div>
                     <span className="text-sm font-medium">{piece.label}</span>
                   </button>
                 ))}

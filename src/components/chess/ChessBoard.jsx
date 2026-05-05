@@ -239,9 +239,9 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }, [lastMove]);
 
   const themes = {
-    green: { light: '#739552', dark: '#577047' },
+    green: { light: '#ebecd0', dark: '#739552' },
     brown: { light: '#f0d9b5', dark: '#b58863' },
-    slate: { light: '#8ca2ad', dark: '#4f6f7e' },
+    blue: { light: '#dee3e6', dark: '#8ca2ad' },
     navy: { light: '#9db2c2', dark: '#445b73' },
   };
 
@@ -264,13 +264,14 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
         </span>
       );
     } else {
-      const pieceName = `${piece.color}${piece.type.toUpperCase()}`;
-      let url = '';
-      if (pieceTheme === 'merida' || pieceTheme === 'cburnett' || pieceTheme === 'alpha') {
-        url = `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${pieceTheme}/${pieceName}.svg`;
-      } else {
-        url = `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/merida/${pieceName}.svg`;
+      // Use chess.com pieces from github 
+      // Repos are lowercase e.g. wq.png
+      const pieceName = `${piece.color}${piece.type.toLowerCase()}`;
+      let pTheme = pieceTheme;
+      if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
+        pTheme = 'neo'; // Default to neo
       }
+      const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
       return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: 'none' }} />;
     }
   };
