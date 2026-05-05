@@ -1113,10 +1113,10 @@ export default function Game() {
         </div>
       )}
       
-      {/* HEADER (Fixed 100px) */}
-      <header style={{ height: '100px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
+      {/* HEADER (Fixed 64px) */}
+      <header style={{ height: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ height: '80px', width: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: '150px', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
         </div>
         <button 
           data-testid="settings-button"

@@ -244,7 +244,7 @@ export default function Home() {
       
       <nav 
         style={{
-          position: 'fixed', top: 0, left: 0, right: 0, height: '100px', zIndex: 50,
+          position: 'fixed', top: 0, left: 0, right: 0, height: '72px', zIndex: 50,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
@@ -254,7 +254,7 @@ export default function Home() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ height: '84px', width: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: 'clamp(140px, 20vw, 180px)', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
         </div>
         <button 
           onClick={handleStart} 
@@ -268,11 +268,11 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: 'clamp(80px, 15vh, 120px)', 
-          paddingBottom: 'clamp(64px, 10vh, 96px)', 
+          paddingTop: 'clamp(90px, 12vh, 110px)', 
+          paddingBottom: 'clamp(48px, 8vh, 80px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
-          marginBottom: '64px',
+          marginBottom: '48px',
           position: 'relative',
           overflow: 'hidden'
         }} 
@@ -314,7 +314,7 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: 'clamp(40px, 12vw, 72px)',
+              fontSize: 'clamp(56px, 14vw, 84px)',
               fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: '-0.03em',

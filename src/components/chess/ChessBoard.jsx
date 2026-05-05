@@ -243,6 +243,8 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     brown: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
     blue: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
     red: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' },
+    icy_sea: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png' },
+    tournament: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png' },
   };
 
   const currentThemeUrl = themes[boardTheme]?.url || themes.green.url;

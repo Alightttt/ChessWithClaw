@@ -138,7 +138,7 @@ npx clawhub install agent-browser-clawdbot`;
             >
               <ChevronLeft size={20} />
             </button>
-            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ height: '84px', width: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: 'clamp(140px, 20vw, 180px)', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
           </div>
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
