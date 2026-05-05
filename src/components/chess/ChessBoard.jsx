@@ -239,54 +239,40 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }, [lastMove]);
 
   const themes = {
-    green: { light: '#ebecd0', dark: '#739552' },
-    brown: { light: '#f0d9b5', dark: '#b58863' },
-    blue: { light: '#dee3e6', dark: '#8ca2ad' },
-    navy: { light: '#9db2c2', dark: '#445b73' },
+    green: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
+    brown: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
+    blue: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
+    red: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' },
   };
 
-  const currentTheme = themes[boardTheme] || themes.green;
+  const currentThemeUrl = themes[boardTheme]?.url || themes.green.url;
 
   const renderPiece = (piece) => {
     if (!piece) return null;
     const isWhite = piece.color === 'w';
-    if (pieceTheme === 'unicode') {
-      return (
-        <span
-          className="relative z-10 leading-none"
-          style={{
-            fontSize: '85cqw', // Actually wait, container query width isn't active on piece. What about 8.5cqw or something?
-            color: isWhite ? '#ffffff' : '#1a1a1a',
-            textShadow: 'none'
-          }}
-        >
-          {pieceMap[piece.color + piece.type.toUpperCase()]}
-        </span>
-      );
-    } else {
-      // Use chess.com pieces from github 
-      // Repos are lowercase e.g. wq.png
-      const pieceName = `${piece.color}${piece.type.toLowerCase()}`;
-      let pTheme = pieceTheme;
-      if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
-        pTheme = 'neo'; // Default to neo
-      }
-      const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
-      return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: 'none' }} />;
+    
+    // Use chess.com pieces from github 
+    // Repos are lowercase e.g. wq.png
+    const pieceName = `${piece.color}${piece.type.toLowerCase()}`;
+    let pTheme = pieceTheme;
+    if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
+      pTheme = 'neo'; // Default to neo
     }
+    const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
+    return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: 'none' }} />;
   };
 
   if (!chess) {
     return (
-      <div className="w-full h-full aspect-square flex items-center justify-center" style={{ backgroundColor: currentTheme.dark }}>
-        <span className="font-mono text-sm opacity-50">Initializing engine...</span>
+      <div className="w-full h-full aspect-square flex items-center justify-center bg-neutral-800" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundSize: '100% 100%' }}>
+        <span className="font-mono text-sm opacity-50 text-white bg-black/50 px-3 py-1 rounded">Initializing...</span>
       </div>
     );
   }
 
   return (
     <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
-      <div className="relative w-full h-full aspect-square">
+      <div className="relative w-full h-full aspect-square" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundSize: '100% 100%' }}>
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
           files.map((file, col) => {
@@ -304,7 +290,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
                 data-testid={`square-${sq}`}
                 onClick={() => handleSquareClick(row, col)}
                 className="relative w-full h-full flex items-center justify-center cursor-pointer hover:bg-white/50 transition-colors"
-                style={{ backgroundColor: isLight(row, col) ? currentTheme.light : currentTheme.dark }}
+                style={{ backgroundColor: 'transparent' }}
                 aria-label={`${sq}, ${piece ? (piece.color === 'w' ? 'white ' : 'black ') + piece.type : 'empty'}`}
               >
                 {/* Overlays */}

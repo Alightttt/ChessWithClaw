@@ -129,16 +129,22 @@ npx clawhub install agent-browser-clawdbot`;
 
       <div className="max-w-xl mx-auto w-full relative z-10 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <button 
-            onClick={() => navigate('/')}
-            style={{ width: '40px', height: '40px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '50%' }}
-            className="flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#161616] transition-all active:scale-95 shadow-sm"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 600 }} className="text-white">Summon Your OpenClaw 🦞</div>
+        <div className="flex items-center justify-between mb-8">
+          <div className="brand-logo-container flex-1">
+            <button 
+              onClick={() => navigate('/')}
+              style={{ width: '40px', height: '40px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '50%' }}
+              className="flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#161616] transition-all active:scale-95 shadow-sm mr-4 flex-shrink-0"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="brand-icon"></div>
+            <span className="brand-text ml-1" style={{ fontSize: '20px' }}>Chess<span className="text-red">With</span>Claw</span>
+          </div>
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
+        </div>
+        <div className="mb-10 text-center">
+          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 700 }} className="text-white">Summon Your OpenClaw</h1>
         </div>
 
         {/* Stepper */}
@@ -168,7 +174,7 @@ npx clawhub install agent-browser-clawdbot`;
             border-radius: 8px;
             height: 48px;
             width: 100%;
-            font-family: 'Inter', sans-serif;
+            font-family: "'Poppins', sans-serif";
             font-weight: 600;
             font-size: 14px;
             letter-spacing: -0.25px;
@@ -242,7 +248,7 @@ npx clawhub install agent-browser-clawdbot`;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: "'Poppins', sans-serif";
             font-weight: 600;
             font-size: 16px;
             position: relative;
@@ -265,7 +271,7 @@ npx clawhub install agent-browser-clawdbot`;
             color: rgba(242,242,242,0.25);
           }
           .stepper-label {
-            font-family: 'Inter', sans-serif;
+            font-family: "'Poppins', sans-serif";
             font-size: 10px;
             font-weight: 600;
             letter-spacing: 0.12em;
@@ -314,7 +320,7 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <div className="flex items-center gap-4 mb-6">
               <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>01</div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Invite OpenClaw</h2>
+              <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Invite OpenClaw</h2>
             </div>
             
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required OpenClaw skills installed.</p>
@@ -360,7 +366,7 @@ npx clawhub install agent-browser-clawdbot`;
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>02</div>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Enter the Arena</h2>
+                <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Enter the Arena</h2>
               </div>
             </div>
             

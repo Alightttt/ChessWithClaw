@@ -1009,6 +1009,17 @@ export default function Game() {
   const blackPieceMap = { p:'♟', n:'♞', b:'♝', r:'♜', q:'♛' } // black pieces (captured by white)
   const whitePieceMap = { p:'♙', n:'♘', b:'♗', r:'♖', q:'♕' } // white pieces (captured by black)
 
+  const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+  const getScore = (pieces) => pieces.reduce((sum, p) => sum + (pieceValues[p] || 0), 0);
+  const whiteScore = getScore(capturedByWhite); // White captured black pieces
+  const blackScore = getScore(capturedByBlack); // Black captured white pieces
+
+  const youCaptured = game?.player_color === 'w' ? capturedByWhite : capturedByBlack;
+  const agentCaptured = game?.player_color === 'w' ? capturedByBlack : capturedByWhite;
+  
+  const youAdvantage = game?.player_color === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
+  const agentAdvantage = game?.player_color === 'w' ? (blackScore - whiteScore) : (whiteScore - blackScore);
+
   const mood = getAgentMood()
   const config = moodConfig[mood]
 
@@ -1089,10 +1100,9 @@ export default function Game() {
       ref={containerRef}
       className={`relative text-white font-sans selection:bg-red-500/30 transition-colors duration-700 box-border scrollbar-none`}
       style={{
-        minHeight: '100dvh',
+        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        paddingBottom: '56px',
         background: isAgentThinking ? 'rgba(10,3,3,1)' : '#0a0a0a',
         position: 'relative'
       }}
@@ -1103,13 +1113,11 @@ export default function Game() {
         </div>
       )}
       
-      {/* HEADER (Fixed 48px) */}
-      <header style={{ height: '48px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
-        <div className="flex items-center cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome} style={{ gap: '8px' }}>
-          <div className="flex items-center gap-2">
-            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
-            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '18px', color: '#f2f2f2', letterSpacing: '-0.02em', position: 'relative', top: '1px' }}>ChessWithClaw</span>
-          </div>
+      {/* HEADER (Fixed 56px) */}
+      <header style={{ height: '56px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
+        <div className="brand-logo-container cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome}>
+          <div className="brand-icon" style={{ width: '28px', height: '28px' }}></div>
+          <span className="brand-text" style={{ fontSize: '18px' }}>Chess<span className="text-red">With</span>Claw</span>
         </div>
         <button 
           data-testid="settings-button"
@@ -1122,7 +1130,7 @@ export default function Game() {
       </header>
 
       {/* MAIN CONTENT SECTION */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isAgentThinking ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
@@ -1146,6 +1154,16 @@ export default function Game() {
               )}
             </div>
           </div>
+          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
+              {agentCaptured.map((p, i) => (
+                <span key={i} style={{ marginLeft: '-4px' }}>
+                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                </span>
+              ))}
+              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+            </div>
+          )}
         </div>
 
         {/* B) CHESS BOARD */}
@@ -1198,6 +1216,16 @@ export default function Game() {
               {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
             </span>
           </div>
+          {(youCaptured.length > 0 || youAdvantage > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
+              {youCaptured.map((p, i) => (
+                <span key={i} style={{ marginLeft: '-4px' }}>
+                  {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
+                </span>
+              ))}
+              {youAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{youAdvantage}</span>}
+            </div>
+          )}
         </div>
 
         {/* D) CHAT SECTION */}
@@ -1321,8 +1349,8 @@ export default function Game() {
         </div>
       </div>
 
-      {/* STEP 4: FIXED INFO BAR */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '48px', background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(12px)', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
+      {/* STEP 4: BOTTOM INFO BAR */}
+      <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>
@@ -1429,10 +1457,10 @@ export default function Game() {
               <label className="text-sm text-[var(--color-text-secondary)]">Board Theme</label>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { id: 'green', colors: ['#ebecd0', '#739552'] },
-                  { id: 'brown', colors: ['#f0d9b5', '#b58863'] },
-                  { id: 'blue', colors: ['#dee3e6', '#8ca2ad'] },
-                  { id: 'navy', colors: ['#9db2c2', '#445b73'] }
+                  { id: 'green', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
+                  { id: 'brown', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
+                  { id: 'blue', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
+                  { id: 'red', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' }
                 ].map(theme => (
                   <button
                     data-testid={`theme-button-${theme.id}`}
@@ -1444,11 +1472,7 @@ export default function Game() {
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
                   >
-                    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-                      <div style={{ backgroundColor: theme.colors[0] }}></div>
-                      <div style={{ backgroundColor: theme.colors[1] }}></div>
-                      <div style={{ backgroundColor: theme.colors[1] }}></div>
-                      <div style={{ backgroundColor: theme.colors[0] }}></div>
+                    <div className="absolute inset-0" style={{ backgroundImage: `url(${theme.url})`, backgroundSize: '100% 100%' }}>
                     </div>
                     {boardTheme === theme.id && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -1465,8 +1489,7 @@ export default function Game() {
                 {[
                   { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="32" height="32" alt="neo" /> },
                   { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="32" height="32" alt="tournament" /> },
-                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="32" height="32" alt="ocean" /> },
-                  { id: 'unicode', label: 'Classic', icon: <span className="text-[32px] leading-none">♚</span> }
+                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="32" height="32" alt="ocean" /> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}

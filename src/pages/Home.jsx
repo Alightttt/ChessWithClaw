@@ -146,7 +146,7 @@ export default function Home() {
           border-radius: 8px;
           height: 56px;
           padding: 0 32px;
-          font-family: 'Inter', sans-serif;
+          font-family: "'Poppins', sans-serif";
           font-weight: 600;
           font-size: 16px;
           border: none;
@@ -171,7 +171,7 @@ export default function Home() {
           color: white;
           border-radius: 8px;
           padding: 8px 16px;
-          font-family: 'Inter', sans-serif;
+          font-family: "'Poppins', sans-serif";
           font-weight: 600;
           font-size: 14px;
           border: none;
@@ -198,7 +198,7 @@ export default function Home() {
           border-radius: 8px;
           height: 56px;
           padding: 0 32px;
-          font-family: 'Inter', sans-serif;
+          font-family: "'Poppins', sans-serif";
           font-weight: 600;
           font-size: 16px;
           display: flex;
@@ -220,7 +220,7 @@ export default function Home() {
           color: #e63946;
           opacity: 0.7;
           font-size: 13px;
-          font-family: 'Inter', sans-serif;
+          font-family: "'Poppins', sans-serif";
           text-decoration: none;
           display: inline-block;
           transition: all 0.15s ease;
@@ -253,9 +253,9 @@ export default function Home() {
           borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
         }}
       >
-        <div className="flex items-center gap-2">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '18px', color: '#f2f2f2', letterSpacing: '-0.02em', position: 'relative', top: '1px' }}>ChessWithClaw</span>
+        <div className="brand-logo-container">
+          <div className="brand-icon"></div>
+          <span className="brand-text">Chess<span className="text-red">With</span>Claw</span>
         </div>
         <button 
           onClick={handleStart} 
@@ -301,7 +301,7 @@ export default function Home() {
               borderRadius: '9999px',
               padding: '6px 16px',
               color: '#f2f2f2',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '13px',
               fontWeight: 500,
             }}
@@ -314,7 +314,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: 'min(64px, 15vw)',
               fontWeight: 700,
               lineHeight: 1.08,
@@ -332,7 +332,7 @@ export default function Home() {
             style={{
               fontFamily: "'Inter', sans-serif",
               fontSize: '18px',
-              fontWeight: 400,
+              fontWeight: 300,
               lineHeight: 1.6,
               color: 'rgba(242,242,242,0.5)',
               maxWidth: '560px',
@@ -398,7 +398,7 @@ export default function Home() {
 
       <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '96px', padding: '72px 20px 0' }}>
         <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(40px, 10vw)', fontWeight: 700, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.02em', textAlign: 'center' }}>Built for the game.</h2>
+          <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 700, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.02em', textAlign: 'center' }}>Built for the game.</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -410,7 +410,7 @@ export default function Home() {
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
               <f.icon className="text-[#e63946]" size={28} />
               <div>
-                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{f.title}</h3>
+                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{f.title}</h3>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 400, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
               </div>
             </div>
@@ -419,7 +419,7 @@ export default function Home() {
       </section>
 
       <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px' }}>How to Connect</h2>
+        <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px' }}>How to Connect</h2>
         
         <div className="space-y-12" style={{ gap: '48px', display: 'flex', flexDirection: 'column' }}>
           {[
@@ -464,7 +464,7 @@ export default function Home() {
               </div>
               <div style={{ gap: '16px', display: 'flex', flexDirection: 'column' }}>
                 <div>
-                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{step.title}</h3>
+                  <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2' }}>{step.title}</h3>
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 400, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{step.desc}</p>
                 </div>
                 {step.commands && (
@@ -495,8 +495,8 @@ export default function Home() {
               J
             </div>
             <div>
-              <div style={{ color: '#e63946', fontSize: '48px', fontFamily: "'Playfair Display', serif", lineHeight: 1, marginBottom: '8px', marginTop: '-12px' }}>&quot;</div>
-              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '16px', marginTop: '-16px' }}>
+              <div style={{ color: '#e63946', fontSize: '48px', fontFamily: "'Poppins', sans-serif", lineHeight: 1, marginBottom: '8px', marginTop: '-12px' }}>&quot;</div>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '16px', marginTop: '-16px' }}>
                 Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
               </p>
               <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '15px', color: '#f2f2f2' }}>Jake Reynolds</div>
@@ -506,7 +506,7 @@ export default function Home() {
       </section>
 
       <section id="faq" className="fade-in-section max-w-3xl mx-auto" style={{ marginBottom: '96px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px' }}>Questions</h2>
+        <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 700, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px' }}>Questions</h2>
         <div style={{ borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }} className="divide-y divide-[#1a1a1a]">
           {faqs.map((faq, i) => (
             <FAQAccordion key={i} question={faq.q} answer={faq.a} />
@@ -516,8 +516,8 @@ export default function Home() {
 
       <section className="fade-in-section text-center" style={{ marginBottom: '96px', padding: '0 20px' }}>
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'min(48px, 11vw)', fontWeight: 700, lineHeight: 1.1, color: '#f2f2f2' }}>Ready to challenge OpenClaw?</h2>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
+          <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 700, lineHeight: 1.1, color: '#f2f2f2' }}>Ready to challenge OpenClaw?</h2>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
           <button 
              onClick={handleStart}
              disabled={creating}
