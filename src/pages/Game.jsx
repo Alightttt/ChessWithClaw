@@ -25,6 +25,26 @@ export default function Game() {
   const [game, setGame] = useState(null);
   const agentName = game?.agent_name || 'Your OpenClaw';
   const [loading, setLoading] = useState(true);
+
+  const getCapturedPieces = (fenString) => {
+    const start = { w:{p:8,r:2,n:2,b:2,q:1}, b:{p:8,r:2,n:2,b:2,q:1} };
+    const fen = fenString || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+    const pos = fen.split(' ')[0];
+    const cur = { w:{p:0,r:0,n:0,b:0,q:0}, b:{p:0,r:0,n:0,b:0,q:0} };
+    for (const c of pos) {
+      if(c==='P')cur.w.p++;else if(c==='R')cur.w.r++;else if(c==='N')cur.w.n++;
+      else if(c==='B')cur.w.b++;else if(c==='Q')cur.w.q++;
+      else if(c==='p')cur.b.p++;else if(c==='r')cur.b.r++;else if(c==='n')cur.b.n++;
+      else if(c==='b')cur.b.b++;else if(c==='q')cur.b.q++;
+    }
+    const byWhite={},byBlack={};
+    for(const t of['p','r','n','b','q']){
+      const w=start.b[t]-cur.b[t];if(w>0)byWhite[t]=w;
+      const b=start.w[t]-cur.w[t];if(b>0)byBlack[t]=b;
+    }
+    return{byWhite,byBlack};
+  };
+  const PIECE_SYMBOLS={p:'♟',r:'♜',n:'♞',b:'♝',q:'♛'};
   const [notFound, setNotFound] = useState(false);
   
   const [showSettings, setShowSettings] = useState(false);
@@ -1116,7 +1136,24 @@ export default function Game() {
       {/* HEADER (Fixed 64px) */}
       <header style={{ height: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: '150px', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+          <img 
+            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+            alt="ChessWithClaw Logo" 
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ 
+              width: '100px', 
+              height: 'auto', 
+              objectFit: 'contain', 
+              flexShrink: 0, 
+              display: 'block',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
+            }} 
+          />
         </div>
         <button 
           data-testid="settings-button"
@@ -1167,6 +1204,14 @@ export default function Game() {
 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative' }}>
           {isCheckState && game.status === 'active' && (
             <div 
               className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
@@ -1192,6 +1237,14 @@ export default function Game() {
               setTimeout(() => setShaking(false), 300);
             }}
           />
+          </div>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
               <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">

@@ -138,7 +138,24 @@ npx clawhub install agent-browser-clawdbot`;
             >
               <ChevronLeft size={20} />
             </button>
-            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: 'clamp(140px, 20vw, 180px)', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+            <img 
+              src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+              alt="ChessWithClaw Logo" 
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ 
+                width: '100px', 
+                height: 'auto', 
+                objectFit: 'contain', 
+                flexShrink: 0, 
+                display: 'block',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                WebkitTouchCallout: 'none',
+                pointerEvents: 'none',
+                filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
+              }} 
+            />
           </div>
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
@@ -168,7 +185,7 @@ npx clawhub install agent-browser-clawdbot`;
             z-index: 0;
           }
           .action-btn {
-            background: #e63946;
+            background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
             color: #ffffff;
             border-radius: 8px;
             height: 48px;
@@ -183,21 +200,21 @@ npx clawhub install agent-browser-clawdbot`;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.12) 0px 2px 2px -1px;
-            transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset, rgba(0,0,0,0.22) 0px 0px 0px 0.5px inset;
+            transition: all 0.15s ease;
             box-sizing: border-box;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
           .action-btn:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(0,0,0,0.03) 100%), #e63946;
             transform: translateY(-1px);
-            opacity: 0.95;
-            box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.12) 0px 4px 6px -2px;
           }
           .action-btn:active {
-            transform: translateY(0px) scale(0.98);
-            box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
+            background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0.02) 100%), #c62e39;
+            transform: translateY(0px);
+            box-shadow: rgba(255,255,255,0.10) 0px 0.5px 0px inset, rgba(0,0,0,0.28) 0px -0.5px 0px inset, rgba(0,0,0,0.28) 0px 0px 0px 0.5px inset;
           }
           .action-btn.copied {
             background: #1a7a3a;

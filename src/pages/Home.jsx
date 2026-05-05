@@ -141,7 +141,7 @@ export default function Home() {
         }
         
         .design-btn-primary {
-          background: #e63946;
+          background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
           color: white;
           border-radius: 8px;
           height: 56px;
@@ -154,20 +154,21 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 12px;
-          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px;
+          transition: all 0.15s ease;
+          box-shadow: rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset, rgba(0,0,0,0.22) 0px 0px 0px 0.5px inset;
         }
         .design-btn-primary:hover:not(:disabled) {
-          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px, rgba(0,0,0,0.25) 0px 8px 20px 0px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(0,0,0,0.03) 100%), #e63946;
           transform: translateY(-1px);
         }
         .design-btn-primary:active:not(:disabled) {
-          transform: translateY(1px);
-          box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
+          background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0.02) 100%), #c62e39;
+          transform: translateY(0);
+          box-shadow: rgba(255,255,255,0.10) 0px 0.5px 0px inset, rgba(0,0,0,0.28) 0px -0.5px 0px inset, rgba(0,0,0,0.28) 0px 0px 0px 0.5px inset;
         }
         
         .design-btn-nav {
-          background: #e63946;
+          background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
           color: white;
           border-radius: 8px;
           padding: 8px 16px;
@@ -179,16 +180,17 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px;
+          transition: all 0.15s ease;
+          box-shadow: rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset, rgba(0,0,0,0.22) 0px 0px 0px 0.5px inset;
         }
         .design-btn-nav:hover:not(:disabled) {
-          box-shadow: rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.3) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(255,255,255,0.1) 0px -1px 0px 0px inset, rgba(0,0,0,0.15) 0px 2px 4px -1px, rgba(0,0,0,0.1) 0px 4px 8px -2px, rgba(0,0,0,0.25) 0px 8px 20px 0px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(0,0,0,0.03) 100%), #e63946;
           transform: translateY(-1px);
         }
         .design-btn-nav:active:not(:disabled) {
-          transform: translateY(1px);
-          box-shadow: rgba(0,0,0,0.1) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px -0.5px 0px 0px inset, rgba(0,0,0,0.35) 0px 0px 0px 0.5px inset, rgba(255,255,255,0.1) 0px 0.5px 0px 0px inset;
+          background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0.02) 100%), #c62e39;
+          transform: translateY(0);
+          box-shadow: rgba(255,255,255,0.10) 0px 0.5px 0px inset, rgba(0,0,0,0.28) 0px -0.5px 0px inset, rgba(0,0,0,0.28) 0px 0px 0px 0.5px inset;
         }
         
         .design-btn-secondary {
@@ -254,7 +256,24 @@ export default function Home() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ width: 'clamp(140px, 20vw, 180px)', height: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
+          <img 
+            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+            alt="ChessWithClaw Logo" 
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ 
+              width: '120px', 
+              height: 'auto', 
+              objectFit: 'contain', 
+              flexShrink: 0, 
+              display: 'block',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
+            }} 
+          />
         </div>
         <button 
           onClick={handleStart} 
