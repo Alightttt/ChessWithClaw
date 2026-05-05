@@ -184,40 +184,8 @@ npx clawhub install agent-browser-clawdbot`;
             top: 22px;
             z-index: 0;
           }
-          .action-btn {
-            background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
-            color: #ffffff;
-            border-radius: 8px;
-            height: 48px;
-            width: 100%;
-            font-family: "'Inter', sans-serif";
-            font-weight: 600;
-            font-size: 14px;
-            letter-spacing: -0.25px;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            box-shadow: rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset, rgba(0,0,0,0.22) 0px 0px 0px 0.5px inset;
-            transition: all 0.15s ease;
-            box-sizing: border-box;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .action-btn:hover {
-            background: linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(0,0,0,0.03) 100%), #e63946;
-            transform: translateY(-1px);
-          }
-          .action-btn:active {
-            background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0.02) 100%), #c62e39;
-            transform: translateY(0px);
-            box-shadow: rgba(255,255,255,0.10) 0px 0.5px 0px inset, rgba(0,0,0,0.28) 0px -0.5px 0px inset, rgba(0,0,0,0.28) 0px 0px 0px 0.5px inset;
-          }
-          .action-btn.copied {
-            background: #1a7a3a;
+          .copied {
+            background: #1a7a3a !important;
           }
           .card-container {
             background: #0e0e0e;
@@ -369,7 +337,7 @@ npx clawhub install agent-browser-clawdbot`;
 
             <button 
               onClick={handleShare}
-              className={`action-btn ${copyState === 'copied' ? 'copied' : ''}`}
+              className={`design-btn-primary h-12 w-full text-sm font-semibold rounded-lg ${copyState === 'copied' ? 'copied' : ''}`}
             >
               {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
@@ -390,7 +358,7 @@ npx clawhub install agent-browser-clawdbot`;
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
-              className="action-btn"
+              className={`design-btn-primary h-12 w-full text-sm font-semibold rounded-lg flex items-center justify-center gap-2`}
               style={boardOpened ? { background: '#111111', border: '1px solid #222222', boxShadow: 'none', color: '#e63946' } : {}}
             >
               {boardOpening ? (

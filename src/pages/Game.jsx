@@ -1089,7 +1089,7 @@ export default function Game() {
           <button 
             data-testid="home-button"
             onClick={handleGoHomeWithRipple} 
-            className="mt-2 bg-red-600 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 hover:bg-red-500"
+            className="mt-2 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
           >
             Go Home
           </button>
@@ -1299,7 +1299,7 @@ export default function Game() {
                     <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
                       {msg.text}
                       {game.status === 'active' && (
-                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 bg-red-600 text-white border-none rounded py-1 font-sans text-xs font-bold cursor-pointer hover:bg-red-500 active:scale-95 transition-all">Accept Resignation</button>
+                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
                       )}
                     </div>
                   );
@@ -1313,7 +1313,7 @@ export default function Game() {
                           await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
                             status: 'finished', result: 'draw', result_reason: 'agreement'
                           }).eq('id', gameId);
-                        }} className="block w-full mt-2 bg-green-600 text-white border-none rounded py-1 font-sans text-xs font-bold cursor-pointer hover:bg-green-500 active:scale-95 transition-all">Accept Draw</button>
+                        }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
                       )}
                     </div>
                   );
@@ -1402,7 +1402,7 @@ export default function Game() {
       </div>
 
       {/* STEP 4: BOTTOM INFO BAR */}
-      <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 100 }}>
+      <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>
@@ -1461,7 +1461,7 @@ export default function Game() {
                     const fen = game.fen.replace(/ /g, '_');
                     window.open(`https://lichess.org/analysis/standard/${fen}`, '_blank');
                   }}
-                  className="bg-red-600 text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:scale-95 hover:bg-red-500 shadow-[0_0_20px_-5px_rgba(239,68,68,0.4)]"
+                  className="text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
                 >
                   Analyze on Lichess
                 </button>

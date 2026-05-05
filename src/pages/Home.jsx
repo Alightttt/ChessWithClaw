@@ -140,33 +140,6 @@ export default function Home() {
           transform: translateY(-2px);
         }
         
-        .design-btn-primary {
-          background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
-          color: white;
-          border-radius: 8px;
-          height: 56px;
-          padding: 0 32px;
-          font-family: "'Poppins', sans-serif";
-          font-weight: 600;
-          font-size: 16px;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          transition: all 0.15s ease;
-          box-shadow: rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset, rgba(0,0,0,0.22) 0px 0px 0px 0.5px inset;
-        }
-        .design-btn-primary:hover:not(:disabled) {
-          background: linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(0,0,0,0.03) 100%), #e63946;
-          transform: translateY(-1px);
-        }
-        .design-btn-primary:active:not(:disabled) {
-          background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0.02) 100%), #c62e39;
-          transform: translateY(0);
-          box-shadow: rgba(255,255,255,0.10) 0px 0.5px 0px inset, rgba(0,0,0,0.28) 0px -0.5px 0px inset, rgba(0,0,0,0.28) 0px 0px 0px 0.5px inset;
-        }
-        
         .design-btn-nav {
           background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
           color: white;
@@ -262,7 +235,7 @@ export default function Home() {
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
             style={{ 
-              width: '150px', 
+              width: '175px', 
               height: 'auto', 
               objectFit: 'contain', 
               flexShrink: 0, 
@@ -400,7 +373,7 @@ export default function Home() {
             <button 
               onClick={handleStart}
               disabled={creating}
-              className="design-btn-primary w-full sm:w-auto"
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full sm:w-auto"
             >
               {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
             </button>
@@ -437,9 +410,9 @@ export default function Home() {
       </section>
 
       <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '64px', letterSpacing: '-0.03em' }}>How to Connect</h2>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
         
-        <div className="space-y-12" style={{ gap: '48px', display: 'flex', flexDirection: 'column' }}>
+        <div className="space-y-8" style={{ gap: '32px', display: 'flex', flexDirection: 'column' }}>
           {[
             { 
               tag: "01", 
@@ -507,17 +480,22 @@ export default function Home() {
       </section>
 
       <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
-        <div className="social-proof-card">
-          <div className="flex gap-4">
-            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #e63946, #8b1a21)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '16px', fontWeight: '700', fontFamily: "'Inter', sans-serif", border: '2px solid rgba(230,57,70,0.3)', flexShrink: 0 }}>
-              J
-            </div>
-            <div>
-              <div style={{ color: '#e63946', fontSize: '48px', fontFamily: "'Poppins', sans-serif", lineHeight: 1, marginBottom: '8px', marginTop: '-12px' }}>&quot;</div>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'rgba(242,242,242,0.85)', marginBottom: '16px', marginTop: '-16px', fontWeight: 300 }}>
-                Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.
-              </p>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '15px', color: '#f2f2f2' }}>Jake Reynolds</div>
+        <div className="social-proof-card" style={{ display: 'flex', flexDirection: 'column', padding: '32px 40px', gap: '20px' }}>
+          <div style={{ color: '#e63946', fontSize: '24px', display: 'flex', gap: '4px', letterSpacing: '2px' }}>
+            {"★★★★★"}
+          </div>
+          <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '19px', lineHeight: 1.6, color: 'rgba(242,242,242,0.92)', fontWeight: 400 }}>
+            "Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can't believe this. We are heading towards a new era of gaming with OpenClaws."
+          </p>
+          <div className="flex items-center gap-4 mt-4">
+            <img 
+              src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=120&h=120&auto=format&fit=crop" 
+              alt="Jake Reynolds" 
+              style={{ width: '52px', height: '52px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px', color: '#f2f2f2' }}>Jake Reynolds</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '14px', color: 'rgba(242,242,242,0.5)' }}>@jake_tech</span>
             </div>
           </div>
         </div>
@@ -539,7 +517,7 @@ export default function Home() {
           <button 
              onClick={handleStart}
              disabled={creating}
-             className="design-btn-primary"
+             className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg"
           >
              {creating ? 'Taking you to the board...' : 'Enter the Arena'}
           </button>
