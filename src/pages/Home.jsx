@@ -253,9 +253,9 @@ export default function Home() {
           borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
         }}
       >
-        <div className="flex items-center gap-3">
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 600, fontSize: '18px', color: '#f2f2f2' }}>ChessWithClaw</span>
+        <div className="flex items-center gap-2">
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '18px', color: '#f2f2f2', letterSpacing: '-0.02em', position: 'relative', top: '1px' }}>ChessWithClaw</span>
         </div>
         <button 
           onClick={handleStart} 

@@ -285,7 +285,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
   }
 
   return (
-    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box' }}>
+    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
       <div className="relative w-full h-full aspect-square">
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>

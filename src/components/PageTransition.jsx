@@ -14,10 +14,10 @@ export default function PageTransition({ children }) {
       style={{
         opacity: state === 'entering' ? 0 : 1,
         transition: 'opacity 280ms cubic-bezier(0.22, 1, 0.36, 1), transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-        willChange: 'transform, opacity',
+        willChange: state === 'entering' ? 'transform, opacity' : 'auto',
         WebkitBackfaceVisibility: 'hidden',
         backfaceVisibility: 'hidden',
-        transform: state === 'entering' ? 'translateY(12px) translateZ(0)' : 'translateY(0) translateZ(0)',
+        transform: state === 'entering' ? 'translateY(12px) translateZ(0)' : 'none',
         minHeight: '100dvh',
         width: '100%',
       }}

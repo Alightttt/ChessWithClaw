@@ -1106,14 +1106,10 @@ export default function Game() {
       {/* HEADER (Fixed 48px) */}
       <header style={{ height: '48px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
         <div className="flex items-center cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome} style={{ gap: '8px' }}>
-          <img
-            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png"
-            alt="ChessWithClaw"
-            width="32"
-            height="32"
-            loading="eager"
-            style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0 }}
-          />
+          <div className="flex items-center gap-2">
+            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo.png" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', flexShrink: 0 }} />
+            <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '18px', color: '#f2f2f2', letterSpacing: '-0.02em', position: 'relative', top: '1px' }}>ChessWithClaw</span>
+          </div>
         </div>
         <button 
           data-testid="settings-button"
@@ -1153,7 +1149,7 @@ export default function Game() {
         </div>
 
         {/* B) CHESS BOARD */}
-        <div style={{ width: '100%', aspectRatio: '1/1', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
           {isCheckState && game.status === 'active' && (
             <div 
               className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
