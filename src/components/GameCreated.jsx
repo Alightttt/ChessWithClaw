@@ -130,7 +130,7 @@ npx clawhub install agent-browser-clawdbot`;
       <div className="max-w-xl mx-auto w-full relative z-10 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="brand-logo-container flex-1">
+          <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flex: 1 }}>
             <button 
               onClick={() => navigate('/')}
               style={{ width: '40px', height: '40px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '50%' }}
@@ -138,13 +138,12 @@ npx clawhub install agent-browser-clawdbot`;
             >
               <ChevronLeft size={20} />
             </button>
-            <div className="brand-icon"></div>
-            <span className="brand-text ml-1" style={{ fontSize: '20px' }}>Chess<span className="text-red">With</span>Claw</span>
+            <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ height: '84px', width: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
           </div>
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
         <div className="mb-10 text-center">
-          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 700 }} className="text-white">Summon Your OpenClaw</h1>
+          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw</h1>
         </div>
 
         {/* Stepper */}
@@ -174,7 +173,7 @@ npx clawhub install agent-browser-clawdbot`;
             border-radius: 8px;
             height: 48px;
             width: 100%;
-            font-family: "'Poppins', sans-serif";
+            font-family: "'Inter', sans-serif";
             font-weight: 600;
             font-size: 14px;
             letter-spacing: -0.25px;
@@ -248,7 +247,7 @@ npx clawhub install agent-browser-clawdbot`;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-family: "'Poppins', sans-serif";
+            font-family: "'Inter', sans-serif";
             font-weight: 600;
             font-size: 16px;
             position: relative;
@@ -271,9 +270,9 @@ npx clawhub install agent-browser-clawdbot`;
             color: rgba(242,242,242,0.25);
           }
           .stepper-label {
-            font-family: "'Poppins', sans-serif";
+            font-family: "'Inter', sans-serif";
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             white-space: nowrap;
@@ -320,10 +319,10 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <div className="flex items-center gap-4 mb-6">
               <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>01</div>
-              <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Invite OpenClaw</h2>
+              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Invite OpenClaw</h2>
             </div>
             
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-4 leading-relaxed font-medium">1. Ensure you have the required OpenClaw skills installed.</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-4 leading-relaxed">1. Ensure you have the required OpenClaw skills installed.</p>
             <div className="install-cmd-box mb-6 space-y-3">
               <div className="flex items-center gap-3">
                 <span style={{ color: '#e63946', fontWeight: 'bold' }}>{'>'}</span>
@@ -335,7 +334,7 @@ npx clawhub install agent-browser-clawdbot`;
               </div>
             </div>
 
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-3 leading-relaxed font-medium">2. Send the connection string below to your OpenClaw:</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-3 leading-relaxed">2. Send the connection string below to your OpenClaw:</p>
             <div className="relative mb-6">
               <div className="invite-msg-box relative h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 whitespace-pre-wrap">
                 {inviteMessage.split('\n').map((line, i) => (
@@ -366,11 +365,11 @@ npx clawhub install agent-browser-clawdbot`;
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>02</div>
-                <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '22px', fontWeight: 600 }} className="text-white">Enter the Arena</h2>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Enter the Arena</h2>
               </div>
             </div>
             
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px' }} className="text-neutral-400 mb-6 font-medium leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-6 leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}

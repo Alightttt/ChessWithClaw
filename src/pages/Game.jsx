@@ -1113,11 +1113,10 @@ export default function Game() {
         </div>
       )}
       
-      {/* HEADER (Fixed 56px) */}
-      <header style={{ height: '56px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
-        <div className="brand-logo-container cursor-pointer active:scale-95 transition-transform" onClick={handleGoHome}>
-          <div className="brand-icon" style={{ width: '28px', height: '28px' }}></div>
-          <span className="brand-text" style={{ fontSize: '18px' }}>Chess<span className="text-red">With</span>Claw</span>
+      {/* HEADER (Fixed 100px) */}
+      <header style={{ height: '100px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw Logo" style={{ height: '80px', width: 'auto', objectFit: 'contain', flexShrink: 0, display: 'block' }} />
         </div>
         <button 
           data-testid="settings-button"
@@ -1455,12 +1454,14 @@ export default function Game() {
             <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Preferences</h3>
             <div className="space-y-2">
               <label className="text-sm text-[var(--color-text-secondary)]">Board Theme</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'green', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
                   { id: 'brown', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
                   { id: 'blue', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
-                  { id: 'red', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' }
+                  { id: 'red', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' },
+                  { id: 'icy_sea', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png' },
+                  { id: 'tournament', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png' }
                 ].map(theme => (
                   <button
                     data-testid={`theme-button-${theme.id}`}
