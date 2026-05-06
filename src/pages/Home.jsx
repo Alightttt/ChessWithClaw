@@ -191,6 +191,40 @@ export default function Home() {
           transform: scale(0.98);
         }
 
+        .x-link-lovable {
+          background: #0a0a0a;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 9999px;
+          text-decoration: none;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 1), 0 0 16px -4px rgba(255, 255, 255, 0.1);
+        }
+        .x-link-lovable::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+          pointer-events: none;
+        }
+        .x-link-lovable:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 1), 0 0 24px -4px rgba(255, 255, 255, 0.15);
+        }
+        .x-link-lovable:active {
+          transform: translateY(0);
+        }
+
         .clawhub-link {
           color: #e63946;
           opacity: 0.7;
@@ -260,7 +294,7 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: 'clamp(90px, 12vh, 110px)', 
+          paddingTop: 'clamp(40px, 6vh, 60px)', 
           paddingBottom: 'clamp(48px, 8vh, 80px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
@@ -282,7 +316,7 @@ export default function Home() {
           zIndex: 0
         }} />
 
-        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '24px', position: 'relative', zIndex: 1 }}>
+        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '16px', position: 'relative', zIndex: 1 }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -338,7 +372,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="w-full z-10 mx-auto"
-            style={{ maxWidth: '360px', position: 'relative', marginTop: '16px' }}
+            style={{ maxWidth: '360px', position: 'relative' }}
           >
             <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
               <div className="flex items-center justify-between mb-3 px-2">
@@ -524,10 +558,41 @@ export default function Home() {
         </div>
       </section>
 
-      <footer style={{ borderTop: '1px solid #1a1a1a', padding: '48px 24px', textAlign: 'center', background: '#0a0a0a' }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.3)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-          <span>© 2026 ChessWithClaw</span>
-          <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(242,242,242,0.5)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseOver={e => e.currentTarget.style.color = '#f2f2f2'} onMouseOut={e => e.currentTarget.style.color = 'rgba(242,242,242,0.5)'}>x.com/0xalyt</a>
+      <footer style={{ borderTop: '1px solid #1a1a1a', paddingTop: '24px', paddingBottom: '0', background: '#0a0a0a', overflow: 'hidden' }}>
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="flex items-center justify-between font-['Inter'] text-sm text-[rgba(242,242,242,0.5)] mb-6">
+            <span style={{ fontWeight: 500 }}>© 2026 ChessWithClaw</span>
+            <a 
+              href="https://x.com/0xalyt" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="x-link-lovable"
+            >
+              x.com ↗
+            </a>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto md:px-8 w-full flex justify-start">
+          <svg 
+            viewBox="0 0 880 120" 
+            className="w-full md:w-auto md:h-16 lg:h-24 fill-[#e63946]"
+            preserveAspectRatio="xMinYMid meet"
+            style={{ display: 'block' }}
+          >
+            <text 
+              x="0" 
+              y="100" 
+              textAnchor="start"
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 900,
+                fontSize: '120px',
+                letterSpacing: '-0.06em',
+              }}
+            >
+              ChessWithClaw
+            </text>
+          </svg>
         </div>
       </footer>
     </div>

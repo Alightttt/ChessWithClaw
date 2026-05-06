@@ -124,12 +124,12 @@ npx clawhub install agent-browser-clawdbot`;
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans p-4 sm:p-8 overflow-hidden relative selection:bg-red-500/30" style={{ padding: '16px', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans overflow-hidden relative selection:bg-red-500/30" style={{ padding: '8px 16px 24px', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <div className="max-w-xl mx-auto w-full relative z-10 py-6">
+      <div className="max-w-xl mx-auto w-full relative z-10 pt-2 pb-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flex: 1 }}>
             <button 
               onClick={() => navigate('/')}
@@ -166,23 +166,12 @@ npx clawhub install agent-browser-clawdbot`;
         {/* Stepper */}
         <style>{`
           @keyframes clawPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.4); border-color: rgba(230,57,70,0.6); }
+            50% { box-shadow: 0 0 0 10px rgba(230,57,70,0); border-color: rgba(230,57,70,1); }
           }
           @keyframes scaleIn {
             0% { transform: scale(0.8); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
-          }
-          .connector-line {
-            background: linear-gradient(to right, #e63946 50%, rgba(255,255,255,0.08) 50%);
-            background-size: 200% 100%;
-            transition: background-position 0.7s ease-in-out;
-            height: 2px;
-            position: absolute;
-            left: 54px;
-            right: 54px;
-            top: 22px;
-            z-index: 0;
           }
           .copied {
             background: #1a7a3a !important;
@@ -224,75 +213,65 @@ npx clawhub install agent-browser-clawdbot`;
             overflow-wrap: break-word;
             word-break: break-word;
           }
-          .stepper-circle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-family: "'Inter', sans-serif";
-            font-weight: 600;
-            font-size: 16px;
-            position: relative;
-            z-index: 1;
-          }
-          .stepper-circle.done {
-            background: #e63946;
-            border: none;
-            color: white;
-            box-shadow: rgba(255,255,255,0.15) 0px 1px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px inset;
-          }
-          .stepper-circle.active {
-            background: rgba(230,57,70,0.1);
-            border: 2px solid #e63946;
-            color: #e63946;
-          }
-          .stepper-circle.future {
-            background: #111111;
-            border: 1px solid rgba(255,255,255,0.08);
-            color: rgba(242,242,242,0.25);
-          }
-          .stepper-label {
-            font-family: "'Inter', sans-serif";
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            white-space: nowrap;
-          }
         `}</style>
-        <div className="relative mb-12" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 20px', width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
-          <div className="connector-line" style={{ backgroundPosition: agentConnected ? '0% 0' : boardOpened ? '50% 0' : '100% 0' }} />
+        
+        <div className="relative mb-14 w-full px-2 mt-4">
+          <div className="absolute top-5 left-[15%] right-[15%] h-[2px] bg-white/5 rounded-full z-0 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-[#e63946] to-[#ff6b6b] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+              style={{ width: agentConnected ? '100%' : boardOpened ? '50%' : '0%' }}
+            />
+          </div>
           
-          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
-            <div className="stepper-circle done">
-              <CheckCircle2 size={18} color="white" />
+          <div className="relative z-10 flex justify-between items-start">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30">
+                <CheckCircle2 size={20} className="text-white" />
+              </div>
+              <div className="font-['Inter'] text-[11px] font-bold tracking-widest uppercase text-[#e63946]">Invite</div>
             </div>
-            <div className="stepper-label text-[#e63946]">Invite</div>
-          </div>
 
-          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
-             <div className={`stepper-circle ${boardOpened ? 'done' : 'active'}`}>
-              {boardOpened ? <CheckCircle2 size={18} color="white" /> : "2"}
+            {/* Step 2 */}
+            <div className="flex flex-col items-center gap-2">
+              <div 
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                  boardOpened 
+                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30' 
+                    : 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
+                }`}
+              >
+                {boardOpened ? <CheckCircle2 size={20} className="text-white" /> : <span className="font-semibold">2</span>}
+              </div>
+              <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
+                boardOpened || !agentConnected ? 'text-[#e63946]' : 'text-neutral-500'
+              }`}>Board</div>
             </div>
-            <div className={`stepper-label ${boardOpened || !agentConnected ? 'text-[#e63946]' : 'text-[rgba(242,242,242,0.2)]'}`}>Board</div>
-          </div>
 
-          <div className="flex flex-col items-center gap-1.5" style={{ gap: '4px' }}>
-             <div className={`stepper-circle ${agentConnected ? 'done' : boardOpened ? 'active' : 'future'}`}>
-              {agentConnected ? (
-                <div style={{ animation: 'scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-                   <div className="flex items-center justify-center">
-                     <CheckCircle2 size={18} color="white" />
-                   </div>
-                </div>
-              ) : (
-                <span className="text-lg" style={boardOpened ? { animation: 'clawPulse 2s ease-in-out infinite' } : {}}>3</span>
-              )}
+            {/* Step 3 */}
+            <div className="flex flex-col items-center gap-2">
+              <div 
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                  agentConnected 
+                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30' 
+                    : boardOpened
+                    ? 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
+                    : 'bg-[#111] text-neutral-500 border border-white/10'
+                }`}
+                style={boardOpened && !agentConnected ? { animation: 'clawPulse 2s infinite' } : {}}
+              >
+                {agentConnected ? (
+                  <div style={{ animation: 'scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+                    <CheckCircle2 size={20} className="text-white" />
+                  </div>
+                ) : (
+                  <span className="font-semibold">3</span>
+                )}
+              </div>
+              <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
+                agentConnected || boardOpened ? 'text-[#e63946]' : 'text-neutral-500'
+              }`}>Battle</div>
             </div>
-            <div className={`stepper-label ${agentConnected || boardOpened ? 'text-[#e63946]' : 'text-[rgba(242,242,242,0.2)]'}`}>Battle</div>
           </div>
         </div>
 
