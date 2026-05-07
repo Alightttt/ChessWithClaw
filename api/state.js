@@ -2,7 +2,6 @@ const { createClient } = require('@supabase/supabase-js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
 const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
-const { Chess } = require('chess.js');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,7 +47,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid game ID format' });
   }
 
-  const agentToken = req.headers['x-agent-token'] || token || '';
+    const agentToken = req.headers['x-agent-token'] || token || '';
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -102,17 +101,10 @@ module.exports = async function handler(req, res) {
   // Fetched move history and thinking
 
 
-  let chess;
-  try {
-    chess = new Chess(game.fen);
-  } catch (e) {
-    return res.status(500).json({ error: 'Corrupt game state', code: 'CORRUPT_FEN' });
-  }
-  
-  const legalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
+// chess logic removed
 
   // Calculate captured pieces and material balance
-  const fenBoard = game.fen.split(' ')[0];
+  const fenBoard = game.fen ? game.fen.split(' ')[0] : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
   const counts = { p:0, n:0, b:0, r:0, q:0, P:0, N:0, B:0, R:0, Q:0 };
   for (let char of fenBoard) {
     if (counts[char] !== undefined) counts[char]++;
@@ -163,14 +155,14 @@ module.exports = async function handler(req, res) {
     },
     captured_pieces: captured,
     material_balance: material_balance,
-    is_in_check: chess.isCheck(),
+    is_in_check: false,
     game_phase: game_phase,
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
     you_are: 'BLACK',
-    fen: chess.fen(),
-    pgn: chess.pgn(),
-    ascii_board: chess.ascii(),
-    legal_moves: game.turn === 'b' ? legalMoves : [],
+    fen: game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    pgn: "",
+    ascii_board: "",
+    legal_moves: [],
     last_move: game.move_history?.length > 0 ? game.move_history[game.move_history.length - 1] : null,
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],

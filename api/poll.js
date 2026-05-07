@@ -1,23 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
-const { Chess } = require('chess.js');
 
 function isValidUUID(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id||''))
 }
 
-function computeMaterial(chess) {
-  const vals={p:1,n:3,b:3,r:5,q:9}
-  let w=0,b=0
-  chess.board().forEach(row=>row&&row.forEach(sq=>{
-    if(!sq)return
-    const v=vals[sq.type]||0
-    if(sq.color==='w')w+=v;else b+=v
-  }))
-  const diff=w-b
-  return{white:w,black:b,
-    advantage:diff>0?'white':diff<0?'black':'equal',
-    difference:Math.abs(diff)}
-}
+// computeMaterial removed
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*')
@@ -110,25 +97,20 @@ module.exports = async function handler(req, res) {
     : false;
 
   if(game.turn==='b'&&game.move_count>lastMoveCount){
-    let chess
-    try{chess=new Chess(game.fen)}
-    catch(e){return res.status(500).json({
-      error:'Corrupt game state',code:'CORRUPT_FEN'})}
     return res.json({
       event:'your_turn',game_id:game.id,fen:game.fen,
       turn:'b',move_number:game.move_number,
       last_move:game.last_move,
       last_move_timestamp: lastMoveTimestamp,
       opponent_connected: opponentConnected,
-      legal_moves:chess.moves(),
-      legal_moves_uci:chess.moves({verbose:true})
-        .map(m=>m.from+m.to+(m.promotion||'')),
+      legal_moves: [],
+      legal_moves_uci: [],
       move_history:game.move_history,
-      board_ascii:chess.ascii(),
-      in_check:chess.inCheck(),
-      is_checkmate:chess.isCheckmate(),
-      is_stalemate:chess.isStalemate(),
-      material_balance:computeMaterial(chess),
+      board_ascii:"",
+      in_check: false,
+      is_checkmate: false,
+      is_stalemate: false,
+      material_balance: {},
       move_count:game.move_count,
       chat_count:game.chat_count})
   }

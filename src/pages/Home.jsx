@@ -574,23 +574,23 @@ export default function Home() {
             </a>
           </div>
         </div>
-        <div className="w-full flex justify-center items-center overflow-hidden">
+        <div style={{ width: '100%', overflow: 'hidden' }} className="mt-8">
           <svg 
-            viewBox="0 0 850 130" 
-            className="w-full h-auto fill-[#e63946]"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ display: 'block' }}
+            viewBox="0 0 1000 120" 
+            style={{ width: '100%', height: 'auto', display: 'block' }} 
+            className="text-[#e63946]"
           >
             <text 
               x="50%" 
               y="100" 
               textAnchor="middle"
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 900,
-                fontSize: '125px',
-                letterSpacing: '-0.06em',
-              }}
+              fontFamily="'Inter', sans-serif" 
+              fontWeight="900" 
+              fill="currentColor" 
+              letterSpacing="-0.03em"
+              fontSize="120"
+              textLength="1000"
+              lengthAdjust="spacingAndGlyphs"
             >
               ChessWithClaw
             </text>
