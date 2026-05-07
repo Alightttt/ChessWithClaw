@@ -124,12 +124,12 @@ npx clawhub install agent-browser-clawdbot`;
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans overflow-hidden relative selection:bg-red-500/30" style={{ padding: '8px 16px 24px', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans overflow-hidden relative selection:bg-red-500/30" style={{ padding: '0px 16px 24px', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <div className="max-w-xl mx-auto w-full relative z-10 pt-2 pb-6">
+      <div className="max-w-xl mx-auto w-full relative z-10 pt-0 pb-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flex: 1 }}>
             <button 
               onClick={() => navigate('/')}
@@ -159,7 +159,7 @@ npx clawhub install agent-browser-clawdbot`;
           </div>
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
-        <div className="mb-10 text-center">
+        <div className="mb-4 text-center">
           <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw</h1>
         </div>
 
@@ -177,13 +177,14 @@ npx clawhub install agent-browser-clawdbot`;
             background: #1a7a3a !important;
           }
           .card-container {
-            background: #0e0e0e;
+            background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
             border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 16px;
-            padding: 20px 16px;
+            border-radius: 12px;
+            padding: 24px;
             width: 100%;
             box-sizing: border-box;
             margin-bottom: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
           }
           .install-cmd-box {
             background: #080808;
@@ -218,7 +219,7 @@ npx clawhub install agent-browser-clawdbot`;
         <div className="relative mb-14 w-full px-2 mt-4">
           <div className="absolute top-5 left-[15%] right-[15%] h-[2px] bg-white/5 rounded-full z-0 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-[#e63946] to-[#ff6b6b] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+              className="h-full bg-gradient-to-r from-[#81b64c] to-[#96cc5c] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
               style={{ width: agentConnected ? '100%' : boardOpened ? '50%' : '0%' }}
             />
           </div>
@@ -226,10 +227,10 @@ npx clawhub install agent-browser-clawdbot`;
           <div className="relative z-10 flex justify-between items-start">
             {/* Step 1 */}
             <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30">
                 <CheckCircle2 size={20} className="text-white" />
               </div>
-              <div className="font-['Inter'] text-[11px] font-bold tracking-widest uppercase text-[#e63946]">Invite</div>
+              <div className="font-['Inter'] text-[11px] font-bold tracking-widest uppercase text-[#81b64c]">Invite</div>
             </div>
 
             {/* Step 2 */}
@@ -237,14 +238,14 @@ npx clawhub install agent-browser-clawdbot`;
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                   boardOpened 
-                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30' 
-                    : 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
+                    ? 'bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30' 
+                    : 'bg-[#111] text-[#81b64c] border-2 border-[#81b64c]'
                 }`}
               >
                 {boardOpened ? <CheckCircle2 size={20} className="text-white" /> : <span className="font-semibold">2</span>}
               </div>
               <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
-                boardOpened || !agentConnected ? 'text-[#e63946]' : 'text-neutral-500'
+                boardOpened || !agentConnected ? 'text-[#81b64c]' : 'text-neutral-500'
               }`}>Board</div>
             </div>
 
@@ -253,9 +254,9 @@ npx clawhub install agent-browser-clawdbot`;
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                   agentConnected 
-                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#ff6b6b]/30' 
+                    ? 'bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30' 
                     : boardOpened
-                    ? 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
+                    ? 'bg-[#111] text-[#81b64c] border-2 border-[#81b64c]'
                     : 'bg-[#111] text-neutral-500 border border-white/10'
                 }`}
                 style={boardOpened && !agentConnected ? { animation: 'clawPulse 2s infinite' } : {}}
@@ -269,7 +270,7 @@ npx clawhub install agent-browser-clawdbot`;
                 )}
               </div>
               <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
-                agentConnected || boardOpened ? 'text-[#e63946]' : 'text-neutral-500'
+                agentConnected || boardOpened ? 'text-[#81b64c]' : 'text-neutral-500'
               }`}>Battle</div>
             </div>
           </div>

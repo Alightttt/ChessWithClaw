@@ -4,7 +4,7 @@ const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
 const { Chess } = require('chess.js');
 
-module.exports = async (req, res) => {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
@@ -99,11 +99,8 @@ module.exports = async (req, res) => {
     }));
   }
 
-  // Fetch chat history from the new table
-  const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', id).order('created_at', { ascending: true });
-  if (!chatError && chatData && chatData.length > 0) {
-    game.chat_history = chatData;
-  }
+  // Fetched move history and thinking
+
 
   let chess;
   try {

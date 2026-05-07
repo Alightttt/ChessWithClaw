@@ -127,17 +127,19 @@ export default function Home() {
         }
         
         .design-card {
-          background: #111111;
+          background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
           border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 16px;
+          border-radius: 12px;
           padding: 24px;
           position: relative;
           overflow: hidden;
-          transition: border-color 0.2s ease, transform 0.2s ease;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
         .design-card:hover {
           border-color: rgba(255,255,255,0.12);
           transform: translateY(-2px);
+          box-shadow: 0 6px 24px rgba(0,0,0,0.5);
         }
         
         .design-btn-nav {
@@ -294,11 +296,11 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: 'clamp(40px, 6vh, 60px)', 
+          paddingTop: 'clamp(90px, 12vh, 110px)', 
           paddingBottom: 'clamp(48px, 8vh, 80px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
-          marginBottom: '48px',
+          marginBottom: '0px',
           position: 'relative',
           overflow: 'hidden'
         }} 
@@ -421,7 +423,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '24px 20px 0' }}>
+      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '0px 20px 0' }}>
         <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
         </div>
@@ -519,7 +521,7 @@ export default function Home() {
             {"★★★★★"}
           </div>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '19px', lineHeight: 1.6, color: 'rgba(242,242,242,0.92)', fontWeight: 400 }}>
-            "Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can't believe this. We are heading towards a new era of gaming with OpenClaws."
+            &quot;Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.&quot;
           </p>
           <div className="flex items-center gap-4 mt-4">
             <img 
@@ -544,7 +546,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="fade-in-section text-center" style={{ marginBottom: '64px', padding: '0 20px' }}>
+      <section className="fade-in-section text-center" style={{ marginBottom: '40px', padding: '0 20px' }}>
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge OpenClaw?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
@@ -572,21 +574,21 @@ export default function Home() {
             </a>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto md:px-8 w-full flex justify-start">
+        <div className="w-full flex justify-center items-center overflow-hidden">
           <svg 
-            viewBox="0 0 880 120" 
-            className="w-full md:w-auto md:h-16 lg:h-24 fill-[#e63946]"
-            preserveAspectRatio="xMinYMid meet"
+            viewBox="0 0 850 130" 
+            className="w-full h-auto fill-[#e63946]"
+            preserveAspectRatio="xMidYMid meet"
             style={{ display: 'block' }}
           >
             <text 
-              x="0" 
+              x="50%" 
               y="100" 
-              textAnchor="start"
+              textAnchor="middle"
               style={{
-                fontFamily: "'Poppins', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontWeight: 900,
-                fontSize: '120px',
+                fontSize: '125px',
                 letterSpacing: '-0.06em',
               }}
             >

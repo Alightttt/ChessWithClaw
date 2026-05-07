@@ -19,7 +19,7 @@ function computeMaterialBalance(chess) {
   };
 }
 
-module.exports = async (req, res) => {
+module.exports = async function handler(req, res) {
   const origin = req.headers.origin || '*';
 
   if (req.method === 'OPTIONS') {
