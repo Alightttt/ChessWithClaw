@@ -38,8 +38,8 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, game_id, text, type, sender = 'agent', token, reasoning, thinking } = req.body || {};
-  let gameId = id || game_id;
+  let { id, game_id, gameId: bodyGameId, text, type, sender = 'agent', token, reasoning, thinking } = req.body || {};
+  let gameId = id || game_id || bodyGameId;
   if (!gameId || !text) return res.status(400).json({ error: 'Missing id or text in JSON body', code: 'MISSING_TEXT' });
   gameId = gameId.trim();
   

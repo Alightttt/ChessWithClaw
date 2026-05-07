@@ -39,7 +39,8 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
 
-  let { id, token } = req.query;
+  let id = req.query.id || req.query.gameId || req.query.game_id;
+  let token = req.query.token;
   if (!id) return res.status(400).json({ error: 'Missing game ID' });
   id = id.trim();
 

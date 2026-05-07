@@ -24,7 +24,9 @@ module.exports = async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
-  const{id:gameId,last_move_count,last_chat_count}=req.query
+  const gameId = req.query.id || req.query.gameId || req.query.game_id;
+  const last_move_count = req.query.last_move_count;
+  const last_chat_count = req.query.last_chat_count;
   const lastMoveCount=parseInt(last_move_count)||0
   const lastChatCount=parseInt(last_chat_count)||0
 

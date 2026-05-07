@@ -304,17 +304,7 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
                 {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}
                 {isLegal && isCap && <div className="absolute inset-0 border-[4px] opacity-80 z-0" style={{ borderColor: 'rgba(0,0,0,0.2)' }} />}
 
-                {/* Coordinates */}
-                {showCoordinates && col === 0 && (
-                  <span className="absolute top-0.5 left-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
-                    {rank}
-                  </span>
-                )}
-                {showCoordinates && row === 7 && (
-                  <span className="absolute bottom-0 right-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
-                    {file}
-                  </span>
-                )}
+                {/* Coordinates removed as requested */}
               </div>
             );
           })
