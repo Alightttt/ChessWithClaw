@@ -1221,6 +1221,7 @@ export default function Game() {
           )}
           <ChessBoard 
             fen={game.fen} 
+            showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
             lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
