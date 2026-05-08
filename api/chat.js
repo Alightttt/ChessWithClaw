@@ -69,8 +69,12 @@ module.exports = async function handler(req, res) {
   );
   
   // Verify game exists
-  const { data: game, error } = await supabase.from('games').select('id, webhook_url, webhook_failed, webhook_fail_count, fen, turn, pending_events, agent_connected, secret_token, agent_token, chat_history').eq('id', gameId).single();
+  const { data: game, error } = await supabase.from('games').select('*').eq('id', gameId).single();
   if (error || !game) {
+    if (error) {
+      console.error('Supabase error in chat.js:', error);
+      return res.status(404).json({ error: 'Game not found', details: error.message, code: 'GAME_NOT_FOUND' });
+    }
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
 
