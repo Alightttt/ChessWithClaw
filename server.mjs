@@ -1,31 +1,8 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-import * as chatModule from './api/chat.js';
-import * as createModule from './api/create.js';
-import * as cronModule from './api/cron.js';
-import * as heartbeatModule from './api/heartbeat.js';
-import * as moveModule from './api/move.js';
-import * as pollModule from './api/poll.js';
-import * as stateModule from './api/state.js';
-import * as streamModule from './api/stream.js';
-import * as thinkingModule from './api/thinking.js';
-import * as webhookModule from './api/webhook.js';
-
-const apiModules = {
-  chat: chatModule,
-  create: createModule,
-  cron: cronModule,
-  heartbeat: heartbeatModule,
-  move: moveModule,
-  poll: pollModule,
-  state: stateModule,
-  stream: streamModule,
-  thinking: thinkingModule,
-  webhook: webhookModule
-};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,8 +14,14 @@ async function startServer() {
   app.use(express.json());
 
   // Dynamically load all API routes
-  for (const [routeName, module] of Object.entries(apiModules)) {
+  const apiDir = path.join(__dirname, 'api');
+  const files = fs.readdirSync(apiDir);
+  
+  for (const file of files) {
+    if (file.endsWith('.js')) {
+      const routeName = file.replace('.js', '');
       const routePath = `/api/${routeName}`;
+      const module = await import(`./api/${file}`);
       
       app.all(routePath, async (req, res) => {
         try {
@@ -53,11 +36,7 @@ async function startServer() {
               body: ['GET', 'HEAD'].includes(req.method) ? undefined : JSON.stringify(req.body),
               signal: controller.signal
             });
-            const edgeHandler = typeof module === 'function' ? module : (typeof module.default === 'function' ? module.default : module);
-            if (typeof edgeHandler !== 'function') {
-               throw new Error(`Edge handler for ${routePath} is not a function.`);
-            }
-            const edgeRes = await edgeHandler(edgeReq);
+            const edgeRes = await module.default(edgeReq);
             
             edgeRes.headers.forEach((value, key) => {
               res.setHeader(key, value);
@@ -85,11 +64,8 @@ async function startServer() {
             }
           } else {
             // Standard Node.js Vercel function
-            const handler = typeof module === 'function' ? module : (typeof module.default === 'function' ? module.default : module);
-            if (typeof handler !== 'function') {
-               throw new Error(`Handler for ${routePath} is not a function.`);
-            }
-            await handler(req, res);
+            // Vercel populates req.query automatically, Express does too
+            await module.default(req, res);
           }
         } catch (error) {
           console.error(`Error in ${routePath}:`, error);
@@ -98,6 +74,7 @@ async function startServer() {
           }
         }
       });
+    }
   }
 
   // Vite middleware for development

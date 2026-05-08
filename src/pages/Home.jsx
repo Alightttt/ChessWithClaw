@@ -304,7 +304,7 @@ export default function Home() {
           position: 'relative',
           overflow: 'hidden'
         }} 
-        className="grid grid-cols-1 lg:grid-cols-2 items-center justify-between max-w-7xl mx-auto gap-y-10 lg:gap-x-8"
+        className="flex flex-col items-center max-w-7xl mx-auto"
       >
         <div style={{
           position: 'absolute',
@@ -318,7 +318,7 @@ export default function Home() {
           zIndex: 0
         }} />
 
-        <div className="flex flex-col items-center lg:items-start text-center lg:text-left z-10 w-full order-1 lg:col-start-1 lg:row-start-1 lg:self-end" style={{ gap: '20px', position: 'relative' }}>
+        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '16px', position: 'relative', zIndex: 1 }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -331,8 +331,6 @@ export default function Home() {
               fontFamily: "'Inter', sans-serif",
               fontSize: '13px',
               fontWeight: 600,
-              width: 'fit-content',
-              marginBottom: '4px'
             }}
           >
             <span style={{ color: '#e63946' }}>●</span> LIVE · REAL-TIME CHESS
@@ -342,22 +340,16 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-white font-extrabold tracking-tight"
             style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: 'clamp(52px, 13vw, 110px)',
+              fontSize: 'clamp(56px, 14vw, 84px)',
+              fontWeight: 800,
               lineHeight: 1.05,
-              letterSpacing: '-0.04em',
+              letterSpacing: '-0.03em',
+              color: '#f2f2f2',
             }}
           >
-            {/* Mobile (3 lines) */}
-            <span className="block md:hidden whitespace-nowrap">Play Chess</span>
-            <span className="block md:hidden whitespace-nowrap">with your</span>
-            <span className="block md:hidden whitespace-nowrap text-[#e63946]">OpenClaw.</span>
-
-            {/* Desktop/Tablet (2 lines) */}
-            <span className="hidden md:block whitespace-nowrap">Play Chess with</span>
-            <span className="hidden md:block whitespace-nowrap">your <span className="text-[#e63946]">OpenClaw.</span></span>
+            Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
           </motion.h1>
           
           <motion.p 
@@ -366,76 +358,77 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             style={{
               fontFamily: "'Poppins', sans-serif",
-              fontSize: 'clamp(16px, 2.5vw, 22px)',
+              fontSize: 'clamp(15px, 4vw, 18px)',
               fontWeight: 300,
-              lineHeight: 1.6,
-              color: 'rgba(242,242,242,0.6)',
+              lineHeight: 1.65,
+              color: 'rgba(242,242,242,0.5)',
               maxWidth: '560px',
+              margin: '0 auto',
             }}
           >
             The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
           </motion.p>
-        </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full z-10 flex justify-center lg:justify-end order-2 lg:col-start-2 lg:row-start-1 lg:row-span-2"
-        >
-          <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))', width: '100%', maxWidth: '440px' }}>
-            <div className="flex items-center justify-between mb-3 px-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🦞</span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full z-10 mx-auto"
+            style={{ maxWidth: '360px', position: 'relative' }}
+          >
+            <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
+              <div className="flex items-center justify-between mb-3 px-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🦞</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
+                </div>
+                <Typewriter lines={LINES} />
               </div>
-              <Typewriter lines={LINES} />
+              <div 
+                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+              >
+                <ChessBoard 
+                  fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
+                  interactive={false}
+                  showCoordinates={false}
+                  boardTheme="green"
+                  pieceTheme="merida"
+                  lastMove={{ from: 'c4', to: 'd5' }}
+                />
+              </div>
             </div>
-            <div 
-              style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col sm:flex-row items-center justify-center w-full sm:w-auto"
+            style={{ gap: '16px', marginTop: '24px' }}
+          >
+            <button 
+              onClick={handleStart}
+              disabled={creating}
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full sm:w-auto"
             >
-              <ChessBoard 
-                fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
-                interactive={false}
-                showCoordinates={false}
-                boardTheme="green"
-                pieceTheme="merida"
-                lastMove={{ from: 'c4', to: 'd5' }}
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex flex-col sm:flex-row flex-wrap items-center lg:items-start justify-center lg:justify-start w-full z-10 order-3 lg:col-start-1 lg:row-start-2 lg:self-start lg:mt-4"
-          style={{ gap: '16px' }}
-        >
-          <button 
-            onClick={handleStart}
-            disabled={creating}
-            className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full sm:w-auto"
-          >
-            {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
-          </button>
-          <a 
-            href="#how"
-            className="design-btn-secondary w-full sm:w-auto h-14"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            How it works
-          </a>
-        </motion.div>
+              {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
+            </button>
+            <a 
+              href="#how"
+              className="design-btn-secondary w-full sm:w-auto"
+            >
+              How it works
+            </a>
+          </motion.div>
+        </div>
       </section>
 
       <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '0px 20px 0' }}>
-        <div className="text-center mb-0" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: '0', color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
+        <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
             { icon: () => <span className="text-2xl">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
@@ -519,41 +512,6 @@ export default function Home() {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '32px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>
-            Supported Agents
-          </h2>
-          <div className="flex flex-row items-center justify-center gap-6 w-full mb-8">
-            <div className="flex-1 flex justify-end items-center" style={{ height: 'clamp(40px, 12vw, 80px)' }}>
-              <img src="/openclaw.png" alt="OpenClaw" style={{ objectFit: 'contain', width: 'auto', height: '100%', filter: 'drop-shadow(0 4px 12px rgba(230,57,70,0.15))' }} />
-            </div>
-            <div className="flex-1 flex justify-start items-center" style={{ height: 'clamp(40px, 12vw, 80px)' }}>
-              <img src="/hermes.png" alt="Hermes Agent" style={{ objectFit: 'contain', width: 'auto', height: '100%', filter: 'drop-shadow(0 4px 12px rgba(250,204,21,0.1))' }} />
-            </div>
-          </div>
-          <div className="w-full sm:w-auto" style={{ 
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)', 
-            border: '1px solid rgba(255,255,255,0.08)', 
-            borderRadius: '999px', 
-            padding: '16px 32px',
-            textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(10px)',
-          }}>
-            <span style={{ 
-              fontFamily: "'Inter', sans-serif", 
-              fontWeight: 500, 
-              fontSize: 'min(18px, 4.5vw)', 
-              color: '#e0e0e0',
-              letterSpacing: '-0.01em'
-            }}>
-              or any personal agent supported
-            </span>
-          </div>
         </div>
       </section>
 

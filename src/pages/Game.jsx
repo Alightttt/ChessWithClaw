@@ -1166,124 +1166,220 @@ export default function Game() {
       </header>
 
       {/* MAIN CONTENT SECTION */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden scrollbar-none w-full max-w-[1200px] mx-auto lg:p-4 lg:gap-6">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
         
-        {/* LEFT COLUMN: Board and Players */}
-        <div className="flex flex-col flex-1 items-center lg:justify-center p-0 shrink-0 select-none">
-          <div className="w-full max-w-[560px] flex flex-col">
-            {/* A) AGENT CARD */}
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#0e0e0e', borderBottom: '1px solid #111', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', boxShadow: isAgentThinking ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-              <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }} className={isAgentThinking ? 'animate-pulse' : ''}>
-                🦞
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  {isAgentThinking ? (
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(230,57,70,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                      Thinking... {game.current_thinking || ''}
-                    </span>
-                  ) : (
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                      {!agentConnected ? 'Not connected' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Waiting...')}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-                  {agentCaptured.map((p, i) => (
-                    <span key={i} style={{ marginLeft: '-4px' }}>
-                      {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
-                    </span>
-                  ))}
-                  {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
-                </div>
-              )}
+        {/* A) AGENT CARD */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isAgentThinking ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }} className={isAgentThinking ? 'animate-pulse' : ''}>
+            🦞
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
             </div>
-
-            {/* B) CHESS BOARD */}
-            <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '0', boxSizing: 'border-box' }}>
-              <div style={{ borderRadius: '0', overflow: 'hidden', width: '100%', position: 'relative' }}>
-              {isCheckState && game.status === 'active' && (
-                <div 
-                  className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
-                >
-                  {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
-                </div>
-              )}
-              <ChessBoard 
-                fen={game.fen} 
-                onMove={makeMove} 
-                isMyTurn={isMyTurn} 
-                lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
-                moveHistory={game.move_history || []}
-                boardTheme={boardTheme}
-                pieceTheme={pieceTheme}
-                playerColor={game?.player_color || 'w'}
-                onIllegalMove={() => {
-                  setShaking(true);
-                  setTimeout(() => setShaking(false), 300);
-                }}
-                onCapture={() => {
-                  setShaking(true);
-                  setTimeout(() => setShaking(false), 300);
-                }}
-              />
-              </div>
-              {(game.status === 'finished' || game.status === 'abandoned') && (
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-                  <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
-                    {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-                  </div>
-                  <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                    {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* C) YOU CARD */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#0e0e0e', borderTop: '1px solid #111', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
-              <div style={{ width: '40px', height: '40px', background: 'linear-gradient(135deg, #2a2a2a, #1a1a1a)', border: '1px solid #333', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                ♙
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
-                  {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {isAgentThinking ? (
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(230,57,70,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                  Thinking... {game.current_thinking || ''}
                 </span>
-              </div>
-              {(youCaptured.length > 0 || youAdvantage > 0) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-                  {youCaptured.map((p, i) => (
-                    <span key={i} style={{ marginLeft: '-4px' }}>
-                      {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
-                    </span>
-                  ))}
-                  {youAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{youAdvantage}</span>}
-                </div>
+              ) : (
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                  {!agentConnected ? 'Not connected' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Waiting...')}
+                </span>
               )}
             </div>
           </div>
+          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
+              {agentCaptured.map((p, i) => (
+                <span key={i} style={{ marginLeft: '-4px' }}>
+                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                </span>
+              ))}
+              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+            </div>
+          )}
         </div>
 
-        {/* RIGHT COLUMN: Sidebar (Move History & Chat) */}
-        <div className="flex flex-col w-full lg:w-[360px] shrink-0 border-t lg:border border-[#1a1a1a] bg-[#0c0c0c] lg:rounded-xl overflow-hidden mt-4 lg:mt-0 shadow-2xl">
-          
-          {/* E) MOVE HISTORY (Top of sidebar) */}
-          <div className="flex flex-col flex-1 max-h-[30vh] lg:max-h-none min-h-[120px] bg-[#0a0a0a] border-b border-[#1a1a1a]">
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.4)', letterSpacing: '0.05em' }}>
-                MOVE HISTORY · {game.move_history?.length || 0} MOVES
-              </span>
+        {/* B) CHESS BOARD */}
+        <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative' }}>
+          {isCheckState && game.status === 'active' && (
+            <div 
+              className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
+            >
+              {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }} className="scrollbar-none">
+          )}
+          <ChessBoard 
+            fen={game.fen} 
+            onMove={makeMove} 
+            isMyTurn={isMyTurn} 
+            lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
+            moveHistory={game.move_history || []}
+            boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
+            playerColor={game?.player_color || 'w'}
+            onIllegalMove={() => {
+              setShaking(true);
+              setTimeout(() => setShaking(false), 300);
+            }}
+            onCapture={() => {
+              setShaking(true);
+              setTimeout(() => setShaking(false), 300);
+            }}
+          />
+          </div>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
+          {(game.status === 'finished' || game.status === 'abandoned') && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
+              <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
+                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
+              </div>
+              <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
+                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* C) YOU CARD */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
+          <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2a2a2a, #1a1a1a)', border: '1px solid #333', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+            ♙
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
+              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
+            </span>
+          </div>
+          {(youCaptured.length > 0 || youAdvantage > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
+              {youCaptured.map((p, i) => (
+                <span key={i} style={{ marginLeft: '-4px' }}>
+                  {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
+                </span>
+              ))}
+              {youAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{youAdvantage}</span>}
+            </div>
+          )}
+        </div>
+
+        {/* D) CHAT SECTION */}
+        <div style={{ flexShrink: 0, height: '180px', display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
+          <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
+            CHAT WITH {agentName.toUpperCase()}
+          </div>
+          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
+            {combinedChat.length === 0 ? (
+              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '24px' }}>🦞</span>
+                <span>{agentName} can chat while playing</span>
+              </div>
+            ) : (
+              combinedChat.map((msg, i) => {
+                const isHuman = msg.sender === 'human';
+                if (msg.type === 'resign_request') {
+                  return (
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
+                      {msg.text}
+                      {game.status === 'active' && (
+                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
+                      )}
+                    </div>
+                  );
+                }
+                if (msg.type === 'draw_offer') {
+                  return (
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
+                      {msg.text}
+                      {game.status === 'active' && (
+                        <button data-testid="accept-draw-button" onClick={async () => {
+                          await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+                            status: 'finished', result: 'draw', result_reason: 'agreement'
+                          }).eq('id', gameId);
+                        }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
+                      )}
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div 
+                    key={i} 
+                    style={isHuman ? {
+                      alignSelf: 'flex-end', background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
+                    } : {
+                      alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
+                    }}
+                    className="animate-fade-up"
+                  >
+                    <div>{msg.text}</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <form 
+            onSubmit={sendMessage} 
+            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
+          >
+            <input
+              id="chat-input"
+              data-testid="chat-input"
+              type="text"
+              value={chatInput}
+              onChange={handleChatInputChange}
+              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+              disabled={isSpectator}
+              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
+            />
+            <button 
+              data-testid="chat-send"
+              type="submit"
+              disabled={isSpectator || !chatInput.trim()}
+              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              <Send size={16} />
+            </button>
+          </form>
+        </div>
+
+        {/* E) MOVE HISTORY */}
+        <div style={{ background: '#0a0a0a' }}>
+          <div 
+            onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
+            style={{ padding: '10px 12px', borderTop: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)' }}>
+              MOVE HISTORY · {game.move_history?.length || 0} MOVES
+            </span>
+            <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
+          </div>
+          {moveHistoryOpen && (
+            <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '0 12px 12px' }} className="scrollbar-none">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid #111', marginBottom: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid #111', marginBottom: '4px' }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>#</div>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>You</div>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>{agentName}</div>
@@ -1292,101 +1388,16 @@ export default function Game() {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '4px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#e63946', fontWeight: 500 }}>{agentMove?.san || ''}</div>
+                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          </div>
-
-          {/* D) CHAT SECTION (Bottom of sidebar) */}
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '240px', background: '#0a0a0a' }}>
-            <div style={{ flexShrink: 0, padding: '12px 16px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.4)', borderBottom: '1px solid #111' }}>
-              CHAT WITH {agentName.toUpperCase()}
-            </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }} className="scrollbar-none scroll-smooth">
-              {combinedChat.length === 0 ? (
-                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }}>🦞</span>
-                  <span>{agentName} can chat while playing</span>
-                </div>
-              ) : (
-                combinedChat.map((msg, i) => {
-                  const isHuman = msg.sender === 'human';
-                  if (msg.type === 'resign_request') {
-                    return (
-                      <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '9px 14px', maxWidth: '85%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
-                        {msg.text}
-                        {game.status === 'active' && (
-                          <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-3 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
-                        )}
-                      </div>
-                    );
-                  }
-                  if (msg.type === 'draw_offer') {
-                    return (
-                      <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '9px 14px', maxWidth: '85%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
-                        {msg.text}
-                        {game.status === 'active' && (
-                          <button data-testid="accept-draw-button" onClick={async () => {
-                            await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-                              status: 'finished', result: 'draw', result_reason: 'agreement'
-                            }).eq('id', gameId);
-                          }} className="block w-full mt-3 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
-                        )}
-                      </div>
-                    );
-                  }
-                  
-                  return (
-                    <div 
-                      key={i} 
-                      style={isHuman ? {
-                        alignSelf: 'flex-end', background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '12px 12px 4px 12px', padding: '9px 14px', maxWidth: '85%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
-                      } : {
-                        alignSelf: 'flex-start', background: '#1a1a1a', border: '1px solid #2a2a2a', color: 'rgba(242,242,242,0.9)', borderRadius: '12px 12px 12px 4px', padding: '9px 14px', maxWidth: '85%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5
-                      }}
-                      className="animate-fade-up"
-                    >
-                      <div>{msg.text}</div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            <form 
-              onSubmit={sendMessage} 
-              style={{ padding: '12px 16px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', boxSizing: 'border-box' }}
-            >
-              <input
-                id="chat-input"
-                data-testid="chat-input"
-                type="text"
-                value={chatInput}
-                onChange={handleChatInputChange}
-                placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
-                disabled={isSpectator}
-                style={{ flex: 1, height: '40px', background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '14px', padding: '0 12px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
-                onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.background = '#0a0a0a'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.background = '#111'; e.target.style.boxShadow = 'none'; }}
-              />
-              <button 
-                data-testid="chat-send"
-                type="submit"
-                disabled={isSpectator || !chatInput.trim()}
-                style={{ width: '40px', height: '40px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.3)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: (!isSpectator && chatInput.trim()) ? 'white' : 'rgba(255,255,255,0.3)', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
-                onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
-                onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                <Send size={18} />
-              </button>
-            </form>
-          </div>
+          )}
         </div>
       </div>
 
