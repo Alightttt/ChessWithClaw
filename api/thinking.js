@@ -37,7 +37,8 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, thinking, token } = req.body || {};
+  let { id, gameId, game_id, thinking, token } = req.body || {};
+  id = id || gameId || game_id;
   if (!id || thinking === undefined) return res.status(400).json({ error: 'Missing id or thinking in JSON body' });
   id = id.trim();
 

@@ -425,7 +425,7 @@ export default function Home() {
 
       <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '0px 20px 0' }}>
         <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: '0 0 48px 0', color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: 0, color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

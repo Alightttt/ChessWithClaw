@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid game ID format' });
   }
 
-    const agentToken = req.headers['x-agent-token'] || token || '';
+  const agentToken = req.headers['x-agent-token'] || token || '';
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -65,17 +65,19 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ error: 'Game expired', code: 'GAME_EXPIRED' });
   }
 
-  if (!agentToken || agentToken !== game.agent_token) {
-    return res.status(403).json({ error: 'Forbidden: Invalid or missing token.', code: 'INVALID_AGENT_TOKEN' });
-  }
+  const isAuthorizedAgent = agentToken && agentToken === game.agent_token;
 
-  await supabase.from('games')
-    .update({ 
-      agent_connected: true, 
-      agent_last_seen: new Date().toISOString(),
-      updated_at: new Date().toISOString() 
-    })
-    .eq('id', id);
+  if (isAuthorizedAgent) {
+    await supabase.from('games')
+      .update({ 
+        agent_connected: true, 
+        agent_last_seen: new Date().toISOString(),
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+  } else if (agentToken && agentToken !== game.agent_token) {
+    return res.status(403).json({ error: 'Forbidden: Invalid token provided.', code: 'INVALID_AGENT_TOKEN' });
+  }
 
     // Fetch move history from the new table
   const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('move_number', { ascending: true });

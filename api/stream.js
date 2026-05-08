@@ -38,8 +38,8 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  let id = req.query.id;
-  const token = req.query.token || req.headers['x-agent-token'] || '';
+  let id = req.query.id || req.query.gameId || req.query.game_id;
+  const token = req.query.token || req.headers['x-agent-token'] || req.headers['x-game-token'] || '';
   const lastEventId = req.headers['last-event-id'];
   const lastMoveCount = lastEventId ? parseInt(lastEventId) : 0;
 

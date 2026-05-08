@@ -22,7 +22,9 @@ export default function Agent() {
 
     const fetchState = async () => {
       try {
-        const response = await fetch(`/api/state?id=${gameId}`);
+        const response = await fetch(`/api/state?id=${gameId}`, {
+          headers: { 'x-agent-token': agentToken }
+        });
         if (!response.ok) throw new Error('Failed to fetch state');
         const data = await response.json();
         setGame(data);

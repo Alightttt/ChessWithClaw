@@ -38,8 +38,10 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, game_id, gameId: bodyGameId, text, type, sender = 'agent', token, reasoning, thinking } = req.body || {};
+  let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking } = req.body || {};
   let gameId = id || game_id || bodyGameId;
+  let text = bodyText || message;
+  let sender = bodySender || role || 'agent';
   if (!gameId || !text) return res.status(400).json({ error: 'Missing id or text in JSON body', code: 'MISSING_TEXT' });
   gameId = gameId.trim();
   
@@ -101,8 +103,8 @@ module.exports = async function handler(req, res) {
 
   const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
   const newMsg = {
-    role: req.body.role || 'human',
-    text: req.body.message || req.body.text || '',
+    role: sender,
+    text: text,
     timestamp: Date.now()
   };
 
