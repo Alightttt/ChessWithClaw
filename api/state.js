@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
   
-  const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('*, companion_thought, companion_thought_at, thought_language, board_theme, piece_style, draw_offer_pending').eq('id', id).single();
 
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
@@ -214,6 +214,12 @@ module.exports = async function handler(req, res) {
     agent_connected: game.agent_connected,
     agent_last_seen: game.agent_last_seen,
     turn: game.turn,
-    opponent_idle_since: idleSince
+    opponent_idle_since: idleSince,
+    companion_thought: game.companion_thought || '',
+    companion_thought_at: game.companion_thought_at || null,
+    thought_language: game.thought_language || 'english',
+    board_theme: game.board_theme || 'green',
+    piece_style: game.piece_style || 'standard',
+    draw_offer_pending: game.draw_offer_pending || false
   });
 }

@@ -445,16 +445,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="agents" style={{ background: '#0a0a0a', padding: '96px 24px', textAlign: 'center', marginBottom: '64px' }}>
+      <section id="agents" style={{ background: '#0a0a0a', padding: '40px 24px', textAlign: 'center', margin: '0' }}>
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '12px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>Supported Agents</h2>
           
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 'min(48px, 8vw)', flexWrap: 'wrap', marginBottom: '44px', marginTop: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'min(32px, 5vw)', flexWrap: 'wrap', marginBottom: '32px', marginTop: '24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
               <div 
                 className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
                 style={{ 
-                  width: '88px', height: '88px', borderRadius: '18px', border: '1px solid #222222', background: '#111111', 
+                  width: '180px', height: '64px', borderRadius: '14px', border: '1px solid #222222', background: '#111111', 
                   backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/openclaw.png')",
                   backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
                 }}
@@ -465,7 +465,7 @@ export default function Home() {
               <div 
                 className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
                 style={{ 
-                  width: '88px', height: '88px', borderRadius: '18px', border: '1px solid #222222', background: '#111111', 
+                  width: '180px', height: '64px', borderRadius: '14px', border: '1px solid #222222', background: '#111111', 
                   backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/hermes.png')",
                   backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
                 }}

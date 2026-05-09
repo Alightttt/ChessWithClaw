@@ -54,8 +54,13 @@ export default function Game() {
   const [boardSize, setBoardSize] = useState(320);
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
+  const [thoughtLanguage, setThoughtLanguage] = useState('english');
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const [companionThought, setCompanionThought] = useState('');
+  const [prevCompanionThoughtAt, setPrevCompanionThoughtAt] = useState(null);
+  const [displayedThought, setDisplayedThought] = useState('');
 
   useEffect(() => {
     const checkCheck = () => {
@@ -215,6 +220,15 @@ export default function Game() {
     };
   }, []);
 
+  useEffect(() => {
+    if (game && game.companion_thought && game.companion_thought_at) {
+      if (game.companion_thought_at !== prevCompanionThoughtAt) {
+        setCompanionThought(game.companion_thought);
+        setPrevCompanionThoughtAt(game.companion_thought_at);
+      }
+    }
+  }, [game, prevCompanionThoughtAt]);
+
   // Auto-scroll chat
   useEffect(() => {
     if (chatMessagesRef.current) {
@@ -229,7 +243,7 @@ export default function Game() {
     }
   }, [displayedThinking]);
 
-  const typerRef = useRef(null)
+  const thoughtTyperRef = useRef(null)
 
   useEffect(() => {
     if (!window.visualViewport) return
@@ -249,45 +263,42 @@ export default function Game() {
   }, [])
 
   useEffect(() => {
-    let baseText = game?.current_thinking || ''
-    if (baseText.length > 120) baseText = baseText.substring(0, 120) + '...'
-    const text = baseText
-    
-    if (!text || text === prevThinkingRef.current) return
-    prevThinkingRef.current = text
-    
-    if (typerRef.current) {
-      clearInterval(typerRef.current)
-      typerRef.current = null
+    if (!companionThought) {
+      setDisplayedThought('')
+      return
     }
     
-    setDisplayedThinking('')
+    if (thoughtTyperRef.current) {
+      clearInterval(thoughtTyperRef.current)
+      thoughtTyperRef.current = null
+    }
+    
+    setDisplayedThought('')
     let i = 0
     
-    typerRef.current = setInterval(() => {
+    thoughtTyperRef.current = setInterval(() => {
       i++
-      setDisplayedThinking(text.slice(0, i))
-      if (i >= text.length) {
-        clearInterval(typerRef.current)
-        typerRef.current = null
+      setDisplayedThought(companionThought.slice(0, i))
+      if (i >= companionThought.length) {
+        clearInterval(thoughtTyperRef.current)
+        thoughtTyperRef.current = null
       }
     }, 30)
     
+    const displayTime = companionThought.length * 30 + 3000;
+    const hideTimeout = setTimeout(() => {
+      setCompanionThought('');
+      setDisplayedThought('');
+    }, displayTime);
+    
     return () => {
-      if (typerRef.current) {
-        clearInterval(typerRef.current)
-        typerRef.current = null
+      if (thoughtTyperRef.current) {
+        clearInterval(thoughtTyperRef.current)
+        thoughtTyperRef.current = null
       }
+      clearTimeout(hideTimeout);
     }
-  }, [game?.current_thinking])
-
-  useEffect(() => {
-    if (game?.turn === (game?.player_color || 'w')) {
-      setDisplayedThinking('')
-      prevThinkingRef.current = ''
-      if (typerRef.current) clearInterval(typerRef.current)
-    }
-  }, [game?.turn, game?.player_color])
+  }, [companionThought])
 
   useEffect(() => {
     if (game?.last_commentary) {
@@ -550,6 +561,10 @@ export default function Game() {
         
         if (data.agent_connected) {
           connectedToastShown.current = true;
+        }
+
+        if (data.thought_language) {
+          setThoughtLanguage(data.thought_language);
         }
 
         setGame(data);
@@ -1174,21 +1189,22 @@ export default function Game() {
             🦞
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: displayedThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {isAgentThinking ? (
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(230,57,70,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                  Thinking... {game.current_thinking || ''}
-                </span>
-              ) : (
+            
+            {displayedThought ? (
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.7)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                {displayedThought}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                  {!agentConnected ? 'Not connected' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Waiting...')}
+                  {!agentConnected ? 'Not connected' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Thinking...')}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
           {(agentCaptured.length > 0 || agentAdvantage > 0) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
@@ -1573,6 +1589,28 @@ export default function Game() {
               >
                 {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
               </button>
+            </div>
+            <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]">
+              <label className="text-sm text-[var(--color-text-secondary)]">OpenClaw Thoughts Language</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'english', label: 'English' },
+                  { value: 'hindi', label: 'Hindi' },
+                  { value: 'hinglish', label: 'Hinglish' },
+                  { value: 'simple_english', label: 'Simple English' }
+                ].map(lang => (
+                  <button
+                    key={lang.value}
+                    onClick={async () => {
+                      setThoughtLanguage(lang.value);
+                      await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);
+                    }}
+                    className={`flex items-center justify-center p-2 rounded-md border text-sm transition-all ${thoughtLanguage === lang.value ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <Divider />
