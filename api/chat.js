@@ -1,3 +1,4 @@
+// ALTER TABLE games ADD COLUMN IF NOT EXISTS agent_typing BOOLEAN DEFAULT false;
 const { createClient } = require('@supabase/supabase-js');
 const { notifyAgent } = require('../server-lib/notify.js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
@@ -42,8 +43,28 @@ module.exports = async function handler(req, res) {
   let gameId = id || game_id || bodyGameId;
   let text = bodyText || message;
   let sender = bodySender || role || 'human';
-  if (!gameId || !text) return res.status(400).json({ error: 'Missing id or text in JSON body', code: 'MISSING_TEXT' });
+  
+  if (!gameId) return res.status(400).json({ error: 'Missing id in JSON body', code: 'MISSING_ID' });
   gameId = gameId.trim();
+
+  const agentToken = req.headers['x-agent-token'] || token || '';
+  const agentTyping = req.headers['x-agent-typing'];
+
+  if (sender === 'agent' && agentTyping === 'true') {
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data: game, error } = await supabase.from('games').select('agent_token').eq('id', gameId).single();
+    if (error || !game) return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
+    if (!agentToken || agentToken !== game.agent_token) {
+      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.', code: 'INVALID_TOKEN' });
+    }
+    await supabase.from('games').update({ agent_typing: true }).eq('id', gameId);
+    return res.status(200).json({ success: true, typing: true });
+  }
+
+  if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
   
   if (!validateUUID(gameId)) {
     return res.status(400).json({ error: 'Invalid game ID format', code: 'GAME_NOT_FOUND' });
@@ -60,7 +81,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Text is empty after sanitization', code: 'MISSING_TEXT' });
   }
 
-  const agentToken = req.headers['x-agent-token'] || token || '';
   const gameToken = req.headers['x-game-token'] || token || '';
 
   const supabase = createClient(
@@ -122,6 +142,9 @@ module.exports = async function handler(req, res) {
     updates.current_thinking = sanitizedReasoning || '';
     updates.agent_connected = true;
     updates.agent_last_seen = new Date().toISOString();
+    if (agentTyping === 'false') {
+      updates.agent_typing = false;
+    }
   }
 
   if (sender === 'human') {

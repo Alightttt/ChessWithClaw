@@ -55,6 +55,7 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
+  const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -567,6 +568,19 @@ export default function Game() {
           setThoughtLanguage(data.thought_language);
         }
 
+        if (data.agent_typing !== undefined) {
+          setAgentTyping(data.agent_typing);
+        }
+
+        if (data.board_theme) {
+          setBoardTheme(data.board_theme);
+          localStorage.setItem('cwc_theme', data.board_theme);
+        }
+        if (data.piece_style) {
+          setPieceTheme(data.piece_style);
+          localStorage.setItem('cwc_pieces', data.piece_style);
+        }
+
         setGame(data);
         fetch('/api/heartbeat', {
           method: 'POST',
@@ -600,6 +614,19 @@ export default function Game() {
         
         if (!payload.new.agent_connected && prev.agent_connected) {
           setAgentConnected(false);
+        }
+
+        if (payload.new.agent_typing !== prev.agent_typing) {
+          setAgentTyping(payload.new.agent_typing);
+        }
+
+        if (payload.new.board_theme && payload.new.board_theme !== prev.board_theme) {
+           setBoardTheme(payload.new.board_theme);
+           localStorage.setItem('cwc_theme', payload.new.board_theme);
+        }
+        if (payload.new.piece_style && payload.new.piece_style !== prev.piece_style) {
+           setPieceTheme(payload.new.piece_style);
+           localStorage.setItem('cwc_pieces', payload.new.piece_style);
         }
 
         return updatedGame;
@@ -781,6 +808,10 @@ export default function Game() {
             data.chat_history = chatData;
           } else {
             data.chat_history = [];
+          }
+
+          if (data.agent_typing !== undefined) {
+            setAgentTyping(data.agent_typing);
           }
 
           setGame(data);
@@ -1142,6 +1173,12 @@ export default function Game() {
         position: 'relative'
       }}
     >
+      <style>{`
+        @keyframes typingDot {
+          0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+          30% { opacity: 1; transform: translateY(-4px); }
+        }
+      `}</style>
       {isOffline && (
         <div className="absolute top-0 inset-x-0 bg-red-600 text-white font-semibold text-xs text-center py-1 z-[1000] shadow-[0_0_15px_rgba(220,38,38,0.5)]">
           You are offline. Reconnecting...
@@ -1201,7 +1238,7 @@ export default function Game() {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                  {!agentConnected ? 'Not connected' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Thinking...')}
+                  {!agentConnected ? 'Not connected' : (agentTyping ? 'Thinking...' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Thinking...'))}
                 </span>
               </div>
             )}
@@ -1350,6 +1387,18 @@ export default function Game() {
                   </div>
                 );
               })
+            )}
+            {agentTyping && (
+              <div 
+                style={{
+                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
+                }} 
+                className="animate-fade-up"
+              >
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
+              </div>
             )}
           </div>
           <form 
