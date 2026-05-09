@@ -215,17 +215,31 @@ module.exports = async function handler(req, res) {
   const moveObj = { from, to, promotion: promotion, san: san || move };
 
   let inCheck = false;
+  let isCheckmate = false;
+  let isStalemate = false;
+  let isDraw = false;
+  let nextTurn = isHumanMove ? 'b' : 'w';
+  let legalMoves = [];
   try {
     const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
     const moveResult = chess.move({ from, to, promotion });
+    
+    if (!moveResult) {
+      return res.status(400).json({ "error": "Invalid move", "code": "INVALID_MOVE" });
+    }
+    
     fen = chess.fen();
     moveObj.san = moveResult.san;
     inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
+    isCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
+    isStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
+    isDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
+    nextTurn = chess.turn();
+    legalMoves = chess.moves();
   } catch (e) {
     console.error("Chess.js invalid move:", e);
-    // Ignore invalid move rejection here to not break if chess.js version differs
-    // but the FEN update relies on it.
+    return res.status(400).json({ "error": "Invalid move", "code": "INVALID_MOVE" });
   }
 
   if (isAgentMove) {
@@ -278,10 +292,22 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  let gameStatus = 'active';
+  let gameResult = null;
+
+  if (isCheckmate) {
+     gameStatus = 'finished';
+     gameResult = isAgentMove ? 'black_wins' : 'white_wins';
+  } else if (isStalemate || isDraw) {
+     gameStatus = 'finished';  
+     gameResult = 'draw';
+  }
+
   const updates = {
     fen: fen || game.fen,
-    turn: isHumanMove ? 'b' : 'w',
-    status: 'active',
+    turn: nextTurn,
+    status: gameStatus,
+    result: gameResult,
     move_number: moveNumber,
     current_thinking: req.body?.thinking || req.body?.reasoning || '',
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
@@ -309,8 +335,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Chessmate/Stalemate detection logic simplified
-  if (req.body?.status === 'finished') {
+  if (req.body?.status === 'finished' && req.body?.result) {
     updates.status = 'finished'; 
     updates.result = req.body?.result; 
     updates.result_reason = req.body?.result_reason;
@@ -346,7 +371,7 @@ module.exports = async function handler(req, res) {
       event: updates.status === 'finished' ? "game_over" : "your_turn",
       game_id: id,
       fen: fen || game.fen,
-      turn: "b",
+      turn: nextTurn,
       move_number: moveNumber,
       last_move: {
         from: moveObj.from,
@@ -354,13 +379,13 @@ module.exports = async function handler(req, res) {
         san: moveObj.san,
         uci: moveObj.from + moveObj.to + (moveObj.promotion || '')
       },
-      legal_moves: [],
+      legal_moves: legalMoves,
       legal_moves_uci: [],
       move_history: game.move_history,
       board_ascii: "",
-      in_check: false,
-      is_checkmate: false,
-      is_stalemate: false,
+      in_check: inCheck,
+      is_checkmate: isCheckmate,
+      is_stalemate: isStalemate,
       material_balance: {},
       callback_url: `https://${req.headers.host}/api/move`
     };
@@ -387,12 +412,16 @@ module.exports = async function handler(req, res) {
     game: {
       id: updated.id,
       fen: updated.fen,
-      turn: updated.turn,
-      status: updated.status,
+      turn: nextTurn,
+      status: updates.status,
+      result: updates.result,
       move_number: updated.move_number || Math.floor(game.move_history.length / 2) + 1,
       last_move: updated.last_move,
       in_check: inCheck,
-      legal_moves: [],
+      is_checkmate: isCheckmate,
+      is_stalemate: isStalemate,
+      is_draw: isDraw,
+      legal_moves: legalMoves,
       move_history: updated.move_history || game.move_history
     }
   });

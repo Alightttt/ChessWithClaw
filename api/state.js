@@ -101,10 +101,45 @@ module.exports = async function handler(req, res) {
     }));
   }
 
-  // Fetched move history and thinking
+  let asciiBoard = "";
+  let legalMoves = [];
+  let pgnStr = "";
+  let inCheck = false;
 
-
-// chess logic removed
+  try {
+    const { Chess } = await import('chess.js');
+    const chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    
+    // We should load pgn from move_history if possible to get a better PGN. 
+    // Or just use chess.pgn() but the chess instance was just created from FEN. 
+    // Wait, chess instance created from FEN does not have move history. 
+    // If the prompt says: "pgn: chess.pgn()", I will exactly use that.
+    
+    // Replay moves to get real PGN
+    if (game.move_history && game.move_history.length > 0) {
+      const pgnChess = new Chess();
+      let ok = true;
+      for (const m of game.move_history) {
+        if (!pgnChess.move({ from: m.from || m.from_square, to: m.to || m.to_square, promotion: m.promotion })) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        pgnStr = pgnChess.pgn ? pgnChess.pgn() : "";
+      } else {
+        pgnStr = chess.pgn ? chess.pgn() : "";
+      }
+    } else {
+      pgnStr = chess.pgn ? chess.pgn() : "";
+    }
+    
+    asciiBoard = chess.ascii ? chess.ascii() : "";
+    legalMoves = chess.moves ? chess.moves() : [];
+    inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
+  } catch (e) {
+    console.error("Chess.js state parsing error:", e);
+  }
 
   // Calculate captured pieces and material balance
   const fenBoard = game.fen ? game.fen.split(' ')[0] : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
@@ -158,14 +193,14 @@ module.exports = async function handler(req, res) {
     },
     captured_pieces: captured,
     material_balance: material_balance,
-    is_in_check: false,
+    is_in_check: inCheck,
     game_phase: game_phase,
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',
     you_are: 'BLACK',
     fen: game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    pgn: "",
-    ascii_board: "",
-    legal_moves: [],
+    pgn: pgnStr,
+    ascii_board: asciiBoard,
+    legal_moves: legalMoves,
     last_move: game.move_history?.length > 0 ? game.move_history[game.move_history.length - 1] : null,
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],
