@@ -146,7 +146,7 @@ module.exports = async function handler(req, res) {
     status: game.status,
     game_info: {
       white_player: 'Human',
-      black_player: 'Agent',
+      black_player: 'OpenClaw',
       white_elo: '?',
       black_elo: '?',
       time_control: 'none',
@@ -174,7 +174,7 @@ module.exports = async function handler(req, res) {
     chat_count: game.chat_history?.length || 0,
     draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
     draw_offer_pending: game.draw_offer_pending || false,
-    agent_name: game.agent_name,
+    agent_name: game.agent_name === 'Your Agent' ? 'Your OpenClaw' : (game.agent_name || 'Your OpenClaw'),
     current_thinking: game.current_thinking,
     agent_connected: game.agent_connected,
     agent_last_seen: game.agent_last_seen,

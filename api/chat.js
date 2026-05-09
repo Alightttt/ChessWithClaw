@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
   let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking } = req.body || {};
   let gameId = id || game_id || bodyGameId;
   let text = bodyText || message;
-  let sender = bodySender || role || 'agent';
+  let sender = bodySender || role || 'human';
   if (!gameId || !text) return res.status(400).json({ error: 'Missing id or text in JSON body', code: 'MISSING_TEXT' });
   gameId = gameId.trim();
   
@@ -79,8 +79,8 @@ module.exports = async function handler(req, res) {
   }
 
   if (sender === 'human') {
-    if (!gameToken || gameToken !== game.secret_token) {
-      return res.status(403).json({ error: 'Forbidden: Invalid or missing token for human.', code: 'INVALID_TOKEN' });
+    if (game.status === 'finished') {
+      return res.status(403).json({ error: 'Game is finished', code: 'GAME_FINISHED' });
     }
   } else if (sender === 'agent') {
     if (!agentToken || agentToken !== game.agent_token) {

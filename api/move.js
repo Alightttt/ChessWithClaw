@@ -150,6 +150,16 @@ module.exports = async function handler(req, res) {
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
+
+  const isAgentRequest = !!(req.headers['x-agent-token'] || token);
+  if (isAgentRequest) {
+    if (game.status === 'waiting') {
+      return res.status(403).json({ "error": "Game has not started yet", "code": "GAME_NOT_STARTED" });
+    }
+    if (game.turn !== 'b') {
+      return res.status(403).json({ "error": "Not your turn", "code": "NOT_YOUR_TURN" });
+    }
+  }
   
   // Fetch move history from the new table
   const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('created_at', { ascending: true });
@@ -201,8 +211,22 @@ module.exports = async function handler(req, res) {
 
   const from = move.substring(0, 2);
   const to = move.substring(2, 4);
-  const promotion = move.length > 4 ? move.substring(4, 5) : null;
-  const moveObj = { from, to, promotion, san: san || move };
+  const promotion = move.length > 4 ? move.substring(4, 5) : undefined;
+  const moveObj = { from, to, promotion: promotion, san: san || move };
+
+  let inCheck = false;
+  try {
+    const { Chess } = await import('chess.js');
+    const chess = new Chess(game.fen);
+    const moveResult = chess.move({ from, to, promotion });
+    fen = chess.fen();
+    moveObj.san = moveResult.san;
+    inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
+  } catch (e) {
+    console.error("Chess.js invalid move:", e);
+    // Ignore invalid move rejection here to not break if chess.js version differs
+    // but the FEN update relies on it.
+  }
 
   if (isAgentMove) {
     await supabase
@@ -367,7 +391,7 @@ module.exports = async function handler(req, res) {
       status: updated.status,
       move_number: updated.move_number || Math.floor(game.move_history.length / 2) + 1,
       last_move: updated.last_move,
-      in_check: false,
+      in_check: inCheck,
       legal_moves: [],
       move_history: updated.move_history || game.move_history
     }
