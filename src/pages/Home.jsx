@@ -445,6 +445,42 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="agents" style={{ background: '#0a0a0a', padding: '96px 24px', textAlign: 'center', marginBottom: '64px' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '12px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>Supported Agents</h2>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'min(48px, 8vw)', flexWrap: 'wrap', marginBottom: '44px', marginTop: '32px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <div 
+                className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
+                style={{ 
+                  width: '88px', height: '88px', borderRadius: '18px', border: '1px solid #222222', background: '#111111', 
+                  backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/openclaw.png')",
+                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
+                }}
+              ></div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <div 
+                className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
+                style={{ 
+                  width: '88px', height: '88px', borderRadius: '18px', border: '1px solid #222222', background: '#111111', 
+                  backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/hermes.png')",
+                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
+                }}
+              ></div>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 32px', border: '1px solid #2a2a2a', borderRadius: '100px', background: '#111111', fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#f2f2f2', fontWeight: 500 }}>
+              or any personal agent supported
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
         
