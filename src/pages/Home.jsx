@@ -3,14 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield } from "lucide-react";
+import ChessBoard from '../components/chess/ChessBoard';
 
 const DEMO_THOUGHTS = [
-    "Hmm... I wonder what you'll play first 👀",
-    "Ready when you are. Don't keep me waiting 😏",
-    "Yaar, iss baar main nahi harunga 😤",
-    "I've been studying your patterns...",
-    "Every game tells a story. Let's write ours 🦞",
-    "Okay okay, let's see what you've got",
+    "I wonder what you'll play first 👀",
+    "Ready when you are.",
+    "Studying your patterns...",
+    "Let's write a story 🦞",
 ];
 
 function ThoughtBubble() {
@@ -39,31 +38,26 @@ function ThoughtBubble() {
     <AnimatePresence mode="wait">
       <motion.div
         key={thoughtIdx}
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 5 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          position: 'absolute',
-          bottom: '100%',
-          right: '8px',
-          marginBottom: '8px',
-          padding: '8px 12px',
-          background: 'rgba(230,57,70,0.1)',
-          border: '1px solid rgba(230,57,70,0.2)',
-          borderRadius: '12px 12px 0 12px',
-          color: '#f2f2f2',
-          fontFamily: "'Poppins', sans-serif",
+          color: '#888888',
+          fontFamily: "'Inter', sans-serif",
           fontSize: '13px',
-          fontWeight: 300,
-          maxWidth: '85%',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          zIndex: 30
+          fontWeight: 400,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          flex: 1,
+          textAlign: 'right',
+          marginLeft: '12px'
         }}
       >
-        {displayedThought}
+        💭 {displayedThought}
         {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].length && (
-          <span className="inline-block w-1.5 h-3 bg-[#e63946] ml-1 align-middle animate-pulse" />
+          <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
         )}
       </motion.div>
     </AnimatePresence>
@@ -407,32 +401,11 @@ export default function Home() {
                 <ThoughtBubble />
               </div>
               <div 
-                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)' }}
+                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '4px' }}
               >
-                {[8,7,6,5,4,3,2,1].map(rank => ['a','b','c','d','e','f','g','h'].map(file => {
-                  const sq = file + rank;
-                  const isLight = (['a','b','c','d','e','f','g','h'].indexOf(file) + (8-rank)) % 2 === 0;
-                  const INITIAL_PIECES = {
-                    a8:'♜', b8:'♞', c8:'♝', d8:'♛', e8:'♚', f8:'♝', g8:'♞', h8:'♜',
-                    a7:'♟', b7:'♟', c7:'♟', d7:'♟', e7:'♟', f7:'♟', g7:'♟', h7:'♟',
-                    e4:'♙',
-                    a2:'♙', b2:'♙', c2:'♙', d2:'♙', f2:'♙', g2:'♙', h2:'♙',
-                    a1:'♖', b1:'♘', c1:'♗', d1:'♕', e1:'♔', f1:'♗', g1:'♘', h1:'♖',
-                  };
-                  return (
-                    <div key={sq} style={{ background: isLight ? '#739552' : '#577047', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {INITIAL_PIECES[sq] && (
-                        <span style={{ 
-                          fontSize: 'clamp(20px, 6vw, 32px)', 
-                          color: ['♙','♖','♘','♗','♕','♔'].includes(INITIAL_PIECES[sq]) ? '#ffffff' : '#1a1a1a', 
-                          textShadow: ['♙','♖','♘','♗','♕','♔'].includes(INITIAL_PIECES[sq]) ? '0 1px 2px rgba(0,0,0,0.5)' : 'none' 
-                        }}>
-                          {INITIAL_PIECES[sq]}
-                        </span>
-                      )}
-                    </div>
-                  );
-                }))}
+                <div style={{ pointerEvents: 'none' }}>
+                  <ChessBoard fen="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -483,39 +456,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="agents" style={{ background: 'transparent', padding: '80px 20px', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>Supported Agents</h2>
-        
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '32px', maxWidth: '640px', margin: '0 auto 32px auto' }}>
-          <div>
-            <div style={{ 
-              width: '280px', height: '100px', borderRadius: '20px', background: '#ffffff', border: 'none',
-              backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/openclaw.png')",
-              backgroundSize: '60%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', cursor: 'default'
-            }}></div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <p style={{ width: '280px', textAlign: 'center', fontSize: '12px', color: '#666666', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginTop: '10px' }}>OpenClaw</p>
-            </div>
-          </div>
-          
-          <div>
-            <div style={{ 
-              width: '280px', height: '100px', borderRadius: '20px', background: '#ffffff', border: 'none',
-              backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/hermes.png')",
-              backgroundSize: '60%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', cursor: 'default'
-            }}></div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <p style={{ width: '280px', textAlign: 'center', fontSize: '12px', color: '#666666', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginTop: '10px' }}>Hermes</p>
-            </div>
-          </div>
-        </div>
 
-        <div style={{ textAlign: 'center', marginTop: '28px' }}>
-          <div style={{ display: 'inline-block', padding: '12px 36px', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '100px', color: '#cccccc', fontSize: '15px', fontWeight: '500', fontFamily: "'Inter', sans-serif" }}>
-            or any personal agent supported
-          </div>
-        </div>
-      </section>
 
       <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
