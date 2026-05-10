@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import ChessBoard from '../components/chess/ChessBoard';
 import { ChevronDown, Zap, Shield } from "lucide-react";
 
 const DEMO_THOUGHTS = [
@@ -408,16 +407,32 @@ export default function Home() {
                 <ThoughtBubble />
               </div>
               <div 
-                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)' }}
               >
-                <ChessBoard 
-                  fen="r1q1rk2/pp2bppp/2p1pn2/3p4/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 0 1"
-                  interactive={false}
-                  showCoordinates={false}
-                  boardTheme="green"
-                  pieceTheme="merida"
-                  lastMove={{ from: 'c4', to: 'd5' }}
-                />
+                {[8,7,6,5,4,3,2,1].map(rank => ['a','b','c','d','e','f','g','h'].map(file => {
+                  const sq = file + rank;
+                  const isLight = (['a','b','c','d','e','f','g','h'].indexOf(file) + (8-rank)) % 2 === 0;
+                  const INITIAL_PIECES = {
+                    a8:'♜', b8:'♞', c8:'♝', d8:'♛', e8:'♚', f8:'♝', g8:'♞', h8:'♜',
+                    a7:'♟', b7:'♟', c7:'♟', d7:'♟', e7:'♟', f7:'♟', g7:'♟', h7:'♟',
+                    e4:'♙',
+                    a2:'♙', b2:'♙', c2:'♙', d2:'♙', f2:'♙', g2:'♙', h2:'♙',
+                    a1:'♖', b1:'♘', c1:'♗', d1:'♕', e1:'♔', f1:'♗', g1:'♘', h1:'♖',
+                  };
+                  return (
+                    <div key={sq} style={{ background: isLight ? '#739552' : '#577047', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {INITIAL_PIECES[sq] && (
+                        <span style={{ 
+                          fontSize: 'clamp(20px, 6vw, 32px)', 
+                          color: ['♙','♖','♘','♗','♕','♔'].includes(INITIAL_PIECES[sq]) ? '#ffffff' : '#1a1a1a', 
+                          textShadow: ['♙','♖','♘','♗','♕','♔'].includes(INITIAL_PIECES[sq]) ? '0 1px 2px rgba(0,0,0,0.5)' : 'none' 
+                        }}>
+                          {INITIAL_PIECES[sq]}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }))}
               </div>
             </div>
           </motion.div>
@@ -468,38 +483,36 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="agents" style={{ background: '#0a0a0a', padding: '40px 24px', textAlign: 'center', margin: '0' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '12px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>Supported Agents</h2>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 'min(32px, 5vw)', flexWrap: 'wrap', marginBottom: '32px', marginTop: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-              <div 
-                className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
-                style={{ 
-                  width: '180px', height: '64px', borderRadius: '14px', border: '1px solid #222222', background: '#111111', 
-                  backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/openclaw.png')",
-                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
-                }}
-              ></div>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-              <div 
-                className="transition-all duration-200 hover:border-[#333333] hover:scale-105 cursor-pointer"
-                style={{ 
-                  width: '180px', height: '64px', borderRadius: '14px', border: '1px solid #222222', background: '#111111', 
-                  backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/hermes.png')",
-                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'
-                }}
-              ></div>
+      <section id="agents" style={{ background: 'transparent', padding: '80px 20px', textAlign: 'center' }}>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em', color: '#f2f2f2' }}>Supported Agents</h2>
+        
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '32px', maxWidth: '640px', margin: '0 auto 32px auto' }}>
+          <div>
+            <div style={{ 
+              width: '280px', height: '100px', borderRadius: '20px', background: '#ffffff', border: 'none',
+              backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/openclaw.png')",
+              backgroundSize: '60%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', cursor: 'default'
+            }}></div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <p style={{ width: '280px', textAlign: 'center', fontSize: '12px', color: '#666666', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginTop: '10px' }}>OpenClaw</p>
             </div>
           </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 32px', border: '1px solid #2a2a2a', borderRadius: '100px', background: '#111111', fontFamily: "'Inter', sans-serif", fontSize: '15px', color: '#f2f2f2', fontWeight: 500 }}>
-              or any personal agent supported
+          
+          <div>
+            <div style={{ 
+              width: '280px', height: '100px', borderRadius: '20px', background: '#ffffff', border: 'none',
+              backgroundImage: "url('https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/hermes.png')",
+              backgroundSize: '60%', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', cursor: 'default'
+            }}></div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <p style={{ width: '280px', textAlign: 'center', fontSize: '12px', color: '#666666', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", marginTop: '10px' }}>Hermes</p>
             </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '28px' }}>
+          <div style={{ display: 'inline-block', padding: '12px 36px', background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '100px', color: '#cccccc', fontSize: '15px', fontWeight: '500', fontFamily: "'Inter', sans-serif" }}>
+            or any personal agent supported
           </div>
         </div>
       </section>

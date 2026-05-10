@@ -59,9 +59,8 @@ export default function Game() {
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const [companionThought, setCompanionThought] = useState('');
-  const [prevCompanionThoughtAt, setPrevCompanionThoughtAt] = useState(null);
-  const [displayedThought, setDisplayedThought] = useState('');
+  const [visibleThought, setVisibleThought] = useState('');
+  const prevThoughtValRef = useRef('');
 
   useEffect(() => {
     const checkCheck = () => {
@@ -94,7 +93,7 @@ export default function Game() {
   const [lastMoveFrom, setLastMoveFrom] = useState(null);
   const [lastMoveTo, setLastMoveTo] = useState(null);
   const [agentConnected, setAgentConnected] = useState(false);
-  const [displayedThinking, setDisplayedThinking] = useState('');
+
   const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const createRipple = useRipple();
@@ -103,10 +102,12 @@ export default function Game() {
   const prevAgentTypingRef = useRef(false);
   const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
 
+  const currentChatCount = (game?.chat_history?.length || 0) + localMessages.length;
+
   useEffect(() => {
-    prevChatCountRef.current = combinedChat.length;
+    prevChatCountRef.current = currentChatCount;
     prevAgentTypingRef.current = agentTyping;
-  }, [combinedChat.length, agentTyping]);
+  }, [currentChatCount, agentTyping]);
 
   const toggleReaction = async (msgId, emoji) => {
     setActiveReactionMsgId(null);
@@ -142,12 +143,11 @@ export default function Game() {
     // Step 2: Clear all local component state
     setGame(null)
     setAgentConnected(false)
-    setDisplayedThinking('')
+    setVisibleThought('')
     setLastMoveFrom(null)
     setLastMoveTo(null)
     setShowGameOverModal(false)
     connectedToastShown.current = false
-    prevThinkingRef.current = ''
     
     // Step 3: Navigate to home to create fresh game
     // Do NOT try to navigate to /created/:id from here
@@ -188,10 +188,9 @@ export default function Game() {
   const connectedToastShown = useRef(false);
   const boardRef = useRef(null);
   const chatMessagesRef = useRef(null);
-  const thinkingScrollRef = useRef(null);
+
   const channelRef = useRef(null);
   const containerRef = useRef(null);
-  const prevThinkingRef = useRef('');
 
 
 
@@ -248,13 +247,12 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    if (game && game.companion_thought && game.companion_thought_at) {
-      if (game.companion_thought_at !== prevCompanionThoughtAt) {
-        setCompanionThought(game.companion_thought);
-        setPrevCompanionThoughtAt(game.companion_thought_at);
-      }
+    if (game?.companion_thought && game.companion_thought !== prevThoughtValRef.current) {
+      prevThoughtValRef.current = game.companion_thought;
+      setVisibleThought(game.companion_thought);
+      setTimeout(() => setVisibleThought(''), 3000);
     }
-  }, [game, prevCompanionThoughtAt]);
+  }, [game?.companion_thought]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -263,14 +261,9 @@ export default function Game() {
     }
   }, [game?.chat_history]);
 
-  // Auto-scroll thinking
-  useEffect(() => {
-    if (thinkingScrollRef.current && displayedThinking) {
-      thinkingScrollRef.current.scrollTop = thinkingScrollRef.current.scrollHeight;
-    }
-  }, [displayedThinking]);
 
-  const thoughtTyperRef = useRef(null)
+
+
 
   useEffect(() => {
     if (!window.visualViewport) return
@@ -288,44 +281,6 @@ export default function Game() {
     window.visualViewport.addEventListener('resize', handleViewport)
     return () => window.visualViewport.removeEventListener('resize', handleViewport)
   }, [])
-
-  useEffect(() => {
-    if (!companionThought) {
-      setDisplayedThought('')
-      return
-    }
-    
-    if (thoughtTyperRef.current) {
-      clearInterval(thoughtTyperRef.current)
-      thoughtTyperRef.current = null
-    }
-    
-    setDisplayedThought('')
-    let i = 0
-    
-    thoughtTyperRef.current = setInterval(() => {
-      i++
-      setDisplayedThought(companionThought.slice(0, i))
-      if (i >= companionThought.length) {
-        clearInterval(thoughtTyperRef.current)
-        thoughtTyperRef.current = null
-      }
-    }, 30)
-    
-    const displayTime = companionThought.length * 30 + 3000;
-    const hideTimeout = setTimeout(() => {
-      setCompanionThought('');
-      setDisplayedThought('');
-    }, displayTime);
-    
-    return () => {
-      if (thoughtTyperRef.current) {
-        clearInterval(thoughtTyperRef.current)
-        thoughtTyperRef.current = null
-      }
-      clearTimeout(hideTimeout);
-    }
-  }, [companionThought])
 
   useEffect(() => {
     if (game?.last_commentary) {
@@ -1260,20 +1215,22 @@ export default function Game() {
             🦞
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: displayedThought ? '2px' : '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
             </div>
             
-            {displayedThought ? (
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.7)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal', lineHeight: '1.4' }}>
-                {displayedThought}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                  {!agentConnected ? 'Not connected' : (agentTyping ? 'Thinking...' : (game?.turn === (game?.player_color || 'w') ? 'Watching you...' : 'Thinking...'))}
-                </span>
+            {visibleThought && (
+              <div style={{
+                padding: '12px 16px',
+                color: '#888888',
+                fontSize: '14px',
+                fontFamily: "'Inter', sans-serif",
+                lineHeight: '1.5',
+                maxWidth: '100%',
+                wordBreak: 'break-word'
+              }}>
+                💭 {visibleThought}
               </div>
             )}
           </div>

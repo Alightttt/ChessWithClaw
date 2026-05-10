@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
@@ -52,6 +52,24 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const existing = document.querySelectorAll("link[rel*='icon']");
+    existing.forEach(el => el.remove());
+    
+    const favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    favicon.type = 'image/png';
+    favicon.sizes = '32x32';
+    favicon.href = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png';
+    document.head.appendChild(favicon);
+    
+    const appleIcon = document.createElement('link');
+    appleIcon.rel = 'apple-touch-icon';
+    appleIcon.sizes = '180x180';
+    appleIcon.href = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png';
+    document.head.appendChild(appleIcon);
+  }, []);
+
   return (
     <BrowserRouter>
       <ScrollToTop />

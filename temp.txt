@@ -1,0 +1,61 @@
+45:    return{byWhite,byBlack};
+68:      if (typeof window.Chess !== 'function') return;
+132:    return () => {
+159:    if (!fen) return null;
+160:    if (typeof window.Chess !== 'function') return null;
+172:        if (!sq) return;
+177:      return { white: w, black: b, advantage: diff > 0 ? 'white' : diff < 0 ? 'black' : 'equal', difference: Math.abs(diff) };
+179:      return null;
+242:    return () => {
+276:    if (!window.visualViewport) return
+289:    return () => window.visualViewport.removeEventListener('resize', handleViewport)
+295:      return
+321:    return () => {
+337:      return () => clearTimeout(timer);
+343:    if (!soundEnabled) return;
+367:    if (!game) return;
+371:        if (typeof window.Chess !== 'function') return;
+428:      return;
+464:    return () => {
+484:    if (!game) return;
+519:      return;
+532:          return;
+630:        if (!prev) return payload.new;
+658:        return updatedGame;
+676:        if (!prev) return prev;
+689:          return timeA - timeB;
+698:        return { ...prev, ...updates };
+706:        if (!prev) return prev;
+715:        return { ...prev, thinking_log: newThinkingLog };
+721:        if (!prev) return prev;
+722:        return { ...prev, current_thinking: payload.payload.text };
+742:    return () => {
+754:      return;
+767:      return;
+780:        return;
+797:    return () => window.removeEventListener('keydown', handleKeyDown);
+852:    return () => document.removeEventListener('visibilitychange', handleVisibility);
+856:    if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
+857:    if (boardLocked || submittingRef.current) return;
+863:      return;
+871:      return;
+892:        return;
+916:          return;
+949:    if (!chatInput.trim()) return;
+1049:    if (!game || game.status === 'waiting') return 'idle'
+1050:    if (game.turn === 'b') return 'thinking'
+1054:    if (!mat) return 'neutral'
+1055:    if (mat.advantage === 'black') return 'winning'
+1056:    if (mat.advantage === 'white') return 'losing'
+1057:    return 'neutral'
+1071:    if (typeof window.Chess !== 'function') return;
+1076:      return;
+1119:    return (
+1152:    return (
+1178:  if (!game) return null;
+1187:    return timeA - timeB;
+1190:  return (
+1393:                  return (
+1403:                  return (
+1420:                return (
+1523:                  return (
