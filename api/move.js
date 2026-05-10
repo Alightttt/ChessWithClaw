@@ -304,7 +304,7 @@ module.exports = async function handler(req, res) {
   }
 
   // Fire and forget companion thought generation
-  fetch(`https://${req.headers.host}/api/companion?gameId=${id}&trigger=move`).catch(() => {});
+  fetch(`https://${req.headers.host}/api/thoughts?gameId=${id}&trigger=move`).catch(() => {});
 
   const updates = {
     fen: fen || game.fen,

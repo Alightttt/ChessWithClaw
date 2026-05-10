@@ -87,6 +87,7 @@ export default function Game() {
   const [boardLocked, setBoardLocked] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [closingGameOver, setClosingGameOver] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [commentary, setCommentary] = useState('');
   const [showCommentary, setShowCommentary] = useState(false);
@@ -97,6 +98,31 @@ export default function Game() {
   const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const createRipple = useRipple();
+
+  const prevChatCountRef = useRef(0);
+  const prevAgentTypingRef = useRef(false);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
+
+  useEffect(() => {
+    prevChatCountRef.current = combinedChat.length;
+    prevAgentTypingRef.current = agentTyping;
+  }, [combinedChat.length, agentTyping]);
+
+  const toggleReaction = async (msgId, emoji) => {
+    setActiveReactionMsgId(null);
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`)
+        },
+        body: JSON.stringify({ id: gameId, action: 'react', messageId: msgId, emoji, role: 'human' })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -1178,6 +1204,14 @@ export default function Game() {
           0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
           30% { opacity: 1; transform: translateY(-4px); }
         }
+        @keyframes messageIn {
+          from { opacity: 0; transform: scale(0.85) translateY(8px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes reactIn {
+          from { opacity: 0; transform: scale(0); }
+          to   { opacity: 1; transform: scale(1); }
+        }
       `}</style>
       {isOffline && (
         <div className="absolute top-0 inset-x-0 bg-red-600 text-white font-semibold text-xs text-center py-1 z-[1000] shadow-[0_0_15px_rgba(220,38,38,0.5)]">
@@ -1347,10 +1381,17 @@ export default function Game() {
               </div>
             ) : (
               combinedChat.map((msg, i) => {
-                const isHuman = msg.sender === 'human';
+                const isHuman = msg.sender === 'human' || msg.role === 'human';
+                const isNew = i >= prevChatCountRef.current;
+                const wasTyping = prevAgentTypingRef.current;
+                const animStyle = isNew ? {
+                  animation: `messageIn 0.2s ease-out ${!isHuman && wasTyping ? '0.1s' : '0s'} both`,
+                  transformOrigin: isHuman ? 'bottom right' : 'bottom left'
+                } : {};
+
                 if (msg.type === 'resign_request') {
                   return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
                       {msg.text}
                       {game.status === 'active' && (
                         <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
@@ -1360,7 +1401,7 @@ export default function Game() {
                 }
                 if (msg.type === 'draw_offer') {
                   return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }} className="animate-fade-up">
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
                       {msg.text}
                       {game.status === 'active' && (
                         <button data-testid="accept-draw-button" onClick={async () => {
@@ -1373,17 +1414,43 @@ export default function Game() {
                   );
                 }
                 
+                const REACTION_EMOJIS = ['❤️', '😂', '🔥', '😮', '😅', '👏'];
+                const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
+                
                 return (
-                  <div 
-                    key={i} 
-                    style={isHuman ? {
-                      alignSelf: 'flex-end', background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
-                    } : {
-                      alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
-                    }}
-                    className="animate-fade-up"
-                  >
-                    <div>{msg.text}</div>
+                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
+                    
+                    {!isHuman && activeReactionMsgId === (msg.id || msg.timestamp) && (
+                      <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
+                        {REACTION_EMOJIS.map(e => (
+                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e)} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div 
+                      onClick={() => !isHuman && setActiveReactionMsgId(activeReactionMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
+                      className="group cursor-pointer"
+                      style={isHuman ? {
+                        background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
+                      } : {
+                        background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
+                      }}
+                    >
+                      <div>{msg.text}</div>
+                    </div>
+                    
+                    {hasReactions && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
+                        {Object.entries(msg.reactions).map(([emoji, reactors]) => (
+                          <div key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji)} style={{ background: isHuman ? 'rgba(230,57,70,0.1)' : '#1e1e1e', border: '1px solid ' + (isHuman ? 'rgba(230,57,70,0.3)' : '#333'), borderRadius: '12px', padding: '2px 6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: 'white' }}>
+                            {emoji} {reactors.length > 1 ? reactors.length : ''}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1496,13 +1563,15 @@ export default function Game() {
       />
 
       {showGameOverModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-black/60 border border-white/10 rounded-2xl p-8 max-w-[340px] w-full text-center relative shadow-[0_0_40px_rgba(220,38,38,0.15)] glow-anim backdrop-blur-md">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8, 8, 8, 0.92)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: closingGameOver ? 0 : 1, transition: 'opacity 300ms ease' }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'repeating-conic-gradient(#ffffff 0% 25%, transparent 0% 50%) 0 0 / 60px 60px', zIndex: 0 }} />
+          
+          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '24px', padding: '48px 40px', maxWidth: '420px', width: '90%', textAlign: 'center', position: 'relative', zIndex: 1, transform: closingGameOver ? 'scale(0.9)' : 'scale(1)', transition: 'all 300ms ease-out' }}>
             <button data-testid="close-game-over-modal" onClick={handleCloseGameOverModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
               <XIcon size={18} />
             </button>
             <div className="text-5xl mb-4 drop-shadow-md">
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '🦞'}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '♛' : game?.result === 'draw' ? '🤝' : '🦞'}
             </div>
             <div className="font-serif text-3xl text-white mb-2 font-bold tracking-wide">
               {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
@@ -1522,45 +1591,22 @@ export default function Game() {
               </div>
               <div className="flex flex-col gap-3">
                 <button 
-                  data-testid="analyze-lichess-button"
+                  data-testid="play-again-button"
                   onClick={() => {
-                    const fen = game.fen.replace(/ /g, '_');
-                    window.open(`https://lichess.org/analysis/standard/${fen}`, '_blank');
+                    setClosingGameOver(true);
+                    setTimeout(() => navigate('/'), 300);
                   }}
                   className="text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
                 >
-                  Analyze on Lichess
+                  Play Again
                 </button>
                 <button 
-                  data-testid="review-game-button"
-                  onClick={() => setShowGameOverModal(false)}
-                  className="bg-white/5 text-white border border-white/10 font-semibold py-3.5 rounded-xl w-full transition-all hover:bg-white/10 active:scale-95"
+                  data-testid="share-result-button"
+                  onClick={handleShareResult}
+                  className="bg-white/5 text-neutral-400 border border-white/10 font-semibold py-3.5 rounded-xl w-full transition-all hover:bg-white/10 hover:text-white active:scale-95"
                 >
-                  Review Board
+                  Share Result
                 </button>
-                <button 
-                  data-testid="rematch-button"
-                  onClick={handleRematch}
-                  className="bg-transparent text-neutral-300 hover:text-white font-medium py-2 w-full transition-colors underline decoration-white/20 underline-offset-4 hover:decoration-white/50 text-sm"
-                >
-                  Rematch
-                </button>
-                <div className="flex gap-3 mt-2">
-                  <button 
-                    data-testid="share-result-button"
-                    onClick={handleShareResult}
-                    className="flex-1 bg-white/5 text-neutral-400 hover:text-white border border-white/5 hover:border-white/20 font-medium py-2.5 rounded-lg transition-all text-sm"
-                  >
-                    Share
-                  </button>
-                  <button 
-                    data-testid="go-home-button"
-                    onClick={() => navigate('/')}
-                    className="flex-1 bg-white/5 text-neutral-400 hover:text-white border border-white/5 hover:border-white/20 font-medium py-2.5 rounded-lg transition-all text-sm"
-                  >
-                    Home
-                  </button>
-                </div>
               </div>
           </div>
         </div>

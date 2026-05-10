@@ -5,46 +5,69 @@ import { useToast } from '../components/Toast';
 import ChessBoard from '../components/chess/ChessBoard';
 import { ChevronDown, Zap, Shield } from "lucide-react";
 
-const LINES = [
-  "Analyzing d5 push...",
-  "Bishop c4 is strong.",
-  "Checking Nf4 response...",
-  "Rook d8 centralizes.",
-  "Yes. Rd8."
+const DEMO_THOUGHTS = [
+    "Hmm... I wonder what you'll play first 👀",
+    "Ready when you are. Don't keep me waiting 😏",
+    "Yaar, iss baar main nahi harunga 😤",
+    "I've been studying your patterns...",
+    "Every game tells a story. Let's write ours 🦞",
+    "Okay okay, let's see what you've got",
 ];
 
-function Typewriter({ lines }) {
-  const [li, setLi] = useState(0);
-  const [ci, setCi] = useState(0);
-  const [txt, setTxt] = useState("");
+function ThoughtBubble() {
+  const [thoughtIdx, setThoughtIdx] = useState(0);
+  const [displayedThought, setDisplayedThought] = useState('');
 
   useEffect(() => {
-    const l = lines[li];
-    if (ci < l.length) {
+    const t = setInterval(() => {
+      setThoughtIdx(i => (i + 1) % DEMO_THOUGHTS.length);
+      setDisplayedThought('');
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const target = DEMO_THOUGHTS[thoughtIdx];
+    if (displayedThought.length < target.length) {
       const t = setTimeout(() => {
-        setTxt(l.slice(0, ci + 1));
-        setCi(x => x + 1);
-      }, 42);
-      return () => clearTimeout(t);
-    } else {
-      const t = setTimeout(() => {
-        setLi(x => (x + 1) % lines.length);
-        setCi(0);
-        setTxt("");
-      }, 2200);
+        setDisplayedThought(target.slice(0, displayedThought.length + 1));
+      }, 30);
       return () => clearTimeout(t);
     }
-  }, [li, ci, lines]);
+  }, [displayedThought, thoughtIdx]);
 
   return (
-    <span className="font-mono text-xs flex items-center" style={{ color: '#e63946', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>
-      {txt}
-      <motion.span 
-        animate={{ opacity: [1, 0, 1] }} 
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        className="inline-block w-1.5 h-3.5 bg-[#e63946] ml-1.5"
-      />
-    </span>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={thoughtIdx}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 5 }}
+        transition={{ duration: 0.3 }}
+        style={{
+          position: 'absolute',
+          bottom: '100%',
+          right: '8px',
+          marginBottom: '8px',
+          padding: '8px 12px',
+          background: 'rgba(230,57,70,0.1)',
+          border: '1px solid rgba(230,57,70,0.2)',
+          borderRadius: '12px 12px 0 12px',
+          color: '#f2f2f2',
+          fontFamily: "'Poppins', sans-serif",
+          fontSize: '13px',
+          fontWeight: 300,
+          maxWidth: '85%',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          zIndex: 30
+        }}
+      >
+        {displayedThought}
+        {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].length && (
+          <span className="inline-block w-1.5 h-3 bg-[#e63946] ml-1 align-middle animate-pulse" />
+        )}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -377,12 +400,12 @@ export default function Home() {
             style={{ maxWidth: '360px', position: 'relative' }}
           >
             <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
-              <div className="flex items-center justify-between mb-3 px-2">
+              <div className="flex items-center justify-between mb-3 px-2 relative" style={{ position: 'relative' }}>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🦞</span>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
                 </div>
-                <Typewriter lines={LINES} />
+                <ThoughtBubble />
               </div>
               <div 
                 style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid #1e1e1e', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}

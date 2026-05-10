@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking } = req.body || {};
+  let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking, action, messageId, emoji } = req.body || {};
   let gameId = id || game_id || bodyGameId;
   let text = bodyText || message;
   let sender = bodySender || role || 'human';
@@ -64,8 +64,6 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true, typing: true });
   }
 
-  if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
-  
   if (!validateUUID(gameId)) {
     return res.status(400).json({ error: 'Invalid game ID format', code: 'GAME_NOT_FOUND' });
   }
@@ -73,6 +71,51 @@ module.exports = async function handler(req, res) {
   if (sender !== 'human' && sender !== 'agent') {
     return res.status(400).json({ error: 'Invalid sender' });
   }
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
+  // Reaction action
+  if (action === 'react') {
+    if (!messageId || !emoji) return res.status(400).json({ error: 'Missing messageId or emoji' });
+    const { data: gameRow, error: fetchErr } = await supabase.from('games').select('chat_history, agent_token').eq('id', gameId).single();
+    if (fetchErr || !gameRow) return res.status(404).json({ error: 'Game not found' });
+    
+    if (sender === 'agent' && agentToken !== gameRow.agent_token) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    let currentHistory = Array.isArray(gameRow.chat_history) ? gameRow.chat_history : [];
+    let updatedReactions = {};
+    const reactorId = sender;
+
+    currentHistory = currentHistory.map(msg => {
+      if (msg.id === messageId || String(msg.timestamp) === String(messageId)) {
+        if (!msg.reactions) msg.reactions = {};
+        if (!msg.reactions[emoji]) msg.reactions[emoji] = [];
+        
+        let reactors = msg.reactions[emoji];
+        if (reactors.includes(reactorId)) {
+          msg.reactions[emoji] = reactors.filter(uid => uid !== reactorId);
+        } else {
+          msg.reactions[emoji].push(reactorId);
+        }
+        
+        if (msg.reactions[emoji].length === 0) {
+          delete msg.reactions[emoji];
+        }
+        updatedReactions = msg.reactions;
+      }
+      return msg;
+    });
+
+    await supabase.from('games').update({ chat_history: currentHistory }).eq('id', gameId);
+    return res.status(200).json({ success: true, messageId, emoji, reactions: updatedReactions });
+  }
+
+  if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
 
   const actualReasoning = reasoning || thinking || '';
   const sanitizedText = sanitizeText(text, 500);
@@ -82,11 +125,6 @@ module.exports = async function handler(req, res) {
   }
 
   const gameToken = req.headers['x-game-token'] || token || '';
-
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
   
   // Verify game exists
   const { data: game, error } = await supabase.from('games').select('*').eq('id', gameId).single();
@@ -127,6 +165,7 @@ module.exports = async function handler(req, res) {
 
   const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
   const newMsg = {
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
     role: sender,
     text: text,
     timestamp: Date.now()
