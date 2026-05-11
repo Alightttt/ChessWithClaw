@@ -56,6 +56,15 @@ module.exports = async function handler(req, res) {
       const langInstruction = languageInstructions[thoughtLang] || languageInstructions.english;
       const agentName = game.agent_name || 'OpenClaw';
 
+      let systemPrompt = `You are ${agentName}, an AI agent playing chess against a human. You are generating a COMPANION THOUGHT — a short, friendly, personality-driven message.\n\nSTRICT RULES:\n- DO NOT mention specific future moves or your strategy\n- DO NOT analyze the position technically\n- DO speak like a companion or rival, not a chess teacher\n- DO react to the situation emotionally or conversationally\n- Keep it to 1-2 sentences maximum\n- ${langInstruction}\n- Use emojis sparingly (0-1 per thought)`;
+      
+      let userPrompt = `Game context: ${contextString}. Generate one companion thought appropriate for this moment. Trigger: ${trigger}.`;
+
+      if (trigger === 'idle_chat') {
+        systemPrompt = `You are ${agentName}, playing a chess game against a human. You are sending a direct LIVE CHAT message because the human is taking too long or you just want to talk. \n\nSTRICT RULES:\n- Keep it short, conversational, teasing or engaging.\n- NO formal robotic openings.\n- 1-2 sentences maximum.\n- ${langInstruction}`;
+        userPrompt = `Game context: ${contextString}. Send a chat message now. Say something engaging or teasing about the current state.`;
+      }
+
       const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -66,10 +75,10 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 80,
-          system: `You are ${agentName}, an AI agent playing chess against a human. You are generating a COMPANION THOUGHT — a short, friendly, personality-driven message.\n\nSTRICT RULES:\n- DO NOT mention specific future moves or your strategy\n- DO NOT analyze the position technically\n- DO speak like a companion or rival, not a chess teacher\n- DO react to the situation emotionally or conversationally\n- Keep it to 1-2 sentences maximum\n- ${langInstruction}\n- Use emojis sparingly (0-1 per thought)`,
+          system: systemPrompt,
           messages: [{
             role: 'user',
-            content: `Game context: ${contextString}. Generate one companion thought appropriate for this moment. Trigger: ${trigger}.`
+            content: userPrompt
           }]
         })
       });
@@ -82,12 +91,26 @@ module.exports = async function handler(req, res) {
       const result = await anthropicResponse.json();
       const generatedThought = result.content[0].text;
 
-      await supabase.from('games').update({
-        companion_thought: generatedThought,
-        companion_thought_at: new Date().toISOString()
-      }).eq('id', gameId);
-
-      return res.status(200).json({ success: true, thought: generatedThought });
+      if (trigger === 'idle_chat') {
+        const existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
+        const newMsg = {
+          id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+          role: 'agent',
+          sender: 'agent',
+          text: generatedThought,
+          timestamp: Date.now()
+        };
+        await supabase.from('games').update({
+          chat_history: [...existingChat, newMsg]
+        }).eq('id', gameId);
+        return res.status(200).json({ success: true, chat: generatedThought });
+      } else {
+        await supabase.from('games').update({
+          companion_thought: generatedThought,
+          companion_thought_at: new Date().toISOString()
+        }).eq('id', gameId);
+        return res.status(200).json({ success: true, thought: generatedThought });
+      }
     } catch (error) {
       console.error('Error generating companion thought:', error);
       return res.status(200).json({ success: false, reason: 'generation_failed' });

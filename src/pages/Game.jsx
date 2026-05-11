@@ -414,9 +414,25 @@ export default function Game() {
       }
     }, 15000);
 
+    const idleChatInterval = setInterval(() => {
+      if (game?.status !== 'active') return;
+      
+      const rand = Math.random();
+      if (rand < 0.3) {
+        fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
+           headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+        }).catch(() => {});
+      } else if (rand < 0.6) {
+        fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
+           headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+        }).catch(() => {});
+      }
+    }, 45000);
+
     return () => {
       clearInterval(interval);
       clearInterval(heartbeatInterval);
+      clearInterval(idleChatInterval);
     };
   }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at, gameId]);
 
@@ -1222,7 +1238,7 @@ export default function Game() {
                 maxWidth: '100%',
                 wordBreak: 'break-word'
               }}>
-                💭 {visibleThought}
+                {visibleThought}
               </div>
             )}
           </div>

@@ -6,10 +6,11 @@ import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
 const DEMO_THOUGHTS = [
-    "I wonder what you'll play first 👀",
-    "Ready when you are.",
-    "Studying your patterns...",
-    "Let's write a story 🦞",
+    "Thinking about your next move...",
+    "Nice pawn structure. Too bad I'll ruin it.",
+    "Do you always play this cautiously?",
+    "That bishop looks trapped.",
+    "One mistake, and the game is mine.",
 ];
 
 function ThoughtBubble() {
@@ -55,7 +56,7 @@ function ThoughtBubble() {
           marginLeft: '12px'
         }}
       >
-        💭 {displayedThought}
+        {displayedThought}
         {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].length && (
           <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
         )}
@@ -404,7 +405,7 @@ export default function Home() {
                 style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '4px' }}
               >
                 <div style={{ pointerEvents: 'none' }}>
-                  <ChessBoard fen="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
+                  <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
                 </div>
               </div>
             </div>
