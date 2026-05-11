@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
   
-  const { data: game, error } = await supabase.from('games').select('*, companion_thought, companion_thought_at, thought_language, board_theme, piece_style, draw_offer_pending').eq('id', id).single();
+  const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
 
   if (error || !game) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });

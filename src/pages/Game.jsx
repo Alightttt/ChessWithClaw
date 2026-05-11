@@ -597,6 +597,20 @@ export default function Game() {
     channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
       setGame(prev => {
         if (!prev) return payload.new;
+        
+        // Only trigger re-render if key fields changed
+        if (prev?.fen === payload.new.fen &&
+            prev?.turn === payload.new.turn &&
+            prev?.status === payload.new.status &&
+            prev?.current_thought === payload.new.current_thought &&
+            prev?.agent_typing === payload.new.agent_typing &&
+            prev?.board_theme === payload.new.board_theme &&
+            prev?.piece_style === payload.new.piece_style &&
+            prev?.agent_connected === payload.new.agent_connected &&
+            prev?.companion_thought === payload.new.companion_thought) {
+          return prev; // Return same reference = no re-render
+        }
+
         const updatedGame = { ...prev, ...payload.new };
         // Preserve arrays that are no longer in the games table, but allow updates if games table has more items (fallback mode)
         updatedGame.move_history = (payload.new.move_history && payload.new.move_history.length > (prev.move_history || []).length) ? payload.new.move_history : (prev.move_history || []);
@@ -821,7 +835,7 @@ export default function Game() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [gameId]);
 
-  const makeMove = async (from, to, promotion) => {
+  const makeMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
     
@@ -906,7 +920,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  };
+  }, [game, boardLocked, gameId, toast]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1133,6 +1147,29 @@ export default function Game() {
     );
   }
 
+  const handleIllegalMove = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 300);
+  }, []);
+
+  const handleCapture = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 300);
+  }, []);
+
+  const legalMoves = useMemo(() => {
+    try {
+      const chess = new Chess(game.fen);
+      return chess.moves({ verbose: true });
+    } catch { return []; }
+  }, [game?.fen]);
+
+  const moveHistoryItems = useMemo(() => {
+    return (game?.move_history || []).map((move, i) => ({
+      ...move, index: i
+    }));
+  }, [game?.move_history?.length]);
+
   const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
   const isMyTurn = !isSpectator && game?.turn === (game?.player_color || 'w') && (game?.status === 'active' || game?.status === 'waiting');
   
@@ -1281,14 +1318,8 @@ export default function Game() {
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
             playerColor={game?.player_color || 'w'}
-            onIllegalMove={() => {
-              setShaking(true);
-              setTimeout(() => setShaking(false), 300);
-            }}
-            onCapture={() => {
-              setShaking(true);
-              setTimeout(() => setShaking(false), 300);
-            }}
+            onIllegalMove={handleIllegalMove}
+            onCapture={handleCapture}
           />
           </div>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>

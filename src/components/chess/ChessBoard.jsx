@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 import { Chess } from 'chess.js';
 
-export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
+function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
   const [chess, setChess] = useState(() => {
     try {
       return new Chess(fen);
@@ -423,3 +423,10 @@ export default function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistor
     </div>
   );
 }
+
+export default React.memo(ChessBoard, (prev, next) => {
+  return prev.fen === next.fen &&
+    prev.selectedSquare === next.selectedSquare &&
+    JSON.stringify(prev.legalMoves) === JSON.stringify(next.legalMoves) &&
+    JSON.stringify(prev.lastMove) === JSON.stringify(next.lastMove);
+});
