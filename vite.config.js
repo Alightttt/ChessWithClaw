@@ -6,10 +6,5 @@ import { dirname, resolve } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      'chess.js': resolve(__dirname, './src/chess-shim.js')
-    }
-  }
+  plugins: [react()]
 })
