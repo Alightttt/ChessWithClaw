@@ -6,11 +6,10 @@ import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
 const DEMO_THOUGHTS = [
-    "Thinking about your next move...",
-    "Nice pawn structure. Too bad I'll ruin it.",
-    "Do you always play this cautiously?",
-    "That bishop looks trapped.",
-    "One mistake, and the game is mine.",
+  { text: "Your king is looking a bit vulnerable. Mind if I attack? 😈", lang: "English" },
+  { text: "Ye rook yaha pe... kuch gadbad hone wali hai. 🤔", lang: "Hindi" },
+  { text: "Bhai, you shouldn't have moved that pawn. Ab dekh kya hota hai. ♟️", lang: "Hinglish" },
+  { text: "I think I will win this fast. Easy moves for me now. 🚀", lang: "Simple" }
 ];
 
 function ThoughtBubble() {
@@ -21,12 +20,12 @@ function ThoughtBubble() {
     const t = setInterval(() => {
       setThoughtIdx(i => (i + 1) % DEMO_THOUGHTS.length);
       setDisplayedThought('');
-    }, 4000);
+    }, 3500);
     return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    const target = DEMO_THOUGHTS[thoughtIdx];
+    const target = DEMO_THOUGHTS[thoughtIdx].text;
     if (displayedThought.length < target.length) {
       const t = setTimeout(() => {
         setDisplayedThought(target.slice(0, displayedThought.length + 1));
@@ -44,22 +43,29 @@ function ThoughtBubble() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          color: '#888888',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flex: 1,
+          justifyContent: 'flex-end',
+          marginLeft: '12px',
+          overflow: 'hidden'
+        }}
+      >
+        <span style={{
+          color: '#e2e2e2',
           fontFamily: "'Inter', sans-serif",
           fontSize: '13px',
           fontWeight: 400,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          flex: 1,
-          textAlign: 'right',
-          marginLeft: '12px'
-        }}
-      >
-        {displayedThought}
-        {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].length && (
-          <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
-        )}
+        }}>
+          {displayedThought}
+          {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].text.length && (
+            <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
+          )}
+        </span>
       </motion.div>
     </AnimatePresence>
   );

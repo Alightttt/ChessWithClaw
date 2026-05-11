@@ -59,6 +59,7 @@ export default function Game() {
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [agentDisconnected, setAgentDisconnected] = useState(false);
 
   const [visibleThought, setVisibleThought] = useState('');
   const prevThoughtValRef = useRef('');
@@ -99,8 +100,17 @@ export default function Game() {
   const createRipple = useRipple();
 
   const prevChatCountRef = useRef(0);
+  const mountedMsgCount = useRef(0);
+  const countSetRef = useRef(false);
   const prevAgentTypingRef = useRef(false);
-  const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+
+  useEffect(() => {
+    if (game && !countSetRef.current) {
+      mountedMsgCount.current = (game?.chat_history || []).length;
+      countSetRef.current = true;
+    }
+  }, [game]);
 
   const currentChatCount = (game?.chat_history?.length || 0) + localMessages.length;
 
@@ -109,20 +119,20 @@ export default function Game() {
     prevAgentTypingRef.current = agentTyping;
   }, [currentChatCount, agentTyping]);
 
-  const toggleReaction = async (msgId, emoji) => {
-    setActiveReactionMsgId(null);
+  const toggleReaction = async (msgId, emoji, reactor) => {
+    setReactionPickerMsgId(null);
     try {
       await fetch('/api/chat', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`)
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
-        body: JSON.stringify({ id: gameId, action: 'react', messageId: msgId, emoji, role: 'human' })
+        body: JSON.stringify({ 
+          gameId, action: 'react', messageId: msgId, emoji, reactor
+        })
       });
-    } catch (e) {
-      console.error(e);
-    }
+    } catch(e) {}
   };
 
   useEffect(() => {
@@ -373,26 +383,23 @@ export default function Game() {
     prevStatusRef.current_thinking = game.current_thinking;
   }, [game, playSound]);
 
-  // Agent Timeout Check
-  const [agentWarning, setAgentWarning] = useState(false);
+  const agentTimeoutRef = useRef(null);
+  useEffect(() => {
+    agentTimeoutRef.current = setInterval(() => {
+      if (!game?.agent_last_seen) return;
+      const lastSeen = new Date(game.agent_last_seen);
+      const secondsAgo = (Date.now() - lastSeen) / 1000;
+      setAgentDisconnected(secondsAgo > 90);
+    }, 15000);
+    return () => clearInterval(agentTimeoutRef.current);
+  }, [game?.agent_last_seen]);
+
+  // Heartbeat & Idle Chat
   useEffect(() => {
     if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game?.player_color || 'w')) {
-      setAgentWarning(false);
       return;
     }
     
-    const checkTimeout = () => {
-      const lastUpdated = new Date(game.agent_last_seen || game.updated_at || game.created_at).getTime();
-      if (Date.now() - lastUpdated > 90000) { // 90 seconds
-        setAgentWarning(true);
-      } else {
-        setAgentWarning(false);
-      }
-    };
-    
-    checkTimeout();
-    const interval = setInterval(checkTimeout, 5000);
-
     const heartbeatInterval = setInterval(() => {
       fetch('/api/heartbeat', {
         method: 'POST',
@@ -430,7 +437,6 @@ export default function Game() {
     }, 45000);
 
     return () => {
-      clearInterval(interval);
       clearInterval(heartbeatInterval);
       clearInterval(idleChatInterval);
     };
@@ -471,7 +477,11 @@ export default function Game() {
 
   useEffect(() => {
     if (game && prevAgentConnected.current === false && game.agent_connected === true && connectedToastShown.current === false) {
-      toast.success(`${agentName} has arrived!`);
+      const toastKey = `cwc_connected_${gameId}`;
+      if (!sessionStorage.getItem(toastKey)) {
+        toast.success(`${agentName} has arrived!`);
+        sessionStorage.setItem(toastKey, '1');
+      }
       setJustConnected(true);
       setTimeout(() => setJustConnected(false), 1000);
       connectedToastShown.current = true;
@@ -479,7 +489,7 @@ export default function Game() {
     if (game) {
       prevAgentConnected.current = game.agent_connected;
     }
-  }, [game, toast, agentName]);
+  }, [game, toast, agentName, gameId]);
   
   useEffect(() => {
     if (!gameId) {
@@ -488,62 +498,30 @@ export default function Game() {
       return;
     }
 
-    const loadGame = async (retries = 3) => {
-      const { data, error } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', gameId)
-        .single();
-
-      if (error || !data) {
-        if (retries > 0) {
-          setTimeout(() => loadGame(retries - 1), 500);
+    const loadGame = async () => {
+      try {
+        const res = await fetch(`/api/state?gameId=${gameId}`);
+        if (!res.ok) {
+          if (res.status === 404) setNotFound(true);
+          setLoading(false);
           return;
         }
-        setNotFound(true);
-      } else {
-        // Fetch move history from the new table
-        const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        if (movesError) {
-          console.warn('Could not fetch from moves, falling back to games.move_history', movesError);
-        } else if (movesData && movesData.length > 0) {
-          data.move_history = movesData.map(m => ({
-            ...m,
-            from: m.from_square || m.from,
-            to: m.to_square || m.to,
-            uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
-            san: m.san
-          }));
-        }
+        const data = await res.json();
+        
+        setGame(prev => {
+          // If this is the initial load (prev is null), we need to ensure some fields are present that the real-time structure or old loadGame provided, but /api/state is mostly complete.
+          // Fallback missing things just in case:
+          if (!prev) {
+            return {
+              ...data,
+              player_color: data.you_are === 'BLACK' ? 'w' : 'b', // Invert because api/state is from agent's perspective
+              result: data.events?.result,
+              result_reason: data.events?.type
+            };
+          }
+          return { ...prev, ...data, move_history: data.move_history || prev.move_history };
+        });
 
-        // Fetch thinking log from the new table
-        const { data: thoughtsData, error: thoughtsError } = await supabase.from('agent_thoughts').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        if (thoughtsError) {
-          console.warn('Could not fetch from agent_thoughts, falling back to games.thinking_log', thoughtsError);
-        } else if (thoughtsData && thoughtsData.length > 0) {
-          data.thinking_log = thoughtsData.map(thought => ({
-            ...thought,
-            text: thought.thought,
-            moveNumber: thought.move_number,
-            timestamp: new Date(thought.created_at).getTime()
-          }));
-        } else if (thoughtsData && thoughtsData.length === 0) {
-          data.thinking_log = [];
-        }
-
-        // Fetch chat history
-        const { data: chatData, error: chatError } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-        if (chatError) {
-          console.warn('Could not fetch from chat_messages, falling back to games.chat_history', chatError);
-        } else if (chatData && chatData.length > 0) {
-          data.chat_history = chatData;
-        } else if (chatData && chatData.length === 0) {
-          data.chat_history = [];
-        }
-
-        if (typeof data.move_history === 'string') {
-          try { data.move_history = JSON.parse(data.move_history); } catch(e) {}
-        }
         if (data.move_history && data.move_history.length > 0) {
           const lastMove = data.move_history[data.move_history.length - 1];
           if (lastMove && typeof lastMove === 'string' && lastMove.length >= 4) {
@@ -554,19 +532,10 @@ export default function Game() {
             setLastMoveTo(lastMove.to);
           }
         }
-        
-        if (data.agent_connected) {
-          connectedToastShown.current = true;
-        }
 
-        if (data.thought_language) {
-          setThoughtLanguage(data.thought_language);
-        }
-
-        if (data.agent_typing !== undefined) {
-          setAgentTyping(data.agent_typing);
-        }
-
+        if (data.agent_connected) connectedToastShown.current = true;
+        if (data.thought_language) setThoughtLanguage(data.thought_language);
+        if (data.agent_typing !== undefined) setAgentTyping(data.agent_typing);
         if (data.board_theme) {
           setBoardTheme(data.board_theme);
           localStorage.setItem('cwc_theme', data.board_theme);
@@ -576,7 +545,6 @@ export default function Game() {
           localStorage.setItem('cwc_pieces', data.piece_style);
         }
 
-        setGame(data);
         fetch('/api/heartbeat', {
           method: 'POST',
           headers: { 
@@ -585,16 +553,23 @@ export default function Game() {
           },
           body: JSON.stringify({ id: gameId, role: 'human' })
         }).catch(() => {});
+      } catch (error) {
+        console.error(error);
       }
       setLoading(false);
     };
 
     loadGame();
 
-    const channel = supabase.channel(`game-${gameId}`);
-    channelRef.current = channel;
+    const subscribeToGame = () => {
+      if (channelRef.current && channelRef.current.state === 'joined') {
+        return; // Already subscribed
+      }
+      
+      const channel = supabase.channel(`game-${gameId}`);
+      channelRef.current = channel;
 
-    channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
+      channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
       setGame(prev => {
         if (!prev) return payload.new;
         
@@ -706,7 +681,10 @@ export default function Game() {
       });
     });
 
-    channel.subscribe();
+      channel.subscribe();
+    };
+
+    subscribeToGame(); // call on mount
 
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
@@ -715,7 +693,9 @@ export default function Game() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         loadGame();
-        channel.subscribe(); // Re-subscribe if it was dropped
+        if (!channelRef.current || channelRef.current.state === 'closed') {
+          subscribeToGame(); // Re-subscribe if it was dropped
+        }
       }
     };
     
@@ -723,7 +703,7 @@ export default function Game() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
@@ -1092,6 +1072,29 @@ export default function Game() {
   const mood = getAgentMood()
   const config = moodConfig[mood]
 
+  const handleIllegalMove = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 300);
+  }, []);
+
+  const handleCapture = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 300);
+  }, []);
+
+  const legalMoves = useMemo(() => {
+    try {
+      const chess = new Chess(game?.fen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      return chess.moves({ verbose: true });
+    } catch { return []; }
+  }, [game?.fen]);
+
+  const moveHistoryItems = useMemo(() => {
+    return (game?.move_history || []).map((move, i) => ({
+      ...move, index: i
+    }));
+  }, [game?.move_history]);
+
   if (loading) {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
@@ -1146,29 +1149,6 @@ export default function Game() {
       </div>
     );
   }
-
-  const handleIllegalMove = useCallback(() => {
-    setShaking(true);
-    setTimeout(() => setShaking(false), 300);
-  }, []);
-
-  const handleCapture = useCallback(() => {
-    setShaking(true);
-    setTimeout(() => setShaking(false), 300);
-  }, []);
-
-  const legalMoves = useMemo(() => {
-    try {
-      const chess = new Chess(game.fen);
-      return chess.moves({ verbose: true });
-    } catch { return []; }
-  }, [game?.fen]);
-
-  const moveHistoryItems = useMemo(() => {
-    return (game?.move_history || []).map((move, i) => ({
-      ...move, index: i
-    }));
-  }, [game?.move_history?.length]);
 
   const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
   const isMyTurn = !isSpectator && game?.turn === (game?.player_color || 'w') && (game?.status === 'active' || game?.status === 'waiting');
@@ -1264,6 +1244,9 @@ export default function Game() {
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
             </div>
+            {agentDisconnected && (
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+            )}
             
             {visibleThought && (
               <div style={{
@@ -1378,16 +1361,13 @@ export default function Game() {
             ) : (
               combinedChat.map((msg, i) => {
                 const isHuman = msg.sender === 'human' || msg.role === 'human';
-                const isNew = i >= prevChatCountRef.current;
-                const wasTyping = prevAgentTypingRef.current;
-                const animStyle = isNew ? {
-                  animation: `messageIn 0.2s ease-out ${!isHuman && wasTyping ? '0.1s' : '0s'} both`,
-                  transformOrigin: isHuman ? 'bottom right' : 'bottom left'
-                } : {};
+                const animStyle = {
+                  animation: i >= mountedMsgCount.current ? 'msgIn 0.2s ease-out forwards' : 'none'
+                };
 
                 if (msg.type === 'resign_request') {
                   return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
                       {msg.text}
                       {game.status === 'active' && (
                         <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
@@ -1397,7 +1377,7 @@ export default function Game() {
                 }
                 if (msg.type === 'draw_offer') {
                   return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
                       {msg.text}
                       {game.status === 'active' && (
                         <button data-testid="accept-draw-button" onClick={async () => {
@@ -1414,12 +1394,12 @@ export default function Game() {
                 const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
                 
                 return (
-                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }} className={isNew ? '' : "animate-fade-up"}>
+                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }}>
                     
-                    {!isHuman && activeReactionMsgId === (msg.id || msg.timestamp) && (
+                    {!isHuman && reactionPickerMsgId === (msg.id || msg.timestamp) && (
                       <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
                         {REACTION_EMOJIS.map(e => (
-                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e)} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
+                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
                             {e}
                           </button>
                         ))}
@@ -1427,7 +1407,7 @@ export default function Game() {
                     )}
 
                     <div 
-                      onClick={() => !isHuman && setActiveReactionMsgId(activeReactionMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
+                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
                       className="group cursor-pointer"
                       style={isHuman ? {
                         background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
@@ -1439,12 +1419,20 @@ export default function Game() {
                     </div>
                     
                     {hasReactions && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
-                        {Object.entries(msg.reactions).map(([emoji, reactors]) => (
-                          <div key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji)} style={{ background: isHuman ? 'rgba(230,57,70,0.1)' : '#1e1e1e', border: '1px solid ' + (isHuman ? 'rgba(230,57,70,0.3)' : '#333'), borderRadius: '12px', padding: '2px 6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: 'white' }}>
-                            {emoji} {reactors.length > 1 ? reactors.length : ''}
-                          </div>
-                        ))}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
+                        {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
+                          reactors.length > 0 ? (
+                            <span key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji, 'human')} style={{
+                              display:'inline-flex', alignItems:'center', gap:'3px',
+                              padding:'2px 8px', borderRadius:'100px',
+                              background:'rgba(255,255,255,0.06)',
+                              border:'1px solid rgba(255,255,255,0.1)',
+                              fontSize:'12px', color:'#f2f2f2', marginRight:'4px', cursor: 'pointer'
+                            }}>
+                              {emoji} {reactors.length > 1 ? reactors.length : ''}
+                            </span>
+                          ) : null
+                        )}
                       </div>
                     )}
                   </div>

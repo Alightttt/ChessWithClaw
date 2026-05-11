@@ -79,40 +79,47 @@ module.exports = async function handler(req, res) {
 
   // Reaction action
   if (action === 'react') {
-    if (!messageId || !emoji) return res.status(400).json({ error: 'Missing messageId or emoji' });
-    const { data: gameRow, error: fetchErr } = await supabase.from('games').select('chat_history, agent_token').eq('id', gameId).single();
-    if (fetchErr || !gameRow) return res.status(404).json({ error: 'Game not found' });
+    const { messageId, emoji } = req.body;
+    const reactor = sender; // reactor is 'human' or 'agent'
     
+    // Fetch current chat_history from games table
+    const { data: gameRow, error: fetchErr } = await supabase
+      .from('games')
+      .select('chat_history, agent_token')
+      .eq('id', gameId)
+      .single();
+      
+    if (fetchErr || !gameRow) return res.status(404).json({ error: 'Game not found' });
+      
     if (sender === 'agent' && agentToken !== gameRow.agent_token) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-
-    let currentHistory = Array.isArray(gameRow.chat_history) ? gameRow.chat_history : [];
-    let updatedReactions = {};
-    const reactorId = sender;
-
-    currentHistory = currentHistory.map(msg => {
-      if (msg.id === messageId || String(msg.timestamp) === String(messageId)) {
-        if (!msg.reactions) msg.reactions = {};
-        if (!msg.reactions[emoji]) msg.reactions[emoji] = [];
-        
-        let reactors = msg.reactions[emoji];
-        if (reactors.includes(reactorId)) {
-          msg.reactions[emoji] = reactors.filter(uid => uid !== reactorId);
-        } else {
-          msg.reactions[emoji].push(reactorId);
+      
+    const history = gameRow.chat_history || [];
+    
+    // Find message by id and toggle reaction
+    const updated = history.map(msg => {
+      if (msg.id !== messageId && String(msg.timestamp) !== String(messageId)) return msg;
+      const reactions = msg.reactions || {};
+      const existing = reactions[emoji] || [];
+      const alreadyReacted = existing.includes(reactor);
+      return {
+        ...msg,
+        reactions: {
+          ...reactions,
+          [emoji]: alreadyReacted
+            ? existing.filter(r => r !== reactor)
+            : [...existing, reactor]
         }
-        
-        if (msg.reactions[emoji].length === 0) {
-          delete msg.reactions[emoji];
-        }
-        updatedReactions = msg.reactions;
-      }
-      return msg;
+      };
     });
-
-    await supabase.from('games').update({ chat_history: currentHistory }).eq('id', gameId);
-    return res.status(200).json({ success: true, messageId, emoji, reactions: updatedReactions });
+    
+    await supabase
+      .from('games')
+      .update({ chat_history: updated })
+      .eq('id', gameId);
+      
+    return res.status(200).json({ success: true, action: 'react' });
   }
 
   if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });

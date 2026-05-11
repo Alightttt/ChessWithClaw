@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
 
   const validActions = [
     'offer_draw', 'resign', 'accept_draw', 'decline_draw',
-    'set_board_theme', 'set_piece_style'
+    'set_board_theme', 'set_piece_style', 'set_thought_language'
   ];
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: 'Invalid action', allowed: validActions });
@@ -41,6 +41,7 @@ module.exports = async function handler(req, res) {
 
   const allowedBoardThemes = ['green', 'brown', 'slate', 'navy'];
   const allowedPieceStyles = ['standard', 'neo', 'cburnett', 'alpha'];
+  const allowedThoughtLanguages = ['english', 'hindi', 'hinglish', 'simple_english'];
 
   if (action === 'set_board_theme' && !allowedBoardThemes.includes(value)) {
     return res.status(400).json({ error: 'Invalid setting value', allowed: allowedBoardThemes });
@@ -48,6 +49,32 @@ module.exports = async function handler(req, res) {
 
   if (action === 'set_piece_style' && !allowedPieceStyles.includes(value)) {
     return res.status(400).json({ error: 'Invalid setting value', allowed: allowedPieceStyles });
+  }
+
+  if (action === 'set_thought_language') {
+    if (!allowedThoughtLanguages.includes(value)) {
+      return res.status(400).json({
+        error: 'Invalid language',
+        allowed: allowedThoughtLanguages
+      });
+    }
+    
+    // Quick handle without getting full game
+    try {
+      const supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      await supabase.from('games').update({ thought_language: value }).eq('id', gameId);
+      return res.status(200).json({
+        success: true,
+        action: 'set_thought_language',
+        value: value
+      });
+    } catch (err) {
+      console.error('Error action:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
 
   try {
