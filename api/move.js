@@ -88,6 +88,22 @@ function applyCorsHeaders(req, res) {
 
 // computeMaterial removed
 
+function calculateMaterialBalance(chess) {
+  const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  let white = 0, black = 0;
+  chess.board().flat().forEach(sq => {
+    if (!sq) return;
+    const val = values[sq.type] || 0;
+    if (sq.color === 'w') white += val;
+    else black += val;
+  });
+  const diff = black - white;
+  return {
+    white, black,
+    advantage: diff > 1 ? 'black' : diff < -1 ? 'white' : 'equal'
+  };
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
@@ -370,44 +386,42 @@ module.exports = async function handler(req, res) {
   }
 
   if (isHumanMove && game.webhook_url) {
-    const payload = {
-      event: updates.status === 'finished' ? "game_over" : "your_turn",
-      game_id: id,
-      fen: fen || game.fen,
-      turn: nextTurn,
-      move_number: moveNumber,
-      last_move: {
-        from: moveObj.from,
-        to: moveObj.to,
-        san: moveObj.san,
-        uci: moveObj.from + moveObj.to + (moveObj.promotion || '')
-      },
-      legal_moves: legalMoves,
-      legal_moves_uci: [],
-      move_history: game.move_history,
-      board_ascii: "",
-      in_check: inCheck,
-      is_checkmate: isCheckmate,
-      is_stalemate: isStalemate,
-      material_balance: {},
-      callback_url: `https://${req.headers.host}/api/move`
-    };
-
+    const webhookUrl = game.webhook_url;
+    let verboseMoves = [];
+    let matBalance = { white: 0, black: 0, advantage: 'equal' };
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      await fetch(game.webhook_url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      const { Chess } = await import('chess.js');
+      const whChess = new Chess(fen || game.fen);
+      verboseMoves = whChess.moves({ verbose: true });
+      matBalance = calculateMaterialBalance(whChess);
     } catch (e) {
-      console.error(`Webhook error for game ${id}:`, e.message);
+      console.error("Webhook chess parsing error:", e);
     }
+
+    const webhookPayload = {
+      event: 'human_moved',
+      gameId: id,
+      fen: fen || game.fen,
+      turn: 'b',
+      last_move: { from: moveObj.from, to: moveObj.to, san: moveObj.san, uci: moveObj.from + moveObj.to + (moveObj.promotion || '') },
+      legal_moves: verboseMoves.map(m => m.lan || m.from + m.to),
+      move_history: updated.move_history || game.move_history,
+      move_number: moveNumber,
+      in_check: inCheck,
+      material_balance: matBalance,
+      thought_language: game.thought_language || 'english',
+      opponent_idle_since: 0
+    };
+    
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-game-event': 'human_moved'
+      },
+      body: JSON.stringify(webhookPayload),
+      signal: AbortSignal.timeout(5000)
+    }).catch(() => {});
   }
 
   return res.json({

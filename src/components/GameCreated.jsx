@@ -160,7 +160,7 @@ npx clawhub install agent-browser-clawdbot`;
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
         <div className="mb-4 text-center">
-          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw</h1>
+          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw 🦞</h1>
         </div>
 
         {/* Stepper */}

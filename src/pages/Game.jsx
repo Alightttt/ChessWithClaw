@@ -985,30 +985,14 @@ export default function Game() {
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
   function handleCloseGameOverModal() { setShowGameOverModal(false) }
   async function handleShareResult(e) {
-    const textToShare = `I played chess vs ${agentName} on ChessWithClaw! 🦞\nchesswithclaw.vercel.app`;
-    const btn = e.currentTarget;
-    const oldText = btn.innerText;
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          text: textToShare,
-        });
-      } else {
-        await navigator.clipboard.writeText(textToShare);
-        btn.innerText = 'Copied! ✓';
-        setTimeout(() => btn.innerText = oldText, 2000);
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        try {
-          await navigator.clipboard.writeText(textToShare);
-          btn.innerText = 'Copied! ✓';
-          setTimeout(() => btn.innerText = oldText, 2000);
-        } catch (clipboardErr) {
-          console.error('Failed to share or copy:', clipboardErr);
-        }
-      }
+    const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
+    const result = game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
+    const text = `I played chess vs ${agentName} on ChessWithClaw! ${result} in ${moves} moves. chesswithclaw.vercel.app 🦞`;
+    if (navigator.share) {
+      navigator.share({ text }).catch(()=>{});
+    } else { 
+      navigator.clipboard.writeText(text); 
+      toast.success('Copied!'); 
     }
   }
 
@@ -1586,31 +1570,26 @@ export default function Game() {
       />
 
       {showGameOverModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8, 8, 8, 0.92)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: closingGameOver ? 0 : 1, transition: 'opacity 300ms ease' }}>
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.04, background: 'repeating-conic-gradient(#ffffff 0% 25%, transparent 0% 50%) 0 0 / 60px 60px', zIndex: 0 }} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: closingGameOver ? 0 : 1, transition: 'opacity 300ms ease' }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.03, background: 'repeating-conic-gradient(rgba(255,255,255,0.8) 0% 25%, transparent 0% 50%) 0 0 / 56px 56px', pointerEvents: 'none', zIndex: 0 }} />
           
-          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '24px', padding: '48px 40px', maxWidth: '420px', width: '90%', textAlign: 'center', position: 'relative', zIndex: 1, transform: closingGameOver ? 'scale(0.9)' : 'scale(1)', transition: 'all 300ms ease-out' }}>
+          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '20px', padding: '40px 32px', maxWidth: '400px', width: 'calc(100% - 48px)', textAlign: 'center', position: 'relative', zIndex: 1, transform: closingGameOver ? 'scale(0.92)' : 'scale(1)', transition: 'all 300ms ease-out' }}>
             <button data-testid="close-game-over-modal" onClick={handleCloseGameOverModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
               <XIcon size={18} />
             </button>
-            <div className="text-5xl mb-4 drop-shadow-md">
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '♛' : game?.result === 'draw' ? '🤝' : '🦞'}
+            <div style={{ fontSize: '56px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }} className={game?.result === (game?.player_color === 'b' ? 'white' : 'black') ? 'animate-pulse' : ''}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : '🦞'}
             </div>
             <div className="font-serif text-3xl text-white mb-2 font-bold tracking-wide">
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "It's a Draw!" : `${agentName} Won!`}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
             </div>
-              <div className="font-sans text-sm text-neutral-400 mb-6 font-medium">
-                {game.result_reason === 'checkmate' ? 'by checkmate' :
-                 game.result_reason === 'stalemate' ? 'by stalemate' :
-                 game.result_reason === 'insufficient_material' ? 'insufficient material' :
-                 game.result_reason === 'threefold_repetition' ? 'by repetition' :
-                 game.result_reason === 'fifty_moves' ? 'fifty-move rule' :
-                 game.result_reason === 'resignation' ? 'by resignation' :
-                 game.result_reason === 'abandoned' ? 'by abandonment' :
-                 game.result_reason === 'agreement' ? 'by agreement' : game.result_reason}
+              <div style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242,242,242,0.5)', fontSize: '14px', marginBottom: '24px' }}>
+                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Well played. Your OpenClaw salutes you. 🦞' :
+                 game?.result === 'draw' ? 'An equal battle. Honor to both sides.' :
+                 `${agentName} proved their worth today.`}
               </div>
-              <div className="font-sans text-xs text-neutral-500 mb-8 border-t border-white/5 pt-4">
-                Game lasted {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
+              <div className="font-sans text-xs text-neutral-500 mb-8 pt-4" style={{ color: 'rgba(242,242,242,0.3)' }}>
+                {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves played
               </div>
               <div className="flex flex-col gap-3">
                 <button 
