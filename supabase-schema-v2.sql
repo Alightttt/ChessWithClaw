@@ -58,7 +58,6 @@ CREATE POLICY "Allow insert with token" ON public.moves FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.games g 
     WHERE g.id = game_id AND (
-      g.secret_token IS NULL OR 
       current_setting('request.headers', true)::json->>'x-game-token' = g.secret_token OR
       current_setting('request.headers', true)::json->>'x-agent-token' = g.agent_token
     )
@@ -69,7 +68,6 @@ CREATE POLICY "Allow insert with token" ON public.chat_messages FOR INSERT WITH 
   EXISTS (
     SELECT 1 FROM public.games g 
     WHERE g.id = game_id AND (
-      g.secret_token IS NULL OR 
       current_setting('request.headers', true)::json->>'x-game-token' = g.secret_token OR
       current_setting('request.headers', true)::json->>'x-agent-token' = g.agent_token
     )
@@ -80,7 +78,6 @@ CREATE POLICY "Allow insert with token" ON public.agent_thoughts FOR INSERT WITH
   EXISTS (
     SELECT 1 FROM public.games g 
     WHERE g.id = game_id AND (
-      g.secret_token IS NULL OR 
       current_setting('request.headers', true)::json->>'x-game-token' = g.secret_token OR
       current_setting('request.headers', true)::json->>'x-agent-token' = g.agent_token
     )
@@ -91,7 +88,6 @@ CREATE POLICY "Allow update with token" ON public.agent_thoughts FOR UPDATE USIN
   EXISTS (
     SELECT 1 FROM public.games g 
     WHERE g.id = game_id AND (
-      g.secret_token IS NULL OR 
       current_setting('request.headers', true)::json->>'x-game-token' = g.secret_token OR
       current_setting('request.headers', true)::json->>'x-agent-token' = g.agent_token
     )
@@ -101,7 +97,6 @@ CREATE POLICY "Allow update with token" ON public.agent_thoughts FOR UPDATE USIN
 -- Update games table RLS policy
 DROP POLICY IF EXISTS "Allow update with token" ON public.games;
 CREATE POLICY "Allow update with token" ON public.games FOR UPDATE USING (
-  secret_token IS NULL OR 
   current_setting('request.headers', true)::json->>'x-game-token' = secret_token OR
   current_setting('request.headers', true)::json->>'x-agent-token' = agent_token
 );

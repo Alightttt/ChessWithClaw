@@ -58,23 +58,6 @@ module.exports = async function handler(req, res) {
         allowed: allowedThoughtLanguages
       });
     }
-    
-    // Quick handle without getting full game
-    try {
-      const supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      await supabase.from('games').update({ thought_language: value }).eq('id', gameId);
-      return res.status(200).json({
-        success: true,
-        action: 'set_thought_language',
-        value: value
-      });
-    } catch (err) {
-      console.error('Error action:', err);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
   }
 
   try {
@@ -123,9 +106,12 @@ module.exports = async function handler(req, res) {
     } else if (action === 'set_piece_style') {
       updates.piece_style = value;
       chatText = `[${agentName}] changed the pieces to ${value} style 🦞`;
+    } else if (action === 'set_thought_language') {
+      updates.thought_language = value;
+      chatText = `[${agentName}] is now thinking in ${value} 🦞`;
     }
 
-    const existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
+    let existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
     const newChatMsg = {
       role: 'agent',
       text: chatText,

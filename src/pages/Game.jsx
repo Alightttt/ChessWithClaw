@@ -467,6 +467,33 @@ export default function Game() {
     }
   }, [game]);
 
+  // Auto-resignation timer
+  useEffect(() => {
+    if (!game || game.status !== 'active') return;
+    const interval = setInterval(async () => {
+      const isHumanTurn = game.turn === (game.player_color || 'w');
+      const maxTimeMs = 5 * 60 * 1000; // 5 minutes
+      const lastMoveTs = game.move_history?.length > 0 
+        ? new Date(game.move_history[game.move_history.length - 1].created_at).getTime()
+        : new Date(game.created_at).getTime();
+        
+      if (Date.now() - lastMoveTs > maxTimeMs) {
+        // Current turn exceeded auto-resign timer
+        if (!isHumanTurn) {
+           await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`))
+            .from('games')
+            .update({
+              status: 'abandoned',
+              result: game.player_color || 'w',
+              result_reason: 'abandoned'
+            })
+            .eq('id', gameId);
+        }
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [game, gameId]);
+
   useEffect(() => {
     if (game?.agent_connected) {
       setAgentConnected(true);
