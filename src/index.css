@@ -114,6 +114,11 @@
     0%, 100% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.1); opacity: 1; }
   }
+  @keyframes agentMoveFlash {
+    0%   { background-color: rgba(230, 57, 70, 0.7); }
+    60%  { background-color: rgba(230, 57, 70, 0.3); }
+    100% { background-color: transparent; }
+  }
   .animate-piece-lift { animation: pieceLift 0.15s ease forwards; }
   .animate-piece-drop { animation: pieceDrop 0.15s ease forwards; }
   .animate-piece-capture { animation: pieceCapture 0.4s ease forwards; }

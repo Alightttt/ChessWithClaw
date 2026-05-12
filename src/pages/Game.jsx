@@ -86,6 +86,7 @@ export default function Game() {
   const [localMessages, setLocalMessages] = useState([]);
   const [boardLocked, setBoardLocked] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
+  const [agentJustConnected, setAgentJustConnected] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [closingGameOver, setClosingGameOver] = useState(false);
   const [shaking, setShaking] = useState(false);
@@ -459,11 +460,11 @@ export default function Game() {
     if (!game) return;
     const agentName = game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
-      document.title = 'Game Over | ChessWithClaw';
+      document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
-      document.title = 'Your Turn | ChessWithClaw';
+      document.title = '♟ Your Turn — ChessWithClaw';
     } else {
-      document.title = `⚡ ${agentName} Thinking... | ChessWithClaw`;
+      document.title = `⚡ ${agentName} Thinking...`;
     }
   }, [game]);
 
@@ -621,6 +622,9 @@ export default function Game() {
         
         if (payload.new.agent_connected && !prev.agent_connected) {
           setAgentConnected(true);
+          setAgentJustConnected(true);
+          setTimeout(() => setAgentJustConnected(false), 3000);
+          if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
         }
         
         if (!payload.new.agent_connected && prev.agent_connected) {
@@ -979,7 +983,16 @@ export default function Game() {
     setTimeout(() => setCopiedInvite(false), 2000);
   }
 
-  function handleGoHome() { navigate('/') }
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
+
+  function handleGoHome(e) { 
+    if (game?.status === 'active') {
+      if (e && e.preventDefault) e.preventDefault();
+      setShowLeaveWarning(true);
+    } else {
+      navigate('/');
+    }
+  }
   function handleOpenSettings() { setShowSettings(true) }
   function handleToggleAgentSection() { setAgentSectionOpen(prev => !prev) }
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
@@ -1106,6 +1119,50 @@ export default function Game() {
     }));
   }, [game?.move_history]);
 
+  const isOpenClawTurn = game?.turn === 'b' && game?.status === 'active';
+
+  useEffect(() => {
+    if (game?.status === 'active') {
+      localStorage.setItem('cwc_active_game', JSON.stringify({
+        gameId: gameId,
+        agentName: game.agent_name || 'Your OpenClaw',
+        savedAt: Date.now(),
+        fen: game.fen
+      }));
+    } else if (game?.status === 'finished' || game?.status === 'abandoned') {
+      localStorage.removeItem('cwc_active_game');
+    }
+  }, [game?.status, game?.fen, gameId, game?.agent_name]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (game?.status === 'active') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [game?.status]);
+  
+  useEffect(() => {
+    if ((game?.status === 'finished' || game?.status === 'abandoned') && !closingGameOver) {
+      const agentName = game?.agent_name || 'Your OpenClaw';
+      const storedKey = `cwc_games_${agentName}`;
+      const gamesWithAgent = JSON.parse(localStorage.getItem(storedKey) || '[]');
+      if (!gamesWithAgent.some(g => g.gameId === gameId)) {
+        gamesWithAgent.push({ gameId, result: game.result, date: Date.now() });
+        localStorage.setItem(storedKey, JSON.stringify(gamesWithAgent));
+      }
+    }
+  }, [game?.status, game?.result, gameId, game?.agent_name, closingGameOver]);
+
+  const gamesWithAgent = useMemo(() => JSON.parse(localStorage.getItem(`cwc_games_${game?.agent_name || 'Your OpenClaw'}`) || '[]'), [game?.agent_name]);
+  const gameNumber = useMemo(() => {
+    const idx = gamesWithAgent.findIndex(g => g.gameId === gameId);
+    return idx !== -1 ? idx + 1 : gamesWithAgent.length + 1;
+  }, [gamesWithAgent, gameId]);
+
   if (loading) {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
@@ -1164,8 +1221,6 @@ export default function Game() {
   const isSpectator = !localStorage.getItem(`game_owner_${gameId}`);
   const isMyTurn = !isSpectator && game?.turn === (game?.player_color || 'w') && (game?.status === 'active' || game?.status === 'waiting');
   
-  const isAgentThinking = (game?.turn === 'b' && game?.status === 'active');
-
   if (!game) return null;
 
   const serverTexts = new Set((game.chat_history || []).map(m => m.text));
@@ -1186,7 +1241,10 @@ export default function Game() {
         height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        background: isAgentThinking ? 'rgba(10,3,3,1)' : '#0a0a0a',
+        background: isOpenClawTurn
+          ? 'radial-gradient(ellipse at 50% 0%, rgba(230,57,70,0.07) 0%, transparent 70%)'
+          : 'transparent',
+        transition: 'background 0.8s ease',
         position: 'relative'
       }}
     >
@@ -1194,6 +1252,16 @@ export default function Game() {
         @keyframes typingDot {
           0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
           30% { opacity: 1; transform: translateY(-4px); }
+        }
+        @keyframes clawPulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.12); opacity: 0.85; }
+        }
+        @keyframes agentArrive {
+          0%   { transform: scale(0.5) translateY(8px); opacity: 0; }
+          60%  { transform: scale(1.15) translateY(-3px); opacity: 1; }
+          80%  { transform: scale(0.95) translateY(1px); }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
         }
         @keyframes chatMsgIn {
           from {
@@ -1256,14 +1324,17 @@ export default function Game() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
         
         {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isAgentThinking ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }} className={isAgentThinking ? 'animate-pulse' : ''}>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
             🦞
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0 }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '-2px', marginBottom: '2px' }}>
+              Game {gameNumber} with {agentName}
             </div>
             {agentDisconnected && (
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
@@ -1304,14 +1375,14 @@ export default function Game() {
               ))
             )}
           </div>
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative' }}>
-          {isCheckState && game.status === 'active' && (
+          {game?.in_check && game.status === 'active' && (
             <div 
-              className="absolute top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-red-600/90 text-white font-sans text-xs font-bold text-center rounded shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-500 backdrop-blur-md animate-pulse z-20"
+              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
             >
-              {game?.turn === (game?.player_color || 'w') ? "⚠️ Your king is in check!" : `⚠️ ${agentName}'s king is in check!`}
+              ⚠️ Check!
             </div>
           )}
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
           <ChessBoard 
             fen={game.fen} 
             showCoordinates={false}
@@ -1808,6 +1879,33 @@ export default function Game() {
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         input::placeholder { color: #888; }
       `}} />
+      {/* LEAVE WARNING MODAL */}
+      {showLeaveWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '16px', padding: '32px 24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+            <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: '#f2f2f2', margin: '0 0 12px 0', fontSize: '20px' }}>Leave the game?</h2>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, color: '#555555', fontSize: '14px', margin: '0 0 24px 0', lineHeight: 1.4 }}>
+              Your OpenClaw is still waiting. The game will continue where you left off.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                onClick={() => setShowLeaveWarning(false)} 
+                className="design-btn-primary" 
+                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px' }}
+              >
+                Stay
+              </button>
+              <button 
+                onClick={() => navigate('/')} 
+                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', background: 'transparent', color: '#888', border: 'none' }}
+                className="hover:bg-white/5 active:scale-95 transition-all"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

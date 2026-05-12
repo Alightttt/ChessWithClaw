@@ -227,15 +227,19 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && (chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
 
   const [agentMoveFlash, setAgentMoveFlash] = useState(null);
+  const prevTurnRef = useRef(null);
 
   useEffect(() => {
-    if (lastMove && lastMove.color === 'b') {
-      let toSq = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
-      setAgentMoveFlash(toSq);
-      const timer = setTimeout(() => setAgentMoveFlash(null), 400);
+    const currentTurn = chess.turn();
+    if (prevTurnRef.current === 'b' && currentTurn === 'w' && lastMove) {
+      const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
+      setAgentMoveFlash(dest);
+      const timer = setTimeout(() => setAgentMoveFlash(null), 600);
+      prevTurnRef.current = currentTurn;
       return () => clearTimeout(timer);
     }
-  }, [lastMove]);
+    prevTurnRef.current = currentTurn;
+  }, [chess, lastMove]);
 
   const themes = {
     green: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
@@ -297,7 +301,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
                 {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
-                {agentMoveFlash === sq && <div className="absolute inset-0 z-10" style={{ animation: 'agentFlash 400ms ease-out forwards' }} />}
+                {agentMoveFlash === sq && <div className="absolute inset-0 z-[2]" style={{ animation: 'agentMoveFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />}
                 
                 {/* Legal move indicators */}
                 {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}
@@ -382,7 +386,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
               
               return (
                 <div key={sq} className="relative w-full h-full">
-                  <div className="absolute inset-0" style={{ borderRadius: '50%', background: 'radial-gradient(circle, rgba(230,57,70,0.8) 0%, rgba(230,57,70,0.4) 50%, transparent 80%)', animation: 'checkPulse 1s ease-in-out infinite' }} />
+                  <div className="absolute inset-0" style={{ borderRadius: 'inherit', background: 'radial-gradient(circle at center, rgba(230,57,70,0.7) 0%, rgba(230,57,70,0.15) 60%, transparent 100%)', pointerEvents: 'none', zIndex: 3 }} />
                 </div>
               );
             })

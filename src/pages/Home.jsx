@@ -77,7 +77,21 @@ export default function Home() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [resumeGame, setResumeGame] = useState(null);
+
   useEffect(() => {
+    const savedGame = localStorage.getItem('cwc_active_game');
+    if (savedGame) {
+      try {
+        const parsed = JSON.parse(savedGame);
+        const ageMs = Date.now() - parsed.savedAt;
+        const ageHours = ageMs / (1000 * 60 * 60);
+        if (ageHours < 23) {
+          setResumeGame(parsed);
+        }
+      } catch(e) {}
+    }
+    
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
@@ -276,9 +290,39 @@ export default function Home() {
         }
       `}</style>
       
+      {resumeGame && (
+        <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2' }}>
+              🦞 Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button 
+                onClick={() => navigate(`/game/${resumeGame.gameId}`)}
+                style={{ background: 'transparent', border: 'none', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                className="hover:opacity-80 active:scale-95 transition-all"
+              >
+                Resume →
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('cwc_active_game');
+                  setResumeGame(null);
+                }}
+                style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                className="hover:text-white transition-colors"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav 
         style={{
-          position: 'fixed', top: 0, left: 0, right: 0, height: '72px', zIndex: 50,
+          position: 'fixed', top: resumeGame ? '48px' : 0, left: 0, right: 0, height: '72px', zIndex: 50,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
@@ -319,7 +363,7 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: 'clamp(90px, 12vh, 110px)', 
+          paddingTop: resumeGame ? 'clamp(138px, 15vh, 158px)' : 'clamp(90px, 12vh, 110px)', 
           paddingBottom: 'clamp(48px, 8vh, 80px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 

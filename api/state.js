@@ -181,7 +181,7 @@ module.exports = async function handler(req, res) {
     status: game.status,
     game_info: {
       white_player: 'Human',
-      black_player: (game.agent_name && game.agent_name !== 'Your Agent' && game.agent_name !== 'Agent') ? game.agent_name : 'OpenClaw',
+      black_player: game.agent_name || 'OpenClaw',
       white_elo: '?',
       black_elo: '?',
       time_control: 'none',
