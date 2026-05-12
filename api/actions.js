@@ -124,7 +124,11 @@ module.exports = async function handler(req, res) {
 
     updates.chat_history = [...existingChat, newChatMsg];
 
-    await supabase.from('games').update(updates).eq('id', gameId);
+    const { error: updateError } = await supabase.from('games').update(updates).eq('id', gameId);
+    if (updateError) {
+      console.error('Supabase update error:', updateError);
+      return res.status(500).json({ error: 'Database update failed', detail: updateError.message });
+    }
 
     return res.status(200).json({ success: true, action, result });
   } catch (err) {

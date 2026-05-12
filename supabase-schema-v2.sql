@@ -6,6 +6,19 @@ ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_token text;
 -- Add current_thinking to games table
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS current_thinking TEXT DEFAULT '';
 
+-- Add missing columns that might cause API updates to fail
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS player_color TEXT;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS draw_offer TEXT;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS draw_offer_pending BOOLEAN DEFAULT false;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS board_theme TEXT DEFAULT 'green';
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS piece_style TEXT DEFAULT 'standard';
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS thought_language TEXT DEFAULT 'english';
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS companion_thought TEXT DEFAULT '';
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS companion_thought_at timestamptz;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_typing BOOLEAN DEFAULT false;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS finished_at timestamptz;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS last_commentary TEXT;
+
 -- 1. Moves Table
 CREATE TABLE IF NOT EXISTS public.moves (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -107,9 +120,27 @@ CREATE POLICY "Allow update with token" ON public.games FOR UPDATE USING (
   current_setting('request.headers', true)::json->>'x-game-token' = secret_token OR
   current_setting('request.headers', true)::json->>'x-agent-token' = agent_token
 );
-alter publication supabase_realtime add table public.moves;
-alter publication supabase_realtime add table public.chat_messages;
-alter publication supabase_realtime add table public.agent_thoughts;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'moves'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.moves;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'chat_messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'agent_thoughts'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_thoughts;
+  END IF;
+END
+$$;
 
 -- Triggers to update games.updated_at
 CREATE OR REPLACE FUNCTION update_game_timestamp()

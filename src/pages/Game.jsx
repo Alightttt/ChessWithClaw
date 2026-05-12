@@ -1211,6 +1211,16 @@ export default function Game() {
           0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
           30% { opacity: 1; transform: translateY(-4px); }
         }
+        @keyframes chatMsgIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
         @keyframes messageIn {
           from { opacity: 0; transform: scale(0.85) translateY(8px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -1388,8 +1398,10 @@ export default function Game() {
             ) : (
               combinedChat.map((msg, i) => {
                 const isHuman = msg.sender === 'human' || msg.role === 'human';
+                const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
                 const animStyle = {
-                  animation: i >= mountedMsgCount.current ? 'msgIn 0.2s ease-out forwards' : 'none'
+                  animation: isNewMessage ? 'chatMsgIn 0.22s ease-out forwards' : 'none',
+                  opacity: isNewMessage ? undefined : 1
                 };
 
                 if (msg.type === 'resign_request') {
