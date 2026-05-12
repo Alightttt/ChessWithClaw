@@ -47,13 +47,17 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_thoughts ENABLE ROW LEVEL SECURITY;
 
 -- Restrict public access to SELECT only
+DROP POLICY IF EXISTS "Allow public read access" ON public.moves;
 CREATE POLICY "Allow public read access" ON public.moves FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access" ON public.chat_messages;
 CREATE POLICY "Allow public read access" ON public.chat_messages FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public read access" ON public.agent_thoughts;
 CREATE POLICY "Allow public read access" ON public.agent_thoughts FOR SELECT USING (true);
 
 -- Allow insert/update only if the user has the correct token (human or agent)
 -- We will handle inserts via the backend API using the service_role key or by passing the token
 -- Since the backend uses the anon key, we need to allow inserts if the correct token is provided in headers
+DROP POLICY IF EXISTS "Allow insert with token" ON public.moves;
 CREATE POLICY "Allow insert with token" ON public.moves FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.games g 
@@ -64,6 +68,7 @@ CREATE POLICY "Allow insert with token" ON public.moves FOR INSERT WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "Allow insert with token" ON public.chat_messages;
 CREATE POLICY "Allow insert with token" ON public.chat_messages FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.games g 
@@ -74,6 +79,7 @@ CREATE POLICY "Allow insert with token" ON public.chat_messages FOR INSERT WITH 
   )
 );
 
+DROP POLICY IF EXISTS "Allow insert with token" ON public.agent_thoughts;
 CREATE POLICY "Allow insert with token" ON public.agent_thoughts FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.games g 
@@ -84,6 +90,7 @@ CREATE POLICY "Allow insert with token" ON public.agent_thoughts FOR INSERT WITH
   )
 );
 
+DROP POLICY IF EXISTS "Allow update with token" ON public.agent_thoughts;
 CREATE POLICY "Allow update with token" ON public.agent_thoughts FOR UPDATE USING (
   EXISTS (
     SELECT 1 FROM public.games g 
