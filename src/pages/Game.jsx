@@ -93,6 +93,16 @@ export default function Game() {
   const [commentary, setCommentary] = useState('');
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveFrom, setLastMoveFrom] = useState(null);
+  
+  const [optimisticFen, setOptimisticFen] = useState(null);
+  const [optimisticLastMove, setOptimisticLastMove] = useState(null);
+
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [lastMoveTo, setLastMoveTo] = useState(null);
   const [agentConnected, setAgentConnected] = useState(false);
 
@@ -872,66 +882,90 @@ export default function Game() {
     } else if (chess && game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
       chess.load(game.fen);
     }
+    
     try {
       const moveObj = promotion ? { from, to, promotion } : { from, to };
       const move = chess ? chess.move(moveObj) : null;
       if (!move) {
         submittingRef.current = false;
         setBoardLocked(false);
+        setOptimisticFen(null);
+        setOptimisticLastMove(null);
         return;
       }
+      
+      const newFen = chess.fen();
+      setOptimisticFen(newFen);
+      setOptimisticLastMove({ from, to });
+      
+      if (soundEnabled) {
+        const audio = new Audio(move.captured ? "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3" : "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3");
+        audio.play().catch(() => {});
+        if (chess.in_check && chess.in_check()) {
+          setTimeout(() => {
+            const checkAudio = new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3");
+            checkAudio.play().catch(() => {});
+          }, 150);
+        }
+      }
 
-      const response = await fetch('/api/move', {
+      const prevFen = game.fen;
+      const gameIdValue = gameId;
+
+      fetch('/api/move', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`)
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
         body: JSON.stringify({
-          id: gameId,
-          move: from + to + (promotion || '')
+          id: gameIdValue,
+          move: from + to + (promotion || ''),
+          isHumanMove: true
         })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
+      })
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setOptimisticFen(prevFen);
+          setOptimisticLastMove(null);
+          
+          if (errData.code === 'WAITING_FOR_AGENT') {
+            toast(`Waiting for ${agentName} to join...`, {
+              icon: '🦞',
+              style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+            });
+          } else if (errData.code === 'TURN_CONFLICT') {
+             toast.error('Move already processed');
+          } else {
+             toast.error(errData.error || 'Failed to submit move');
+          }
+        } 
+        // Realtime will clear submittingRef and boardLocked when it receives the move
+        // Setting it here to a timeout in case Realtime fails
+        setTimeout(() => {
+          if (submittingRef.current) {
+            submittingRef.current = false;
+            setBoardLocked(false);
+          }
+        }, 3000);
+      })
+      .catch((err) => {
+        setOptimisticFen(prevFen);
+        setOptimisticLastMove(null);
+        toast.error('Network error or failed to submit');
         submittingRef.current = false;
         setBoardLocked(false);
-        if (errData.code === 'WAITING_FOR_AGENT') {
-          toast(`Waiting for ${agentName} to join...`, {
-            icon: '🦞',
-            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
-          });
-          return;
-        } else if (errData.code === 'TURN_CONFLICT') {
-          throw new Error('TURN_CONFLICT');
-        }
-        throw new Error(errData.error || 'Failed to submit move');
-      }
-      
-      // Safety timeout to unlock board if realtime events are missed
-      setTimeout(() => {
-        if (submittingRef.current) {
-          submittingRef.current = false;
-          setBoardLocked(false);
-        }
-      }, 3000);
+      });
       
     } catch (e) {
-      if (e.message === 'WAITING_FOR_AGENT') {
-        toast(`Waiting for ${agentName} to join...`, {
-          icon: '🦞',
-          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
-        });
-      } else if (e.message === 'TURN_CONFLICT') {
-        toast.error('Move already processed');
-      } else {
-        toast.error(e.message || 'Illegal move or failed to submit');
-      }
+      toast.error(e.message || 'Illegal move or failed to submit');
       submittingRef.current = false;
       setBoardLocked(false);
+      setOptimisticFen(null);
+      setOptimisticLastMove(null);
     }
-  }, [game, boardLocked, gameId, toast]);
+  }, [game, boardLocked, gameId, toast, soundEnabled]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1288,8 +1322,8 @@ export default function Game() {
         </div>
       )}
       
-      {/* HEADER (Fixed 64px) */}
-      <header style={{ height: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
+      {/* HEADER (Fixed) */}
+      <header style={{ height: isDesktop ? '52px' : '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
           <img 
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
@@ -1319,9 +1353,307 @@ export default function Game() {
           <Settings size={20} />
         </button>
       </header>
+      {/* MAIN CONTENT AREA - RESPONSIVE */}
+      {isDesktop ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+          {/* LEFT DESKTOP COLUMN */}
+          <div style={{ width: '56%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '12px 8px 12px 16px', gap: '8px', overflow: 'hidden' }}>
+            
+        
+        {/* A) AGENT CARD */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
+            🦞
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '-2px', marginBottom: '2px' }}>
+              Game {gameNumber} with {agentName}
+            </div>
+            {agentDisconnected && (
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+            )}
+            
+            {visibleThought && (
+              <div style={{
+                padding: '12px 16px',
+                color: '#888888',
+                fontSize: '14px',
+                fontFamily: "'Inter', sans-serif",
+                lineHeight: '1.5',
+                maxWidth: '100%',
+                wordBreak: 'break-word'
+              }}>
+                {visibleThought}
+              </div>
+            )}
+          </div>
+          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
+              {agentCaptured.map((p, i) => (
+                <span key={i} style={{ marginLeft: '-4px' }}>
+                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                </span>
+              ))}
+              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+            </div>
+          )}
+        </div>
+            
 
-      {/* MAIN CONTENT SECTION */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
+        {/* B) CHESS BOARD */}
+        <div style={{ width: '100%', flex: 1, position: 'relative', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+          <div style={{ width: 'min(100%, calc(100vh - 52px - 72px - 48px - 32px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
+          {game?.in_check && game.status === 'active' && (
+            <div 
+              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
+            >
+              ⚠️ Check!
+            </div>
+          )}
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
+          <ChessBoard 
+            fen={optimisticFen || game.fen} 
+            showCoordinates={false}
+            onMove={makeMove} 
+            isMyTurn={isMyTurn} 
+            lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
+            moveHistory={game.move_history || []}
+            boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
+            playerColor={game?.player_color || 'w'}
+            onIllegalMove={handleIllegalMove}
+            onCapture={handleCapture}
+          />
+          </div>
+          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
+              Array.from({length:n}).map((_,i)=>(
+                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
+              ))
+            )}
+          </div>
+          {(game.status === 'finished' || game.status === 'abandoned') && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
+              <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
+                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
+              </div>
+              <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
+                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+              </div>
+            </div>
+          )}
+        </div></div>
+            
+
+      {/* STEP 4: BOTTOM INFO BAR */}
+      <div style={{ flexShrink: 0, background: '#111111', border: '1px solid #1a1a1a', borderRadius: '8px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
+          {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+          Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
+        </span>
+        {!agentConnected && (
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.2)' }}>
+            {agentName} not here
+          </span>
+        )}
+      </div>
+          </div>
+
+          {/* RIGHT DESKTOP COLUMN */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 16px 12px 8px', gap: '8px', overflow: 'hidden', minHeight: 0 }}>
+            
+
+        {/* D) CHAT SECTION */}
+        <div style={{ flexShrink: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: 'none', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
+            CHAT WITH {agentName.toUpperCase()}
+          </div>
+          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
+            {combinedChat.length === 0 ? (
+              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '24px' }}>🦞</span>
+                <span>{agentName} can chat while playing</span>
+              </div>
+            ) : (
+              combinedChat.map((msg, i) => {
+                const isHuman = msg.sender === 'human' || msg.role === 'human';
+                const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
+                const animStyle = {
+                  animation: isNewMessage ? 'chatMsgIn 0.22s ease-out forwards' : 'none',
+                  opacity: isNewMessage ? undefined : 1
+                };
+
+                if (msg.type === 'resign_request') {
+                  return (
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
+                      {msg.text}
+                      {game.status === 'active' && (
+                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
+                      )}
+                    </div>
+                  );
+                }
+                if (msg.type === 'draw_offer') {
+                  return (
+                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
+                      {msg.text}
+                      {game.status === 'active' && (
+                        <button data-testid="accept-draw-button" onClick={async () => {
+                          await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+                            status: 'finished', result: 'draw', result_reason: 'agreement'
+                          }).eq('id', gameId);
+                        }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
+                      )}
+                    </div>
+                  );
+                }
+                
+                const REACTION_EMOJIS = ['❤️', '😂', '🔥', '😮', '😅', '👏'];
+                const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
+                
+                return (
+                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }}>
+                    
+                    {!isHuman && reactionPickerMsgId === (msg.id || msg.timestamp) && (
+                      <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
+                        {REACTION_EMOJIS.map(e => (
+                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div 
+                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
+                      className="group cursor-pointer"
+                      style={isHuman ? {
+                        background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
+                      } : {
+                        background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
+                      }}
+                    >
+                      <div>{msg.text}</div>
+                    </div>
+                    
+                    {hasReactions && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
+                        {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
+                          reactors.length > 0 ? (
+                            <span key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji, 'human')} style={{
+                              display:'inline-flex', alignItems:'center', gap:'3px',
+                              padding:'2px 8px', borderRadius:'100px',
+                              background:'rgba(255,255,255,0.06)',
+                              border:'1px solid rgba(255,255,255,0.1)',
+                              fontSize:'12px', color:'#f2f2f2', marginRight:'4px', cursor: 'pointer'
+                            }}>
+                              {emoji} {reactors.length > 1 ? reactors.length : ''}
+                            </span>
+                          ) : null
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            {agentTyping && (
+              <div 
+                style={{
+                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
+                }} 
+                className="animate-fade-up"
+              >
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
+              </div>
+            )}
+          </div>
+          <form 
+            onSubmit={sendMessage} 
+            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
+          >
+            <input
+              id="chat-input"
+              data-testid="chat-input"
+              type="text"
+              value={chatInput}
+              onChange={handleChatInputChange}
+              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+              disabled={isSpectator}
+              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
+            />
+            <button 
+              data-testid="chat-send"
+              type="submit"
+              disabled={isSpectator || !chatInput.trim()}
+              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              <Send size={16} />
+            </button>
+          </form>
+        </div>
+            
+
+        {/* E) MOVE HISTORY */}
+        <div style={{ background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden', height: moveHistoryOpen ? '240px' : '160px', flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'height 0.3s ease' }}>
+          <div 
+            onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
+            style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid #1a1a1a', background: '#161616', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)' }}>
+              MOVE HISTORY · {game.move_history?.length || 0} MOVES
+            </span>
+            <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
+          </div>
+          {moveHistoryOpen && (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }} className="scrollbar-none">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid #111', marginBottom: '4px' }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>#</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>You</div>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>{agentName}</div>
+                </div>
+                {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
+                  const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
+                  const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
+                  return (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
+                      <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
+                      <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
+                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
+            
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
@@ -1365,6 +1697,7 @@ export default function Game() {
             </div>
           )}
         </div>
+            
 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
@@ -1384,11 +1717,11 @@ export default function Game() {
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
           <ChessBoard 
-            fen={game.fen} 
+            fen={optimisticFen || game.fen} 
             showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
-            lastMove={(game.move_history || [])[(game.move_history || []).length - 1] || null} 
+            lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
@@ -1415,6 +1748,7 @@ export default function Game() {
             </div>
           )}
         </div>
+            
 
         {/* C) YOU CARD */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
@@ -1438,6 +1772,7 @@ export default function Game() {
             </div>
           )}
         </div>
+            
 
         {/* D) CHAT SECTION */}
         <div style={{ flexShrink: 0, height: '180px', display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
@@ -1575,6 +1910,7 @@ export default function Game() {
             </button>
           </form>
         </div>
+            
 
         {/* E) MOVE HISTORY */}
         <div style={{ background: '#0a0a0a' }}>
@@ -1610,7 +1946,8 @@ export default function Game() {
             </div>
           )}
         </div>
-      </div>
+          </div>
+          
 
       {/* STEP 4: BOTTOM INFO BAR */}
       <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
@@ -1626,6 +1963,9 @@ export default function Game() {
           </span>
         )}
       </div>
+        </>
+      )}
+
 
       {/* STATUS BAR */}
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>

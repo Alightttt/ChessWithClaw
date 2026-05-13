@@ -319,9 +319,6 @@ module.exports = async function handler(req, res) {
      gameResult = 'draw';
   }
 
-  // Fire and forget companion thought generation
-  fetch(`https://${req.headers.host}/api/thoughts?gameId=${id}&trigger=move`).catch(() => {});
-
   const updates = {
     fen: fen || game.fen,
     turn: nextTurn,
