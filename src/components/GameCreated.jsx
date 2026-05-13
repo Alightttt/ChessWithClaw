@@ -219,7 +219,7 @@ npx clawhub install agent-browser-clawdbot`;
         <div className="relative mb-14 w-full px-2 mt-4">
           <div className="absolute top-5 left-[15%] right-[15%] h-[2px] bg-white/5 rounded-full z-0 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-[#81b64c] to-[#96cc5c] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+              className="h-full bg-gradient-to-r from-[#e63946] to-[#ff4d5a] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" 
               style={{ width: agentConnected ? '100%' : boardOpened ? '50%' : '0%' }}
             />
           </div>
@@ -227,10 +227,10 @@ npx clawhub install agent-browser-clawdbot`;
           <div className="relative z-10 flex justify-between items-start">
             {/* Step 1 */}
             <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#e63946]/30">
                 <CheckCircle2 size={20} className="text-white" />
               </div>
-              <div className="font-['Inter'] text-[11px] font-bold tracking-widest uppercase text-[#81b64c]">Invite</div>
+              <div className="font-['Inter'] text-[11px] font-bold tracking-widest uppercase text-[#e63946]">Invite</div>
             </div>
 
             {/* Step 2 */}
@@ -238,14 +238,14 @@ npx clawhub install agent-browser-clawdbot`;
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                   boardOpened 
-                    ? 'bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30' 
-                    : 'bg-[#111] text-[#81b64c] border-2 border-[#81b64c]'
+                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#e63946]/30' 
+                    : 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
                 }`}
               >
                 {boardOpened ? <CheckCircle2 size={20} className="text-white" /> : <span className="font-semibold">2</span>}
               </div>
               <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
-                boardOpened || !agentConnected ? 'text-[#81b64c]' : 'text-neutral-500'
+                boardOpened || !agentConnected ? 'text-[#e63946]' : 'text-neutral-500'
               }`}>Board</div>
             </div>
 
@@ -254,9 +254,9 @@ npx clawhub install agent-browser-clawdbot`;
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
                   agentConnected 
-                    ? 'bg-[#81b64c] text-white shadow-[0_0_20px_-5px_rgba(129,182,76,0.5)] border border-[#a3d16b]/30' 
+                    ? 'bg-[#e63946] text-white shadow-[0_0_20px_-5px_rgba(230,57,70,0.5)] border border-[#e63946]/30' 
                     : boardOpened
-                    ? 'bg-[#111] text-[#81b64c] border-2 border-[#81b64c]'
+                    ? 'bg-[#111] text-[#e63946] border-2 border-[#e63946]'
                     : 'bg-[#111] text-neutral-500 border border-white/10'
                 }`}
                 style={boardOpened && !agentConnected ? { animation: 'clawPulse 2s infinite' } : {}}
@@ -270,7 +270,7 @@ npx clawhub install agent-browser-clawdbot`;
                 )}
               </div>
               <div className={`font-['Inter'] text-[11px] font-bold tracking-widest uppercase transition-colors duration-500 ${
-                agentConnected || boardOpened ? 'text-[#81b64c]' : 'text-neutral-500'
+                agentConnected || boardOpened ? 'text-[#e63946]' : 'text-neutral-500'
               }`}>Battle</div>
             </div>
           </div>

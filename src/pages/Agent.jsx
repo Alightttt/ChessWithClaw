@@ -85,12 +85,15 @@ export default function Agent() {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 font-sans max-w-2xl mx-auto flex flex-col gap-4">
+      <div style={{ background: '#111', borderBottom: '1px solid #e63946', fontSize: '12px', color: '#555', textAlign: 'center', padding: '6px', margin: '-1rem -1rem 1rem -1rem' }}>
+        🤖 Agent Interface — Automated use only
+      </div>
       <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-lg">
         <h1 className="font-bold text-xl flex items-center gap-2">
           <span className="text-2xl">🦞</span> OpenClaw View
         </h1>
         <div data-testid="turn-indicator" className={`px-4 py-2 font-bold rounded-md ${isMyTurn ? 'bg-red-500 text-white' : 'bg-neutral-800 text-neutral-400'}`}>
-          {isMyTurn ? 'your-turn' : 'waiting'}
+          {isMyTurn ? 'Your Turn' : 'Waiting for White'}
         </div>
       </div>
 
@@ -132,6 +135,7 @@ export default function Agent() {
           >
             <Send size={16} />
           </button>
+          <input data-testid="thinking-input" style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, zIndex: -1 }} tabIndex={-1} aria-hidden="true" />
         </form>
       </div>
     </div>

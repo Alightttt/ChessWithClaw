@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+
 
 import { Chess } from 'chess.js';
 
@@ -17,6 +17,8 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
+  const [draggedPiece, setDraggedPiece] = useState(null);
+  const [arrivedSquare, setArrivedSquare] = useState(null);
   const [pieces, setPieces] = useState([]);
   const prevMoveHistoryLength = useRef(0);
 
@@ -174,12 +176,26 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const files = playerColor === 'b' ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
   const ranks = playerColor === 'b' ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['8', '7', '6', '5', '4', '3', '2', '1'];
 
-  const handleSquareClick = (row, col) => {
+  const handleSquareClick = (row, col, sourceSq = null) => {
     if (!interactive || !isMyTurn) return;
 
     const square = files[col] + ranks[row];
     const piece = chess.get(square);
 
+    if (sourceSq) {
+      const movesToSquare = chess.moves({ square: sourceSq, verbose: true }).filter(m => m.to === square);
+      if (movesToSquare.length > 0) {
+        if (movesToSquare[0].promotion) {
+          setPromotionMove({ from: sourceSq, to: square });
+        } else {
+          onMove(sourceSq, square);
+          setSelectedSquare(null);
+          setLegalMoves([]);
+        }
+      }
+      return;
+    }
+    
     if (!selectedSquare) {
       if (piece && piece.color === playerColor) {
         setSelectedSquare(square);
@@ -230,6 +246,30 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const prevTurnRef = useRef(null);
 
   useEffect(() => {
+    if (lastMove) {
+      const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
+      setArrivedSquare(dest);
+      const timer = setTimeout(() => setArrivedSquare(null), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [lastMove]);
+  
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.id = 'piece-arrive';
+    if (!document.getElementById('piece-arrive')) {
+      style.textContent = `
+        @keyframes pieceArrive {
+          from { transform: scale(0.85); opacity: 0.7; }
+          to   { transform: scale(1); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+
+  useEffect(() => {
     const currentTurn = chess.turn();
     if (prevTurnRef.current === 'b' && currentTurn === 'w' && lastMove) {
       const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
@@ -252,20 +292,44 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
 
   const currentThemeUrl = themes[boardTheme]?.url || themes.green.url;
 
-  const renderPiece = (piece) => {
+  
+  const renderPiece = (piece, sq) => {
     if (!piece) return null;
     const isWhite = piece.color === 'w';
-    
-    // Use chess.com pieces from github 
-    // Repos are lowercase e.g. wq.png
     const pieceName = `${piece.color}${piece.type.toLowerCase()}`;
     let pTheme = pieceTheme;
     if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
-      pTheme = 'neo'; // Default to neo
+      pTheme = 'neo';
     }
     const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
-    return <img src={url} alt={pieceName} className="relative z-10 w-[85%] h-[85%] pointer-events-none" style={{ filter: 'none' }} />;
+    const isDraggable = interactive && isMyTurn && piece.color === playerColor;
+    
+    return (
+      <img 
+        src={url} 
+        alt={pieceName} 
+        draggable={isDraggable}
+        onDragStart={(e) => {
+          setDraggedPiece({ sq, piece });
+          e.dataTransfer.setData('text/plain', sq);
+          setTimeout(() => {
+            if (e.target) e.target.style.opacity = '0.4';
+          }, 0);
+        }}
+        onDragEnd={(e) => {
+          setDraggedPiece(null);
+          if (e.target) e.target.style.opacity = '1';
+        }}
+        className="relative z-10 w-[85%] h-[85%]" 
+        style={{ 
+          filter: 'none', 
+          cursor: isDraggable ? 'grab' : 'default',
+          animation: arrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
+        }} 
+      />
+    );
   };
+
 
   if (!chess) {
     return (
@@ -294,6 +358,13 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                 key={sq}
                 data-testid={`square-${sq}`}
                 onClick={() => handleSquareClick(row, col)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedPiece) {
+                    handleSquareClick(row, col, draggedPiece.sq);
+                  }
+                }}
                 className="relative w-full h-full flex items-center justify-center cursor-pointer hover:bg-white/50 transition-colors"
                 style={{ backgroundColor: 'transparent' }}
                 aria-label={`${sq}, ${piece ? (piece.color === 'w' ? 'white ' : 'black ') + piece.type : 'empty'}`}
@@ -318,62 +389,14 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                     {file}
                   </span>
                 )}
+              
+                {renderPiece(piece, sq)}
               </div>
             );
           })
         )}
         </div>
         
-        {/* Animated Pieces Layer */}
-        <div className="absolute inset-0 pointer-events-none z-10">
-          <AnimatePresence>
-            {pieces.map((piece) => {
-              if (piece.captured) return null;
-              
-              const fileIndex = files.indexOf(piece.square[0]);
-              const rankIndex = ranks.indexOf(piece.square[1]);
-              const isSelected = selectedSquare === piece.square;
-              const isLastPlaced = lastMove && (typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to) === piece.square;
-              
-              // Calculate entrance delay based on rank (staggered entrance)
-              const entranceDelay = (rankIndex * 0.05) + (fileIndex * 0.02);
-              
-              let animationClass = '';
-              
-              if (isSelected) {
-                animationClass = 'animate-[pieceLift_200ms_cubic-bezier(0.2,0,0,1)_forwards]';
-              } else if (isLastPlaced) {
-                animationClass = 'animate-[pieceDrop_150ms_cubic-bezier(0.2,0,0,1)_forwards]';
-              }
-
-              return (
-                <motion.div
-                  key={piece.id}
-                  initial={(!moveHistory || moveHistory.length === 0) ? { y: -20, opacity: 0 } : false}
-                  animate={{ 
-                    x: `${fileIndex * 100}%`, 
-                    y: `${rankIndex * 100}%`,
-                    opacity: 1
-                  }}
-                  exit={{ scale: 0.5, opacity: 0, filter: 'none' }}
-                  transition={{ 
-                    type: 'spring', 
-                    stiffness: 350, 
-                    damping: 25,
-                    opacity: { duration: 0.2 },
-                    delay: (!moveHistory || moveHistory.length === 0) ? entranceDelay : 0
-                  }}
-                  className="absolute top-0 left-0 w-[12.5%] h-[12.5%] flex items-center justify-center z-10 will-change-transform"
-                >
-                  <div className={`w-full h-full flex items-center justify-center ${animationClass}`}>
-                    {renderPiece(piece)}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-
         {/* Top Overlays Layer (Above Pieces) */}
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 pointer-events-none z-20">
           {ranks.map((rank, row) =>

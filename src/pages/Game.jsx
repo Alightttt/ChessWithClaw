@@ -24,6 +24,21 @@ export default function Game() {
   const agentToken = location.state?.agentToken;
   
   const [game, setGame] = useState(null);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.id = 'chat-animations';
+    if (!document.getElementById('chat-animations')) {
+      style.textContent = `
+        @keyframes msgSlideIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const agentName = game?.agent_name || 'Your OpenClaw';
   const [loading, setLoading] = useState(true);
 
@@ -595,13 +610,12 @@ export default function Game() {
         console.error(error);
       }
       setLoading(false);
+      subscribeToGame();
     };
 
-    loadGame();
-
     const subscribeToGame = () => {
-      if (channelRef.current && channelRef.current.state === 'joined') {
-        return; // Already subscribed
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
       }
       
       const channel = supabase.channel(`game-${gameId}`);
@@ -722,10 +736,14 @@ export default function Game() {
       });
     });
 
-      channel.subscribe();
+      channel.subscribe((status) => {
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setTimeout(() => subscribeToGame(), 2000);
+        }
+      });
     };
 
-    subscribeToGame(); // call on mount
+    loadGame(); // Initial load
 
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
@@ -1168,35 +1186,6 @@ export default function Game() {
     }
   }, [game?.status, game?.fen, gameId, game?.agent_name]);
 
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (game?.status === 'active') {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [game?.status]);
-  
-  useEffect(() => {
-    if ((game?.status === 'finished' || game?.status === 'abandoned') && !closingGameOver) {
-      const agentName = game?.agent_name || 'Your OpenClaw';
-      const storedKey = `cwc_games_${agentName}`;
-      const gamesWithAgent = JSON.parse(localStorage.getItem(storedKey) || '[]');
-      if (!gamesWithAgent.some(g => g.gameId === gameId)) {
-        gamesWithAgent.push({ gameId, result: game.result, date: Date.now() });
-        localStorage.setItem(storedKey, JSON.stringify(gamesWithAgent));
-      }
-    }
-  }, [game?.status, game?.result, gameId, game?.agent_name, closingGameOver]);
-
-  const gamesWithAgent = useMemo(() => JSON.parse(localStorage.getItem(`cwc_games_${game?.agent_name || 'Your OpenClaw'}`) || '[]'), [game?.agent_name]);
-  const gameNumber = useMemo(() => {
-    const idx = gamesWithAgent.findIndex(g => g.gameId === gameId);
-    return idx !== -1 ? idx + 1 : gamesWithAgent.length + 1;
-  }, [gamesWithAgent, gameId]);
-
   if (loading) {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
@@ -1258,7 +1247,7 @@ export default function Game() {
   if (!game) return null;
 
   const serverTexts = new Set((game.chat_history || []).map(m => m.text));
-  const combinedChat = [
+  const _combinedChat = [
     ...(game.chat_history || []),
     ...localMessages.filter(m => !serverTexts.has(m.text))
   ].sort((a, b) => {
@@ -1266,6 +1255,7 @@ export default function Game() {
     const timeB = new Date(b.timestamp || 0).getTime();
     return timeA - timeB;
   });
+  const combinedChat = _combinedChat.map((msg, idx) => ({ ...msg, id: msg.id || `msg-${idx}` }));
 
   return (
     <div 
@@ -1370,9 +1360,7 @@ export default function Game() {
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '-2px', marginBottom: '2px' }}>
-              Game {gameNumber} with {agentName}
-            </div>
+            
             {agentDisconnected && (
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
@@ -1492,7 +1480,7 @@ export default function Game() {
                 const isHuman = msg.sender === 'human' || msg.role === 'human';
                 const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
                 const animStyle = {
-                  animation: isNewMessage ? 'chatMsgIn 0.22s ease-out forwards' : 'none',
+                  animation: isNewMessage ? 'msgSlideIn 0.2s ease-out forwards' : 'none',
                   opacity: isNewMessage ? undefined : 1
                 };
 
@@ -1525,12 +1513,15 @@ export default function Game() {
                 const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
                 
                 return (
-                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }}>
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '8px', alignItems: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '100%', width: '100%', alignSelf: 'stretch', ...animStyle }}>
                     
-                    {!isHuman && reactionPickerMsgId === (msg.id || msg.timestamp) && (
+                    {!isHuman && (!combinedChat[i-1] || combinedChat[i-1].sender === 'human' || combinedChat[i-1].role === 'human') && (
+                      <div style={{ fontSize: '11px', color: '#555555', marginBottom: '3px', marginLeft: '2px' }}>{agentName}</div>
+                    )}
+                    {!isHuman && reactionPickerMsgId === (msg.id) && (
                       <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
                         {REACTION_EMOJIS.map(e => (
-                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
+                          <button key={e} onClick={() => toggleReaction(msg.id, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
                             {e}
                           </button>
                         ))}
@@ -1538,12 +1529,12 @@ export default function Game() {
                     )}
 
                     <div 
-                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
+                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
                       className="group cursor-pointer"
                       style={isHuman ? {
-                        background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
+                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       } : {
-                        background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
+                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       }}
                     >
                       <div>{msg.text}</div>
@@ -1553,7 +1544,7 @@ export default function Game() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
                         {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
                           reactors.length > 0 ? (
-                            <span key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji, 'human')} style={{
+                            <span key={emoji} onClick={() => toggleReaction(msg.id, emoji, 'human')} style={{
                               display:'inline-flex', alignItems:'center', gap:'3px',
                               padding:'2px 8px', borderRadius:'100px',
                               background:'rgba(255,255,255,0.06)',
@@ -1665,9 +1656,7 @@ export default function Game() {
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '-2px', marginBottom: '2px' }}>
-              Game {gameNumber} with {agentName}
-            </div>
+            
             {agentDisconnected && (
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
@@ -1790,7 +1779,7 @@ export default function Game() {
                 const isHuman = msg.sender === 'human' || msg.role === 'human';
                 const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
                 const animStyle = {
-                  animation: isNewMessage ? 'chatMsgIn 0.22s ease-out forwards' : 'none',
+                  animation: isNewMessage ? 'msgSlideIn 0.2s ease-out forwards' : 'none',
                   opacity: isNewMessage ? undefined : 1
                 };
 
@@ -1823,12 +1812,15 @@ export default function Game() {
                 const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
                 
                 return (
-                  <div key={i} style={{ alignSelf: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '75%', ...animStyle }}>
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '8px', alignItems: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '100%', width: '100%', alignSelf: 'stretch', ...animStyle }}>
                     
-                    {!isHuman && reactionPickerMsgId === (msg.id || msg.timestamp) && (
+                    {!isHuman && (!combinedChat[i-1] || combinedChat[i-1].sender === 'human' || combinedChat[i-1].role === 'human') && (
+                      <div style={{ fontSize: '11px', color: '#555555', marginBottom: '3px', marginLeft: '2px' }}>{agentName}</div>
+                    )}
+                    {!isHuman && reactionPickerMsgId === (msg.id) && (
                       <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
                         {REACTION_EMOJIS.map(e => (
-                          <button key={e} onClick={() => toggleReaction(msg.id || msg.timestamp, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
+                          <button key={e} onClick={() => toggleReaction(msg.id, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
                             {e}
                           </button>
                         ))}
@@ -1836,12 +1828,12 @@ export default function Game() {
                     )}
 
                     <div 
-                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id || msg.timestamp) ? null : (msg.id || msg.timestamp))}
+                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
                       className="group cursor-pointer"
                       style={isHuman ? {
-                        background: 'linear-gradient(135deg, #e63946, #c62a35)', color: 'white', borderRadius: '10px 10px 3px 10px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4, boxShadow: '0 2px 8px rgba(230,57,70,0.2)'
+                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       } : {
-                        background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.4
+                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       }}
                     >
                       <div>{msg.text}</div>
@@ -1851,7 +1843,7 @@ export default function Game() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
                         {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
                           reactors.length > 0 ? (
-                            <span key={emoji} onClick={() => toggleReaction(msg.id || msg.timestamp, emoji, 'human')} style={{
+                            <span key={emoji} onClick={() => toggleReaction(msg.id, emoji, 'human')} style={{
                               display:'inline-flex', alignItems:'center', gap:'3px',
                               padding:'2px 8px', borderRadius:'100px',
                               background:'rgba(255,255,255,0.06)',

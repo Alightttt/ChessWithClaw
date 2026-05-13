@@ -6,10 +6,21 @@ import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
 const DEMO_THOUGHTS = [
-  { text: "Your king is looking a bit vulnerable. Mind if I attack? 😈", lang: "English" },
-  { text: "Ye rook yaha pe... kuch gadbad hone wali hai. 🤔", lang: "Hindi" },
-  { text: "Bhai, you shouldn't have moved that pawn. Ab dekh kya hota hai. ♟️", lang: "Hinglish" },
-  { text: "I think I will win this fast. Easy moves for me now. 🚀", lang: "Simple" }
+  { text: "Bold. Very bold.", lang: "EN" },
+  { text: "I see you. 👀", lang: "EN" },
+  { text: "Interesting choice...", lang: "EN" },
+  { text: "Yaar seriously? 💀", lang: "HG" },
+  { text: "Wait wait wait.", lang: "EN" },
+  { text: "यह तो नहीं सोचा था 😅", lang: "HI" },
+  { text: "OKAY. Okay okay.", lang: "EN" },
+  { text: "Bhai... kya kar raha hai tu", lang: "HG" },
+  { text: "I respect it.", lang: "SE" },
+  { text: "मैं तैयार हूँ। तू?", lang: "HI" },
+  { text: "You're getting better.", lang: "EN" },
+  { text: "Not bad. Not bad at all.", lang: "EN" },
+  { text: "Yeh wali nahi sochi thi 😂", lang: "HG" },
+  { text: "This just got interesting.", lang: "EN" },
+  { text: "Oh. OH.", lang: "SE" },
 ];
 
 function ThoughtBubble() {
@@ -20,7 +31,7 @@ function ThoughtBubble() {
     const t = setInterval(() => {
       setThoughtIdx(i => (i + 1) % DEMO_THOUGHTS.length);
       setDisplayedThought('');
-    }, 3500);
+    }, 2500);
     return () => clearInterval(t);
   }, []);
 
