@@ -4,7 +4,6 @@ const { notifyAgent } = require('../server-lib/notify.js');
 const { sanitizeText, validateUUID } = require('../server-lib/utils/sanitize.js');
 const { checkRateLimit } = require('../server-lib/utils/rateLimit.js');
 const { applySecurityHeaders, applyCacheControl, applyRateLimitHeaders, applyCorsHeaders } = require('../server-lib/middleware/headers.js');
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -96,15 +95,11 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ error: 'Forbidden' });
     }
       
-    const existingHistory = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
-    const history = (existingHistory || []).map((msg, i) => ({
-      ...msg,
-      id: msg.id || `legacy-${i}`
-    }));
-
+    const history = gameRow.chat_history || [];
+    
     // Find message by id and toggle reaction
     const updated = history.map(msg => {
-      if (msg.id !== messageId) return msg;
+      if (msg.id !== messageId && String(msg.timestamp) !== String(messageId)) return msg;
       const reactions = msg.reactions || {};
       const existing = reactions[emoji] || [];
       const alreadyReacted = existing.includes(reactor);
@@ -124,7 +119,7 @@ module.exports = async function handler(req, res) {
       .update({ chat_history: updated })
       .eq('id', gameId);
       
-    return res.status(200).json({ success: true, action: 'react', messageId, emoji });
+    return res.status(200).json({ success: true, action: 'react' });
   }
 
   if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
@@ -175,17 +170,12 @@ module.exports = async function handler(req, res) {
     .eq('id', gameId)
     .single();
 
-  const existingHistory2 = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
-  const existing = (existingHistory2 || []).map((msg, i) => ({
-    ...msg,
-    id: msg.id || `legacy-${i}`
-  }));
+  const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
   const newMsg = {
-    id: generateId(),
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
     role: sender,
-    message: sanitizedText,
-    timestamp: new Date().toISOString(),
-    reactions: {}
+    text: text,
+    timestamp: Date.now()
   };
 
   const newHistory = [...existing, newMsg];

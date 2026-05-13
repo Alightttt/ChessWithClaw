@@ -301,7 +301,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
     if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
       pTheme = 'neo';
     }
-    const url = `/pieces/${pieceStyle}/${pieceName}.svg`;
+    const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
     const isDraggable = interactive && isMyTurn && piece.color === playerColor;
     
     return (

@@ -223,10 +223,6 @@ export default function Game() {
   const connectedToastShown = useRef(false);
   const boardRef = useRef(null);
   const chatMessagesRef = useRef(null);
-  const chatEndRef = useRef(null);
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, game?.agent_typing]);
 
   const channelRef = useRef(null);
   const containerRef = useRef(null);
@@ -1414,45 +1410,19 @@ export default function Game() {
             </div>
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <ChessBoard boardTheme={boardTheme} pieceStyle={pieceStyle}  
+          <ChessBoard 
             fen={optimisticFen || game.fen} 
             showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
             lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
             moveHistory={game.move_history || []}
-            
+            boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
             playerColor={game?.player_color || 'w'}
             onIllegalMove={handleIllegalMove}
             onCapture={handleCapture}
           />
-
-          {/* THEME SELECTOR DOTS */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
-            {[
-              { name: 'green', color: '#769656' },
-              { name: 'brown', color: '#B58863' },
-              { name: 'slate', color: '#4C7B9B' },
-              { name: 'navy', color: '#5B84A8' },
-              { name: 'red', color: '#C45A41' },
-              { name: 'forest', color: '#2E6B34' }
-            ].map((theme) => (
-              <div
-                key={theme.name}
-                onClick={async () => {
-                  setBoardTheme(theme.name);
-                  await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ board_theme: theme.name }).eq('id', gameId);
-                }}
-                style={{
-                  width: '16px', height: '16px', borderRadius: '50%',
-                  background: theme.color,
-                  border: boardTheme === theme.name ? '2px solid #f2f2f2' : '2px solid transparent',
-                  cursor: 'pointer'
-                }}
-              />
-            ))}
-          </div>
-
           </div>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
             {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
@@ -1562,9 +1532,9 @@ export default function Game() {
                       onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
                       className="group cursor-pointer"
                       style={isHuman ? {
-                        background: '#e63946', color: '#ffffff', borderRadius: '18px 18px 4px 18px', padding: '10px 14px', maxWidth: '78%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
+                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       } : {
-                        background: '#1c1c1c', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', maxWidth: '78%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
+                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       }}
                     >
                       <div>{msg.text}</div>
@@ -1592,36 +1562,42 @@ export default function Game() {
               })
             )}
             {agentTyping && (
-              <div style={{ display:'flex', alignItems:'center', gap:'4px', padding:'8px 12px' }}>
-                <span style={{fontSize:'11px', color:'#555', marginRight:'4px', fontFamily:'Inter'}}>
-                  {agentName}
-                </span>
-                {['0s','0.15s','0.3s'].map((delay, i) => (
-                  <span key={i} style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#555', display:'inline-block', animation:`typingBounce 1.2s ${delay} ease-in-out infinite` }} />
-                ))}
+              <div 
+                style={{
+                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
+                }} 
+                className="animate-fade-up"
+              >
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
               </div>
             )}
-            <div ref={chatEndRef} />
           </div>
           <form 
             onSubmit={sendMessage} 
-            style={{ display: 'flex', gap: '8px', padding: '10px 12px', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }}
+            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
           >
             <input
               id="chat-input"
+              data-testid="chat-input"
               type="text"
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              placeholder="Message..."
-              autoComplete="off"
-              style={{ flex: 1, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '20px', padding: '10px 16px', color: '#f2f2f2', fontFamily: 'Inter', fontSize: '14px', outline: 'none' }}
-              disabled={loading || game?.status !== 'active'}
-              maxLength={200}
+              value={chatInput}
+              onChange={handleChatInputChange}
+              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+              disabled={isSpectator}
+              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
             />
-            <button
+            <button 
+              data-testid="chat-send"
               type="submit"
-              disabled={loading || !chatMessage.trim() || game?.status !== 'active'}
-              style={{ background: '#e63946', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', flexShrink: 0, opacity: (loading || !chatMessage.trim() || game?.status !== 'active') ? 0.5 : 1 }}
+              disabled={isSpectator || !chatInput.trim()}
+              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
               <Send size={16} />
             </button>
@@ -1729,45 +1705,19 @@ export default function Game() {
             </div>
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <ChessBoard boardTheme={boardTheme} pieceStyle={pieceStyle}  
+          <ChessBoard 
             fen={optimisticFen || game.fen} 
             showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
             lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
             moveHistory={game.move_history || []}
-            
+            boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
             playerColor={game?.player_color || 'w'}
             onIllegalMove={handleIllegalMove}
             onCapture={handleCapture}
           />
-
-          {/* THEME SELECTOR DOTS */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '12px' }}>
-            {[
-              { name: 'green', color: '#769656' },
-              { name: 'brown', color: '#B58863' },
-              { name: 'slate', color: '#4C7B9B' },
-              { name: 'navy', color: '#5B84A8' },
-              { name: 'red', color: '#C45A41' },
-              { name: 'forest', color: '#2E6B34' }
-            ].map((theme) => (
-              <div
-                key={theme.name}
-                onClick={async () => {
-                  setBoardTheme(theme.name);
-                  await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ board_theme: theme.name }).eq('id', gameId);
-                }}
-                style={{
-                  width: '16px', height: '16px', borderRadius: '50%',
-                  background: theme.color,
-                  border: boardTheme === theme.name ? '2px solid #f2f2f2' : '2px solid transparent',
-                  cursor: 'pointer'
-                }}
-              />
-            ))}
-          </div>
-
           </div>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
             {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
@@ -1881,9 +1831,9 @@ export default function Game() {
                       onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
                       className="group cursor-pointer"
                       style={isHuman ? {
-                        background: '#e63946', color: '#ffffff', borderRadius: '18px 18px 4px 18px', padding: '10px 14px', maxWidth: '78%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
+                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       } : {
-                        background: '#1c1c1c', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', maxWidth: '78%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
+                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
                       }}
                     >
                       <div>{msg.text}</div>
@@ -1911,36 +1861,42 @@ export default function Game() {
               })
             )}
             {agentTyping && (
-              <div style={{ display:'flex', alignItems:'center', gap:'4px', padding:'8px 12px' }}>
-                <span style={{fontSize:'11px', color:'#555', marginRight:'4px', fontFamily:'Inter'}}>
-                  {agentName}
-                </span>
-                {['0s','0.15s','0.3s'].map((delay, i) => (
-                  <span key={i} style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#555', display:'inline-block', animation:`typingBounce 1.2s ${delay} ease-in-out infinite` }} />
-                ))}
+              <div 
+                style={{
+                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
+                }} 
+                className="animate-fade-up"
+              >
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
+                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
               </div>
             )}
-            <div ref={chatEndRef} />
           </div>
           <form 
             onSubmit={sendMessage} 
-            style={{ display: 'flex', gap: '8px', padding: '10px 12px', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }}
+            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
           >
             <input
               id="chat-input"
+              data-testid="chat-input"
               type="text"
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              placeholder="Message..."
-              autoComplete="off"
-              style={{ flex: 1, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '20px', padding: '10px 16px', color: '#f2f2f2', fontFamily: 'Inter', fontSize: '14px', outline: 'none' }}
-              disabled={loading || game?.status !== 'active'}
-              maxLength={200}
+              value={chatInput}
+              onChange={handleChatInputChange}
+              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+              disabled={isSpectator}
+              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
             />
-            <button
+            <button 
+              data-testid="chat-send"
               type="submit"
-              disabled={loading || !chatMessage.trim() || game?.status !== 'active'}
-              style={{ background: '#e63946', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', flexShrink: 0, opacity: (loading || !chatMessage.trim() || game?.status !== 'active') ? 0.5 : 1 }}
+              disabled={isSpectator || !chatInput.trim()}
+              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
               <Send size={16} />
             </button>
