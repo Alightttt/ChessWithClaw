@@ -18,12 +18,17 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
 
-  const agentToken = req.headers['x-agent-token'];
-  if (!agentToken) {
-    return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
-  }
-
   let { gameId, action, message, setting, value } = req.body || {};
+
+  const agentToken = req.headers['x-agent-token'];
+  const DISPLAY_ACTIONS = ['set_board_theme', 'set_piece_style'];
+  const isDisplayAction = DISPLAY_ACTIONS.includes(action);
+
+  if (!isDisplayAction) {
+    if (!agentToken) {
+      return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
+    }
+  }
   if (!gameId || !action) {
     return res.status(400).json({ error: 'Missing gameId or action' });
   }
@@ -76,8 +81,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Game is already over', code: 'GAME_FINISHED' });
     }
 
-    if (agentToken !== game.agent_token) {
-      return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
+    if (!isDisplayAction) {
+      if (agentToken !== game.agent_token) {
+        return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
+      }
     }
 
     const agentName = game.agent_name || 'OpenClaw';

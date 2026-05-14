@@ -26,17 +26,43 @@ export default function Game() {
   const [game, setGame] = useState(null);
 
   useEffect(() => {
+    if (document.getElementById('cwc-chat-styles')) return;
     const style = document.createElement('style');
-    style.id = 'chat-animations';
-    if (!document.getElementById('chat-animations')) {
-      style.textContent = `
-        @keyframes msgSlideIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    style.id = 'cwc-chat-styles';
+    style.textContent = `
+      @keyframes msgIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .cwc-msg-new { animation: msgIn 0.2s ease-out forwards; }
+      .cwc-reaction-picker {
+        display: flex; gap: 6px;
+        background: #1c1c1c; border: 1px solid #2a2a2a;
+        border-radius: 100px; padding: 6px 12px;
+        position: absolute; bottom: calc(100% + 6px); left: 0;
+        z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      }
+      .cwc-reaction-btn {
+        background: none; border: none; cursor: pointer;
+        font-size: 18px; padding: 2px; line-height: 1;
+        transition: transform 0.1s;
+      }
+      .cwc-reaction-btn:hover { transform: scale(1.3); }
+      .cwc-reaction-chip {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 2px 8px; border-radius: 100px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 12px; color: #f2f2f2; cursor: pointer;
+        transition: background 0.15s;
+      }
+      .cwc-reaction-chip:hover { background: rgba(255,255,255,0.1); }
+      @keyframes typingDot {
+        0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+        30% { opacity: 1; transform: translateY(-4px); }
+      }
+    `;
+    document.head.appendChild(style);
   }, []);
 
   const agentName = game?.agent_name || 'Your OpenClaw';
@@ -71,6 +97,17 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
+
+  useEffect(() => {
+    if (game?.board_theme && game.board_theme !== boardTheme) {
+      setBoardTheme(game.board_theme);
+      localStorage.setItem('cwc_theme', game.board_theme);
+    }
+    if (game?.piece_style && game.piece_style !== pieceTheme) {
+      setPieceTheme(game.piece_style);
+      localStorage.setItem('cwc_pieces', game.piece_style);
+    }
+  }, [game?.board_theme, game?.piece_style]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -130,35 +167,71 @@ export default function Game() {
   const countSetRef = useRef(false);
   const prevAgentTypingRef = useRef(false);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+  const seenMsgCountRef = useRef(0);
 
   useEffect(() => {
-    if (game && !countSetRef.current) {
-      mountedMsgCount.current = (game?.chat_history || []).length;
-      countSetRef.current = true;
-    }
-  }, [game]);
+    const close = () => setReactionPickerMsgId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
-  const currentChatCount = (game?.chat_history?.length || 0) + localMessages.length;
+  const normalizedMessages = useMemo(() => {
+    const serverTexts = new Set((game?.chat_history || []).map(m => m.text || m.message || m.content));
+    const combined = [
+      ...(game?.chat_history || []),
+      ...localMessages.filter(m => !serverTexts.has(m.text || m.message || m.content))
+    ].sort((a, b) => {
+      const timeA = new Date(a.timestamp || 0).getTime();
+      const timeB = new Date(b.timestamp || 0).getTime();
+      return timeA - timeB;
+    });
+    return combined.map((msg, idx) => ({
+      ...msg,
+      id: msg.id || `cwc-msg-${idx}`
+    }));
+  }, [game?.chat_history, localMessages]);
 
   useEffect(() => {
-    prevChatCountRef.current = currentChatCount;
-    prevAgentTypingRef.current = agentTyping;
-  }, [currentChatCount, agentTyping]);
+    seenMsgCountRef.current = normalizedMessages.length;
+  }, []); // only on mount - captures initial count
 
-  const toggleReaction = async (msgId, emoji, reactor) => {
+  const handleReaction = async (e, msgId, emoji) => {
+    e.stopPropagation();
     setReactionPickerMsgId(null);
-    try {
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-        },
-        body: JSON.stringify({ 
-          gameId, action: 'react', messageId: msgId, emoji, reactor
-        })
+    
+    // Optimistic update immediately
+    setGame(prev => {
+      const updatedHistory = (prev.chat_history || []).map((msg, idx) => {
+        const id = msg.id || `cwc-msg-${idx}`;
+        if (id !== msgId) return msg;
+        const reactions = msg.reactions || {};
+        const current = reactions[emoji] || [];
+        const hasReacted = current.includes('human');
+        return {
+          ...msg,
+          reactions: {
+            ...reactions,
+            [emoji]: hasReacted
+              ? current.filter(r => r !== 'human')
+              : [...current, 'human']
+          }
+        };
       });
-    } catch(e) {}
+      return { ...prev, chat_history: updatedHistory };
+    });
+
+    // Send to backend
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+      body: JSON.stringify({
+        gameId,
+        action: 'react',
+        messageId: msgId,
+        emoji,
+        reactor: 'human'
+      })
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -1246,16 +1319,175 @@ export default function Game() {
   
   if (!game) return null;
 
-  const serverTexts = new Set((game.chat_history || []).map(m => m.text));
-  const _combinedChat = [
-    ...(game.chat_history || []),
-    ...localMessages.filter(m => !serverTexts.has(m.text))
-  ].sort((a, b) => {
-    const timeA = new Date(a.timestamp || 0).getTime();
-    const timeB = new Date(b.timestamp || 0).getTime();
-    return timeA - timeB;
-  });
-  const combinedChat = _combinedChat.map((msg, idx) => ({ ...msg, id: msg.id || `msg-${idx}` }));
+  const THEMES = {
+    green: { light: '#eeeed2', dark: '#769656' },
+    brown: { light: '#f0d9b5', dark: '#b58863' },
+    blue:  { light: '#dee3e6', dark: '#8ca2ad' },
+    red:   { light: '#efefef', dark: '#c3504f' },
+    icy_sea: { light: '#b9cadd', dark: '#6e8db3' },
+    tournament: { light: '#ffffff', dark: '#379a51' }
+  };
+
+  const renderChatMessages = () => {
+    return (
+      <div style={{ paddingBottom: '10px' }}>
+        {normalizedMessages.map((msg, index) => {
+          const isAgent = msg.role === 'agent' || msg.sender === 'agent' || (msg.role !== 'human' && msg.sender !== 'human');
+          const isNew = index >= seenMsgCountRef.current;
+          const prevMsg = normalizedMessages[index - 1];
+          const isFirstInGroup = !prevMsg || prevMsg.role !== msg.role;
+          const hasReactions = msg.reactions &&
+            Object.values(msg.reactions).some(r => r && r.length > 0);
+
+          if (msg.type === 'resign_request') {
+            return (
+              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
+                {msg.text || msg.message || msg.content}
+                {game.status === 'active' && (
+                  <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
+                )}
+              </div>
+            );
+          }
+          if (msg.type === 'draw_offer') {
+            return (
+              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
+                {msg.text || msg.message || msg.content}
+                {game.status === 'active' && (
+                  <button data-testid="accept-draw-button" onClick={async () => {
+                    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
+                      status: 'finished', result: 'draw', result_reason: 'agreement'
+                    }).eq('id', gameId);
+                  }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={msg.id}
+              className={isNew ? 'cwc-msg-new' : ''}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: isAgent ? 'flex-start' : 'flex-end',
+                marginBottom: hasReactions ? '4px' : '2px',
+                paddingBottom: '4px'
+              }}
+            >
+              {isAgent && isFirstInGroup && (
+                <span style={{
+                  fontSize: '11px',
+                  color: '#555555',
+                  marginBottom: '3px',
+                  marginLeft: '4px',
+                  fontFamily: 'Inter, sans-serif'
+                }}>
+                  {agentName}
+                </span>
+              )}
+
+              <div style={{ position: 'relative', maxWidth: '78%' }}>
+                <div style={{
+                  background: isAgent ? '#1a1a1a' : '#e63946',
+                  color: '#f2f2f2',
+                  borderRadius: isAgent ? '16px 16px 16px 4px' : '16px 16px 4px 16px',
+                  padding: '10px 14px',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  fontFamily: 'Inter, sans-serif',
+                  border: isAgent ? '1px solid #2a2a2a' : 'none',
+                  wordBreak: 'break-word',
+                  cursor: isAgent ? 'pointer' : 'default',
+                  userSelect: 'text'
+                }}
+                  onClick={(e) => {
+                    if (isAgent) {
+                      e.stopPropagation();
+                      setReactionPickerMsgId(prev => prev === msg.id ? null : msg.id);
+                    }
+                  }}
+                >
+                  {msg.message || msg.text || msg.content || ''}
+                </div>
+
+                {isAgent && reactionPickerMsgId === msg.id && (
+                  <div
+                    className="cwc-reaction-picker"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {['❤️', '😂', '🔥', '😮', '😅', '👏'].map(emoji => (
+                      <button
+                        key={emoji}
+                        className="cwc-reaction-btn"
+                        onClick={(e) => handleReaction(e, msg.id, emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {hasReactions && (
+                <div style={{
+                  display: 'flex',
+                  gap: '4px',
+                  marginTop: '4px',
+                  flexWrap: 'wrap',
+                  paddingLeft: isAgent ? '4px' : '0',
+                  paddingRight: isAgent ? '0' : '4px'
+                }}>
+                  {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
+                    reactors && reactors.length > 0 ? (
+                      <span
+                        key={emoji}
+                        className="cwc-reaction-chip"
+                        onClick={(e) => handleReaction(e, msg.id, emoji)}
+                      >
+                        {emoji}
+                        {reactors.length > 1 && (
+                          <span style={{ fontSize: '11px', color: '#888' }}>
+                            {reactors.length}
+                          </span>
+                        )}
+                      </span>
+                    ) : null
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {game?.agent_typing && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '8px 4px', marginBottom: '4px'
+          }}>
+            <span style={{ fontSize: '11px', color: '#555', fontFamily: 'Inter' }}>
+              {agentName}
+            </span>
+            <div style={{ display: 'flex', gap: '3px', marginLeft: '4px' }}>
+              {[0, 1, 2].map(i => (
+                <span
+                  key={i}
+                  style={{
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: '#555',
+                    animation: 'typingDot 1.2s ease-in-out infinite',
+                    animationDelay: `${i * 0.2}s`,
+                    display: 'inline-block'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div 
@@ -1431,6 +1663,27 @@ export default function Game() {
               ))
             )}
           </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', paddingBottom: '8px' }}>
+            {Object.entries(THEMES).map(([themeId, colors]) => (
+              <button
+                key={themeId}
+                onClick={() => {
+                  setBoardTheme(themeId);
+                  localStorage.setItem('cwc_theme', themeId);
+                  fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: themeId }) }).catch(() => {});
+                }}
+                title={themeId}
+                style={{
+                  width: '24px', height: '24px', borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${colors.light} 50%, ${colors.dark} 50%)`,
+                  border: boardTheme === themeId ? '2px solid white' : '2px solid transparent',
+                  outline: boardTheme === themeId ? `2px solid ${colors.dark}` : 'none',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                }}
+              />
+            ))}
+          </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
               <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
@@ -1470,108 +1723,13 @@ export default function Game() {
             CHAT WITH {agentName.toUpperCase()}
           </div>
           <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
-            {combinedChat.length === 0 ? (
+            {normalizedMessages.length === 0 ? (
               <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '24px' }}>🦞</span>
                 <span>{agentName} can chat while playing</span>
               </div>
             ) : (
-              combinedChat.map((msg, i) => {
-                const isHuman = msg.sender === 'human' || msg.role === 'human';
-                const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
-                const animStyle = {
-                  animation: isNewMessage ? 'msgSlideIn 0.2s ease-out forwards' : 'none',
-                  opacity: isNewMessage ? undefined : 1
-                };
-
-                if (msg.type === 'resign_request') {
-                  return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
-                      {msg.text}
-                      {game.status === 'active' && (
-                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
-                      )}
-                    </div>
-                  );
-                }
-                if (msg.type === 'draw_offer') {
-                  return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
-                      {msg.text}
-                      {game.status === 'active' && (
-                        <button data-testid="accept-draw-button" onClick={async () => {
-                          await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-                            status: 'finished', result: 'draw', result_reason: 'agreement'
-                          }).eq('id', gameId);
-                        }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
-                      )}
-                    </div>
-                  );
-                }
-                
-                const REACTION_EMOJIS = ['❤️', '😂', '🔥', '😮', '😅', '👏'];
-                const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
-                
-                return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '8px', alignItems: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '100%', width: '100%', alignSelf: 'stretch', ...animStyle }}>
-                    
-                    {!isHuman && (!combinedChat[i-1] || combinedChat[i-1].sender === 'human' || combinedChat[i-1].role === 'human') && (
-                      <div style={{ fontSize: '11px', color: '#555555', marginBottom: '3px', marginLeft: '2px' }}>{agentName}</div>
-                    )}
-                    {!isHuman && reactionPickerMsgId === (msg.id) && (
-                      <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
-                        {REACTION_EMOJIS.map(e => (
-                          <button key={e} onClick={() => toggleReaction(msg.id, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
-                            {e}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div 
-                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
-                      className="group cursor-pointer"
-                      style={isHuman ? {
-                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
-                      } : {
-                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
-                      }}
-                    >
-                      <div>{msg.text}</div>
-                    </div>
-                    
-                    {hasReactions && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
-                        {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
-                          reactors.length > 0 ? (
-                            <span key={emoji} onClick={() => toggleReaction(msg.id, emoji, 'human')} style={{
-                              display:'inline-flex', alignItems:'center', gap:'3px',
-                              padding:'2px 8px', borderRadius:'100px',
-                              background:'rgba(255,255,255,0.06)',
-                              border:'1px solid rgba(255,255,255,0.1)',
-                              fontSize:'12px', color:'#f2f2f2', marginRight:'4px', cursor: 'pointer'
-                            }}>
-                              {emoji} {reactors.length > 1 ? reactors.length : ''}
-                            </span>
-                          ) : null
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-            {agentTyping && (
-              <div 
-                style={{
-                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
-                }} 
-                className="animate-fade-up"
-              >
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
-              </div>
+              renderChatMessages()
             )}
           </div>
           <form 
@@ -1726,6 +1884,27 @@ export default function Game() {
               ))
             )}
           </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', paddingBottom: '8px' }}>
+            {Object.entries(THEMES).map(([themeId, colors]) => (
+              <button
+                key={themeId}
+                onClick={() => {
+                  setBoardTheme(themeId);
+                  localStorage.setItem('cwc_theme', themeId);
+                  fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: themeId }) }).catch(() => {});
+                }}
+                title={themeId}
+                style={{
+                  width: '24px', height: '24px', borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${colors.light} 50%, ${colors.dark} 50%)`,
+                  border: boardTheme === themeId ? '2px solid white' : '2px solid transparent',
+                  outline: boardTheme === themeId ? `2px solid ${colors.dark}` : 'none',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                }}
+              />
+            ))}
+          </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
               <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
@@ -1769,108 +1948,13 @@ export default function Game() {
             CHAT WITH {agentName.toUpperCase()}
           </div>
           <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
-            {combinedChat.length === 0 ? (
-              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            {normalizedMessages.length === 0 ? (
+              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px" }}>
                 <span style={{ fontSize: '24px' }}>🦞</span>
                 <span>{agentName} can chat while playing</span>
               </div>
             ) : (
-              combinedChat.map((msg, i) => {
-                const isHuman = msg.sender === 'human' || msg.role === 'human';
-                const isNewMessage = mountedMsgCount.current !== null && i >= mountedMsgCount.current;
-                const animStyle = {
-                  animation: isNewMessage ? 'msgSlideIn 0.2s ease-out forwards' : 'none',
-                  opacity: isNewMessage ? undefined : 1
-                };
-
-                if (msg.type === 'resign_request') {
-                  return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
-                      {msg.text}
-                      {game.status === 'active' && (
-                        <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
-                      )}
-                    </div>
-                  );
-                }
-                if (msg.type === 'draw_offer') {
-                  return (
-                    <div key={i} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5, ...animStyle }}>
-                      {msg.text}
-                      {game.status === 'active' && (
-                        <button data-testid="accept-draw-button" onClick={async () => {
-                          await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-                            status: 'finished', result: 'draw', result_reason: 'agreement'
-                          }).eq('id', gameId);
-                        }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
-                      )}
-                    </div>
-                  );
-                }
-                
-                const REACTION_EMOJIS = ['❤️', '😂', '🔥', '😮', '😅', '👏'];
-                const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
-                
-                return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '8px', alignItems: isHuman ? 'flex-end' : 'flex-start', position: 'relative', maxWidth: '100%', width: '100%', alignSelf: 'stretch', ...animStyle }}>
-                    
-                    {!isHuman && (!combinedChat[i-1] || combinedChat[i-1].sender === 'human' || combinedChat[i-1].role === 'human') && (
-                      <div style={{ fontSize: '11px', color: '#555555', marginBottom: '3px', marginLeft: '2px' }}>{agentName}</div>
-                    )}
-                    {!isHuman && reactionPickerMsgId === (msg.id) && (
-                      <div style={{ position: 'absolute', bottom: '100%', left: '0', background: '#1e1e1e', border: '1px solid #333', borderRadius: '24px', padding: '6px 12px', display: 'flex', gap: '8px', marginBottom: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', animation: 'reactIn 0.1s ease-out' }}>
-                        {REACTION_EMOJIS.map(e => (
-                          <button key={e} onClick={() => toggleReaction(msg.id, e, 'human')} style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', outline: 'none', padding: '0', transition: 'transform 0.1s' }} onMouseDown={(ev)=>ev.currentTarget.style.transform='scale(0.8)'} onMouseUp={(ev)=>ev.currentTarget.style.transform='scale(1)'}>
-                            {e}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div 
-                      onClick={() => !isHuman && setReactionPickerMsgId(reactionPickerMsgId === (msg.id) ? null : (msg.id))}
-                      className="group cursor-pointer"
-                      style={isHuman ? {
-                        background: '#e63946', color: '#ffffff', borderRadius: '16px 16px 4px 16px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-end', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
-                      } : {
-                        background: '#1a1a1a', color: '#f2f2f2', border: '1px solid #2a2a2a', borderRadius: '16px 16px 16px 4px', padding: '10px 14px', maxWidth: '75%', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontSize: '14px', lineHeight: 1.5, wordBreak: 'break-word'
-                      }}
-                    >
-                      <div>{msg.text}</div>
-                    </div>
-                    
-                    {hasReactions && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '4px', justifyContent: isHuman ? 'flex-end' : 'flex-start' }}>
-                        {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
-                          reactors.length > 0 ? (
-                            <span key={emoji} onClick={() => toggleReaction(msg.id, emoji, 'human')} style={{
-                              display:'inline-flex', alignItems:'center', gap:'3px',
-                              padding:'2px 8px', borderRadius:'100px',
-                              background:'rgba(255,255,255,0.06)',
-                              border:'1px solid rgba(255,255,255,0.1)',
-                              fontSize:'12px', color:'#f2f2f2', marginRight:'4px', cursor: 'pointer'
-                            }}>
-                              {emoji} {reactors.length > 1 ? reactors.length : ''}
-                            </span>
-                          ) : null
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-            {agentTyping && (
-              <div 
-                style={{
-                  alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', borderRadius: '10px 10px 10px 3px', padding: '14px 16px', display: 'flex', gap: '4px', alignItems: 'center', height: '32px', boxSizing: 'border-box'
-                }} 
-                className="animate-fade-up"
-              >
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite' }}></div>
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.15s' }}></div>
-                <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(242,242,242,0.5)', borderRadius: '50%', animation: 'typingDot 1.2s infinite', animationDelay: '0.3s' }}></div>
-              </div>
+              renderChatMessages()
             )}
           </div>
           <form 
@@ -2039,6 +2123,7 @@ export default function Game() {
                     onClick={() => {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
+                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) }).catch(() => {});
                     }}
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
@@ -2068,6 +2153,7 @@ export default function Game() {
                     onClick={() => {
                       setPieceTheme(piece.id);
                       localStorage.setItem('cwc_pieces', piece.id);
+                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) }).catch(() => {});
                     }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >

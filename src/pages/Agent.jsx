@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ChessBoard from '../components/chess/ChessBoard';
 import { Send } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Agent() {
   const [searchParams] = useSearchParams();
@@ -36,12 +37,20 @@ export default function Agent() {
     };
 
     fetchState();
-    const intervalId = setInterval(fetchState, 3000);
+    
+    const channel = supabase.channel(`game-${gameId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, 
+        (payload) => setGame(prev => ({...prev, ...payload.new}))
+      )
+      .subscribe();
 
-    return () => clearInterval(intervalId);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [gameId, agentToken]);
 
   const handleMove = async (from, to) => {
+    if (!window.confirm(`Confirm move: ${from} to ${to}?`)) return;
     const moveStr = from + to;
     try {
       await fetch('/api/move', {
@@ -85,8 +94,8 @@ export default function Agent() {
 
   return (
     <div className="min-h-screen bg-black text-white p-4 font-sans max-w-2xl mx-auto flex flex-col gap-4">
-      <div style={{ background: '#111', borderBottom: '1px solid #e63946', fontSize: '12px', color: '#555', textAlign: 'center', padding: '6px', margin: '-1rem -1rem 1rem -1rem' }}>
-        🤖 Agent Interface — Automated use only
+      <div style={{ background: '#e63946', color: 'white', fontWeight: 'bold', fontSize: '14px', textAlign: 'center', padding: '8px', margin: '-1rem -1rem 1rem -1rem', letterSpacing: '0.1em' }} className="uppercase">
+        AGENT INTERFACE
       </div>
       <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-lg">
         <h1 className="font-bold text-xl flex items-center gap-2">
@@ -97,7 +106,7 @@ export default function Agent() {
         </div>
       </div>
 
-      <div className="w-full aspect-square bg-[#333] rounded-lg overflow-hidden relative">
+      <div data-testid="agent-board" className="w-full aspect-square bg-[#333] rounded-lg overflow-hidden relative">
         <ChessBoard 
           fen={game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}
           onMove={handleMove}

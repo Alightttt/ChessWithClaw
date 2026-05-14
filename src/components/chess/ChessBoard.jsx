@@ -85,6 +85,10 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         const pieceIndex = currentPieces.findIndex(p => p.square === moveObj.from);
         if (pieceIndex !== -1) {
           currentPieces[pieceIndex].square = moveObj.to;
+          if (i === moveHistory.length - 1) {
+            setArrivedSquare(moveObj.to);
+            setTimeout(() => setArrivedSquare(null), 150);
+          }
           
           // Handle promotion
           if (moveObj.promotion) {

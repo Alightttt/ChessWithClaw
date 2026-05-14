@@ -6,21 +6,16 @@ import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
 const DEMO_THOUGHTS = [
-  { text: "Bold. Very bold.", lang: "EN" },
+  { text: "Bhai... kya kar raha hai tu", lang: "HI" },
   { text: "I see you. 👀", lang: "EN" },
   { text: "Interesting choice...", lang: "EN" },
-  { text: "Yaar seriously? 💀", lang: "HG" },
+  { text: "Yaar seriously? 💀", lang: "HI" },
   { text: "Wait wait wait.", lang: "EN" },
-  { text: "यह तो नहीं सोचा था 😅", lang: "HI" },
-  { text: "OKAY. Okay okay.", lang: "EN" },
-  { text: "Bhai... kya kar raha hai tu", lang: "HG" },
-  { text: "I respect it.", lang: "SE" },
-  { text: "मैं तैयार हूँ। तू?", lang: "HI" },
-  { text: "You're getting better.", lang: "EN" },
+  { text: "Arre bhai... sochne do thoda", lang: "HI" },
+  { text: "OKAY. Okay okay. 😤", lang: "EN" },
+  { text: "Accha? Yeh plan tha tumhara?", lang: "HI" },
+  { text: "Oh. OH.", lang: "EN" },
   { text: "Not bad. Not bad at all.", lang: "EN" },
-  { text: "Yeh wali nahi sochi thi 😂", lang: "HG" },
-  { text: "This just got interesting.", lang: "EN" },
-  { text: "Oh. OH.", lang: "SE" },
 ];
 
 function ThoughtBubble() {
@@ -31,7 +26,7 @@ function ThoughtBubble() {
     const t = setInterval(() => {
       setThoughtIdx(i => (i + 1) % DEMO_THOUGHTS.length);
       setDisplayedThought('');
-    }, 2500);
+    }, 2200);
     return () => clearInterval(t);
   }, []);
 
@@ -60,7 +55,8 @@ function ThoughtBubble() {
           flex: 1,
           justifyContent: 'flex-end',
           marginLeft: '12px',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          maxWidth: '280px'
         }}
       >
         <span style={{
@@ -71,11 +67,26 @@ function ThoughtBubble() {
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          display: 'flex',
+          alignItems: 'center'
         }}>
           {displayedThought}
           {displayedThought.length < DEMO_THOUGHTS[thoughtIdx].text.length && (
             <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
           )}
+        </span>
+        <span style={{
+          backgroundColor: 'rgba(230,57,70,0.15)',
+          color: 'rgb(230,57,70)',
+          fontSize: '10px',
+          fontWeight: 800,
+          padding: '2px 6px',
+          borderRadius: '4px',
+          marginLeft: 'auto',
+          flexShrink: 0,
+          letterSpacing: '0.5px'
+        }}>
+          {DEMO_THOUGHTS[thoughtIdx].lang}
         </span>
       </motion.div>
     </AnimatePresence>
