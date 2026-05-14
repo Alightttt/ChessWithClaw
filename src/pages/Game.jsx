@@ -107,7 +107,7 @@ export default function Game() {
       setPieceTheme(game.piece_style);
       localStorage.setItem('cwc_pieces', game.piece_style);
     }
-  }, [game?.board_theme, game?.piece_style]);
+  }, [game?.board_theme, game?.piece_style, boardTheme, pieceTheme]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -193,6 +193,7 @@ export default function Game() {
 
   useEffect(() => {
     seenMsgCountRef.current = normalizedMessages.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // only on mount - captures initial count
 
   const handleReaction = async (e, msgId, emoji) => {
