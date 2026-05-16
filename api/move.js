@@ -329,10 +329,13 @@ module.exports = async function handler(req, res) {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
+  const agentName = req.headers['x-agent-name'];
   if (isAgentMove) {
-    const agentName = req.headers['x-agent-name'];
-    if (agentName) updates.agent_name = agentName;
+    if (agentName && agentName.trim() !== '' && agentName !== 'TestClaw' && agentName !== 'OpenClaw' && agentName !== 'Your OpenClaw') {
+      updates.agent_name = agentName;
+    }
     updates.agent_connected = true;
+    updates.agent_last_seen = new Date().toISOString();
   }
 
   let insertedThoughtId = null;
@@ -423,6 +426,7 @@ module.exports = async function handler(req, res) {
 
   return res.json({
     success: true,
+    agent_name: agentName || game.agent_name || 'Your OpenClaw',
     game: {
       id: updated.id,
       fen: updated.fen,

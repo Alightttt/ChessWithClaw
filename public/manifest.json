@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png",
+      "src": "https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png",
+      "src": "https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

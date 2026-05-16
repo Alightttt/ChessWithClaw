@@ -75,19 +75,6 @@ function ThoughtBubble() {
             <span className="inline-block w-[3px] h-[12px] bg-[#666] ml-1 align-middle animate-pulse" />
           )}
         </span>
-        <span style={{
-          backgroundColor: 'rgba(230,57,70,0.15)',
-          color: 'rgb(230,57,70)',
-          fontSize: '10px',
-          fontWeight: 800,
-          padding: '2px 6px',
-          borderRadius: '4px',
-          marginLeft: 'auto',
-          flexShrink: 0,
-          letterSpacing: '0.5px'
-        }}>
-          {DEMO_THOUGHTS[thoughtIdx].lang}
-        </span>
       </motion.div>
     </AnimatePresence>
   );
