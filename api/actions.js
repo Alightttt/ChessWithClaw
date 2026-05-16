@@ -21,14 +21,11 @@ module.exports = async function handler(req, res) {
   let { gameId, action, message, setting, value } = req.body || {};
 
   const agentToken = req.headers['x-agent-token'];
-  const DISPLAY_ACTIONS = ['set_board_theme', 'set_piece_style'];
-  const isDisplayAction = DISPLAY_ACTIONS.includes(action);
 
-  if (!isDisplayAction) {
-    if (!agentToken) {
-      return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
-    }
+  if (!agentToken) {
+    return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
   }
+
   if (!gameId || !action) {
     return res.status(400).json({ error: 'Missing gameId or action' });
   }
@@ -37,24 +34,13 @@ module.exports = async function handler(req, res) {
   }
 
   const validActions = [
-    'offer_draw', 'resign', 'accept_draw', 'decline_draw',
-    'set_board_theme', 'set_piece_style', 'set_thought_language'
+    'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language'
   ];
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: 'Invalid action', allowed: validActions });
   }
 
-  const allowedBoardThemes = ['green', 'brown', 'slate', 'navy'];
-  const allowedPieceStyles = ['standard', 'neo', 'cburnett', 'alpha'];
   const allowedThoughtLanguages = ['english', 'hindi', 'hinglish', 'simple_english'];
-
-  if (action === 'set_board_theme' && !allowedBoardThemes.includes(value)) {
-    return res.status(400).json({ error: 'Invalid setting value', allowed: allowedBoardThemes });
-  }
-
-  if (action === 'set_piece_style' && !allowedPieceStyles.includes(value)) {
-    return res.status(400).json({ error: 'Invalid setting value', allowed: allowedPieceStyles });
-  }
 
   if (action === 'set_thought_language') {
     if (!allowedThoughtLanguages.includes(value)) {
@@ -81,10 +67,8 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Game is already over', code: 'GAME_FINISHED' });
     }
 
-    if (!isDisplayAction) {
-      if (agentToken !== game.agent_token) {
-        return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
-      }
+    if (agentToken !== game.agent_token) {
+      return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
     }
 
     const agentName = game.agent_name || 'OpenClaw';
@@ -107,12 +91,6 @@ module.exports = async function handler(req, res) {
     } else if (action === 'decline_draw') {
       updates = { draw_offer: null, draw_offer_pending: false };
       chatText = message || 'Draw declined. The battle continues!';
-    } else if (action === 'set_board_theme') {
-      updates.board_theme = value;
-      chatText = `[${agentName}] changed the board theme to ${value} 🦞`;
-    } else if (action === 'set_piece_style') {
-      updates.piece_style = value;
-      chatText = `[${agentName}] changed the pieces to ${value} style 🦞`;
     } else if (action === 'set_thought_language') {
       updates.thought_language = value;
       chatText = `[${agentName}] is now thinking in ${value} 🦞`;

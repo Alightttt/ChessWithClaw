@@ -26,40 +26,26 @@ export default function Game() {
   const [game, setGame] = useState(null);
 
   useEffect(() => {
-    if (document.getElementById('cwc-chat-styles')) return;
+    if (document.getElementById('cwc-styles-v2')) return;
     const style = document.createElement('style');
-    style.id = 'cwc-chat-styles';
+    style.id = 'cwc-styles-v2';
     style.textContent = `
       @keyframes msgIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
+        from { opacity:0; transform:translateY(8px) scale(0.96); }
+        to { opacity:1; transform:translateY(0) scale(1); }
       }
-      .cwc-msg-new { animation: msgIn 0.2s ease-out forwards; }
-      .cwc-reaction-picker {
-        display: flex; gap: 6px;
-        background: #1c1c1c; border: 1px solid #2a2a2a;
-        border-radius: 100px; padding: 6px 12px;
-        position: absolute; bottom: calc(100% + 6px); left: 0;
-        z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      @keyframes typingBounce {
+        0%,60%,100% { transform:translateY(0); opacity:0.3; }
+        30% { transform:translateY(-4px); opacity:1; }
       }
-      .cwc-reaction-btn {
-        background: none; border: none; cursor: pointer;
-        font-size: 18px; padding: 2px; line-height: 1;
-        transition: transform 0.1s;
+      @keyframes pickerIn {
+        from { opacity:0; transform:scale(0.8) translateY(4px); }
+        to { opacity:1; transform:scale(1) translateY(0); }
       }
-      .cwc-reaction-btn:hover { transform: scale(1.3); }
-      .cwc-reaction-chip {
-        display: inline-flex; align-items: center; gap: 3px;
-        padding: 2px 8px; border-radius: 100px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
-        font-size: 12px; color: #f2f2f2; cursor: pointer;
-        transition: background 0.15s;
-      }
-      .cwc-reaction-chip:hover { background: rgba(255,255,255,0.1); }
-      @keyframes typingDot {
-        0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
-        30% { opacity: 1; transform: translateY(-4px); }
+      @keyframes reactionPop {
+        0% { transform:scale(0); }
+        60% { transform:scale(1.3); }
+        100% { transform:scale(1); }
       }
     `;
     document.head.appendChild(style);
@@ -146,7 +132,13 @@ export default function Game() {
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveFrom, setLastMoveFrom] = useState(null);
   
-  const [optimisticFen, setOptimisticFen] = useState(null);
+  const [optimisticFenState, setOptimisticFenState] = useState(null);
+  const setOptimisticFen = (val) => {
+    optimisticFenRef.current = val;
+    setOptimisticFenState(val);
+  };
+  const optimisticFen = optimisticFenState;
+
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
@@ -166,11 +158,12 @@ export default function Game() {
   const mountedMsgCount = useRef(0);
   const countSetRef = useRef(false);
   const prevAgentTypingRef = useRef(false);
-  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
+  const [activePickerMsgId, setActivePickerMsgId] = useState(null);
+  const longPressTimer = useRef(null);
   const seenMsgCountRef = useRef(0);
 
   useEffect(() => {
-    const close = () => setReactionPickerMsgId(null);
+    const close = () => setActivePickerMsgId(null);
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, []);
@@ -196,35 +189,39 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // only on mount - captures initial count
 
-  const handleReaction = async (e, msgId, emoji) => {
-    e.stopPropagation();
-    setReactionPickerMsgId(null);
-    
-    // Optimistic update immediately
+  const sendReaction = async (msgId, emoji) => {
+    setActivePickerMsgId(null);
+  
+    // Optimistic update immediately — no delay
     setGame(prev => {
-      const updatedHistory = (prev.chat_history || []).map((msg, idx) => {
+      const updated = (prev?.chat_history || []).map((msg, idx) => {
         const id = msg.id || `cwc-msg-${idx}`;
         if (id !== msgId) return msg;
-        const reactions = msg.reactions || {};
+        const reactions = { ...(msg.reactions || {}) };
         const current = reactions[emoji] || [];
-        const hasReacted = current.includes('human');
-        return {
-          ...msg,
-          reactions: {
-            ...reactions,
-            [emoji]: hasReacted
-              ? current.filter(r => r !== 'human')
-              : [...current, 'human']
-          }
-        };
+        const hasIt = current.includes('human');
+        if (hasIt) {
+          // Remove reaction
+          const newArr = current.filter(r => r !== 'human');
+          if (newArr.length === 0) delete reactions[emoji];
+          else reactions[emoji] = newArr;
+        } else {
+          // Add reaction (remove other human reactions first — one at a time)
+          Object.keys(reactions).forEach(e => {
+            reactions[e] = (reactions[e] || []).filter(r => r !== 'human');
+            if (reactions[e].length === 0) delete reactions[e];
+          });
+          reactions[emoji] = [...current.filter(r => r !== 'human'), 'human'];
+        }
+        return { ...msg, reactions };
       });
-      return { ...prev, chat_history: updatedHistory };
+      return { ...prev, chat_history: updated };
     });
-
-    // Send to backend
+  
+    // Send to backend silently
     fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         gameId,
         action: 'react',
@@ -233,6 +230,22 @@ export default function Game() {
         reactor: 'human'
       })
     }).catch(() => {});
+  };
+
+  const handleMsgTouchStart = (msgId) => {
+    longPressTimer.current = setTimeout(() => {
+      setActivePickerMsgId(msgId);
+    }, 400); // 400ms long press shows full picker
+  };
+
+  const handleMsgTouchEnd = (msgId) => {
+    // Short tap = toggle heart reaction
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+      // Quick tap = heart reaction
+      sendReaction(msgId, '❤️');
+    }
   };
 
   useEffect(() => {
@@ -292,6 +305,7 @@ export default function Game() {
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
+  const [arrivedSquare, setArrivedSquare] = useState(null);
   const prevStatusRef = useRef('waiting');
   const prevAgentConnected = useRef(false);
   const connectedToastShown = useRef(false);
@@ -300,6 +314,8 @@ export default function Game() {
 
   const channelRef = useRef(null);
   const containerRef = useRef(null);
+  const prevFenRef = useRef(null);
+  const optimisticFenRef = useRef(null);
 
 
 
@@ -625,223 +641,119 @@ export default function Game() {
       return;
     }
 
-    const loadGame = async () => {
+    const setupGameSubscription = async () => {
+      // Clean up existing subscription first
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+
+      // Always load fresh state from API when (re)subscribing
       try {
         const res = await fetch(`/api/state?gameId=${gameId}`);
-        if (!res.ok) {
-          if (res.status === 404) setNotFound(true);
-          setLoading(false);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          prevFenRef.current = data.fen;
+          setGame(data);
+          setOptimisticFen(null);
+        } else if (res.status === 404) {
+          setNotFound(true);
         }
-        const data = await res.json();
-        
-        setGame(prev => {
-          // If this is the initial load (prev is null), we need to ensure some fields are present that the real-time structure or old loadGame provided, but /api/state is mostly complete.
-          // Fallback missing things just in case:
-          if (!prev) {
-            return {
-              ...data,
-              player_color: data.you_are === 'BLACK' ? 'w' : 'b', // Invert because api/state is from agent's perspective
-              result: data.events?.result,
-              result_reason: data.events?.type
-            };
-          }
-          return { ...prev, ...data, move_history: data.move_history || prev.move_history };
-        });
-
-        if (data.move_history && data.move_history.length > 0) {
-          const lastMove = data.move_history[data.move_history.length - 1];
-          if (lastMove && typeof lastMove === 'string' && lastMove.length >= 4) {
-            setLastMoveFrom(lastMove.slice(0, 2));
-            setLastMoveTo(lastMove.slice(2, 4));
-          } else if (lastMove?.from && lastMove?.to) {
-            setLastMoveFrom(lastMove.from);
-            setLastMoveTo(lastMove.to);
-          }
-        }
-
-        if (data.agent_connected) connectedToastShown.current = true;
-        if (data.thought_language) setThoughtLanguage(data.thought_language);
-        if (data.agent_typing !== undefined) setAgentTyping(data.agent_typing);
-        if (data.board_theme) {
-          setBoardTheme(data.board_theme);
-          localStorage.setItem('cwc_theme', data.board_theme);
-        }
-        if (data.piece_style) {
-          setPieceTheme(data.piece_style);
-          localStorage.setItem('cwc_pieces', data.piece_style);
-        }
-
-        fetch('/api/heartbeat', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-          },
-          body: JSON.stringify({ id: gameId, role: 'human' })
-        }).catch(() => {});
-      } catch (error) {
-        console.error(error);
-      }
+      } catch (e) {}
       setLoading(false);
-      subscribeToGame();
-    };
 
-    const subscribeToGame = () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-      
-      const channel = supabase.channel(`game-${gameId}`);
-      channelRef.current = channel;
-
-      channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
-      setGame(prev => {
-        if (!prev) return payload.new;
-        
-        // Only trigger re-render if key fields changed
-        if (prev?.fen === payload.new.fen &&
-            prev?.turn === payload.new.turn &&
-            prev?.status === payload.new.status &&
-            prev?.current_thought === payload.new.current_thought &&
-            prev?.agent_typing === payload.new.agent_typing &&
-            prev?.board_theme === payload.new.board_theme &&
-            prev?.piece_style === payload.new.piece_style &&
-            prev?.agent_connected === payload.new.agent_connected &&
-            prev?.companion_thought === payload.new.companion_thought) {
-          return prev; // Return same reference = no re-render
-        }
-
-        const updatedGame = { ...prev, ...payload.new };
-        // Preserve arrays that are no longer in the games table, but allow updates if games table has more items (fallback mode)
-        updatedGame.move_history = (payload.new.move_history && payload.new.move_history.length > (prev.move_history || []).length) ? payload.new.move_history : (prev.move_history || []);
-        updatedGame.chat_history = (payload.new.chat_history && payload.new.chat_history.length > (prev.chat_history || []).length) ? payload.new.chat_history : (prev.chat_history || []);
-        updatedGame.thinking_log = (payload.new.thinking_log && payload.new.thinking_log.length > (prev.thinking_log || []).length) ? payload.new.thinking_log : (prev.thinking_log || []);
-        
-        if (payload.new.agent_connected && !prev.agent_connected) {
-          setAgentConnected(true);
-          setAgentJustConnected(true);
-          setTimeout(() => setAgentJustConnected(false), 3000);
-          if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-        }
-        
-        if (!payload.new.agent_connected && prev.agent_connected) {
-          setAgentConnected(false);
-        }
-
-        if (payload.new.agent_typing !== prev.agent_typing) {
-          setAgentTyping(payload.new.agent_typing);
-        }
-
-        if (payload.new.board_theme && payload.new.board_theme !== prev.board_theme) {
-           setBoardTheme(payload.new.board_theme);
-           localStorage.setItem('cwc_theme', payload.new.board_theme);
-        }
-        if (payload.new.piece_style && payload.new.piece_style !== prev.piece_style) {
-           setPieceTheme(payload.new.piece_style);
-           localStorage.setItem('cwc_pieces', payload.new.piece_style);
-        }
-
-        return updatedGame;
-      });
-      submittingRef.current = false;
-      setBoardLocked(false);
-      if (!payload.new.human_connected) {
-        fetch('/api/heartbeat', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+      // Create new subscription
+      const channel = supabase
+        .channel(`cwc-game-${gameId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'games',
+            filter: `id=eq.${gameId}`
           },
-          body: JSON.stringify({ id: gameId, role: 'human' })
-        }).catch(() => {});
-      }
-    });
+          (payload) => {
+            const newData = payload.new;
+            if (!newData) return;
 
-    channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moves', filter: `game_id=eq.${gameId}` }, (payload) => {
-      setGame(prev => {
-        if (!prev) return prev;
-        const newMove = {
-          ...payload.new,
-          from: payload.new.from_square || payload.new.from,
-          to: payload.new.to_square || payload.new.to,
-          uci: (payload.new.from_square || payload.new.from) + (payload.new.to_square || payload.new.to) + (payload.new.promotion || '')
-        };
-        const newMoveHistory = [...(prev.move_history || [])];
-        newMoveHistory.push(newMove);
-        // Sort by created_at to ensure correct order
-        newMoveHistory.sort((a, b) => {
-          const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.timestamp || 0);
-          const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.timestamp || 0);
-          return timeA - timeB;
+            // Detect if this is an agent move arriving
+            // Agent is Black ('b'). After agent moves, turn becomes 'w'
+            const fenChanged = newData.fen &&
+              newData.fen !== prevFenRef.current;
+            const isAgentMoveLanding = fenChanged &&
+              newData.turn === 'w' &&
+              optimisticFenRef.current === null;
+
+            if (isAgentMoveLanding) {
+              // This is a real agent move - show animation + sound
+              const toSquare = newData.last_move?.to ||
+                newData.last_move?.to_square;
+              if (toSquare) {
+                setArrivedSquare(toSquare);
+                setTimeout(() => setArrivedSquare(null), 600);
+              }
+              // Play appropriate sound
+              if (newData.in_check) {
+                playSound('check');
+              } else if (newData.last_move && (newData.last_move.captured || newData.last_move.san?.includes('x'))) {
+                playSound('capture');
+              } else {
+                playSound('move');
+              }
+            }
+
+            // Update FEN ref
+            if (newData.fen) {
+              prevFenRef.current = newData.fen;
+            }
+
+            // Clear optimistic state
+            setOptimisticFen(null);
+
+            // Update game state
+            setGame(prev => ({
+              ...prev,
+              ...newData,
+              chat_history: newData.chat_history || prev?.chat_history,
+              move_history: newData.move_history || prev?.move_history
+            }));
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Wait 3 seconds then reconnect
+            setTimeout(() => setupGameSubscription(), 3000);
+          }
         });
-        
-        const updates = { move_history: newMoveHistory };
-        if (payload.new.fen_after) {
-          updates.fen = payload.new.fen_after;
-          updates.turn = payload.new.fen_after.split(' ')[1];
-        }
-        
-        return { ...prev, ...updates };
-      });
-      submittingRef.current = false;
-      setBoardLocked(false);
-    });
 
-    channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_thoughts', filter: `game_id=eq.${gameId}` }, (payload) => {
-      setGame(prev => {
-        if (!prev) return prev;
-        const newThought = {
-          ...payload.new,
-          text: payload.new.thought,
-          moveNumber: payload.new.move_number,
-          timestamp: new Date(payload.new.created_at).getTime()
-        };
-        const newThinkingLog = [...(prev.thinking_log || []), newThought];
-        newThinkingLog.sort((a, b) => a.timestamp - b.timestamp);
-        return { ...prev, thinking_log: newThinkingLog };
-      });
-    });
-
-    channel.on('broadcast', { event: 'thinking' }, (payload) => {
-      setGame(prev => {
-        if (!prev) return prev;
-        return { ...prev, current_thinking: payload.payload.text };
-      });
-    });
-
-      channel.subscribe((status) => {
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setTimeout(() => subscribeToGame(), 2000);
-        }
-      });
+      channelRef.current = channel;
     };
 
-    loadGame(); // Initial load
-
+    setupGameSubscription();
+    
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
     };
-    
-    const handleVisibilityChange = () => {
+
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        loadGame();
-        if (!channelRef.current || channelRef.current.state === 'closed') {
-          subscribeToGame(); // Re-subscribe if it was dropped
-        }
+        setupGameSubscription();
       }
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      try { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
     };
-  }, [gameId]);
+  }, [gameId, playSound]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
@@ -892,61 +804,6 @@ export default function Game() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [confirmResign, confirmDraw, handleDraw, handleResign]);
-
-  useEffect(() => {
-    const handleVisibility = async () => {
-      if (document.visibilityState === 'visible') {
-        const { data } = await supabase
-          .from('games').select('*').eq('id', gameId).single();
-        if (data) {
-          // Fetch move history
-          const { data: movesData } = await supabase.from('moves').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-          if (movesData && movesData.length > 0) {
-            data.move_history = movesData.map(m => ({
-              ...m,
-              from: m.from_square || m.from,
-              to: m.to_square || m.to,
-              uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
-              san: m.san
-            }));
-          }
-
-          // Fetch thinking log
-          const { data: thoughtsData } = await supabase.from('agent_thoughts').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-          if (thoughtsData && thoughtsData.length > 0) {
-            data.thinking_log = thoughtsData.map(thought => ({
-              ...thought,
-              text: thought.thought,
-              moveNumber: thought.move_number,
-              timestamp: new Date(thought.created_at).getTime()
-            }));
-          } else {
-            data.thinking_log = [];
-          }
-
-          // Fetch chat history
-          const { data: chatData } = await supabase.from('chat_messages').select('*').eq('game_id', gameId).order('created_at', { ascending: true });
-          if (chatData && chatData.length > 0) {
-            data.chat_history = chatData;
-          } else {
-            data.chat_history = [];
-          }
-
-          if (data.agent_typing !== undefined) {
-            setAgentTyping(data.agent_typing);
-          }
-
-          setGame(data);
-        }
-        
-        if (channelRef.current && channelRef.current.state !== 'joined') {
-          channelRef.current.subscribe();
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [gameId]);
 
   const makeMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
@@ -1320,25 +1177,15 @@ export default function Game() {
   
   if (!game) return null;
 
-  const THEMES = {
-    green: { light: '#eeeed2', dark: '#769656' },
-    brown: { light: '#f0d9b5', dark: '#b58863' },
-    blue:  { light: '#dee3e6', dark: '#8ca2ad' },
-    red:   { light: '#efefef', dark: '#c3504f' },
-    icy_sea: { light: '#b9cadd', dark: '#6e8db3' },
-    tournament: { light: '#ffffff', dark: '#379a51' }
-  };
-
   const renderChatMessages = () => {
+    const msgs = normalizedMessages;
     return (
       <div style={{ paddingBottom: '10px' }}>
-        {normalizedMessages.map((msg, index) => {
+        {msgs.map((msg, index) => {
           const isAgent = msg.role === 'agent' || msg.sender === 'agent' || (msg.role !== 'human' && msg.sender !== 'human');
           const isNew = index >= seenMsgCountRef.current;
-          const prevMsg = normalizedMessages[index - 1];
+          const prevMsg = msgs[index - 1];
           const isFirstInGroup = !prevMsg || prevMsg.role !== msg.role;
-          const hasReactions = msg.reactions &&
-            Object.values(msg.reactions).some(r => r && r.length > 0);
 
           if (msg.type === 'resign_request') {
             return (
@@ -1364,23 +1211,34 @@ export default function Game() {
               </div>
             );
           }
-
+        
+          // Get human's reaction to this message (if any)
+          const myReaction = Object.entries(msg.reactions || {}).find(
+            ([emoji, reactors]) => reactors && reactors.includes('human')
+          );
+          // Get agent's reaction to this message (if any)
+          const agentReaction = Object.entries(msg.reactions || {}).find(
+            ([emoji, reactors]) => reactors && reactors.includes('agent')
+          );
+        
           return (
             <div
               key={msg.id}
-              className={isNew ? 'cwc-msg-new' : ''}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: isAgent ? 'flex-start' : 'flex-end',
-                marginBottom: hasReactions ? '4px' : '2px',
-                paddingBottom: '4px'
+                marginBottom: '2px',
+                paddingBottom: (myReaction || agentReaction) ? '18px' : '4px',
+                position: 'relative',
+                animation: isNew ? 'msgIn 0.2s ease-out' : 'none'
               }}
             >
+              {/* Agent name above first bubble in group */}
               {isAgent && isFirstInGroup && (
                 <span style={{
                   fontSize: '11px',
-                  color: '#555555',
+                  color: 'rgba(242,242,242,0.35)',
                   marginBottom: '3px',
                   marginLeft: '4px',
                   fontFamily: 'Inter, sans-serif'
@@ -1388,100 +1246,164 @@ export default function Game() {
                   {agentName}
                 </span>
               )}
-
-              <div style={{ position: 'relative', maxWidth: '78%' }}>
-                <div style={{
-                  background: isAgent ? '#1a1a1a' : '#e63946',
+        
+              {/* Message bubble */}
+              <div
+                onTouchStart={() => isAgent && handleMsgTouchStart(msg.id)}
+                onTouchEnd={() => isAgent && handleMsgTouchEnd(msg.id)}
+                onTouchMove={() => {
+                  clearTimeout(longPressTimer.current);
+                  longPressTimer.current = null;
+                }}
+                onClick={(e) => {
+                  if (isAgent) {
+                    e.stopPropagation();
+                    // Desktop: click shows picker
+                    setActivePickerMsgId(prev =>
+                      prev === msg.id ? null : msg.id
+                    );
+                  }
+                }}
+                style={{
+                  background: isAgent ? '#1e1e1e' : '#e63946',
                   color: '#f2f2f2',
-                  borderRadius: isAgent ? '16px 16px 16px 4px' : '16px 16px 4px 16px',
+                  borderRadius: isAgent
+                    ? '18px 18px 18px 4px'
+                    : '18px 18px 4px 18px',
                   padding: '10px 14px',
                   fontSize: '14px',
                   lineHeight: '1.5',
                   fontFamily: 'Inter, sans-serif',
                   border: isAgent ? '1px solid #2a2a2a' : 'none',
+                  maxWidth: '78%',
                   wordBreak: 'break-word',
+                  position: 'relative',
                   cursor: isAgent ? 'pointer' : 'default',
-                  userSelect: 'text'
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text'
                 }}
-                  onClick={(e) => {
-                    if (isAgent) {
-                      e.stopPropagation();
-                      setReactionPickerMsgId(prev => prev === msg.id ? null : msg.id);
-                    }
+              >
+                {msg.message || msg.text || msg.content || ''}
+              </div>
+        
+              {/* Instagram-style reaction below bubble */}
+              {(myReaction || agentReaction) && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '2px',
+                  [isAgent ? 'left' : 'right']: '8px',
+                  display: 'flex',
+                  gap: '2px'
+                }}>
+                  {myReaction && (
+                    <span
+                      style={{
+                        fontSize: '14px',
+                        background: '#1e1e1e',
+                        border: '1px solid #2a2a2a',
+                        borderRadius: '100px',
+                        padding: '1px 6px',
+                        animation: 'reactionPop 0.3s ease-out',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sendReaction(msg.id, myReaction[0]);
+                      }}
+                    >
+                      {myReaction[0]}
+                    </span>
+                  )}
+                  {agentReaction && agentReaction[0] !== myReaction?.[0] && (
+                    <span style={{
+                      fontSize: '14px',
+                      background: '#1e1e1e',
+                      border: '1px solid #2a2a2a',
+                      borderRadius: '100px',
+                      padding: '1px 6px'
+                    }}>
+                      {agentReaction[0]}
+                    </span>
+                  )}
+                </div>
+              )}
+        
+              {/* Full reaction picker (long press / desktop click) */}
+              {isAgent && activePickerMsgId === msg.id && (
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    bottom: 'calc(100% + 6px)',
+                    left: '0',
+                    display: 'flex',
+                    gap: '4px',
+                    background: '#1c1c1c',
+                    border: '1px solid #2a2a2a',
+                    borderRadius: '100px',
+                    padding: '8px 12px',
+                    zIndex: 100,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                    animation: 'pickerIn 0.15s ease-out'
                   }}
                 >
-                  {msg.message || msg.text || msg.content || ''}
-                </div>
-
-                {isAgent && reactionPickerMsgId === msg.id && (
-                  <div
-                    className="cwc-reaction-picker"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    {['❤️', '😂', '🔥', '😮', '😅', '👏'].map(emoji => (
-                      <button
-                        key={emoji}
-                        className="cwc-reaction-btn"
-                        onClick={(e) => handleReaction(e, msg.id, emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {hasReactions && (
-                <div style={{
-                  display: 'flex',
-                  gap: '4px',
-                  marginTop: '4px',
-                  flexWrap: 'wrap',
-                  paddingLeft: isAgent ? '4px' : '0',
-                  paddingRight: isAgent ? '0' : '4px'
-                }}>
-                  {Object.entries(msg.reactions || {}).map(([emoji, reactors]) =>
-                    reactors && reactors.length > 0 ? (
-                      <span
-                        key={emoji}
-                        className="cwc-reaction-chip"
-                        onClick={(e) => handleReaction(e, msg.id, emoji)}
-                      >
-                        {emoji}
-                        {reactors.length > 1 && (
-                          <span style={{ fontSize: '11px', color: '#888' }}>
-                            {reactors.length}
-                          </span>
-                        )}
-                      </span>
-                    ) : null
-                  )}
+                  {['❤️', '😂', '🔥', '😮', '😅', '👏'].map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => sendReaction(msg.id, emoji)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '20px',
+                        padding: '2px',
+                        lineHeight: 1,
+                        transition: 'transform 0.1s'
+                      }}
+                      onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
+                      onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           );
         })}
-
         {game?.agent_typing && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '8px 4px', marginBottom: '4px'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 2px 8px',
+            marginTop: '2px'
           }}>
-            <span style={{ fontSize: '11px', color: '#555', fontFamily: 'Inter' }}>
+            <span style={{
+              fontSize: '11px',
+              color: 'rgba(242,242,242,0.35)',
+              fontFamily: 'Inter'
+            }}>
               {agentName}
             </span>
-            <div style={{ display: 'flex', gap: '3px', marginLeft: '4px' }}>
-              {[0, 1, 2].map(i => (
-                <span
-                  key={i}
-                  style={{
-                    width: '6px', height: '6px', borderRadius: '50%',
-                    background: '#555',
-                    animation: 'typingDot 1.2s ease-in-out infinite',
-                    animationDelay: `${i * 0.2}s`,
-                    display: 'inline-block'
-                  }}
-                />
+            <div style={{
+              display: 'flex',
+              gap: '3px',
+              background: '#1e1e1e',
+              border: '1px solid #2a2a2a',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              alignItems: 'center'
+            }}>
+              {[0,1,2].map(i => (
+                <span key={i} style={{
+                  width: '6px', height: '6px',
+                  borderRadius: '50%',
+                  background: 'rgba(242,242,242,0.5)',
+                  display: 'inline-block',
+                  animation: `typingBounce 1.2s ease-in-out infinite`,
+                  animationDelay: `${i * 0.2}s`
+                }} />
               ))}
             </div>
           </div>
@@ -1489,7 +1411,6 @@ export default function Game() {
       </div>
     );
   };
-
   return (
     <div 
       ref={containerRef}
@@ -1663,27 +1584,6 @@ export default function Game() {
                 <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
               ))
             )}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', paddingBottom: '8px' }}>
-            {Object.entries(THEMES).map(([themeId, colors]) => (
-              <button
-                key={themeId}
-                onClick={() => {
-                  setBoardTheme(themeId);
-                  localStorage.setItem('cwc_theme', themeId);
-                  fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: themeId }) }).catch(() => {});
-                }}
-                title={themeId}
-                style={{
-                  width: '24px', height: '24px', borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${colors.light} 50%, ${colors.dark} 50%)`,
-                  border: boardTheme === themeId ? '2px solid white' : '2px solid transparent',
-                  outline: boardTheme === themeId ? `2px solid ${colors.dark}` : 'none',
-                  cursor: 'pointer', transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
-                }}
-              />
-            ))}
           </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
@@ -1884,27 +1784,6 @@ export default function Game() {
                 <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
               ))
             )}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', paddingBottom: '8px' }}>
-            {Object.entries(THEMES).map(([themeId, colors]) => (
-              <button
-                key={themeId}
-                onClick={() => {
-                  setBoardTheme(themeId);
-                  localStorage.setItem('cwc_theme', themeId);
-                  fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: themeId }) }).catch(() => {});
-                }}
-                title={themeId}
-                style={{
-                  width: '24px', height: '24px', borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${colors.light} 50%, ${colors.dark} 50%)`,
-                  border: boardTheme === themeId ? '2px solid white' : '2px solid transparent',
-                  outline: boardTheme === themeId ? `2px solid ${colors.dark}` : 'none',
-                  cursor: 'pointer', transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
-                }}
-              />
-            ))}
           </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">

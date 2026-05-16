@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import { Chess } from 'chess.js';
 
-function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w' }) {
+function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w', arrivedSquare }) {
   const [chess, setChess] = useState(() => {
     try {
       return new Chess(fen);
@@ -18,7 +18,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
   const [draggedPiece, setDraggedPiece] = useState(null);
-  const [arrivedSquare, setArrivedSquare] = useState(null);
+  const [internalArrivedSquare, setInternalArrivedSquare] = useState(null);
   const [pieces, setPieces] = useState([]);
   const prevMoveHistoryLength = useRef(0);
 
@@ -86,8 +86,8 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         if (pieceIndex !== -1) {
           currentPieces[pieceIndex].square = moveObj.to;
           if (i === moveHistory.length - 1) {
-            setArrivedSquare(moveObj.to);
-            setTimeout(() => setArrivedSquare(null), 150);
+            setInternalArrivedSquare(moveObj.to);
+            setTimeout(() => setInternalArrivedSquare(null), 150);
           }
           
           // Handle promotion
@@ -246,14 +246,13 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
   const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && (chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
 
-  const [agentMoveFlash, setAgentMoveFlash] = useState(null);
   const prevTurnRef = useRef(null);
 
   useEffect(() => {
     if (lastMove) {
       const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
-      setArrivedSquare(dest);
-      const timer = setTimeout(() => setArrivedSquare(null), 150);
+      setInternalArrivedSquare(dest);
+      const timer = setTimeout(() => setInternalArrivedSquare(null), 150);
       return () => clearTimeout(timer);
     }
   }, [lastMove]);
@@ -275,13 +274,6 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
 
   useEffect(() => {
     const currentTurn = chess.turn();
-    if (prevTurnRef.current === 'b' && currentTurn === 'w' && lastMove) {
-      const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
-      setAgentMoveFlash(dest);
-      const timer = setTimeout(() => setAgentMoveFlash(null), 600);
-      prevTurnRef.current = currentTurn;
-      return () => clearTimeout(timer);
-    }
     prevTurnRef.current = currentTurn;
   }, [chess, lastMove]);
 
@@ -328,7 +320,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         style={{ 
           filter: 'none', 
           cursor: isDraggable ? 'grab' : 'default',
-          animation: arrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
+          animation: internalArrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
         }} 
       />
     );
@@ -376,7 +368,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
                 {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
-                {agentMoveFlash === sq && <div className="absolute inset-0 z-[2]" style={{ animation: 'agentMoveFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />}
+                {arrivedSquare === sq && <div className="absolute inset-0 z-[2]" style={{ animation: 'agentMoveFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />}
                 
                 {/* Legal move indicators */}
                 {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}
