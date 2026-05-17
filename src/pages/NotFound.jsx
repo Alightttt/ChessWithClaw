@@ -18,7 +18,7 @@ export default function NotFound() {
 
       <div className="relative z-10 glass-card p-12 max-w-md w-full border-white/5 bg-black/50 backdrop-blur-xl">
         <h1 className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-red-500 to-red-950 mb-2">404</h1>
-        <div className="text-4xl text-neutral-800 mb-6 font-serif">♚</div>
+        <div className="text-4xl text-neutral-800 mb-6 font-sans">♚</div>
         
         <h2 className="text-2xl font-bold tracking-tight mb-2">Game Not Found</h2>
         <p className="text-neutral-400 text-sm mb-8">This reality doesn&apos;t exist, or the match has been abandoned to the void.</p>

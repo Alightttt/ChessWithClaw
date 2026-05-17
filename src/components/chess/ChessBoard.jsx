@@ -18,7 +18,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   const [legalMoves, setLegalMoves] = useState([]);
   const [promotionMove, setPromotionMove] = useState(null);
   const [draggedPiece, setDraggedPiece] = useState(null);
-  const [internalArrivedSquare, setInternalArrivedSquare] = useState(null);
+  
   const [pieces, setPieces] = useState([]);
   const prevMoveHistoryLength = useRef(0);
 
@@ -86,8 +86,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         if (pieceIndex !== -1) {
           currentPieces[pieceIndex].square = moveObj.to;
           if (i === moveHistory.length - 1) {
-            setInternalArrivedSquare(moveObj.to);
-            setTimeout(() => setInternalArrivedSquare(null), 150);
+            
           }
           
           // Handle promotion
@@ -248,14 +247,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
 
   const prevTurnRef = useRef(null);
 
-  useEffect(() => {
-    if (lastMove) {
-      const dest = typeof lastMove === 'string' ? lastMove.substring(2, 4) : lastMove.to;
-      setInternalArrivedSquare(dest);
-      const timer = setTimeout(() => setInternalArrivedSquare(null), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [lastMove]);
+  
   
   useEffect(() => {
     const style = document.createElement('style');
@@ -320,7 +312,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         style={{ 
           filter: 'none', 
           cursor: isDraggable ? 'grab' : 'default',
-          animation: internalArrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
+          animation: arrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
         }} 
       />
     );

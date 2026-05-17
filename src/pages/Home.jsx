@@ -5,6 +5,9 @@ import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+
+
 const DEMO_THOUGHTS = [
   { text: "Bhai... kya kar raha hai tu", lang: "HI" },
   { text: "I see you. 👀", lang: "EN" },
@@ -303,7 +306,7 @@ export default function Home() {
         <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2' }}>
-              🦞 Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
+              <LobsterEmoji /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button 
@@ -360,7 +363,11 @@ export default function Home() {
             }} 
           />
         </div>
-        <button 
+        <div className="hidden md:flex items-center gap-3 mr-4">
+            <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
+            <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
+          </div>
+          <button 
           onClick={handleStart} 
           disabled={creating}
           className="design-btn-nav"
@@ -380,7 +387,7 @@ export default function Home() {
           position: 'relative',
           overflow: 'hidden'
         }} 
-        className="flex flex-col items-center max-w-7xl mx-auto"
+        className="flex flex-col md:grid md:grid-cols-2 items-center max-w-7xl mx-auto gap-12 md:gap-8"
       >
         <div style={{
           position: 'absolute',
@@ -394,7 +401,7 @@ export default function Home() {
           zIndex: 0
         }} />
 
-        <div className="flex-1 flex flex-col items-center text-center z-10 w-full" style={{ gap: '16px', position: 'relative', zIndex: 1 }}>
+        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left z-10 w-full" style={{ gap: '16px', position: 'relative', zIndex: 1 }}>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -428,7 +435,7 @@ export default function Home() {
             Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
           </motion.h1>
           
-          <motion.p 
+          <motion.p className="mx-auto md:mx-0" 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -439,42 +446,19 @@ export default function Home() {
               lineHeight: 1.65,
               color: 'rgba(242,242,242,0.5)',
               maxWidth: '560px',
-              margin: '0 auto',
+              
             }}
           >
             The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
           </motion.p>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full z-10 mx-auto"
-            style={{ maxWidth: '360px', position: 'relative' }}
-          >
-            <div style={{ padding: '8px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '12px', filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
-              <div className="flex items-center justify-between mb-3 px-2 relative" style={{ position: 'relative' }}>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🦞</span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
-                </div>
-                <ThoughtBubble />
-              </div>
-              <div 
-                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '4px' }}
-              >
-                <div style={{ pointerEvents: 'none' }}>
-                  <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center w-full sm:w-auto"
+            className="flex flex-col sm:flex-row items-center justify-center md:justify-start w-full sm:w-auto"
             style={{ gap: '16px', marginTop: '24px' }}
           >
             <button 
@@ -492,6 +476,30 @@ export default function Home() {
             </a>
           </motion.div>
         </div>
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full z-10 mx-auto mt-12 md:mt-0"
+            style={{ maxWidth: '440px', position: 'relative' }}
+          >
+            <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
+              <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl"><LobsterEmoji /></span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
+                </div>
+                <ThoughtBubble />
+              </div>
+              <div 
+                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '6px' }}
+              >
+                <div style={{ pointerEvents: 'none' }}>
+                  <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
       </section>
 
       <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '0px 20px 0' }}>
@@ -502,7 +510,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
-            { icon: () => <span className="text-2xl">🦞</span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { icon: () => <span className="text-2xl"><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>

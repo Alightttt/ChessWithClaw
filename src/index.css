@@ -188,3 +188,5 @@ button {
 button:active:not(:disabled) {
   transform: scale(0.97);
 }
+
+* { font-variant-emoji: emoji; }

@@ -16,6 +16,9 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+
+
 export default function Agent() {
   const [searchParams] = useSearchParams();
   const gameId = searchParams.get('id');
@@ -132,7 +135,8 @@ export default function Agent() {
   const [shaking, setShaking] = useState(false);
   const [commentary, setCommentary] = useState('');
   const [showCommentary, setShowCommentary] = useState(false);
-  const [lastMoveFrom, setLastMoveFrom] = useState(null);
+  const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
+  const [arrivedSquare, setArrivedSquare] = useState(null);
   
   const [optimisticFenState, setOptimisticFenState] = useState(null);
   const setOptimisticFen = (val) => {
@@ -237,17 +241,16 @@ export default function Agent() {
   const handleMsgTouchStart = (msgId) => {
     longPressTimer.current = setTimeout(() => {
       setActivePickerMsgId(msgId);
-    }, 400); // 400ms long press shows full picker
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 500); 
   };
 
-  const handleMsgTouchEnd = (msgId) => {
-    // Short tap = toggle heart reaction
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-      // Quick tap = heart reaction
-      sendReaction(msgId, '❤️');
-    }
+  const handleMsgTouchEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const handleMsgTouchMove = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
   useEffect(() => {
@@ -307,7 +310,6 @@ export default function Agent() {
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
-  const [arrivedSquare, setArrivedSquare] = useState(null);
   const prevStatusRef = useRef('waiting');
   const prevAgentConnected = useRef(false);
   const connectedToastShown = useRef(false);
@@ -807,6 +809,7 @@ export default function Agent() {
       const newFen = chess.fen();
       setOptimisticFen(newFen);
       setOptimisticLastMove({ from, to });
+      setLastMoveHighlight({ from, to });
       
       if (soundEnabled) {
         const audio = new Audio(move.captured ? "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3" : "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3");
@@ -842,7 +845,7 @@ export default function Agent() {
           
           if (errData.code === 'WAITING_FOR_AGENT') {
             toast(`Waiting for ${agentName} to join...`, {
-              icon: '🦞',
+              icon: <LobsterEmoji />,
               style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
             });
           } else if (errData.code === 'TURN_CONFLICT') {
@@ -1117,8 +1120,8 @@ export default function Agent() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white selection:bg-red-500/30 p-4 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] blur-[120px] rounded-full pointer-events-none bg-red-500/10 transition-colors duration-1000" />
         <div className="relative z-10 flex flex-col items-center gap-6 glass border-white/10 p-12 rounded-2xl max-w-md text-center glow-anim">
-          <div className="text-5xl drop-shadow-md">🦞</div>
-          <div className="font-serif text-3xl font-bold tracking-wide">Invalid or expired token, or game not found</div>
+          <div className="text-5xl drop-shadow-md"><LobsterEmoji /></div>
+          <div className="font-sans text-3xl font-bold tracking-wide">Invalid or expired token, or game not found</div>
           <div className="text-neutral-400 text-sm font-sans">
             It looks like this game doesn&apos;t exist anymore or you have the wrong link.
           </div>
@@ -1209,19 +1212,15 @@ export default function Agent() {
         
               {/* Message bubble */}
               <div
-                onTouchStart={() => isAgent && handleMsgTouchStart(msg.id)}
-                onTouchEnd={() => isAgent && handleMsgTouchEnd(msg.id)}
-                onTouchMove={() => {
-                  clearTimeout(longPressTimer.current);
-                  longPressTimer.current = null;
-                }}
-                onClick={(e) => {
+                onTouchStart={() => handleMsgTouchStart(msg.id)}
+                onTouchEnd={handleMsgTouchEnd}
+                onTouchMove={handleMsgTouchMove}
+                onContextMenu={(e) => {
                   if (isAgent) {
+                    e.preventDefault();
                     e.stopPropagation();
-                    // Desktop: click shows picker
-                    setActivePickerMsgId(prev =>
-                      prev === msg.id ? null : msg.id
-                    );
+                    // Desktop: right-click shows picker
+                    setActivePickerMsgId(msg.id);
                   }
                 }}
                 style={{
@@ -1288,41 +1287,23 @@ export default function Agent() {
                 </div>
               )}
         
-              {/* Full reaction picker (long press / desktop click) */}
+              {/* Full reaction picker (long press / desktop right click) */}
               {isAgent && activePickerMsgId === msg.id && (
                 <div
-                  onClick={e => e.stopPropagation()}
                   style={{
-                    position: 'absolute',
-                    bottom: 'calc(100% + 6px)',
-                    left: '0',
-                    display: 'flex',
-                    gap: '4px',
-                    background: '#1c1c1c',
-                    border: '1px solid #2a2a2a',
-                    borderRadius: '100px',
-                    padding: '8px 12px',
-                    zIndex: 100,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                    display: 'flex', gap: '4px',
+                    background: '#1c1c1c', border: '1px solid #2a2a2a',
+                    borderRadius: '100px', padding: '8px 12px',
+                    marginTop: '6px',
+                    alignSelf: 'flex-start',
                     animation: 'pickerIn 0.15s ease-out'
                   }}
+                  onClick={e => e.stopPropagation()}
                 >
                   {['❤️', '😂', '🔥', '😮', '😅', '👏'].map(emoji => (
-                    <button
-                      key={emoji}
-                      onClick={() => sendReaction(msg.id, emoji)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '20px',
-                        padding: '2px',
-                        lineHeight: 1,
-                        transition: 'transform 0.1s'
-                      }}
-                      onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
-                      onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                    >
+                    <button key={emoji} onClick={() => sendReaction(msg.id, emoji)}
+                      style={{background:'none',border:'none',cursor:'pointer',
+                              fontSize:'20px',padding:'2px',lineHeight:1}}>
                       {emoji}
                     </button>
                   ))}
@@ -1466,9 +1447,7 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
-            🦞
-          </div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
@@ -1529,7 +1508,7 @@ export default function Agent() {
             showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
-            lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
+            lastMove={lastMoveHighlight || optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} arrivedSquare={arrivedSquare} 
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
@@ -1547,7 +1526,7 @@ export default function Agent() {
           </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
+              <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
@@ -1586,7 +1565,7 @@ export default function Agent() {
           <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
             {normalizedMessages.length === 0 ? (
               <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '24px' }}>🦞</span>
+                <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
                 <span>{agentName} can chat while playing</span>
               </div>
             ) : (
@@ -1667,9 +1646,7 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
-            🦞
-          </div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
@@ -1729,7 +1706,7 @@ export default function Agent() {
             showCoordinates={false}
             onMove={makeMove} 
             isMyTurn={isMyTurn} 
-            lastMove={optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
+            lastMove={lastMoveHighlight || optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} arrivedSquare={arrivedSquare} 
             moveHistory={game.move_history || []}
             boardTheme={boardTheme}
             pieceTheme={pieceTheme}
@@ -1747,7 +1724,7 @@ export default function Agent() {
           </div>
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-serif text-[32px] font-bold text-white tracking-widest drop-shadow-md">
+              <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
@@ -1790,7 +1767,7 @@ export default function Agent() {
           <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
             {normalizedMessages.length === 0 ? (
               <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px" }}>
-                <span style={{ fontSize: '24px' }}>🦞</span>
+                <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
                 <span>{agentName} can chat while playing</span>
               </div>
             ) : (
@@ -1905,13 +1882,13 @@ export default function Agent() {
               <XIcon size={18} />
             </button>
             <div style={{ fontSize: '56px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }} className={game?.result === (game?.player_color === 'b' ? 'white' : 'black') ? 'animate-pulse' : ''}>
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : '🦞'}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : <LobsterEmoji />}
             </div>
-            <div className="font-serif text-3xl text-white mb-2 font-bold tracking-wide">
+            <div className="font-sans text-3xl text-white mb-2 font-bold tracking-wide">
               {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242,242,242,0.5)', fontSize: '14px', marginBottom: '24px' }}>
-                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Well played. Your OpenClaw salutes you. 🦞' :
+                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <>Well played. Your OpenClaw salutes you. <LobsterEmoji /></> :
                  game?.result === 'draw' ? 'An equal battle. Honor to both sides.' :
                  `${agentName} proved their worth today.`}
               </div>
@@ -2073,7 +2050,7 @@ export default function Agent() {
       </Modal>
 
       <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes ripple {
           0%   { transform: scale(1);   opacity: 0.5; }
           100% { transform: scale(2.4); opacity: 0;   }

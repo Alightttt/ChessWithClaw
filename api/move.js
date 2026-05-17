@@ -145,6 +145,7 @@ module.exports = async function handler(req, res) {
 
   // Support both reasoning and thinking fields
   const actualReasoning = reasoning || thinking || '';
+  const thought = req.body?.thought || null;
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });
@@ -329,6 +330,11 @@ module.exports = async function handler(req, res) {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
+  if (thought && thought.trim() !== '') {
+    updates.companion_thought = thought;
+    updates.companion_thought_at = new Date().toISOString();
+  }
+
   const agentName = req.headers['x-agent-name'];
   if (isAgentMove) {
     if (agentName && agentName.trim() !== '' && agentName !== 'TestClaw' && agentName !== 'OpenClaw' && agentName !== 'Your OpenClaw') {
@@ -427,6 +433,7 @@ module.exports = async function handler(req, res) {
   return res.json({
     success: true,
     agent_name: agentName || game.agent_name || 'Your OpenClaw',
+    companion_thought: thought || null,
     game: {
       id: updated.id,
       fen: updated.fen,

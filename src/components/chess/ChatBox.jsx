@@ -4,11 +4,14 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { motion, AnimatePresence } from 'motion/react';
 
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+
+
 export default function ChatBox({ chatHistory, onSendMessage, onAcceptResignation, onAcceptDraw, agentName, agentAvatar, hideInput }) {
   const [message, setMessage] = useState('');
   const scrollRef = useRef(null);
 
-  const displayAvatar = agentAvatar || '🦞';
+  const displayAvatar = agentAvatar || <LobsterEmoji />;
   const displayName = agentName || 'OpenClaw';
 
   useEffect(() => {
