@@ -131,10 +131,23 @@ export default function Home() {
     if (creating) return;
     setCreating(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
       const res = await fetch('/api/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        let errData = {};
+        try { errData = await res.json(); } catch(e) {}
+        toast.error(errData.error || 'Failed to create match. ' + res.statusText);
+        return;
+      }
+      
       const data = await res.json();
       if (!data.id) {
         toast.error('Game created but ID missing. Please try again.');
@@ -145,7 +158,11 @@ export default function Home() {
       }
       navigate(`/created/${data.id}`, { state: { agentToken: data.agent_token } });
     } catch (err) {
-      toast.error('Network error. Check your connection and try again.');
+      if (err.name === 'AbortError') {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error('Network error. Check your connection and try again.');
+      }
     } finally {
       setCreating(false);
     }
@@ -365,7 +382,6 @@ export default function Home() {
         </div>
         <div className="hidden md:flex items-center gap-3 mr-4">
             <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
-            <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
           </div>
           <button 
           onClick={handleStart} 
@@ -458,29 +474,30 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center md:justify-start w-full sm:w-auto"
+            className="hidden md:flex flex-row items-center justify-start w-auto"
             style={{ gap: '16px', marginTop: '24px' }}
           >
             <button 
               onClick={handleStart}
               disabled={creating}
-              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full sm:w-auto"
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto"
             >
               {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
             </button>
             <a 
               href="#how"
-              className="design-btn-secondary w-full sm:w-auto"
+              className="design-btn-secondary w-auto"
             >
               How it works
             </a>
           </motion.div>
         </div>
+        
         <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full z-10 mx-auto mt-12 md:mt-0"
+            className="w-full z-10 mx-auto mt-6 md:mt-0 md:order-2"
             style={{ maxWidth: '440px', position: 'relative' }}
           >
             <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
@@ -499,6 +516,27 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </motion.div>
+
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex md:hidden flex-col items-center justify-center w-full z-10 mt-6 gap-4"
+          >
+            <button 
+              onClick={handleStart}
+              disabled={creating}
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full"
+            >
+              {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
+            </button>
+            <a 
+              href="#how"
+              className="design-btn-secondary w-full text-center"
+            >
+              How it works
+            </a>
           </motion.div>
       </section>
 
@@ -532,7 +570,7 @@ export default function Home() {
         <div className="space-y-8" style={{ gap: '32px', display: 'flex', flexDirection: 'column' }}>
           {[
             { 
-              tag: "01", 
+              tag: "1", 
               title: "Install the plugin", 
               desc: "Give your OpenClaw the ability to play.", 
               commands: [
@@ -546,8 +584,8 @@ export default function Home() {
                 }
               ]
             },
-            { tag: "02", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your OpenClaw." },
-            { tag: "03", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
+            { tag: "2", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your OpenClaw." },
+            { tag: "3", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
           ].map((step, i) => (
             <div key={i} className="flex gap-6 sm:gap-8">
               <div 
@@ -651,7 +689,7 @@ export default function Home() {
               rel="noopener noreferrer" 
               className="x-link-lovable"
             >
-              x.com ↗
+              x.com
             </a>
           </div>
         </div>
