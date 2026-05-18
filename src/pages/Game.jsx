@@ -25,6 +25,8 @@ export default function Game() {
   const { toast } = useToast();
 
   const agentToken = location.state?.agentToken;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+  const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
   
   const [game, setGame] = useState(null);
 
@@ -37,18 +39,55 @@ export default function Game() {
         from { opacity:0; transform:translateY(8px) scale(0.96); }
         to { opacity:1; transform:translateY(0) scale(1); }
       }
+      @-webkit-keyframes msgIn {
+        from { opacity:0; -webkit-transform:translateY(8px) scale(0.96); }
+        to { opacity:1; -webkit-transform:translateY(0) scale(1); }
+      }
+      @keyframes msgOut {
+        from { opacity:1; }
+        to { opacity:0; }
+      }
+      @-webkit-keyframes msgOut {
+        from { opacity:1; }
+        to { opacity:0; }
+      }
       @keyframes typingBounce {
         0%,60%,100% { transform:translateY(0); opacity:0.3; }
         30% { transform:translateY(-4px); opacity:1; }
+      }
+      @-webkit-keyframes typingBounce {
+        0%,60%,100% { -webkit-transform:translateY(0); opacity:0.3; }
+        30% { -webkit-transform:translateY(-4px); opacity:1; }
       }
       @keyframes pickerIn {
         from { opacity:0; transform:scale(0.8) translateY(4px); }
         to { opacity:1; transform:scale(1) translateY(0); }
       }
+      @-webkit-keyframes pickerIn {
+        from { opacity:0; -webkit-transform:scale(0.8) translateY(4px); }
+        to { opacity:1; -webkit-transform:scale(1) translateY(0); }
+      }
       @keyframes reactionPop {
         0% { transform:scale(0); }
         60% { transform:scale(1.3); }
         100% { transform:scale(1); }
+      }
+      @-webkit-keyframes reactionPop {
+        0% { -webkit-transform:scale(0); }
+        60% { -webkit-transform:scale(1.3); }
+        100% { -webkit-transform:scale(1); }
+      }
+      @keyframes agentMoveFlash {
+        0% { background-color:rgba(230,57,70,0.7); }
+        100% { background-color:transparent; }
+      }
+      @-webkit-keyframes agentMoveFlash {
+        0% { background-color:rgba(230,57,70,0.7); }
+        100% { background-color:transparent; }
+      }
+      .cwc-msg-new { animation-play-state: running !important; -webkit-animation-play-state: running !important; }
+      @media (prefers-reduced-motion: reduce) {
+         .cwc-msg-new { animation-play-state: running !important; -webkit-animation-play-state: running !important; }
       }
     `;
     document.head.appendChild(style);
@@ -1710,7 +1749,7 @@ export default function Game() {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
                       <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
@@ -1727,7 +1766,7 @@ export default function Game() {
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
             {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
           </span>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
             Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
           </span>
           {!agentConnected && (
@@ -1926,7 +1965,7 @@ export default function Game() {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
                       <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
@@ -1945,7 +1984,7 @@ export default function Game() {
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
           Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
         </span>
         {!agentConnected && (
@@ -2180,30 +2219,42 @@ export default function Game() {
           0% { transform: scale(1) translateY(0); filter: none; }
           100% { transform: scale(1.15) translateY(-4px); filter: none; }
         }
+        
         @keyframes pieceDrop {
           0% { transform: scale(1.15) translateY(-4px); }
           100% { transform: scale(1) translateY(0); }
         }
+        @-webkit-keyframes pieceDrop {
+          0% { -webkit-transform: scale(1.15) translateY(-4px); }
+          100% { -webkit-transform: scale(1) translateY(0); }
+        }
         @keyframes pieceCapture {
           0% { transform: scale(1); opacity: 1; }
           100% { transform: scale(0.5); opacity: 0; }
+        }
+        @-webkit-keyframes pieceCapture {
+          0% { -webkit-transform: scale(1); opacity: 1; }
+          100% { -webkit-transform: scale(0.5); opacity: 0; }
         }
         @keyframes boardShake {
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-4px); }
           40%, 80% { transform: translateX(4px); }
         }
-        @keyframes agentMoveFlash {
-          0% { background-color: rgba(230, 57, 70, 0.6); }
-          100% { background-color: rgba(255, 213, 79, 0.3); }
-        }
-        @keyframes pieceEntrance {
-          0% { opacity: 0; transform: scale(0.8) translateY(10px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
+        @-webkit-keyframes boardShake {
+          0%, 100% { -webkit-transform: translateX(0); }
+          20%, 60% { -webkit-transform: translateX(-4px); }
+          40%, 80% { -webkit-transform: translateX(4px); }
         }
         @keyframes boardThinkingGlow {
           0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
-          50% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); }
+          50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
+        }
+        @-webkit-keyframes boardThinkingGlow {
+          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
+          50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
+        }
+
         }
         @keyframes checkPulse {
           0%, 100% { opacity: 0.7; }

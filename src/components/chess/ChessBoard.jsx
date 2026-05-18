@@ -255,8 +255,12 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
     if (!document.getElementById('piece-arrive')) {
       style.textContent = `
         @keyframes pieceArrive {
-          from { transform: scale(0.85); opacity: 0.7; }
-          to   { transform: scale(1); opacity: 1; }
+          from { transform: scale(0.85) translateZ(0); opacity: 0.7; }
+          to   { transform: scale(1) translateZ(0); opacity: 1; }
+        }
+        @-webkit-keyframes pieceArrive {
+          from { -webkit-transform: scale(0.85) translateZ(0); opacity: 0.7; }
+          to   { -webkit-transform: scale(1) translateZ(0); opacity: 1; }
         }
       `;
       document.head.appendChild(style);
@@ -312,7 +316,10 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         style={{ 
           filter: 'none', 
           cursor: isDraggable ? 'grab' : 'default',
-          animation: arrivedSquare === sq ? 'pieceArrive 0.15s ease-out' : 'none'
+          animation: arrivedSquare === sq ? 'pieceArrive 0.28s ease-out forwards' : 'none',
+          WebkitAnimation: arrivedSquare === sq ? 'pieceArrive 0.28s ease-out forwards' : 'none',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)'
         }} 
       />
     );
@@ -360,7 +367,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
                 {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
-                {arrivedSquare === sq && <div className="absolute inset-0 z-[2]" style={{ animation: 'agentMoveFlash 0.6s ease-out forwards', pointerEvents: 'none' }} />}
+                {arrivedSquare === sq && <div className="absolute inset-0" style={{ animation: 'agentMoveFlash 0.7s ease-out forwards', WebkitAnimation: 'agentMoveFlash 0.7s ease-out forwards', pointerEvents: 'none', willChange: 'background-color', zIndex: 2 }} />}
                 
                 {/* Legal move indicators */}
                 {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}

@@ -1543,7 +1543,7 @@ export default function Agent() {
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
           Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
         </span>
         {!agentConnected && (
@@ -1627,7 +1627,7 @@ export default function Agent() {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
                       <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
@@ -1829,7 +1829,7 @@ export default function Agent() {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
                       <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
@@ -1848,7 +1848,7 @@ export default function Agent() {
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
           Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
         </span>
         {!agentConnected && (

@@ -403,7 +403,7 @@ export default function Home() {
           position: 'relative',
           overflow: 'hidden'
         }} 
-        className="flex flex-col md:grid md:grid-cols-2 items-center max-w-7xl mx-auto gap-6 md:gap-8"
+        className="flex flex-col md:grid md:grid-cols-2 items-center max-w-7xl mx-auto gap-4 md:gap-8"
       >
         <div style={{
           position: 'absolute',
@@ -497,7 +497,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full z-10 mx-auto mt-2 md:mt-0 md:order-2"
+            className="w-full z-10 mx-auto md:order-2"
             style={{ maxWidth: '440px', position: 'relative' }}
           >
             <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
@@ -603,7 +603,7 @@ export default function Home() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  marginTop: '4px'
+                  marginTop: '0px'
                 }}
               >
                 {step.tag}

@@ -25,7 +25,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
 
     const fetchGame = async () => {
       setLoading(true);
-      const { data } = await supabase
+      try { const { data, error } = await supabase
         .from('games')
         .select('agent_connected, agent_name, agent_token')
         .eq('id', gameId)
@@ -34,7 +34,11 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       if (data?.agent_name) setAgentName(data.agent_name);
       if (data?.agent_connected !== undefined) setAgentConnected(!!data.agent_connected);
       if (!agentToken && data?.agent_token) setAgentToken(data.agent_token);
-      setLoading(false);
+      } catch (err) {
+        toast.error('Error loading game: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchGame();
 
@@ -160,7 +164,7 @@ npx clawhub install agent-browser-clawdbot`;
               }} 
             />
           </div>
-          <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'JetBrains Mono', monospace", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
+          <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'Inter', sans-serif", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
         <div className="mb-4 text-center">
           <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw <LobsterEmoji /></h1>
@@ -193,7 +197,7 @@ npx clawhub install agent-browser-clawdbot`;
             background: #080808;
             border: 1px solid rgba(255,255,255,0.06);
             border-radius: 8px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
             padding: 12px 14px;
             font-size: 13px;
             color: rgba(242,242,242,0.7);
@@ -207,7 +211,7 @@ npx clawhub install agent-browser-clawdbot`;
             background: #080808;
             border: 1px solid rgba(255,255,255,0.06);
             border-radius: 10px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
             padding: 14px;
             font-size: 12px;
             color: rgba(242,242,242,0.6);
@@ -286,7 +290,7 @@ npx clawhub install agent-browser-clawdbot`;
             className="card-container"
           >
             <div className="flex items-center gap-4 mb-6">
-              <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>01</div>
+              <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>1</div>
               <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Invite OpenClaw</h2>
             </div>
             
@@ -332,7 +336,7 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>02</div>
+                <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>2</div>
                 <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Enter the Arena</h2>
               </div>
             </div>

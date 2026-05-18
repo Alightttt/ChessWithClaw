@@ -39,6 +39,25 @@ module.exports = async function handler(req, res) {
   const{data:game,error}=await supabase
     .from('games').select('*').eq('id',gameId).single()
 
+  if (game && Boolean(req.headers['x-agent-token'])) {
+     const agentName = req.query.agent_name || req.headers['x-agent-name'] || null;
+     let needsUpdate = false;
+     const updateData = { agent_last_seen: new Date().toISOString() };
+     
+     if (!game.agent_connected) {
+        updateData.agent_connected = true;
+        needsUpdate = true;
+     }
+     if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
+        updateData.agent_name = agentName;
+        needsUpdate = true;
+     }
+     if (needsUpdate || Math.random() < 0.1) {
+        // Await the update FIRST before doing the heavy move computation
+        await supabase.from('games').update(updateData).eq('id', gameId);
+     }
+  }
+
   if(error||!game){
     return res.status(404).json({
       error:'Game not found',code:'GAME_NOT_FOUND',
@@ -64,21 +83,28 @@ module.exports = async function handler(req, res) {
   }
 
   const agentName = req.query.agent_name || req.headers['x-agent-name'] || null;
+  const isAgent = Boolean(req.headers['x-agent-token']);
+  
+  if (isAgent) {
+     let needsUpdate = false;
+     const updateData = {
+        agent_last_seen: new Date().toISOString()
+     };
+     
+     if (!game.agent_connected) {
+        updateData.agent_connected = true;
+        needsUpdate = true;
+     }
+     if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
+        updateData.agent_name = agentName;
+        needsUpdate = true;
+     }
 
-  // Set connected and update last seen
-  const updateData = {
-    agent_connected: true,
-    agent_last_seen: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  if (agentName && !game.agent_name) {
-    updateData.agent_name = agentName || game.agent_name || 'OpenClaw';
+     if (needsUpdate || Math.random() < 0.1) { // periodically update last seen
+        // Fire and forget so we don't block the poll
+        supabase.from('games').update({ ...updateData }).eq('id', gameId).then(()=>{});
+     }
   }
-
-  await supabase.from('games')
-    .update(updateData)
-    .eq('id', gameId);
 
   if(game.status==='finished'||game.status==='abandoned'){
     return res.json({
