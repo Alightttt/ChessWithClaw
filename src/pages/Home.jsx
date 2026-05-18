@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield } from "lucide-react";
 import ChessBoard from '../components/chess/ChessBoard';
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 
 const DEMO_THOUGHTS = [

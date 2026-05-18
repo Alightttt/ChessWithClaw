@@ -105,6 +105,8 @@ module.exports = async function handler(req, res) {
   let legalMoves = [];
   let pgnStr = "";
   let inCheck = false;
+  let king_safety = { white_in_check: false, black_in_check: false };
+  let center_control = { white: 0, black: 0, advantage: "equal" };
 
   try {
     const { Chess } = await import('chess.js');
@@ -137,6 +139,36 @@ module.exports = async function handler(req, res) {
     asciiBoard = chess.ascii ? chess.ascii() : "";
     legalMoves = chess.moves ? chess.moves() : [];
     inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
+    
+    // King safety (simple check):
+    const whiteKingInCheck = chess.isCheck ? (chess.turn() === 'w' && chess.isCheck()) : (chess.turn() === 'w' && chess.in_check && chess.in_check());
+    const blackKingInCheck = chess.isCheck ? (chess.turn() === 'b' && chess.isCheck()) : (chess.turn() === 'b' && chess.in_check && chess.in_check());
+    
+    inCheck = whiteKingInCheck || blackKingInCheck;
+
+    king_safety = {
+      white_in_check: whiteKingInCheck,
+      black_in_check: blackKingInCheck
+    };
+
+    // Center control (count pieces/pawns in center squares e4,d4,e5,d5)
+    let whiteCenterCount = 0, blackCenterCount = 0;
+    const CENTER = ['e4','d4','e5','d5'];
+    CENTER.forEach(sq => {
+      const piece = chess.get(sq);
+      if (piece) {
+        if (piece.color === 'w') whiteCenterCount++;
+        else blackCenterCount++;
+      }
+    });
+
+    center_control = {
+      white: whiteCenterCount,
+      black: blackCenterCount,
+      advantage: whiteCenterCount > blackCenterCount ? "white" :
+                 blackCenterCount > whiteCenterCount ? "black" : "equal"
+    };
+
   } catch (e) {
     console.error("Chess.js state parsing error:", e);
   }
@@ -162,13 +194,8 @@ module.exports = async function handler(req, res) {
   const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
   const material_balance = whiteMaterial - blackMaterial;
 
-  let game_phase = "opening";
-  const totalPieces = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (totalPieces <= 12 || (counts.Q === 0 && counts.q === 0)) {
-    game_phase = "endgame";
-  } else if (game.move_history && game.move_history.length > 20) {
-    game_phase = "middlegame";
-  }
+  const moveCount = (game.move_history || []).length;
+  let game_phase = moveCount < 10 ? "opening" : moveCount < 30 ? "middlegame" : "endgame";
 
   const lastMoveTime = game.updated_at 
     ? new Date(game.updated_at).getTime() : null;
@@ -193,6 +220,8 @@ module.exports = async function handler(req, res) {
     },
     captured_pieces: captured,
     material_balance: material_balance,
+    king_safety: king_safety,
+    center_control: center_control,
     is_in_check: inCheck,
     game_phase: game_phase,
     current_turn: game.turn === 'w' ? 'WHITE' : 'BLACK',

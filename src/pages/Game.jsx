@@ -15,7 +15,7 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 
 export default function Game() {
@@ -278,7 +278,8 @@ export default function Game() {
     setGame(null)
     setAgentConnected(false)
     setVisibleThought('')
-    setLastMoveFrom(null)
+    setLastMoveHighlight(null)
+    setArrivedSquare(null)
     setLastMoveTo(null)
     setShowGameOverModal(false)
     connectedToastShown.current = false
@@ -658,7 +659,15 @@ export default function Game() {
         if (res.ok) {
           const data = await res.json();
           prevFenRef.current = data.fen;
-          setGame(data);
+          setGame(prev => {
+            const updated = { ...data };
+            if (prev?.chat_history && data?.chat_history) {
+              const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
+              const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
+              updated.chat_history = [...data.chat_history, ...optimistic];
+            }
+            return updated;
+          });
           setOptimisticFen(null);
           
           if (data.companion_thought && data.companion_thought.trim() !== '') {
@@ -753,7 +762,11 @@ export default function Game() {
                 const updated = { ...prev, ...newData };
                 delete updated.board_theme;
                 if (freshData.move_history) updated.move_history = freshData.move_history;
-                if (freshData.chat_history) updated.chat_history = freshData.chat_history;
+                if (freshData.chat_history) {
+                  const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
+                  const optimistic = (prev.chat_history || []).filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
+                  updated.chat_history = [...freshData.chat_history, ...optimistic];
+                }
                 return updated;
               });
             }).catch(() => {
@@ -964,31 +977,34 @@ export default function Game() {
 
   const sendMessage = async (e) => {
     e?.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    const text = chatInput;
-    setLocalMessages(prev => [...prev, { role: 'human', sender: 'human', text: text, timestamp: Date.now() }]);
+    const msgText = chatInput.trim();
+    if (!msgText) return;
     setChatInput('');
     
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`)
-        },
-        body: JSON.stringify({ id: gameId, text, sender: 'human' })
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        toast.error(errData.error || 'Failed to send message', {
-          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
-        });
-        throw new Error('Failed to send message');
-      }
-    } catch (e) {
-      console.error('Failed to send message:', e);
-    }
+    // Add message optimistically to display immediately
+    const optimisticMsg = {
+      id: `opt-${Date.now()}`,
+      role: 'human',
+      message: msgText,
+      timestamp: new Date().toISOString(),
+      reactions: {}
+    };
+    
+    setGame(prev => ({
+      ...prev,
+      chat_history: [...(prev?.chat_history || []), optimisticMsg]
+    }));
+
+    // Remove setLocalMessages or similar if not needed, as the prompt specifies setGame.
+    // Wait, the prompt says: Fetch to /api/chat...
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+      },
+      body: JSON.stringify({ id: gameId, text: msgText, sender: 'human', role: 'human' })
+    }).catch(() => {});
   };
 
 
@@ -1523,13 +1539,13 @@ export default function Game() {
       </header>
       {/* MAIN CONTENT AREA - RESPONSIVE */}
       {isDesktop ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', height: 'calc(100dvh - 52px)', overflow: 'hidden', gap: '0' }}>
           {/* LEFT DESKTOP COLUMN */}
-          <div style={{ width: '56%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '12px 8px 12px 16px', gap: '8px', overflow: 'hidden' }}>
+          <div style={{ width: 'min(56%, calc(100dvh - 52px - 32px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '10px', overflow: 'hidden' }}>
             
         
         {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+        <div style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
           <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
@@ -1565,8 +1581,8 @@ export default function Game() {
             
 
         {/* B) CHESS BOARD */}
-        <div style={{ width: '100%', flex: 1, position: 'relative', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
-          <div style={{ width: 'min(100%, calc(100vh - 52px - 72px - 48px - 32px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+          <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 56px - 52px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
             {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
               Array.from({length:n}).map((_,i)=>(
@@ -1618,28 +1634,15 @@ export default function Game() {
         </div></div>
             
 
-      {/* STEP 4: BOTTOM INFO BAR */}
-      <div style={{ flexShrink: 0, background: '#111111', border: '1px solid #1a1a1a', borderRadius: '8px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
-          {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
-        </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
-          Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
-        </span>
-        {!agentConnected && (
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.2)' }}>
-            {agentName} not here
-          </span>
-        )}
-      </div>
+      
           </div>
 
           {/* RIGHT DESKTOP COLUMN */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 16px 12px 8px', gap: '8px', overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 16px 16px 8px', gap: '10px', overflow: 'hidden', minWidth: 0 }}>
             
 
         {/* D) CHAT SECTION */}
-        <div style={{ flexShrink: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: 'none', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', overflow: 'hidden', minHeight: 0 }}>
           <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
             CHAT WITH {agentName.toUpperCase()}
           </div>
@@ -1685,7 +1688,7 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden', height: moveHistoryOpen ? '240px' : '160px', flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'height 0.3s ease' }}>
+        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid #1a1a1a', background: '#161616', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
@@ -1718,9 +1721,25 @@ export default function Game() {
             </div>
           )}
         </div>
-          </div>
+
+        {/* STEP 4: BOTTOM INFO BAR */}
+        <div style={{ flexShrink: 0, background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '8px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
+            {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
+          </span>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
+            Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
+          </span>
+          {!agentConnected && (
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.2)' }}>
+              {agentName} not here
+            </span>
+          )}
         </div>
-      ) : (
+        
+      </div>
+    </div>
+  ) : (
         <>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
             

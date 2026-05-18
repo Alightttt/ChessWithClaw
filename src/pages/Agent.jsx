@@ -16,7 +16,7 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 
 export default function Agent() {
@@ -272,7 +272,8 @@ export default function Agent() {
     setGame(null)
     setAgentConnected(false)
     setVisibleThought('')
-    setLastMoveFrom(null)
+    setLastMoveHighlight(null)
+    setArrivedSquare(null)
     setLastMoveTo(null)
     setShowGameOverModal(false)
     connectedToastShown.current = false
