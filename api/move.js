@@ -110,10 +110,10 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY || (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).includes('your_supabase') || !(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).startsWith('http')) {
     console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return res.status(500).json({ 
-      error: 'Server configuration error',
+      error: 'Please set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in AI Studio settings to create a match.',
       code: 'MISSING_ENV_VARS'
     });
   }
@@ -158,7 +158,7 @@ module.exports = async function handler(req, res) {
   const sanitizedReasoning = sanitizeText(actualReasoning, 300);
 
   const supabase = createClient(
-    process.env.SUPABASE_URL,
+    (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
   

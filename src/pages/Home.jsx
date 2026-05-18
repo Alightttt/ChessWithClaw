@@ -403,7 +403,7 @@ export default function Home() {
           position: 'relative',
           overflow: 'hidden'
         }} 
-        className="flex flex-col md:grid md:grid-cols-2 items-center max-w-7xl mx-auto gap-12 md:gap-8"
+        className="flex flex-col md:grid md:grid-cols-2 items-center max-w-7xl mx-auto gap-6 md:gap-8"
       >
         <div style={{
           position: 'absolute',
@@ -497,7 +497,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full z-10 mx-auto mt-6 md:mt-0 md:order-2"
+            className="w-full z-10 mx-auto mt-2 md:mt-0 md:order-2"
             style={{ maxWidth: '440px', position: 'relative' }}
           >
             <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
@@ -522,7 +522,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="flex md:hidden flex-col items-center justify-center w-full z-10 mt-6 gap-4"
+            className="flex md:hidden flex-col items-center justify-center w-full z-10 gap-4"
           >
             <button 
               onClick={handleStart}
@@ -593,7 +593,7 @@ export default function Home() {
                   background: 'rgba(230,57,70,0.12)',
                   border: '1px solid rgba(230,57,70,0.2)',
                   color: '#e63946',
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'Inter', sans-serif",
                   fontSize: '12px',
                   fontWeight: 600,
                   width: '32px',
@@ -618,8 +618,8 @@ export default function Home() {
                     {step.commands.map((cmd, j) => (
                       <div key={j} className="flex flex-col gap-2">
                         <div style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ color: '#e63946', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>{'>'}</span>
-                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', color: 'rgba(242,242,242,0.7)' }}>{cmd.code}</span>
+                          <span style={{ color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>{'>'}</span>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.7)' }}>{cmd.code}</span>
                         </div>
                         <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="clawhub-link">
                           View on ClawHub →

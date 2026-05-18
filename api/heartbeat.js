@@ -20,12 +20,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing gameId parameter' });
   }
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: 'Server configuration error' });
+  if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY || (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).includes('your_supabase') || !(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).startsWith('http')) {
+    return res.status(500).json({ error: 'Please set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in AI Studio settings to create a match.' });
   }
 
   const supabase = createClient(
-    process.env.SUPABASE_URL,
+    (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
