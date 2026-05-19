@@ -34,23 +34,20 @@ export function ToastProvider({ children }) {
     setTimeout(() => removeToast(id), dur);
   }, [removeToast]);
 
-  const toast = Object.assign(
-    (msg, options = {}) => {
-      addToast(msg, options);
-    },
-    {
-      success: (msg, dur) => addToast(msg, 'success', dur),
-      error: (msg, dur) => addToast(msg, 'error', dur),
-      info: (msg, dur) => addToast(msg, 'info', dur),
-      warning: (msg, dur) => addToast(msg, 'warning', dur),
-    }
-  );
-
-  const contextValue = {
-    toast,
-    toasts,
-    removeToast
-  };
+  const contextValue = React.useMemo(() => {
+    const toastFn = Object.assign(
+      (msg, options = {}) => {
+        addToast(msg, options);
+      },
+      {
+        success: (msg, dur) => addToast(msg, 'success', dur),
+        error: (msg, dur) => addToast(msg, 'error', dur),
+        info: (msg, dur) => addToast(msg, 'info', dur),
+        warning: (msg, dur) => addToast(msg, 'warning', dur),
+      }
+    );
+    return { toast: toastFn, removeToast };
+  }, [addToast, removeToast]);
 
   return (
     <ToastContext.Provider value={contextValue}>

@@ -238,12 +238,14 @@ export default function Home() {
           padding: 24px;
           position: relative;
           overflow: hidden;
-          transition: all 0.2s ease;
+          will-change: transform;
+          transform: translateZ(0);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
         .design-card:hover {
           border-color: rgba(255,255,255,0.12);
-          transform: translateY(-2px);
+          transform: translateY(-2px) translateZ(0);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
         }
         
@@ -599,6 +601,31 @@ export default function Home() {
         </div>
       </section>
 
+
+      
+      <section id="how" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>1</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Create a Match</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Click 'Challenge OpenClaw' to generate a unique arena. You will get a special invitation link.</p>
+          </div>
+
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>2</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Configure OpenClaw</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Run <code style={{ color: '#e63946' }}>npx clawhub install play-chess</code> and <code style={{ color: '#e63946' }}>agent-browser-clawdbot</code> to prep your agent.</p>
+          </div>
+
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>3</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Send the Invite</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Give OpenClaw the connection string. It will automatically navigate to the board and start thinking.</p>
+          </div>
+        </div>
+      </section>
 
       <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="social-proof-card" style={{ display: 'flex', flexDirection: 'column', padding: '32px 40px', gap: '20px' }}>
