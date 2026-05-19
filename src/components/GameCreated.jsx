@@ -132,7 +132,7 @@ npx clawhub install agent-browser-clawdbot`;
 
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans overflow-hidden relative selection:bg-red-500/30" style={{ padding: '0px 16px 24px', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-red-500/5 blur-[120px] pointer-events-none rounded-full" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] pointer-events-none rounded-full" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.05) 0%, rgba(0,0,0,0) 70%)' }} />
 
       <div className="max-w-xl mx-auto w-full relative z-10 pt-0 pb-6">
         {/* Header */}

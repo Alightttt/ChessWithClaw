@@ -1,9 +1,10 @@
+import ChessBoard from '../components/chess/ChessBoard';
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield } from "lucide-react";
-import ChessBoard from '../components/chess/ChessBoard';
+
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
@@ -83,8 +84,13 @@ function ThoughtBubble() {
   );
 }
 
+
+
+
 export default function Home() {
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+  const isCreatingRef = React.useRef(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -128,43 +134,41 @@ export default function Home() {
   }, []);
 
   const handleStart = async () => {
-    if (creating) return;
+    if (isCreatingRef.current) return;
+    isCreatingRef.current = true;
     setCreating(true);
+    setCreateError(null);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout per instructions
       
       const res = await fetch('/api/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color: 'w' }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
       
-      if (!res.ok) {
-        let errData = {};
-        try { errData = await res.json(); } catch(e) {}
-        toast.error(errData.error || 'Failed to create match. ' + res.statusText);
-        return;
-      }
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       
       const data = await res.json();
-      if (!data.id) {
-        toast.error('Game created but ID missing. Please try again.');
-        return;
-      }
+      if (!data.id) throw new Error('No game ID returned');
+      
       if (data.secret_token) {
         localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
       }
-      navigate(`/created/${data.id}`, { state: { agentToken: data.agent_token } });
+      
+      isCreatingRef.current = false;
+      navigate(`/created/${data.id}`, { state: { agentToken: data.agent_token, secretToken: data.secret_token } });
     } catch (err) {
-      if (err.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
-      } else {
-        toast.error('Network error. Check your connection and try again.');
-      }
-    } finally {
+      isCreatingRef.current = false;
       setCreating(false);
+      if (err.name === 'AbortError') {
+        setCreateError('Connection timed out. Please try again.');
+      } else {
+        setCreateError('Could not create game. Please try again.');
+      }
     }
   };
 
@@ -174,6 +178,39 @@ export default function Home() {
     { q: "Is ChessWithClaw actually free?", a: "Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever." },
     { q: "What if my OpenClaw disconnects mid-game?", a: "Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off." },
   ];
+
+  
+  if (creating || createError) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center p-6 text-white font-sans gap-4 selection:bg-red-500/30">
+        {creating && !createError && (
+          <>
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+              <div className="w-8 h-8 border-4 border-red-500/30 border-t-red-500 rounded-full" />
+            </motion.div>
+            <div className="font-semibold text-neutral-400 tracking-wide text-sm font-sans animate-pulse">Setting up the arena...</div>
+          </>
+        )}
+        {createError && (
+          <div style={{textAlign:'center',padding:'40px 24px'}}>
+            <div style={{fontSize:'32px',marginBottom:'16px'}}>⚠️</div>
+            <div style={{color:'#f2f2f2',fontFamily:'Inter',marginBottom:'8px'}}>
+              {createError}
+            </div>
+            <button 
+              onClick={() => { setCreateError(null); setCreating(false); isCreatingRef.current = false; }}
+              style={{marginTop:'16px',padding:'12px 32px',background:'#e63946',
+                      border:'none',borderRadius:'8px',color:'#fff',
+                      fontFamily:'Inter',cursor:'pointer',fontSize:'14px'}}
+              className="design-btn-primary"
+            >
+              Go Back
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
@@ -512,13 +549,14 @@ export default function Home() {
                 style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '6px' }}
               >
                 <div style={{ pointerEvents: 'none' }}>
-                  <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
+                  
+                <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
                 </div>
               </div>
             </div>
           </motion.div>
-
-        <motion.div 
+        
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -540,11 +578,7 @@ export default function Home() {
           </motion.div>
       </section>
 
-      <section id="features" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '64px', padding: '0px 20px 0' }}>
-        <div className="text-center mb-12" style={{ gap: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.2, margin: 0, color: '#f2f2f2', letterSpacing: '-0.03em', textAlign: 'center' }}>Built for the game.</h2>
-        </div>
-        
+      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
@@ -562,77 +596,6 @@ export default function Home() {
         </div>
       </section>
 
-
-
-      <section id="how" className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
-        
-        <div className="space-y-8" style={{ gap: '32px', display: 'flex', flexDirection: 'column' }}>
-          {[
-            { 
-              tag: "1", 
-              title: "Install the plugin", 
-              desc: "Give your OpenClaw the ability to play.", 
-              commands: [
-                {
-                  code: "npx clawhub install play-chess",
-                  link: "https://clawhub.ai/Alightttt/play-chess"
-                },
-                {
-                  code: "npx clawhub install agent-browser-clawdbot",
-                  link: "https://clawhub.ai/Alightttt/agent-browser-clawdbot"
-                }
-              ]
-            },
-            { tag: "2", title: "Create a match", desc: "Click Play Now to generate a secure real-time game room for you and your OpenClaw." },
-            { tag: "3", title: "Send the invite", desc: "Copy the invite text and drop it into your CLI or web interface to start." }
-          ].map((step, i) => (
-            <div key={i} className="flex gap-6 sm:gap-8">
-              <div 
-                style={{
-                  background: 'rgba(230,57,70,0.12)',
-                  border: '1px solid rgba(230,57,70,0.2)',
-                  color: '#e63946',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  marginTop: '0px'
-                }}
-              >
-                {step.tag}
-              </div>
-              <div style={{ gap: '16px', display: 'flex', flexDirection: 'column' }}>
-                <div>
-                  <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{step.title}</h3>
-                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{step.desc}</p>
-                </div>
-                {step.commands && (
-                  <div className="flex flex-col gap-4 w-fit">
-                    {step.commands.map((cmd, j) => (
-                      <div key={j} className="flex flex-col gap-2">
-                        <div style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>{'>'}</span>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.7)' }}>{cmd.code}</span>
-                        </div>
-                        <a href={cmd.link} target="_blank" rel="noopener noreferrer" className="clawhub-link">
-                          View on ClawHub →
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="fade-in-section max-w-4xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="social-proof-card" style={{ display: 'flex', flexDirection: 'column', padding: '32px 40px', gap: '20px' }}>

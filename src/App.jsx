@@ -21,17 +21,13 @@ function AnimatedRoutes() {
     <>
       <style>{`
         .page-transition {
-          animation: pageEnter 0.25s ease forwards;
+          animation: pageEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          will-change: transform, opacity;
+          transform: translateZ(0);
         }
         @keyframes pageEnter {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px) translateZ(0); }
+          to { opacity: 1; transform: translateY(0) translateZ(0); }
         }
       `}</style>
       <div key={location.pathname} className="page-transition">
