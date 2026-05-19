@@ -89,7 +89,7 @@ function ThoughtBubble() {
 
 export default function Home() {
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState(null);
+  const [createError, setCreateError] = useState('');
   const isCreatingRef = React.useRef(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
@@ -133,42 +133,43 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const handleStart = async () => {
-    if (isCreatingRef.current) return;
+  const handleCreateGame = async () => {
+    if (isCreatingRef.current || creating) return;
     isCreatingRef.current = true;
     setCreating(true);
-    setCreateError(null);
+    setCreateError('');
+    
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout per instructions
-      
       const res = await fetch('/api/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ color: 'w' }),
         signal: controller.signal
       });
-      clearTimeout(timeoutId);
+      clearTimeout(timer);
       
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      
+      if (!res.ok) throw new Error('Server error ' + res.status);
       const data = await res.json();
-      if (!data.id) throw new Error('No game ID returned');
+      if (!data.id) throw new Error('No game ID');
       
       if (data.secret_token) {
         localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
       }
       
-      isCreatingRef.current = false;
-      navigate(`/created/${data.id}`, { state: { agentToken: data.agent_token, secretToken: data.secret_token } });
+      navigate('/created/' + data.id, { state: { agentToken: data.agent_token, secretToken: data.secret_token } });
+      
     } catch (err) {
-      isCreatingRef.current = false;
+      clearTimeout(timer);
       setCreating(false);
-      if (err.name === 'AbortError') {
-        setCreateError('Connection timed out. Please try again.');
-      } else {
-        setCreateError('Could not create game. Please try again.');
-      }
+      isCreatingRef.current = false;
+      setCreateError(
+        err.name === 'AbortError'
+          ? 'Connection timed out. Please try again.'
+          : 'Could not create game. Please try again.'
+      );
     }
   };
 
@@ -192,19 +193,19 @@ export default function Home() {
           </>
         )}
         {createError && (
-          <div style={{textAlign:'center',padding:'40px 24px'}}>
-            <div style={{fontSize:'32px',marginBottom:'16px'}}>⚠️</div>
-            <div style={{color:'#f2f2f2',fontFamily:'Inter',marginBottom:'8px'}}>
+          <div style={{textAlign:'center',padding:'24px'}}>
+            <p style={{color:'#f2f2f2',fontFamily:'Inter',marginBottom:'16px'}}>
               {createError}
-            </div>
-            <button 
-              onClick={() => { setCreateError(null); setCreating(false); isCreatingRef.current = false; }}
-              style={{marginTop:'16px',padding:'12px 32px',background:'#e63946',
-                      border:'none',borderRadius:'8px',color:'#fff',
-                      fontFamily:'Inter',cursor:'pointer',fontSize:'14px'}}
-              className="design-btn-primary"
-            >
-              Go Back
+            </p>
+            <button onClick={() => {
+              setCreateError('');
+              setCreating(false);
+              isCreatingRef.current = false;
+            }} style={{
+              padding:'12px 28px',background:'#e63946',border:'none',
+              borderRadius:'8px',color:'#fff',fontFamily:'Inter',cursor:'pointer'
+            }}>
+              Try Again
             </button>
           </div>
         )}
@@ -217,12 +218,13 @@ export default function Home() {
       <style>{`
         .fade-in-section {
           opacity: 0.01;
-          transform: translateY(24px);
+          transform: translateY(24px) translateZ(0);
+          will-change: opacity, transform;
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
         .fade-in-section.is-visible {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateY(0) translateZ(0);
         }
         img { 
           max-width: 100%; 
@@ -394,7 +396,8 @@ export default function Home() {
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
           transition: 'all 0.3s ease',
-          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
+          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none',
+          transform: 'translateZ(0)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -421,7 +424,7 @@ export default function Home() {
             <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
           </div>
           <button 
-          onClick={handleStart} 
+          onClick={handleCreateGame} 
           disabled={creating}
           className="design-btn-nav"
         >
@@ -515,7 +518,7 @@ export default function Home() {
             style={{ gap: '16px', marginTop: '24px' }}
           >
             <button 
-              onClick={handleStart}
+              onClick={handleCreateGame}
               disabled={creating}
               className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto"
             >
@@ -563,7 +566,7 @@ export default function Home() {
             className="flex md:hidden flex-col items-center justify-center w-full z-10 gap-4"
           >
             <button 
-              onClick={handleStart}
+              onClick={handleCreateGame}
               disabled={creating}
               className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full"
             >
@@ -633,7 +636,7 @@ export default function Home() {
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge OpenClaw?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
           <button 
-             onClick={handleStart}
+             onClick={handleCreateGame}
              disabled={creating}
              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg"
           >
