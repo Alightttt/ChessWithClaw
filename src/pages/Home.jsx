@@ -159,7 +159,7 @@ export default function Home() {
         localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
       }
       
-      navigate('/created/' + data.id, { state: { agentToken: data.agent_token, secretToken: data.secret_token } });
+      window.location.href = '/created/' + data.id;
       
     } catch (err) {
       clearTimeout(timer);
@@ -220,6 +220,8 @@ export default function Home() {
           opacity: 0.01;
           transform: translateY(24px) translateZ(0);
           will-change: opacity, transform;
+          backface-visibility: hidden;
+          perspective: 1000px;
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
         .fade-in-section.is-visible {
@@ -240,6 +242,7 @@ export default function Home() {
           overflow: hidden;
           will-change: transform;
           transform: translateZ(0);
+          backface-visibility: hidden;
           transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }

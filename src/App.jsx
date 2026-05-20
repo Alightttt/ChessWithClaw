@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';

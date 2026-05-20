@@ -66,7 +66,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       .subscribe();
 
     return () => supabase.removeChannel(subscription);
-  }, [gameId, toast, agentToken]);
+  }, [gameId]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   
