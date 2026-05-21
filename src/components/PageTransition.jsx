@@ -1,27 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 export default function PageTransition({ children }) {
-  const [state, setState] = useState('entering');
-
-  useEffect(() => {
-    setState('entering');
-    const t = setTimeout(() => setState('visible'), 280);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
     <div
       style={{
-        opacity: state === 'entering' ? 0 : 1,
-        transition: 'opacity 280ms cubic-bezier(0.22, 1, 0.36, 1), transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-        willChange: state === 'entering' ? 'transform, opacity' : 'auto',
+        animation: 'pageFadeIn 200ms cubic-bezier(0.215, 0.61, 0.355, 1) forwards',
+        willChange: 'transform, opacity',
         WebkitBackfaceVisibility: 'hidden',
         backfaceVisibility: 'hidden',
-        transform: state === 'entering' ? 'translateY(12px) translateZ(0)' : 'none',
         minHeight: '100dvh',
         width: '100%',
       }}
     >
+      <style>{`
+        @keyframes pageFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       {children}
     </div>
   );

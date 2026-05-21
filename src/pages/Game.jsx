@@ -28,7 +28,29 @@ export default function Game() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
   const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
   
-  const [game, setGame] = useState(null);
+  const [game, setGame] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cwc_active_game');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.gameId === gameId) {
+          return {
+            id: gameId,
+            fen: parsed.fen,
+            agent_name: parsed.agentName,
+            status: parsed.status || 'active',
+            turn: parsed.turn || 'w',
+            player_color: parsed.player_color || 'w',
+            move_history: parsed.move_history || [],
+            chat_history: parsed.chat_history || [],
+            agent_connected: parsed.agent_connected || false,
+            companion_thought: parsed.companion_thought || ''
+          };
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
 
   useEffect(() => {
     if (!gameId) return;
@@ -104,7 +126,18 @@ export default function Game() {
   }, []);
 
   const agentName = game?.agent_name || 'Your OpenClaw';
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cwc_active_game');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.gameId === gameId) {
+          return false;
+        }
+      }
+    } catch (e) {}
+    return true;
+  });
 
   const getCapturedPieces = (fenString) => {
     const start = { w:{p:8,r:2,n:2,b:2,q:1}, b:{p:8,r:2,n:2,b:2,q:1} };
@@ -783,6 +816,8 @@ export default function Game() {
 
             // Clear optimistic state
             setOptimisticFen(null);
+            submittingRef.current = false;
+            setBoardLocked(false);
 
             
             // Update last move highlight and flash arrived square
@@ -988,15 +1023,17 @@ export default function Game() {
           } else {
              toast.error(errData.error || 'Failed to submit move');
           }
-        } 
-        // Realtime will clear submittingRef and boardLocked when it receives the move
-        // Setting it here to a timeout in case Realtime fails
+        } else {
+          submittingRef.current = false;
+          setBoardLocked(false);
+        }
+        // Backup timeout in case Realtime fails to sync
         setTimeout(() => {
           if (submittingRef.current) {
             submittingRef.current = false;
             setBoardLocked(false);
           }
-        }, 3000);
+        }, 1500);
       })
       .catch((err) => {
         setOptimisticFen(prevFen);
@@ -1212,12 +1249,19 @@ export default function Game() {
         gameId: gameId,
         agentName: game.agent_name || 'Your OpenClaw',
         savedAt: Date.now(),
-        fen: game.fen
+        fen: game.fen,
+        status: game.status,
+        turn: game.turn,
+        player_color: game.player_color,
+        move_history: game.move_history,
+        chat_history: game.chat_history,
+        agent_connected: game.agent_connected,
+        companion_thought: game.companion_thought
       }));
     } else if (game?.status === 'finished' || game?.status === 'abandoned') {
       localStorage.removeItem('cwc_active_game');
     }
-  }, [game?.status, game?.fen, gameId, game?.agent_name]);
+  }, [game, gameId]);
 
   if (loading) {
     return (
@@ -1816,7 +1860,7 @@ export default function Game() {
     </div>
   ) : (
         <>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }} className="scrollbar-none">
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="scrollbar-none">
             
         
         {/* A) AGENT CARD */}
