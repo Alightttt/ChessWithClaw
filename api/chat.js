@@ -171,8 +171,9 @@ module.exports = async function handler(req, res) {
     .single();
 
   const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
+  const generatedMessageId = require('crypto').randomUUID();
   const newMsg = {
-    id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+    id: generatedMessageId,
     role: sender,
     text: text,
     timestamp: Date.now()
@@ -213,8 +214,12 @@ module.exports = async function handler(req, res) {
     await supabase.from('games').update(updates).eq('id', gameId);
   }
 
-  res.status(200).json({ 
-    success: true, 
-    message: 'Chat message sent successfully.' 
+  const savedMessage = newMsg;
+  const updatedChatHistory = newHistory;
+  return res.status(200).json({
+    success: true,
+    message_id: savedMessage.id,
+    message: savedMessage,
+    chat_count: updatedChatHistory.length
   });
 }

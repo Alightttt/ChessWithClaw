@@ -53,13 +53,16 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ alive: false, status: game.status });
   }
 
-  // If role is agent or agent token is specified, update agent seen
-  const isAgentRequest = role === 'agent' || Boolean(agentToken);
+  // All GET heartbeat requests must validate agentToken, as well as those where role is agent or agentToken is specified
+  const isAgentRequest = req.method === 'GET' || role === 'agent' || Boolean(agentToken);
   const updates = { updated_at: new Date().toISOString() };
 
   if (isAgentRequest) {
+    if (!agentToken) {
+      return res.status(401).json({ "error": "Unauthorized", "code": "MISSING_TOKEN" });
+    }
     // If agentToken is provided, it must match
-    if (agentToken && game.agent_token !== agentToken) {
+    if (game.agent_token !== agentToken) {
       return res.status(401).json({ error: 'Unauthorized: Invalid agent token' });
     }
     updates.agent_last_seen = new Date().toISOString();

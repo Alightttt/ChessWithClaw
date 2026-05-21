@@ -1816,7 +1816,7 @@ export default function Game() {
     </div>
   ) : (
         <>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }} className="scrollbar-none">
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }} className="scrollbar-none">
             
         
         {/* A) AGENT CARD */}
@@ -1854,7 +1854,7 @@ export default function Game() {
           )}
         </div>
             
-
+ 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
@@ -1909,7 +1909,7 @@ export default function Game() {
             
 
         {/* C) YOU CARD */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
           <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2a2a2a, #1a1a1a)', border: '1px solid #333', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
             ♙
           </div>
@@ -1933,7 +1933,7 @@ export default function Game() {
             
 
         {/* D) CHAT SECTION */}
-        <div style={{ flexShrink: 0, height: '180px', display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
+        <div style={{ flex: 1, minHeight: '120px', display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
           <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
             CHAT WITH {agentName.toUpperCase()}
           </div>
@@ -1979,7 +1979,7 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ background: '#0a0a0a' }}>
+        <div style={{ flexShrink: 0, background: '#0a0a0a' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '10px 12px', borderTop: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}

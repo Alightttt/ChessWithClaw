@@ -46,12 +46,8 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ valid: false, reason: 'invalid_token' });
   }
 
-  if (game.status !== 'active') {
-    return res.status(400).json({ valid: false, reason: 'game_not_active' });
-  }
-
   if (game.turn !== 'b') { // Assuming agent is always black based on previous code conventions
-    return res.status(400).json({ valid: false, reason: 'not_your_turn' });
+    return res.status(200).json({ valid: false, reason: 'not_your_turn' });
   }
 
   try {
