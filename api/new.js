@@ -27,7 +27,6 @@ module.exports = async function handler(req, res) {
         id: gameId,
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         turn: 'w',
-        player_color: 'w',
         status: 'waiting',
         move_number: 0,
         in_check: false,
