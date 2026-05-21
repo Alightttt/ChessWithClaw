@@ -23,6 +23,13 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   useEffect(() => {
     if (!gameId) return;
 
+    const cookieName = `game_owner_${gameId}`;
+    const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+    if (match) {
+      localStorage.setItem(`game_owner_${gameId}`, match[2]);
+      document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+
     const fetchGame = async () => {
       setLoading(true);
       try { const { data, error } = await supabase
@@ -66,6 +73,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       .subscribe();
 
     return () => supabase.removeChannel(subscription);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';

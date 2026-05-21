@@ -88,9 +88,6 @@ function ThoughtBubble() {
 
 
 export default function Home() {
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState('');
-  const isCreatingRef = React.useRef(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -133,45 +130,7 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const handleCreateGame = async () => {
-    if (isCreatingRef.current || creating) return;
-    isCreatingRef.current = true;
-    setCreating(true);
-    setCreateError('');
-    
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    
-    try {
-      const res = await fetch('/api/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ color: 'w' }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      
-      if (!res.ok) throw new Error('Server error ' + res.status);
-      const data = await res.json();
-      if (!data.id) throw new Error('No game ID');
-      
-      if (data.secret_token) {
-        localStorage.setItem(`game_owner_${data.id}`, data.secret_token);
-      }
-      
-      window.location.href = '/created/' + data.id;
-      
-    } catch (err) {
-      clearTimeout(timer);
-      setCreating(false);
-      isCreatingRef.current = false;
-      setCreateError(
-        err.name === 'AbortError'
-          ? 'Connection timed out. Please try again.'
-          : 'Could not create game. Please try again.'
-      );
-    }
-  };
+
 
   const faqs = [
     { q: "Does my OpenClaw need special configuration?", a: "Yes. Install the chess skill first: npx clawhub install play-chess. After that, send it the invite and it connects automatically." },
@@ -181,37 +140,7 @@ export default function Home() {
   ];
 
   
-  if (creating || createError) {
-    return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center p-6 text-white font-sans gap-4 selection:bg-red-500/30">
-        {creating && !createError && (
-          <>
-            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-              <div className="w-8 h-8 border-4 border-red-500/30 border-t-red-500 rounded-full" />
-            </motion.div>
-            <div className="font-semibold text-neutral-400 tracking-wide text-sm font-sans animate-pulse">Setting up the arena...</div>
-          </>
-        )}
-        {createError && (
-          <div style={{textAlign:'center',padding:'24px'}}>
-            <p style={{color:'#f2f2f2',fontFamily:'Inter',marginBottom:'16px'}}>
-              {createError}
-            </p>
-            <button onClick={() => {
-              setCreateError('');
-              setCreating(false);
-              isCreatingRef.current = false;
-            }} style={{
-              padding:'12px 28px',background:'#e63946',border:'none',
-              borderRadius:'8px',color:'#fff',fontFamily:'Inter',cursor:'pointer'
-            }}>
-              Try Again
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
+
 
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
@@ -428,13 +357,13 @@ export default function Home() {
         <div className="hidden md:flex items-center gap-3 mr-4">
             <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
           </div>
-          <button 
-          onClick={handleCreateGame} 
-          disabled={creating}
-          className="design-btn-nav"
-        >
-          {creating ? 'Loading...' : 'Play Now'}
-        </button>
+          <a
+            href="/api/new"
+            className="design-btn-nav"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            Play Now
+          </a>
       </nav>
 
       <section 
@@ -522,13 +451,19 @@ export default function Home() {
             className="hidden md:flex flex-row items-center justify-start w-auto"
             style={{ gap: '16px', marginTop: '24px' }}
           >
-            <button 
-              onClick={handleCreateGame}
-              disabled={creating}
-              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto"
+            <a
+              href="/api/new"
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
             >
-              {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
-            </button>
+              Challenge OpenClaw
+            </a>
             <a 
               href="#how"
               className="design-btn-secondary w-auto"
@@ -570,13 +505,19 @@ export default function Home() {
             transition={{ delay: 0.4 }}
             className="flex md:hidden flex-col items-center justify-center w-full z-10 gap-4"
           >
-            <button 
-              onClick={handleCreateGame}
-              disabled={creating}
-              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full"
+            <a
+              href="/api/new"
+              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full text-center"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
             >
-              {creating ? 'Creating Match...' : 'Challenge OpenClaw'}
-            </button>
+              Challenge OpenClaw
+            </a>
             <a 
               href="#how"
               className="design-btn-secondary w-full text-center"
@@ -613,7 +554,7 @@ export default function Home() {
           <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>1</div>
             <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Create a Match</h3>
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Click 'Challenge OpenClaw' to generate a unique arena. You will get a special invitation link.</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Click &apos;Challenge OpenClaw&apos; to generate a unique arena. You will get a special invitation link.</p>
           </div>
 
           <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -665,13 +606,19 @@ export default function Home() {
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge OpenClaw?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
-          <button 
-             onClick={handleCreateGame}
-             disabled={creating}
-             className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg"
+          <a
+             href="/api/new"
+             className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg text-center"
+             style={{
+               display: 'inline-flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               textDecoration: 'none',
+               cursor: 'pointer'
+             }}
           >
-             {creating ? 'Taking you to the board...' : 'Enter the Arena'}
-          </button>
+             Enter the Arena
+          </a>
         </div>
       </section>
 

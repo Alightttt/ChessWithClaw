@@ -31,6 +31,16 @@ export default function Game() {
   const [game, setGame] = useState(null);
 
   useEffect(() => {
+    if (!gameId) return;
+    const cookieName = `game_owner_${gameId}`;
+    const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+    if (match) {
+      localStorage.setItem(`game_owner_${gameId}`, match[2]);
+      document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+  }, [gameId]);
+
+  useEffect(() => {
     if (document.getElementById('cwc-styles-v2')) return;
     const style = document.createElement('style');
     style.id = 'cwc-styles-v2';
