@@ -450,5 +450,10 @@ export default React.memo(ChessBoard, (prev, next) => {
   return prev.fen === next.fen &&
     prev.selectedSquare === next.selectedSquare &&
     JSON.stringify(prev.legalMoves) === JSON.stringify(next.legalMoves) &&
-    JSON.stringify(prev.lastMove) === JSON.stringify(next.lastMove);
+    JSON.stringify(prev.lastMove) === JSON.stringify(next.lastMove) &&
+    prev.boardTheme === next.boardTheme &&
+    prev.pieceTheme === next.pieceTheme &&
+    prev.interactive === next.interactive &&
+    prev.isMyTurn === next.isMyTurn &&
+    prev.arrivedSquare === next.arrivedSquare;
 });

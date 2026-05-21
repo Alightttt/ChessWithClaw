@@ -103,6 +103,7 @@ module.exports = async function handler(req, res) {
 
   let asciiBoard = "";
   let legalMoves = [];
+  let legalMovesUci = [];
   let pgnStr = "";
   let inCheck = false;
   let king_safety = { white_in_check: false, black_in_check: false };
@@ -138,6 +139,17 @@ module.exports = async function handler(req, res) {
     
     asciiBoard = chess.ascii ? chess.ascii() : "";
     legalMoves = chess.moves ? chess.moves() : [];
+    
+    legalMovesUci = [];
+    if (chess && chess.moves) {
+      try {
+        const verbose = chess.moves({ verbose: true });
+        legalMovesUci = verbose.map(m => m.from + m.to + (m.promotion || ''));
+      } catch (err) {
+        console.error("Error generating legal_moves_uci:", err);
+      }
+    }
+    
     inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
     
     // King safety (simple check):
@@ -230,6 +242,7 @@ module.exports = async function handler(req, res) {
     pgn: pgnStr,
     ascii_board: asciiBoard,
     legal_moves: legalMoves,
+    legal_moves_uci: legalMovesUci,
     last_move: game.move_history?.length > 0 ? game.move_history[game.move_history.length - 1] : null,
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],

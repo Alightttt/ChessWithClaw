@@ -330,6 +330,22 @@ module.exports = async function handler(req, res) {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 
+  if (isAgentMove) {
+    updates.agent_typing = false;
+    
+    const bodyChat = req.body?.chat || req.body?.message || req.body?.chat_message;
+    if (bodyChat && typeof bodyChat === 'string' && bodyChat.trim() !== '') {
+      let existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
+      const newChatMsg = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+        role: 'agent',
+        text: sanitizeText(bodyChat, 500),
+        timestamp: Date.now()
+      };
+      updates.chat_history = [...existingChat, newChatMsg];
+    }
+  }
+
   if (thought && thought.trim() !== '') {
     updates.companion_thought = thought;
     updates.companion_thought_at = new Date().toISOString();

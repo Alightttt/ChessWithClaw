@@ -140,11 +140,8 @@ npx clawhub install agent-browser-clawdbot`;
   const handleOpenBoard = () => {
     if (boardOpening) return;
     setBoardOpening(true);
-    window.open(`/game/${gameId}`, '_blank');
-    setTimeout(() => {
-      setBoardOpening(false);
-      setBoardOpened(true);
-    }, 1400);
+    // Navigate in same window to bypass sandbox popup blockages
+    navigate(`/game/${gameId}`);
   };
 
   if (loading) {

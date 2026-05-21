@@ -380,7 +380,6 @@ export default function Agent() {
     if (game?.companion_thought && game.companion_thought !== prevThoughtValRef.current) {
       prevThoughtValRef.current = game.companion_thought;
       setVisibleThought(game.companion_thought);
-      setTimeout(() => setVisibleThought(''), 3000);
     }
   }, [game?.companion_thought]);
 
@@ -427,20 +426,20 @@ export default function Agent() {
   const playSound = useMemo(() => (type) => {
     if (!soundEnabled) return;
     const urls = {
-      move: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.ogg',
-      capture: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.ogg',
-      check: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.ogg',
-      checkmate: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Victory.ogg',
-      start: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.ogg',
-      end: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Victory.ogg',
-      illegal: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Error.ogg',
+      move: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3',
+      capture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
+      check: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
+      checkmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      start: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-start.mp3',
+      end: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      illegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3',
       agentThinking: '',
-      agentMove: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.ogg',
-      agentCapture: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.ogg',
-      agentCheck: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.ogg',
-      agentCheckmate: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Defeat.ogg',
-      agentEnd: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Defeat.ogg',
-      agentIllegal: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Error.ogg'
+      agentMove: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-opponent.mp3',
+      agentCapture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
+      agentCheck: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
+      agentCheckmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      agentEnd: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      agentIllegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3'
     };
     if (urls[type]) {
       const audio = new Audio(urls[type]);
@@ -593,7 +592,7 @@ export default function Agent() {
     if (!game || game.status !== 'active') return;
     const interval = setInterval(async () => {
       const isHumanTurn = game.turn === (game.player_color || 'w');
-      const maxTimeMs = 5 * 60 * 1000; // 5 minutes
+      const maxTimeMs = 15 * 60 * 1000; // 15 minutes
       const lastMoveTs = game.move_history?.length > 0 
         ? new Date(game.move_history[game.move_history.length - 1].created_at).getTime()
         : new Date(game.created_at).getTime();
@@ -683,12 +682,21 @@ export default function Agent() {
             if (!newData) return;
             if (newData.fen) prevFenRef.current = newData.fen;
             setOptimisticFen(null);
-            setGame(prev => ({
-              ...prev,
-              ...newData,
-              chat_history: newData.chat_history && newData.chat_history.length >= (prev?.chat_history || []).length ? newData.chat_history : prev?.chat_history,
-              move_history: newData.move_history && newData.move_history.length >= (prev?.move_history || []).length ? newData.move_history : prev?.move_history
-            }));
+
+            // Fetch fresh state to get moves from separate table
+            fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
+              setGame(prev => {
+                const updated = { ...prev, ...newData };
+                if (freshData.move_history) updated.move_history = freshData.move_history;
+                if (freshData.chat_history) updated.chat_history = freshData.chat_history;
+                return updated;
+              });
+            }).catch(() => {
+              setGame(prev => ({
+                ...prev,
+                ...newData
+              }));
+            });
           }
         )
         .subscribe((status) => {
@@ -1941,7 +1949,14 @@ export default function Agent() {
                     onClick={() => {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
-                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) }).catch(() => {});
+                      fetch('/api/actions', { 
+                        method: 'POST', 
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'x-agent-token': agentToken || ''
+                        }, 
+                        body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
+                      }).catch(() => {});
                     }}
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
@@ -1971,7 +1986,14 @@ export default function Agent() {
                     onClick={() => {
                       setPieceTheme(piece.id);
                       localStorage.setItem('cwc_pieces', piece.id);
-                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) }).catch(() => {});
+                      fetch('/api/actions', { 
+                        method: 'POST', 
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'x-agent-token': agentToken || ''
+                        }, 
+                        body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
+                      }).catch(() => {});
                     }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >

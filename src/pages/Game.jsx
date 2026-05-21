@@ -136,17 +136,17 @@ export default function Game() {
   const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
-  // theme syncing bypassed
-  /* useEffect(() => {
-    if (game?.board_theme && false) {
+  // Sync themes dynamically when they change in database
+  useEffect(() => {
+    if (game?.board_theme && game.board_theme !== boardTheme) {
       setBoardTheme(game.board_theme);
       localStorage.setItem('cwc_theme', game.board_theme);
     }
-    if (game?.piece_style && false) {
+    if (game?.piece_style && game.piece_style !== pieceTheme) {
       setPieceTheme(game.piece_style);
       localStorage.setItem('cwc_pieces', game.piece_style);
     }
-  }, [game?.board_theme, game?.piece_style, boardTheme, pieceTheme]); */
+  }, [game?.board_theme, game?.piece_style, boardTheme, pieceTheme]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -157,8 +157,9 @@ export default function Game() {
   const thoughtTimerRef = useRef(null);
 
   useEffect(() => {
+    const currentTimer = thoughtTimerRef.current;
     return () => {
-      if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+      if (currentTimer) clearTimeout(currentTimer);
     };
   }, []);
 
@@ -476,20 +477,20 @@ export default function Game() {
   const playSound = useMemo(() => (type) => {
     if (!soundEnabled) return;
     const urls = {
-      move: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.ogg',
-      capture: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.ogg',
-      check: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.ogg',
-      checkmate: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Victory.ogg',
-      start: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.ogg',
-      end: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Victory.ogg',
-      illegal: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Error.ogg',
+      move: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3',
+      capture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
+      check: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
+      checkmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      start: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-start.mp3',
+      end: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      illegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3',
       agentThinking: '',
-      agentMove: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.ogg',
-      agentCapture: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.ogg',
-      agentCheck: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Check.ogg',
-      agentCheckmate: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Defeat.ogg',
-      agentEnd: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Defeat.ogg',
-      agentIllegal: 'https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Error.ogg'
+      agentMove: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-opponent.mp3',
+      agentCapture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
+      agentCheck: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
+      agentCheckmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      agentEnd: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
+      agentIllegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3'
     };
     if (urls[type]) {
       const audio = new Audio(urls[type]);
@@ -642,7 +643,7 @@ export default function Game() {
     if (!game || game.status !== 'active') return;
     const interval = setInterval(async () => {
       const isHumanTurn = game.turn === (game.player_color || 'w');
-      const maxTimeMs = 5 * 60 * 1000; // 5 minutes
+      const maxTimeMs = 15 * 60 * 1000; // 15 minutes
       const lastMoveTs = game.move_history?.length > 0 
         ? new Date(game.move_history[game.move_history.length - 1].created_at).getTime()
         : new Date(game.created_at).getTime();
@@ -722,10 +723,6 @@ export default function Game() {
           if (data.companion_thought && data.companion_thought.trim() !== '') {
              prevThoughtValRef.current = data.companion_thought;
              setVisibleThought(data.companion_thought);
-             if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-             thoughtTimerRef.current = setTimeout(() => {
-               setVisibleThought('');
-             }, 4000);
           }
         } else if (res.status === 404) {
           setNotFound(true);
@@ -751,10 +748,6 @@ export default function Game() {
             if (newData.companion_thought && newData.companion_thought !== prevThoughtValRef.current && newData.companion_thought.trim() !== '') {
               prevThoughtValRef.current = newData.companion_thought;
               setVisibleThought(newData.companion_thought);
-              if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-              thoughtTimerRef.current = setTimeout(() => {
-                setVisibleThought('');
-              }, 4000);
             }
 
             // Detect if this is an agent move arriving
@@ -809,7 +802,6 @@ export default function Game() {
             fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
               setGame(prev => {
                 const updated = { ...prev, ...newData };
-                delete updated.board_theme;
                 if (freshData.move_history) updated.move_history = freshData.move_history;
                 if (freshData.chat_history) {
                   const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
@@ -821,7 +813,6 @@ export default function Game() {
             }).catch(() => {
               setGame(prev => {
                 const updated = { ...prev, ...newData };
-                delete updated.board_theme;
                 return updated;
               });
             });
@@ -1590,100 +1581,135 @@ export default function Game() {
       {isDesktop ? (
         <div style={{ display: 'flex', flexDirection: 'row', height: 'calc(100dvh - 52px)', overflow: 'hidden', gap: '0' }}>
           {/* LEFT DESKTOP COLUMN */}
-          <div style={{ width: 'min(56%, calc(100dvh - 52px - 32px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '10px', overflow: 'hidden' }}>
+          <div style={{ width: 'min(58%, calc(100dvh - 52px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '8px', overflow: 'hidden' }}>
             
-        
-        {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
-              {visibleThought && (
-                <div style={{ color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px', flexShrink: 1 }}>
-                  {visibleThought}
+            {/* A) AGENT CARD */}
+            <div style={{ flexShrink: 0, height: '48px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: `2px solid ${isOpenClawTurn ? 'rgba(230,57,70,0.8)' : 'rgba(230,57,70,0.3)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+                  {visibleThought && (
+                    <div style={{ color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px', flexShrink: 1 }}>
+                      {visibleThought}
+                    </div>
+                  )}
+                </div>
+                
+                {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
+                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
+                    Game starts when your OpenClaw joins
+                  </div>
+                )}
+                {agentDisconnected && game?.agent_connected && (
+                   <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+                )}
+              </div>
+              
+              {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '14px', color: 'white', background: '#161616', padding: '4px 8px', borderRadius: '6px', border: '1px solid #222' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {agentCaptured.map((p, i) => (
+                      <span key={i} style={{ marginLeft: i > 0 ? '-3px' : '0', color: 'rgba(255,255,255,0.75)' }}>
+                        {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                      </span>
+                    ))}
+                  </div>
+                  {agentAdvantage > 0 && <span style={{ fontSize: '11px', color: '#ff4d5a', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+                </div>
+              )}
+            </div>
+                
+            
+            {/* B) CHESS BOARD AND EVALUATION ROW */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+              <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
+                  
+                  {/* Live Evaluation Bar */}
+                  <div data-testid="evaluation-bar" style={{ width: '14px', display: 'flex', flexDirection: 'column', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: game?.player_color !== 'b' ? '#222222' : '#f2f2f2', position: 'relative', flexShrink: 0, height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                    <div style={{ height: `${100 - Math.max(10, Math.min(90, 50 + (youAdvantage * 4)))}%`, background: game?.player_color !== 'b' ? '#222222' : '#f2f2f2', transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)', width: '100%' }} />
+                    <div style={{ flex: 1, background: game?.player_color !== 'b' ? '#f2f2f2' : '#222222', transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)', width: '100%' }} />
+                    <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(128,128,128,0.25)', zIndex: 1 }} />
+                    
+                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) > 55 ? (game?.player_color !== 'b' ? '#000000' : '#ffffff') : (game?.player_color !== 'b' ? '#ffffff' : '#000000'), zIndex: 2, fontFamily: 'monospace' }}>
+                      {youAdvantage > 0 ? `+${youAdvantage}` : ''}
+                    </div>
+                    <div style={{ position: 'absolute', top: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) < 45 ? (game?.player_color !== 'b' ? '#ffffff' : '#000000') : (game?.player_color !== 'b' ? '#000000' : '#ffffff'), zIndex: 2, fontFamily: 'monospace' }}>
+                      {youAdvantage < 0 ? `+${Math.abs(youAdvantage)}` : ''}
+                    </div>
+                  </div>
+
+                  {/* Chessboard container */}
+                  <div style={{ flex: 1, height: '100%', position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
+                    
+                    {game?.in_check && game.status === 'active' && (
+                      <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(230,57,70,0.95)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '6px', padding: '4px 10px', color: '#ffffff', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, textAlign: 'center', zIndex: 30, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', pointerEvents: 'none', letterSpacing: '0.05em' }}>
+                        ⚠️ CHECK!
+                      </div>
+                    )}
+
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
+                      <div style={{ pointerEvents: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 'auto' : 'none', opacity: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 1 : 0.7, height: '100%', width: '100%' }}>
+                        <ChessBoard 
+                          fen={optimisticFen || game.fen} 
+                          onMove={makeMove} 
+                          isMyTurn={isMyTurn} 
+                          lastMove={lastMoveHighlight || optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} 
+                          arrivedSquare={arrivedSquare} 
+                          moveHistory={game.move_history || []}
+                          boardTheme={boardTheme}
+                          pieceTheme={pieceTheme}
+                          playerColor={game?.player_color || 'w'}
+                          onIllegalMove={handleIllegalMove}
+                          onCapture={handleCapture}
+                        />
+                      </div>
+                    </div>
+
+                    {(game.status === 'finished' || game.status === 'abandoned') && (
+                      <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-30 flex flex-col items-center justify-center rounded-lg border border-white/10 shadow-2xl">
+                        <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md animate-bounce">
+                          {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
+                        </div>
+                        <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
+                          {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* C) YOU PLAYER CARD (Symmetrical with Agent Card) */}
+            <div style={{ flexShrink: 0, height: '48px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isMyTurn ? '0 0 35px rgba(34,197,94,0.08)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #161616, #080808)', border: `2px solid ${isMyTurn ? 'rgba(34,197,94,0.8)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyY: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: '#ffffff' }}>♙</div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>You</span>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0 }} />
+                </div>
+                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '1px' }}>
+                  {game?.player_color === 'w' ? 'White' : 'Black'} · {isMyTurn ? 'your turn' : 'waiting'}
+                </div>
+              </div>
+              
+              {(youCaptured.length > 0 || youAdvantage > 0) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '14px', color: 'white', background: '#161616', padding: '4px 8px', borderRadius: '6px', border: '1px solid #222' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {youCaptured.map((p, i) => (
+                      <span key={i} style={{ marginLeft: i > 0 ? '-3px' : '0', color: 'rgba(255,255,255,0.75)' }}>
+                        {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
+                      </span>
+                    ))}
+                  </div>
+                  {youAdvantage > 0 && <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 'bold' }}>+{youAdvantage}</span>}
                 </div>
               )}
             </div>
             
-            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                Game starts when your OpenClaw joins
-              </div>
-            )}
-            {agentDisconnected && game?.agent_connected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
-            )}
-          </div>
-          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-              {agentCaptured.map((p, i) => (
-                <span key={i} style={{ marginLeft: '-4px' }}>
-                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
-                </span>
-              ))}
-              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
-            </div>
-          )}
-        </div>
-            
-
-        {/* B) CHESS BOARD */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
-          <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 56px - 52px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
-            {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
-              Array.from({length:n}).map((_,i)=>(
-                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
-              ))
-            )}
-          </div>
-          {game?.in_check && game.status === 'active' && (
-            <div 
-              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
-            >
-              ⚠️ Check!
-            </div>
-          )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <div style={{ pointerEvents: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 'auto' : 'none', opacity: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 1 : 0.7 }}>
-          <ChessBoard 
-            fen={optimisticFen || game.fen} 
-            showCoordinates={false}
-            onMove={makeMove} 
-            isMyTurn={isMyTurn} 
-            lastMove={lastMoveHighlight || optimisticLastMove || (game.move_history || [])[(game.move_history || [])?.length - 1] || null} arrivedSquare={arrivedSquare} 
-            moveHistory={game.move_history || []}
-            boardTheme={boardTheme}
-            pieceTheme={pieceTheme}
-            playerColor={game?.player_color || 'w'}
-            onIllegalMove={handleIllegalMove}
-            onCapture={handleCapture}
-          />
-          </div>
-          </div>
-          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
-            {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
-              Array.from({length:n}).map((_,i)=>(
-                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
-              ))
-            )}
-          </div>
-          {(game.status === 'finished' || game.status === 'abandoned') && (
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
-                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-              </div>
-              <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
-              </div>
-            </div>
-          )}
-        </div></div>
-            
-
-      
           </div>
 
           {/* RIGHT DESKTOP COLUMN */}
@@ -2087,7 +2113,14 @@ export default function Game() {
                     onClick={() => {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
-                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) }).catch(() => {});
+                      fetch('/api/actions', { 
+                        method: 'POST', 
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                        }, 
+                        body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
+                      }).catch(() => {});
                     }}
                     className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
                     title={theme.id}
@@ -2117,7 +2150,14 @@ export default function Game() {
                     onClick={() => {
                       setPieceTheme(piece.id);
                       localStorage.setItem('cwc_pieces', piece.id);
-                      fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) }).catch(() => {});
+                      fetch('/api/actions', { 
+                        method: 'POST', 
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                        }, 
+                        body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
+                      }).catch(() => {});
                     }}
                     className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
                   >
