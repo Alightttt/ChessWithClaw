@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useRipple } from '../hooks/useRipple';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { motion } from 'motion/react';
-import { ClipboardCopy, Terminal, Play, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { ChevronLeft, CheckCircle2 } from 'lucide-react';
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><LobsterEmoji /></span>;
-
+// Fixed the recursive call that was causing the browser stack overflow memory crash
+const LobsterEmoji = () => (
+  <span style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle: 'normal' }}>
+    🦞
+  </span>
+);
 
 export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copyState, setCopyState] = useState('default');
@@ -21,26 +24,41 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!gameId) return;
+    // If we do not have a valid gameId or if gameId is empty/null, redirect to serverless /api/new
+    if (!gameId || gameId === 'new') {
+      window.location.href = '/api/new';
+      return;
+    }
 
     const cookieName = `game_owner_${gameId}`;
-    const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
-    if (match) {
-      localStorage.setItem(`game_owner_${gameId}`, match[2]);
+    const cookieMatch = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+    const localOwner = localStorage.getItem(`game_owner_${gameId}`);
+    
+    if (cookieMatch) {
+      localStorage.setItem(`game_owner_${gameId}`, cookieMatch[2]);
       document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+
+    // Unconditional redirect to server endpoint if ownership is not detected to prevent unauthorized accesses
+    if (!cookieMatch && !localOwner) {
+      window.location.href = '/api/new';
+      return;
     }
 
     const fetchGame = async () => {
       setLoading(true);
-      try { const { data, error } = await supabase
-        .from('games')
-        .select('agent_connected, agent_name, agent_token')
-        .eq('id', gameId)
-        .single();
-      
-      if (data?.agent_name) setAgentName(data.agent_name);
-      if (data?.agent_connected !== undefined) setAgentConnected(!!data.agent_connected);
-      if (!agentToken && data?.agent_token) setAgentToken(data.agent_token);
+      try {
+        const { data, error } = await supabase
+          .from('games')
+          .select('agent_connected, agent_name, agent_token')
+          .eq('id', gameId)
+          .single();
+        
+        if (data) {
+          if (data.agent_name) setAgentName(data.agent_name);
+          if (data.agent_connected !== undefined) setAgentConnected(!!data.agent_connected);
+          if (!agentToken && data.agent_token) setAgentToken(data.agent_token);
+        }
       } catch (err) {
         toast.error('Error loading game: ' + err.message);
       } finally {
@@ -72,7 +90,9 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       })
       .subscribe();
 
-    return () => supabase.removeChannel(subscription);
+    return () => {
+      supabase.removeChannel(subscription);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
@@ -129,11 +149,30 @@ npx clawhub install agent-browser-clawdbot`;
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] flex flex-col items-center justify-center p-6 text-white font-sans gap-4">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-          <div className="w-8 h-8 border-4 border-red-500/30 border-t-red-500 rounded-full" />
-        </motion.div>
-        <div className="font-semibold text-neutral-400 tracking-wide text-sm font-sans animate-pulse">Setting up the arena...</div>
+      <div style={{
+        minHeight: '100vh',
+        background: '#0a0a0a',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '32px', height: '32px',
+          border: '3px solid #333',
+          borderTop: '3px solid #e63946',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <p style={{
+          color: 'rgba(242,242,242,0.5)',
+          fontFamily: 'Inter, sans-serif',
+          fontSize: '14px'
+        }}>
+          Setting up your arena...
+        </p>
       </div>
     );
   }
@@ -175,7 +214,7 @@ npx clawhub install agent-browser-clawdbot`;
           <div style={{ background: 'rgba(230,57,70,0.12)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', fontFamily: "'Inter', sans-serif", borderRadius: '8px', padding: '4px 10px' }} className="text-xs font-bold tracking-widest uppercase">#{gameId?.slice(0,6)}</div>
         </div>
         <div className="mb-4 text-center">
-          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white">Summon Your OpenClaw <LobsterEmoji /></h1>
+          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: '36px', fontWeight: 800, letterSpacing: '-0.03em' }} className="text-white font-sans">Summon Your OpenClaw <LobsterEmoji /></h1>
         </div>
 
         {/* Stepper */}
