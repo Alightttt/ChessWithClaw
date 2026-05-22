@@ -85,20 +85,63 @@ export default function Agent() {
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
-  const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('cwc_theme') || 'green');
-  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('cwc_pieces') || 'neo');
+  const [boardTheme, setBoardTheme] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cwc_active_game');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.gameId === gameId && parsed.board_theme) {
+          return parsed.board_theme;
+        }
+      }
+    } catch (e) {}
+    return localStorage.getItem('cwc_theme') || 'green';
+  });
+  const [pieceTheme, setPieceTheme] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cwc_active_game');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.gameId === gameId && parsed.piece_style) {
+          return parsed.piece_style;
+        }
+      }
+    } catch (e) {}
+    return localStorage.getItem('cwc_pieces') || 'neo';
+  });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
+  const prevDbBoardThemeRef = useRef(game?.board_theme || null);
+  const prevDbPieceStyleRef = useRef(game?.piece_style || null);
+
+  // Sync themes dynamically ONLY when they change in database
   useEffect(() => {
-    if (game?.board_theme && game.board_theme !== boardTheme) {
-      setBoardTheme(game.board_theme);
-      localStorage.setItem('cwc_theme', game.board_theme);
+    if (game?.board_theme) {
+      if (prevDbBoardThemeRef.current === null) {
+        prevDbBoardThemeRef.current = game.board_theme;
+        setBoardTheme(game.board_theme);
+        localStorage.setItem('cwc_theme', game.board_theme);
+      } else if (game.board_theme !== prevDbBoardThemeRef.current) {
+        setBoardTheme(game.board_theme);
+        localStorage.setItem('cwc_theme', game.board_theme);
+        prevDbBoardThemeRef.current = game.board_theme;
+      }
     }
-    if (game?.piece_style && game.piece_style !== pieceTheme) {
-      setPieceTheme(game.piece_style);
-      localStorage.setItem('cwc_pieces', game.piece_style);
+  }, [game?.board_theme]);
+
+  useEffect(() => {
+    if (game?.piece_style) {
+      if (prevDbPieceStyleRef.current === null) {
+        prevDbPieceStyleRef.current = game.piece_style;
+        setPieceTheme(game.piece_style);
+        localStorage.setItem('cwc_pieces', game.piece_style);
+      } else if (game.piece_style !== prevDbPieceStyleRef.current) {
+        setPieceTheme(game.piece_style);
+        localStorage.setItem('cwc_pieces', game.piece_style);
+        prevDbPieceStyleRef.current = game.piece_style;
+      }
     }
-  }, [game?.board_theme, game?.piece_style, boardTheme, pieceTheme]);
+  }, [game?.piece_style]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
