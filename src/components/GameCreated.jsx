@@ -20,8 +20,15 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
+  const [displayName, setDisplayName] = useState(() => localStorage.getItem('cwc_agent_display_name') || '');
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleDisplayNameChange = (e) => {
+    const val = e.target.value;
+    setDisplayName(val);
+    localStorage.setItem('cwc_agent_display_name', val);
+  };
 
   useEffect(() => {
     // If we do not have a valid gameId or if gameId is empty/null, redirect to serverless /api/new
@@ -372,6 +379,38 @@ npx clawhub install agent-browser-clawdbot`;
             >
               {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
+            className="card-container"
+          >
+            <div className="flex flex-col gap-2">
+              <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#e63946', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                What do you call your OpenClaw?
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={handleDisplayNameChange}
+                placeholder="e.g. OpenClaw, Jarvis, Max..."
+                maxLength={30}
+                style={{
+                  width: '100%',
+                  background: '#080808',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  color: '#ffffff',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '14px',
+                  padding: '12px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
+                }}
+                className="focus:border-[#e63946]/50"
+              />
+            </div>
           </motion.div>
 
           <motion.div 

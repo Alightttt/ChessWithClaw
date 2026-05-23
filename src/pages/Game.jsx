@@ -127,7 +127,7 @@ export default function Game() {
     document.head.appendChild(style);
   }, []);
 
-  const agentName = game?.agent_name || 'Your OpenClaw';
+  const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
   const [loading, setLoading] = useState(() => {
     try {
       const cached = localStorage.getItem('cwc_active_game');
@@ -155,11 +155,11 @@ export default function Game() {
     const byWhite={},byBlack={};
     for(const t of['p','r','n','b','q']){
       const w=start.b[t]-cur.b[t];if(w>0)byWhite[t]=w;
-      const b=start.w[t]-cur.w[t];if(b>0)byBlack[t]=b;
+      const b=start.w[t]-cur.w[t];if(b>0)byBlack[t.toUpperCase()]=b;
     }
     return{byWhite,byBlack};
   };
-  const PIECE_SYMBOLS={p:'♟',r:'♜',n:'♞',b:'♝',q:'♛'};
+  const PIECE_SYMBOLS = { P:'♙', R:'♖', N:'♘', B:'♗', Q:'♕', p:'♟', r:'♜', n:'♞', b:'♝', q:'♛' };
   const [notFound, setNotFound] = useState(false);
   
   const [showSettings, setShowSettings] = useState(false);
@@ -705,7 +705,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = game?.agent_name || 'Your OpenClaw';
+    const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
@@ -986,7 +986,7 @@ export default function Game() {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
     
-    const agentName = game?.agent_name || 'Your OpenClaw';
+    const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
@@ -1681,7 +1681,21 @@ export default function Game() {
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
                   {visibleThought && (
-                    <div style={{ color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px', flexShrink: 1 }}>
+                    <div style={{
+                      color: 'rgba(242,242,242,0.5)',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '12px',
+                      lineHeight: '1.4',
+                      maxWidth: '200px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
+                      flexShrink: 1,
+                      minWidth: 0,
+                      wordBreak: 'break-word'
+                    }}>
                       {visibleThought}
                     </div>
                   )}
@@ -1696,19 +1710,6 @@ export default function Game() {
                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
                 )}
               </div>
-              
-              {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '14px', color: 'white', background: '#161616', padding: '4px 8px', borderRadius: '6px', border: '1px solid #222' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {agentCaptured.map((p, i) => (
-                      <span key={i} style={{ marginLeft: i > 0 ? '-3px' : '0', color: 'rgba(255,255,255,0.75)' }}>
-                        {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
-                      </span>
-                    ))}
-                  </div>
-                  {agentAdvantage > 0 && <span style={{ fontSize: '11px', color: '#ff4d5a', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
-                </div>
-              )}
             </div>
                 
             
@@ -1905,46 +1906,10 @@ export default function Game() {
       </div>
     </div>
   ) : (
-        <>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="scrollbar-none">
+    <>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="scrollbar-none">
             
         
-        {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
-              {visibleThought && (
-                <div style={{ color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px', flexShrink: 1 }}>
-                  {visibleThought}
-                </div>
-              )}
-            </div>
-            
-            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                Game starts when your OpenClaw joins
-              </div>
-            )}
-            {agentDisconnected && game?.agent_connected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
-            )}
-          </div>
-          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-              {agentCaptured.map((p, i) => (
-                <span key={i} style={{ marginLeft: '-4px' }}>
-                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
-                </span>
-              ))}
-              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
-            </div>
-          )}
-        </div>
-            
- 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
@@ -1996,6 +1961,46 @@ export default function Game() {
             </div>
           )}
         </div>
+
+
+        {/* A) AGENT CARD */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              {visibleThought && (
+                <div style={{
+                  color: 'rgba(242,242,242,0.5)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                  maxWidth: '200px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
+                  flexShrink: 1,
+                  minWidth: 0,
+                  wordBreak: 'break-word'
+                }}>
+                  {visibleThought}
+                </div>
+              )}
+            </div>
+            
+            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
+                Game starts when your OpenClaw joins
+              </div>
+            )}
+            {agentDisconnected && game?.agent_connected && (
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+            )}
+          </div>
+        </div>
             
 
         {/* C) YOU CARD */}
@@ -2009,27 +2014,17 @@ export default function Game() {
               {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
             </span>
           </div>
-          {(youCaptured.length > 0 || youAdvantage > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-              {youCaptured.map((p, i) => (
-                <span key={i} style={{ marginLeft: '-4px' }}>
-                  {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
-                </span>
-              ))}
-              {youAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{youAdvantage}</span>}
-            </div>
-          )}
         </div>
             
 
         {/* D) CHAT SECTION */}
-        <div style={{ flex: 1, minHeight: '120px', display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
+        <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
           <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
             CHAT WITH {agentName.toUpperCase()}
           </div>
-          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
+          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
             {normalizedMessages.length === 0 ? (
-              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px" }}>
+              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
                 <span>{agentName} can chat while playing</span>
               </div>
@@ -2039,7 +2034,7 @@ export default function Game() {
           </div>
           <form 
             onSubmit={sendMessage} 
-            style={{ padding: '6px 12px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
+            style={{ padding: '6px 12px 8px', borderTop: '1px solid #111', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0a0a0a', zIndex: 10 }}
           >
             <input
               id="chat-input"
@@ -2106,7 +2101,7 @@ export default function Game() {
           
 
       {/* STEP 4: BOTTOM INFO BAR */}
-      <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
+      <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40, position: 'sticky', bottom: 0 }}>
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
           {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
         </span>

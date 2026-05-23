@@ -468,7 +468,7 @@ export default function Home() {
               href="#how"
               className="design-btn-secondary w-auto"
             >
-              How it works
+              Quick Start
             </a>
           </motion.div>
         </div>
@@ -522,7 +522,7 @@ export default function Home() {
               href="#how"
               className="design-btn-secondary w-full text-center"
             >
-              How it works
+              Quick Start
             </a>
           </motion.div>
       </section>
@@ -548,7 +548,7 @@ export default function Home() {
 
       
       <section id="how" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>How to Connect</h2>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>Quick Start</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
