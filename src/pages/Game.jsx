@@ -454,6 +454,7 @@ export default function Game() {
   const containerRef = useRef(null);
   const prevFenRef = useRef(null);
   const optimisticFenRef = useRef(null);
+  const fallbackRef = useRef(null);
 
 
 
@@ -773,7 +774,7 @@ export default function Game() {
       return;
     }
 
-    const setupGameSubscription = async () => {
+    const loadAndSubscribe = async () => {
       // Clean up existing subscription first
       if (channelRef.current) {
         await supabase.removeChannel(channelRef.current);
@@ -900,14 +901,14 @@ export default function Game() {
         .subscribe((status) => {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             // Wait 3 seconds then reconnect
-            setTimeout(() => setupGameSubscription(), 3000);
+            setTimeout(() => loadAndSubscribe(), 3000);
           }
         });
 
       channelRef.current = channel;
     };
 
-    setupGameSubscription();
+    loadAndSubscribe();
     
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
@@ -915,7 +916,7 @@ export default function Game() {
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        setupGameSubscription();
+        loadAndSubscribe();
       }
     };
     
@@ -931,6 +932,33 @@ export default function Game() {
       try { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
     };
   }, [gameId, playSound]);
+
+  // Start fallback polling when it's agent's turn
+  useEffect(() => {
+    if (game?.turn !== 'b' || game?.status !== 'active') {
+      if (fallbackRef.current) clearInterval(fallbackRef.current);
+      return;
+    }
+    
+    fallbackRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/state?gameId=${gameId}`);
+        if (!res.ok) return;
+        const fresh = await res.json();
+        // Only update if FEN actually changed
+        setGame(prev => {
+          if (fresh.fen !== prev?.fen) {
+            return { ...prev, ...fresh };
+          }
+          return prev;
+        });
+      } catch (e) {}
+    }, 3000);
+    
+    return () => {
+      if (fallbackRef.current) clearInterval(fallbackRef.current);
+    };
+  }, [game?.turn, game?.status, gameId]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
