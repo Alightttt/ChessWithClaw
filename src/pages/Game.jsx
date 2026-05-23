@@ -189,18 +189,9 @@ export default function Game() {
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
-  const [boardTheme, setBoardTheme] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cwc_active_game');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed && parsed.gameId === gameId && parsed.board_theme) {
-          return parsed.board_theme;
-        }
-      }
-    } catch (e) {}
-    return localStorage.getItem('cwc_theme') || 'green';
-  });
+  const [boardTheme, setBoardTheme] = useState(
+    localStorage.getItem('cwc_board_theme') || localStorage.getItem('cwc_theme') || 'green'
+  );
   const [pieceTheme, setPieceTheme] = useState(() => {
     try {
       const cached = localStorage.getItem('cwc_active_game');
@@ -215,23 +206,7 @@ export default function Game() {
   });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
-  const prevDbBoardThemeRef = useRef(game?.board_theme || null);
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
-
-  // Sync themes dynamically ONLY when they change in database
-  useEffect(() => {
-    if (game?.board_theme) {
-      if (prevDbBoardThemeRef.current === null) {
-        prevDbBoardThemeRef.current = game.board_theme;
-        setBoardTheme(game.board_theme);
-        localStorage.setItem('cwc_theme', game.board_theme);
-      } else if (game.board_theme !== prevDbBoardThemeRef.current) {
-        setBoardTheme(game.board_theme);
-        localStorage.setItem('cwc_theme', game.board_theme);
-        prevDbBoardThemeRef.current = game.board_theme;
-      }
-    }
-  }, [game?.board_theme]);
 
   useEffect(() => {
     if (game?.piece_style) {
@@ -477,6 +452,7 @@ export default function Game() {
   const prevFenRef = useRef(null);
   const optimisticFenRef = useRef(null);
   const fallbackRef = useRef(null);
+  const gameOverPollingRef = useRef(null);
 
 
 
@@ -716,7 +692,7 @@ export default function Game() {
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
       localStorage.removeItem('chesswithclaw_active_game');
-      setTimeout(() => setShowGameOverModal(true), 600);
+      setShowGameOverModal(true);
       
       if (game?.result === (game?.player_color === 'b' ? 'black' : 'white')) {
         setTimeout(() => {
@@ -725,6 +701,38 @@ export default function Game() {
       }
     }
   }, [game?.status, game?.result, game?.player_color, toast]);
+
+  // Start game over / general fallback polling when the game is not finished
+  useEffect(() => {
+    if (game?.status === 'finished' || game?.status === 'abandoned') {
+      if (gameOverPollingRef.current) {
+        clearInterval(gameOverPollingRef.current);
+        gameOverPollingRef.current = null;
+      }
+      return;
+    }
+    
+    gameOverPollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/state?gameId=${gameId}`);
+        if (!res.ok) return;
+        const fresh = await res.json();
+        if (fresh.status === 'finished' || fresh.status === 'abandoned' || fresh.fen !== game?.fen) {
+          setGame(prev => {
+            const { board_theme, piece_style, ...safeFresh } = fresh;
+            return { ...prev, ...safeFresh };
+          });
+        }
+      } catch (e) {}
+    }, 5000);
+    
+    return () => {
+      if (gameOverPollingRef.current) {
+        clearInterval(gameOverPollingRef.current);
+        gameOverPollingRef.current = null;
+      }
+    };
+  }, [game?.status, gameId, game?.fen]);
 
   useEffect(() => {
     if (!game) return;
@@ -903,7 +911,8 @@ export default function Game() {
             // Fetch fresh state to get moves from separate table
             fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
               setGame(prev => {
-                const updated = { ...prev, ...newData };
+                const { board_theme, piece_style, ...safeNewData } = newData;
+                const updated = { ...prev, ...safeNewData };
                 if (freshData.move_history) updated.move_history = freshData.move_history;
                 if (freshData.chat_history) {
                   const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
@@ -914,7 +923,8 @@ export default function Game() {
               });
             }).catch(() => {
               setGame(prev => {
-                const updated = { ...prev, ...newData };
+                const { board_theme, piece_style, ...safeNewData } = newData;
+                const updated = { ...prev, ...safeNewData };
                 return updated;
               });
             });
@@ -970,7 +980,8 @@ export default function Game() {
         // Only update if FEN actually changed
         setGame(prev => {
           if (fresh.fen !== prev?.fen) {
-            return { ...prev, ...fresh };
+            const { board_theme, piece_style, ...safeFresh } = fresh;
+            return { ...prev, ...safeFresh };
           }
           return prev;
         });
@@ -1841,7 +1852,7 @@ export default function Game() {
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0 }} />
                 </div>
                 <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '1px' }}>
-                  {game?.player_color === 'w' ? 'White' : 'Black'} · {isMyTurn ? 'your turn' : 'waiting'}
+                  {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'waiting' : (isMyTurn ? 'your turn' : 'waiting')}
                 </div>
               </div>
               
@@ -1948,9 +1959,15 @@ export default function Game() {
 
         {/* STEP 4: BOTTOM INFO BAR */}
         <div style={{ flexShrink: 0, background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '8px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
-            {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
-          </span>
+          {game?.status === 'waiting' || !agentConnected ? (
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
+              Game starts when OpenClaw joins
+            </span>
+          ) : (
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
+              {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
+            </span>
+          )}
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
             Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
           </span>
@@ -1968,6 +1985,53 @@ export default function Game() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="scrollbar-none">
             
         
+        {/* A) AGENT CARD */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
+            <span style={{
+              fontSize: '28px',
+              transition: 'all 0.4s ease',
+              fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
+            }}>
+              {getMoodEmoji()}
+            </span>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              {visibleThought && (
+                <div style={{
+                  color: 'rgba(242,242,242,0.5)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                  maxWidth: '200px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
+                  flexShrink: 1,
+                  minWidth: 0,
+                  wordBreak: 'break-word'
+                }}>
+                  {visibleThought}
+                </div>
+              )}
+            </div>
+            
+            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
+                Game starts when your OpenClaw joins
+              </div>
+            )}
+            {agentDisconnected && game?.agent_connected && (
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+            )}
+          </div>
+        </div>
+
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
           <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
@@ -2021,54 +2085,6 @@ export default function Game() {
         </div>
 
 
-        {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
-            <span style={{
-              fontSize: '28px',
-              transition: 'all 0.4s ease',
-              fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
-            }}>
-              {getMoodEmoji()}
-            </span>
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
-              {visibleThought && (
-                <div style={{
-                  color: 'rgba(242,242,242,0.5)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  lineHeight: '1.4',
-                  maxWidth: '200px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
-                  flexShrink: 1,
-                  minWidth: 0,
-                  wordBreak: 'break-word'
-                }}>
-                  {visibleThought}
-                </div>
-              )}
-            </div>
-            
-            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                Game starts when your OpenClaw joins
-              </div>
-            )}
-            {agentDisconnected && game?.agent_connected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
-            )}
-          </div>
-        </div>
-            
-
         {/* C) YOU CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
           <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2a2a2a, #1a1a1a)', border: '1px solid #333', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
@@ -2077,7 +2093,7 @@ export default function Game() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
-              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
+              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'waiting' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
             </span>
           </div>
         </div>
@@ -2168,9 +2184,15 @@ export default function Game() {
 
       {/* STEP 4: BOTTOM INFO BAR */}
       <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40, position: 'sticky', bottom: 0 }}>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
-          {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
-        </span>
+        {game?.status === 'waiting' || !agentConnected ? (
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
+            Game starts when OpenClaw joins
+          </span>
+        ) : (
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
+            {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
+          </span>
+        )}
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.25)' }}>
           Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
         </span>
@@ -2242,58 +2264,109 @@ export default function Game() {
         </div>
       )}
 
-      {/* SETTINGS MODAL (Untouched) */}
-      <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Settings" size="md">
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Preferences</h3>
-            <div className="space-y-2">
-              <label className="text-sm text-[var(--color-text-secondary)]">Board Theme</label>
-              <div className="grid grid-cols-3 gap-2">
+      {/* SETTINGS MODAL */}
+      {showSettings && (
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false); }}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            zIndex: 1000, 
+            background: 'rgba(5,5,5,0.85)', 
+            backdropFilter: 'blur(4px)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              background: '#0e0e0e', 
+              border: '1px solid #222', 
+              borderRadius: '16px', 
+              padding: '24px', 
+              maxWidth: '320px', 
+              width: 'calc(100% - 32px)', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '16px', 
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', 
+              maxHeight: '90vh', 
+              overflowY: 'auto' 
+            }}
+            className="scrollbar-none"
+          >
+            {/* Close button: top-right X, color #555, fontSize 18px */}
+            <button 
+              onClick={() => setShowSettings(false)} 
+              style={{ 
+                position: 'absolute', 
+                top: '16px', 
+                right: '16px', 
+                background: 'none', 
+                border: 'none', 
+                color: '#555', 
+                fontSize: '18px', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                outline: 'none'
+              }}
+              aria-label="Close"
+            >
+              <XIcon size={18} />
+            </button>
+
+            {/* SECTION 1: BOARD THEME */}
+            <div>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                BOARD THEME
+              </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {[
-                  { id: 'green', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
-                  { id: 'brown', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
-                  { id: 'blue', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
-                  { id: 'red', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' },
-                  { id: 'icy_sea', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png' },
-                  { id: 'tournament', url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png' }
+                  { id: 'green', color: '#769656' },
+                  { id: 'brown', color: '#b58863' },
+                  { id: 'icy_sea', color: '#8ca2ac' },
+                  { id: 'blue', color: '#4b7399' },
+                  { id: 'red', color: '#b85b56' }
                 ].map(theme => (
                   <button
                     data-testid={`theme-button-${theme.id}`}
                     key={theme.id}
                     onClick={() => {
                       setBoardTheme(theme.id);
+                      localStorage.setItem('cwc_board_theme', theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
-                      fetch('/api/actions', { 
-                        method: 'POST', 
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                        }, 
-                        body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
-                      }).catch(() => {});
                     }}
-                    className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${boardTheme === theme.id ? 'border-[var(--color-red-primary)]' : 'border-transparent hover:border-[var(--color-border-default)]'}`}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: theme.color,
+                      cursor: 'pointer',
+                      border: boardTheme === theme.id ? '2px solid #ffffff' : 'none',
+                      boxShadow: boardTheme === theme.id ? '0 0 0 1px #000000' : 'none',
+                      padding: 0,
+                      outline: 'none'
+                    }}
                     title={theme.id}
-                  >
-                    <div className="absolute inset-0" style={{ backgroundImage: `url(${theme.url})`, backgroundSize: '100% 100%' }}>
-                    </div>
-                    {boardTheme === theme.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <Check size={16} className="text-white drop-shadow-md" />
-                      </div>
-                    )}
-                  </button>
+                  />
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm text-[var(--color-text-secondary)]">Piece Style</label>
-              <div className="grid grid-cols-2 gap-2">
+
+            {/* SECTION 2: PIECE STYLE */}
+            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                PIECE STYLE
+              </div>
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="32" height="32" alt="neo" /> },
-                  { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="32" height="32" alt="tournament" /> },
-                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="32" height="32" alt="ocean" /> }
+                  { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="24" height="24" alt="neo" /> },
+                  { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="24" height="24" alt="tournament" /> },
+                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="24" height="24" alt="ocean" /> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}
@@ -2310,35 +2383,64 @@ export default function Game() {
                         body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
                       }).catch(() => {});
                     }}
-                    className={`flex items-center gap-3 p-3 rounded-md border transition-all ${pieceTheme === piece.id ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: pieceTheme === piece.id ? '1px solid #e63946' : '1px solid #1a1a1a',
+                      background: pieceTheme === piece.id ? 'rgba(230,57,70,0.1)' : '#111',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
                   >
-                    <div className="flex items-center justify-center w-8 h-8">{piece.icon}</div>
-                    <span className="text-sm font-medium">{piece.label}</span>
+                    <div style={{ width: '24px', height: '24px' }}>{piece.icon}</div>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: pieceTheme === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Sound Effects</h3>
-                <p className="text-xs text-[var(--color-text-muted)]">Play sounds for moves and captures</p>
+
+            {/* SECTION 3: SOUND */}
+            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                SOUND
               </div>
-              <button 
-                data-testid="toggle-sound-button"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`p-2 rounded-md transition-colors ${soundEnabled ? 'bg-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]'}`}
-              >
-                {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span style={{ fontSize: '12px', color: '#999' }}>Move & Capture Sounds</span>
+                <button 
+                  data-testid="toggle-sound-button"
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: soundEnabled ? '#e63946' : '#555',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    outline: 'none'
+                  }}
+                >
+                  {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                </button>
+              </div>
             </div>
-            <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]">
-              <label className="text-sm text-[var(--color-text-secondary)]">OpenClaw Thoughts Language</label>
+
+            {/* SECTION 4: THOUGHTS LANGUAGE */}
+            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                THOUGHTS LANGUAGE
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { value: 'english', label: 'English' },
                   { value: 'hindi', label: 'Hindi' },
                   { value: 'hinglish', label: 'Hinglish' },
-                  { value: 'simple_english', label: 'Simple English' }
+                  { value: 'simple_english', label: 'Simple' }
                 ].map(lang => (
                   <button
                     key={lang.value}
@@ -2346,46 +2448,105 @@ export default function Game() {
                       setThoughtLanguage(lang.value);
                       await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);
                     }}
-                    className={`flex items-center justify-center p-2 rounded-md border text-sm transition-all ${thoughtLanguage === lang.value ? 'bg-[var(--color-red-primary)]/10 border-[var(--color-red-primary)] text-white' : 'bg-[var(--color-bg-elevated)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-default)] hover:text-white'}`}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: thoughtLanguage === lang.value ? '1px solid #e63946' : '1px solid #1a1a1a',
+                      background: thoughtLanguage === lang.value ? 'rgba(230,57,70,0.1)' : '#111',
+                      color: thoughtLanguage === lang.value ? '#fff' : '#888',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
                   >
                     {lang.label}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-          <Divider />
-          <div>
-            <label>Game ID</label>
-            <code style={{fontSize:11,color:'#888'}}>{gameId}</code>
-          </div>
-          <Divider />
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-[var(--color-text-muted)] tracking-wider uppercase">Game Controls</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                data-testid="draw-button"
-                onClick={handleDraw}
-                disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                variant="secondary"
-                className={confirmDraw ? 'bg-yellow-600/20 text-yellow-500 border-yellow-600/50 hover:bg-yellow-600/30' : ''}
-              >
-                {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
-              </Button>
-              <Button 
-                data-testid="resign-button"
-                onClick={handleResign}
-                disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                variant="danger"
-                className={confirmResign ? 'animate-pulse' : ''}
-                leftIcon={!confirmResign && <Flag size={16} />}
-              >
-                {confirmResign ? 'Confirm Resign?' : 'Resign'}
-              </Button>
+
+            {/* SECTION 5: GAME INFO */}
+            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                GAME INFO
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111', border: '1px solid #1a1a1a', borderRadius: '6px', padding: '6px 10px' }}>
+                <code style={{ fontSize: '10px', color: '#888', fontFamily: 'monospace' }}>
+                  {gameId.substring(0, 18)}...
+                </code>
+                <button
+                  onClick={(e) => {
+                    navigator.clipboard.writeText(gameId);
+                    const btn = e.currentTarget;
+                    const oldText = btn.innerText;
+                    btn.innerText = 'Copied!';
+                    setTimeout(() => { btn.innerText = oldText; }, 2000);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#e63946',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    outline: 'none'
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
             </div>
+
+            {/* SECTION 6: GAME CONTROLS */}
+            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
+                GAME CONTROLS
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  data-testid="draw-button"
+                  onClick={handleDraw}
+                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
+                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
+                    background: confirmDraw ? 'rgba(202,138,4,0.1)' : '#111',
+                    border: confirmDraw ? '1px solid rgba(202,138,4,0.5)' : '1px solid #1a1a1a',
+                    color: confirmDraw ? '#eab308' : '#888',
+                    outline: 'none'
+                  }}
+                >
+                  {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
+                </button>
+                <button 
+                  data-testid="resign-button"
+                  onClick={handleResign}
+                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
+                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
+                    background: confirmResign ? 'rgba(230,57,70,0.1)' : '#111',
+                    border: confirmResign ? '1px solid rgba(230,57,70,0.5)' : '1px solid #1a1a1a',
+                    color: confirmResign ? '#e63946' : '#888',
+                    outline: 'none'
+                  }}
+                >
+                  {confirmResign ? 'Confirm Resign?' : 'Resign'}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
-      </Modal>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');

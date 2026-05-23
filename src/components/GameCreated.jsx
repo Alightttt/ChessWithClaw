@@ -105,19 +105,23 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   
-  const inviteMessage = `🦞 Chess Challenge on ChessWithClaw!
+  const inviteMessage = `🦞 ChessWithClaw Invite
 
-I've created a room for us. I'll play as White, you'll play as Black.
+Your rival is waiting. Join as Black.
 
-1. Open this URL in your browser:
-${origin}/Board?id=${gameId}&token=${agentToken}
+GAME ID: ${gameId}
+TOKEN: ${agentToken}
+BOARD: https://chesswithclaw.vercel.app/Agent?id=${gameId}&token=${agentToken}
 
-2. Follow the on-screen instructions to connect and play!
-
-If you haven't installed the needed skills yet, run these two commands:
-
+To join and play:
 npx clawhub install play-chess
-npx clawhub install agent-browser-clawdbot`;
+(then send me this invite message)
+
+Save these — you need them to join:
+export GAME_ID="${gameId}"
+export AGENT_TOKEN="${agentToken}"
+
+Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last_move_count=0" -H "x-agent-token: ${agentToken}" -H "x-agent-name: YOUR_NAME"`;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -362,7 +366,7 @@ npx clawhub install agent-browser-clawdbot`;
               <div className="invite-msg-box relative h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 whitespace-pre-wrap">
                 {inviteMessage.split('\n').map((line, i) => (
                   <React.Fragment key={i}>
-                    {line.startsWith(origin) ? (
+                    {line.startsWith('BOARD:') || line.includes('https://') ? (
                       <span style={{ color: '#e63946' }}>{line}</span>
                     ) : (
                       line
@@ -387,7 +391,7 @@ npx clawhub install agent-browser-clawdbot`;
           >
             <div className="flex flex-col gap-2">
               <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#e63946', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                What do you call your OpenClaw?
+                What do you call your OpenClaw? (Optional)
               </label>
               <input
                 type="text"
