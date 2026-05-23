@@ -54,27 +54,19 @@ export default function Game() {
     return null;
   });
 
-  const getMoodEmoji = () => {
+  const getMoodEmoji = useMemo(() => {
     if (!game || game.status !== 'active') return '🦞';
     
-    // Check companion_thought for mood keywords
-    const thought = game.companion_thought || '';
-    if (thought.includes('😂') || thought.includes('haha')) return '😂';
-    if (thought.includes('😅') || thought.includes('yaar')) return '😅';
-    if (thought.includes('🔥') || thought.includes('good')) return '🔥';
-    if (thought.includes('😮') || thought.includes('wow')) return '😮';
-    
-    // Based on material balance
     const adv = game.material_balance?.advantage;
-    if (adv === 'black') return '😈'; // agent winning
-    if (adv === 'white') return '😰'; // agent losing
+    const whiteMat = game.material_balance?.white || 0;
+    const blackMat = game.material_balance?.black || 0;
+    const diff = blackMat - whiteMat;
     
-    // Based on game phase
-    if (game.in_check) return '😤';
-    if (game.turn === 'b') return '🤔'; // agent thinking
-    
-    return '🦞'; // default
-  };
+    if (game.in_check && game.turn === 'b') return '😤'; // agent in check
+    if (diff >= 5) return '😈';  // agent winning significantly
+    if (diff <= -5) return '😰'; // agent losing significantly
+    return '🦞'; // default — not 🤔
+  }, [game]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -140,6 +132,18 @@ export default function Game() {
       @-webkit-keyframes agentMoveFlash {
         0% { background-color:rgba(230,57,70,0.7); }
         100% { background-color:transparent; }
+      }
+      @keyframes gameOverIn {
+        from { opacity: 0; transform: scale(0.92) translateY(8px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      @keyframes pieceSlide {
+        from { transform: scale(0.85); opacity: 0.7; }
+        to { transform: scale(1); opacity: 1; }
       }
       .cwc-msg-new { animation-play-state: running !important; -webkit-animation-play-state: running !important; }
       @media (prefers-reduced-motion: reduce) {
@@ -260,7 +264,7 @@ export default function Game() {
   const [boardLocked, setBoardLocked] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
   const [agentJustConnected, setAgentJustConnected] = useState(false);
-  const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [showGameOver, setShowGameOver] = useState(false);
   const [closingGameOver, setClosingGameOver] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [commentary, setCommentary] = useState('');
@@ -268,10 +272,20 @@ export default function Game() {
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
   
+  const skeletonStyle = {
+    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.5s infinite',
+    borderRadius: '6px'
+  };
+  
   const [optimisticFenState, setOptimisticFenState] = useState(null);
   const setOptimisticFen = (val) => {
     optimisticFenRef.current = val;
     setOptimisticFenState(val);
+    if (val) {
+      lastKnownFenRef.current = val;
+    }
   };
   const optimisticFen = optimisticFenState;
 
@@ -405,7 +419,7 @@ export default function Game() {
     setLastMoveHighlight(null)
     setArrivedSquare(null)
     setLastMoveTo(null)
-    setShowGameOverModal(false)
+    setShowGameOver(false)
     connectedToastShown.current = false
     
     // Step 3: Navigate to home to create fresh game
@@ -450,6 +464,7 @@ export default function Game() {
   const channelRef = useRef(null);
   const containerRef = useRef(null);
   const prevFenRef = useRef(null);
+  const lastKnownFenRef = useRef(null);
   const optimisticFenRef = useRef(null);
   const fallbackRef = useRef(null);
   const gameOverPollingRef = useRef(null);
@@ -550,28 +565,40 @@ export default function Game() {
   }, [game?.last_commentary, game?.move_history?.length]);
 
   // Sound Effects
-  const playSound = useMemo(() => (type) => {
+  const playSound = useCallback((type) => {
     if (!soundEnabled) return;
-    const urls = {
-      move: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3',
-      capture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
-      check: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
-      checkmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
-      start: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-start.mp3',
-      end: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
-      illegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3',
-      agentThinking: '',
-      agentMove: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-opponent.mp3',
-      agentCapture: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3',
-      agentCheck: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3',
-      agentCheckmate: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
-      agentEnd: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3',
-      agentIllegal: 'https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/illegal.mp3'
-    };
-    if (urls[type]) {
-      const audio = new Audio(urls[type]);
-      audio.play().catch(e => console.error("Error playing sound", e));
-    }
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      const sounds = {
+        move:       { freq: 440, type: 'square', duration: 0.08, vol: 0.15 },
+        capture:    { freq: 200, type: 'sawtooth', duration: 0.15, vol: 0.2 },
+        check:      { freq: 660, type: 'square', duration: 0.2, vol: 0.25 },
+        gameStart:  { freq: 520, type: 'sine', duration: 0.3, vol: 0.2 },
+        gameEnd:    { freq: 330, type: 'sine', duration: 0.5, vol: 0.2 },
+        chat:       { freq: 880, type: 'sine', duration: 0.06, vol: 0.1 },
+        connect:    { freq: 600, type: 'sine', duration: 0.25, vol: 0.15 },
+      };
+      
+      let resolvedType = type;
+      if (type === 'start') resolvedType = 'gameStart';
+      else if (type === 'end' || type === 'checkmate' || type === 'agentCheckmate' || type === 'agentEnd') resolvedType = 'gameEnd';
+      else if (type === 'agentCheck' || type === 'check') resolvedType = 'check';
+      else if (type === 'agentCapture' || type === 'capture') resolvedType = 'capture';
+      else if (type === 'agentMove' || type === 'move') resolvedType = 'move';
+      
+      const s = sounds[resolvedType] || sounds.move;
+      osc.frequency.setValueAtTime(s.freq, ctx.currentTime);
+      osc.type = s.type;
+      gain.gain.setValueAtTime(s.vol, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + s.duration);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + s.duration);
+    } catch (e) {}
   }, [soundEnabled]);
 
   useEffect(() => {
@@ -629,6 +656,30 @@ export default function Game() {
     prevStatusRef.current = game.status;
     prevStatusRef.current_thinking = game.current_thinking;
   }, [game, playSound]);
+
+  const chatHistoryInitializedRef = useRef(false);
+  const prevChatHistoryRef = useRef([]);
+
+  useEffect(() => {
+    if (!game?.chat_history) return;
+    const currentChat = game.chat_history;
+    
+    if (!chatHistoryInitializedRef.current) {
+      prevChatHistoryRef.current = currentChat;
+      chatHistoryInitializedRef.current = true;
+      return;
+    }
+
+    const prevChat = prevChatHistoryRef.current;
+    const prevAgentMsgs = prevChat.filter(m => m.role === 'agent' || m.sender === 'agent' || (m.role !== 'human' && m.sender !== 'human'));
+    const currentAgentMsgs = currentChat.filter(m => m.role === 'agent' || m.sender === 'agent' || (m.role !== 'human' && m.sender !== 'human'));
+    
+    if (currentAgentMsgs.length > prevAgentMsgs.length) {
+      if (soundEnabled) playSound('chat');
+    }
+    
+    prevChatHistoryRef.current = currentChat;
+  }, [game?.chat_history, soundEnabled, playSound]);
 
   const agentTimeoutRef = useRef(null);
   useEffect(() => {
@@ -692,7 +743,7 @@ export default function Game() {
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
       localStorage.removeItem('chesswithclaw_active_game');
-      setShowGameOverModal(true);
+      setShowGameOver(true);
       
       if (game?.result === (game?.player_color === 'b' ? 'black' : 'white')) {
         setTimeout(() => {
@@ -722,9 +773,12 @@ export default function Game() {
             const { board_theme, piece_style, ...safeFresh } = fresh;
             return { ...prev, ...safeFresh };
           });
+          if (fresh.status === 'finished' || fresh.status === 'abandoned') {
+            setShowGameOver(true);
+          }
         }
       } catch (e) {}
-    }, 5000);
+    }, 1000);
     
     return () => {
       if (gameOverPollingRef.current) {
@@ -788,6 +842,7 @@ export default function Game() {
         toast.success(`${agentName} has arrived!`);
         sessionStorage.setItem(toastKey, '1');
       }
+      if (soundEnabled) playSound('connect');
       setJustConnected(true);
       setTimeout(() => setJustConnected(false), 1000);
       connectedToastShown.current = true;
@@ -795,7 +850,7 @@ export default function Game() {
     if (game) {
       prevAgentConnected.current = game.agent_connected;
     }
-  }, [game, toast, agentName, gameId]);
+  }, [game, toast, agentName, gameId, soundEnabled, playSound]);
   
   useEffect(() => {
     if (!gameId) {
@@ -817,8 +872,10 @@ export default function Game() {
         if (res.ok) {
           const data = await res.json();
           prevFenRef.current = data.fen;
+          lastKnownFenRef.current = data.fen;
           setGame(prev => {
-            const updated = { ...data };
+            const { board_theme, piece_style, ...safeData } = data;
+            const updated = { ...safeData };
             if (prev?.chat_history && data?.chat_history) {
               const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
               const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
@@ -852,6 +909,10 @@ export default function Game() {
           (payload) => {
             const newData = payload.new;
             if (!newData) return;
+
+            if (newData.status === 'finished' || newData.status === 'abandoned') {
+              setShowGameOver(true);
+            }
 
             if (newData.companion_thought && newData.companion_thought !== prevThoughtValRef.current && newData.companion_thought.trim() !== '') {
               prevThoughtValRef.current = newData.companion_thought;
@@ -887,6 +948,7 @@ export default function Game() {
             // Update FEN ref
             if (newData.fen) {
               prevFenRef.current = newData.fen;
+              lastKnownFenRef.current = newData.fen;
             }
 
             // Clear optimistic state
@@ -948,6 +1010,7 @@ export default function Game() {
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
+        lastKnownFenRef.current = null;
         loadAndSubscribe();
       }
     };
@@ -978,15 +1041,18 @@ export default function Game() {
         if (!res.ok) return;
         const fresh = await res.json();
         // Only update if FEN actually changed
-        setGame(prev => {
-          if (fresh.fen !== prev?.fen) {
+        if (fresh.fen !== lastKnownFenRef.current) {
+          lastKnownFenRef.current = fresh.fen;
+          setGame(prev => {
             const { board_theme, piece_style, ...safeFresh } = fresh;
             return { ...prev, ...safeFresh };
-          }
-          return prev;
-        });
+          });
+        }
+        if (fresh.status === 'finished' || fresh.status === 'abandoned') {
+          setShowGameOver(true);
+        }
       } catch (e) {}
-    }, 3000);
+    }, 1000);
     
     return () => {
       if (fallbackRef.current) clearInterval(fallbackRef.current);
@@ -1087,12 +1153,14 @@ export default function Game() {
       setLastMoveHighlight({ from, to });
       
       if (soundEnabled) {
-        const audio = new Audio(move.captured ? "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3" : "https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3");
-        audio.play().catch(() => {});
+        if (move.captured) {
+          playSound('capture');
+        } else {
+          playSound('move');
+        }
         if (chess.in_check && chess.in_check()) {
           setTimeout(() => {
-            const checkAudio = new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3");
-            checkAudio.play().catch(() => {});
+            playSound('check');
           }, 150);
         }
       }
@@ -1155,7 +1223,7 @@ export default function Game() {
       setOptimisticFen(null);
       setOptimisticLastMove(null);
     }
-  }, [game, boardLocked, gameId, toast, soundEnabled]);
+  }, [game, boardLocked, gameId, toast, soundEnabled, playSound]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1223,7 +1291,7 @@ export default function Game() {
   function handleOpenSettings() { setShowSettings(true) }
   function handleToggleAgentSection() { setAgentSectionOpen(prev => !prev) }
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
-  function handleCloseGameOverModal() { setShowGameOverModal(false) }
+  function handleCloseGameOverModal() { setShowGameOver(false) }
   async function handleShareResult(e) {
     const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
     const result = game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
@@ -1370,32 +1438,46 @@ export default function Game() {
     }
   }, [game, gameId]);
 
-  if (loading) {
+  if (!game) {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
-        <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex flex-col shrink-0 bg-black/80 backdrop-blur-xl">
+        <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex items-center justify-between shrink-0 bg-black/80 backdrop-blur-xl">
+          <div style={{ fontFamily: 'Inter', fontSize: '18px', fontWeight: 700, color: '#f2f2f2' }}>ChessWithClaw</div>
         </header>
 
         <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
           <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative z-10">
-            <div className="h-[60px] border-b border-white/5 flex items-center px-4 gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 animate-pulse shrink-0" />
-              <div className="flex-1 flex gap-2 flex-col">
-                 <div className="w-24 h-4 rounded px-2 bg-white/5 animate-pulse" />
-                 <div className="w-32 h-3 rounded px-2 bg-white/5 animate-pulse" />
-              </div>
+            {/* Agent section: a 48px × 48px circle + a 120px × 14px rectangle next to it */}
+            <div className="h-[72px] border-b border-white/5 flex items-center px-4 gap-3">
+              <div style={{ ...skeletonStyle, width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0 }} />
+              <div style={{ ...skeletonStyle, width: '120px', height: '14px' }} />
             </div>
+            
+            {/* Board: a square div with full board dimensions, no pieces */}
             <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
-              <div className="w-full max-w-[400px] aspect-square rounded-md bg-white/5 animate-pulse border border-white/5" />
+              <div className="w-full max-w-[400px] aspect-square" style={{ ...skeletonStyle, borderRadius: '8px' }} />
             </div>
           </div>
 
           <div className="w-full lg:w-[360px] shrink-0 flex flex-col bg-black/60 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/5 relative z-10 transition-all">
-            <div className="lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10 p-4">
-               <div className="w-full h-24 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            {/* Chat: three skeleton message bubbles (alternating left/right alignment) */}
+            <div className="flex-1 flex flex-col p-4 gap-4 justify-end mb-4 min-h-[220px]">
+              <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '60%', height: '48px', borderRadius: '12px 12px 12px 4px' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '50%', height: '36px', borderRadius: '12px 12px 4px 12px' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '70%', height: '40px', borderRadius: '12px 12px 12px 4px' }} />
+              </div>
             </div>
-            <div className="flex flex-col bg-[#111] border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full p-4 mb-12 lg:mb-0">
-               <div className="w-full h-12 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            
+            {/* Move history: 3 skeleton rows (100% wide, 12px tall each) */}
+            <div className="h-[140px] flex flex-col gap-3 justify-center border-t border-white/5 bg-[#0e0e0e] p-4">
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
             </div>
           </div>
         </div>
@@ -1739,10 +1821,10 @@ export default function Game() {
               <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: `2px solid ${isOpenClawTurn ? 'rgba(230,57,70,0.8)' : 'rgba(230,57,70,0.3)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
                 <span style={{
                   fontSize: '28px',
-                  transition: 'all 0.4s ease',
+                  transition: 'all 0.5s ease',
                   fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
                 }}>
-                  {getMoodEmoji()}
+                  {getMoodEmoji}
                 </span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1852,7 +1934,7 @@ export default function Game() {
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0 }} />
                 </div>
                 <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '1px' }}>
-                  {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'waiting' : (isMyTurn ? 'your turn' : 'waiting')}
+                  {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (isMyTurn ? 'your turn' : 'waiting')}
                 </div>
               </div>
               
@@ -1961,7 +2043,7 @@ export default function Game() {
         <div style={{ flexShrink: 0, background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '8px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40 }}>
           {game?.status === 'waiting' || !agentConnected ? (
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
-              Game starts when OpenClaw joins
+              WAITING FOR AGENT
             </span>
           ) : (
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
@@ -1990,10 +2072,10 @@ export default function Game() {
           <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
             <span style={{
               fontSize: '28px',
-              transition: 'all 0.4s ease',
+              transition: 'all 0.5s ease',
               fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
             }}>
-              {getMoodEmoji()}
+              {getMoodEmoji}
             </span>
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2093,7 +2175,7 @@ export default function Game() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
-              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'waiting' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
+              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
             </span>
           </div>
         </div>
@@ -2186,7 +2268,7 @@ export default function Game() {
       <div style={{ flexShrink: 0, height: '48px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 40, position: 'sticky', bottom: 0 }}>
         {game?.status === 'waiting' || !agentConnected ? (
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
-            Game starts when OpenClaw joins
+            WAITING FOR AGENT
           </span>
         ) : (
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', padding: '4px 12px', borderRadius: '6px', border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none' }}>
@@ -2219,47 +2301,88 @@ export default function Game() {
         tabIndex={-1} 
       />
 
-      {showGameOverModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: closingGameOver ? 0 : 1, transition: 'opacity 300ms ease' }}>
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.03, background: 'repeating-conic-gradient(rgba(255,255,255,0.8) 0% 25%, transparent 0% 50%) 0 0 / 56px 56px', pointerEvents: 'none', zIndex: 0 }} />
-          
-          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '20px', padding: '40px 32px', maxWidth: '400px', width: 'calc(100% - 48px)', textAlign: 'center', position: 'relative', zIndex: 1, transform: closingGameOver ? 'scale(0.92)' : 'scale(1)', transition: 'all 300ms ease-out' }}>
-            <button data-testid="close-game-over-modal" onClick={handleCloseGameOverModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
-              <XIcon size={18} />
-            </button>
-            <div style={{ fontSize: '56px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }} className={game?.result === (game?.player_color === 'b' ? 'white' : 'black') ? 'animate-pulse' : ''}>
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : <LobsterEmoji />}
+      {showGameOver && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          background: 'rgba(5, 5, 5, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '24px',
+            padding: '40px 32px',
+            maxWidth: '420px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+            animation: 'gameOverIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+          }}>
+            <div style={{
+              fontSize: '64px',
+              marginBottom: '20px',
+              filter: 'drop-shadow(0 8px 16px rgba(230, 57, 70, 0.2))'
+            }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '💀'}
             </div>
-            <div className="font-sans text-3xl text-white mb-2 font-bold tracking-wide">
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
+            
+            <h2 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '32px',
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: '-0.02em',
+              marginBottom: '8px'
+            }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Victory!' : game?.result === 'draw' ? 'Draw Game' : 'Defeat'}
+            </h2>
+            
+            <p style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '15px',
+              color: 'rgba(255, 255, 255, 0.6)',
+              lineHeight: 1.5,
+              marginBottom: '32px'
+            }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? "Fantastic play! You navigated the game perfectly and took down OpenClaw." :
+               game?.result === 'draw' ? "An absolute staleness! Both players traded blows to a hard-fought draw." :
+               `${agentName} managed to break your defenses and claim the win. Try another game to exact revenge.`}
+            </p>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowGameOver(false);
+                  navigate('/');
+                }}
+                style={{
+                  background: '#e63946',
+                  color: '#fff',
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  padding: '14px 28px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#e63946cc'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#e63946'}
+              >
+                Play Again
+              </button>
             </div>
-              <div style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242,242,242,0.5)', fontSize: '14px', marginBottom: '24px' }}>
-                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <>Well played. Your OpenClaw salutes you. <LobsterEmoji /></> :
-                 game?.result === 'draw' ? 'An equal battle. Honor to both sides.' :
-                 `${agentName} proved their worth today.`}
-              </div>
-              <div className="font-sans text-xs text-neutral-500 mb-8 pt-4" style={{ color: 'rgba(242,242,242,0.3)' }}>
-                {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves played
-              </div>
-              <div className="flex flex-col gap-3">
-                <button 
-                  data-testid="play-again-button"
-                  onClick={() => {
-                    setClosingGameOver(true);
-                    setTimeout(() => navigate('/'), 300);
-                  }}
-                  className="text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
-                >
-                  Play Again
-                </button>
-                <button 
-                  data-testid="share-result-button"
-                  onClick={handleShareResult}
-                  className="bg-white/5 text-neutral-400 border border-white/10 font-semibold py-3.5 rounded-xl w-full transition-all hover:bg-white/10 hover:text-white active:scale-95"
-                >
-                  Share Result
-                </button>
-              </div>
           </div>
         </div>
       )}

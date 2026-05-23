@@ -26,6 +26,17 @@ module.exports = async function handler(req, res) {
   const agentToken = req.headers['x-agent-token'];
   const gameToken = req.headers['x-game-token'];
 
+  const isAgentRequest = req.method === 'GET' || role === 'agent' || Boolean(agentToken);
+
+  if (isAgentRequest) {
+    if (!agentToken || agentToken.trim() === '') {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        code: 'MISSING_TOKEN'
+      });
+    }
+  }
+
   if (!gameId) {
     return res.status(400).json({ error: 'Missing gameId parameter or body field' });
   }
@@ -49,29 +60,30 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ error: 'Game not found' });
   }
 
-  if (game.status === 'finished' || game.status === 'abandoned') {
-    return res.status(200).json({ alive: false, status: game.status });
-  }
-
-  // All GET heartbeat requests must validate agentToken, as well as those where role is agent or agentToken is specified
-  const isAgentRequest = req.method === 'GET' || role === 'agent' || Boolean(agentToken);
-  const updates = { updated_at: new Date().toISOString() };
-
   if (isAgentRequest) {
-    if (!agentToken) {
-      return res.status(401).json({ "error": "Unauthorized", "code": "MISSING_TOKEN" });
-    }
-    // If agentToken is provided, it must match
     if (game.agent_token !== agentToken) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid agent token' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        code: 'INVALID_TOKEN'
+      });
     }
-    updates.agent_last_seen = new Date().toISOString();
-    updates.agent_connected = true;
   } else {
     // Human requests
     if (gameToken && game.secret_token !== gameToken) {
       return res.status(401).json({ error: 'Unauthorized: Invalid game token' });
     }
+  }
+
+  if (game.status === 'finished' || game.status === 'abandoned') {
+    return res.status(200).json({ alive: false, status: game.status });
+  }
+
+  const updates = { updated_at: new Date().toISOString() };
+
+  if (isAgentRequest) {
+    updates.agent_last_seen = new Date().toISOString();
+    updates.agent_connected = true;
+  } else {
     updates.player_last_seen = new Date().toISOString();
     updates.player_connected = true;
   }

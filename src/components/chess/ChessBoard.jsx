@@ -21,6 +21,8 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   
   const [pieces, setPieces] = useState([]);
   const prevMoveHistoryLength = useRef(0);
+  const [animatedSquare, setAnimatedSquare] = useState(null);
+  const prevBoardRef = useRef(null);
 
   useEffect(() => {
     let newChess;
@@ -262,6 +264,14 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
           from { -webkit-transform: scale(0.85) translateZ(0); opacity: 0.7; }
           to   { -webkit-transform: scale(1) translateZ(0); opacity: 1; }
         }
+        @keyframes pieceSlide {
+          from { transform: scale(0.85); opacity: 0.7; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @-webkit-keyframes pieceSlide {
+          from { -webkit-transform: scale(0.85); opacity: 0.7; }
+          to { transform: scale(1); opacity: 1; }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -273,16 +283,55 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
     prevTurnRef.current = currentTurn;
   }, [chess, lastMove]);
 
+  useEffect(() => {
+    if (prevBoardRef.current && prevBoardRef.current !== fen) {
+      try {
+        const oldChess = new Chess(prevBoardRef.current);
+        const newChess = new Chess(fen);
+        
+        let movedTo = null;
+        const filesList = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const ranksList = ['1', '2', '3', '4', '5', '6', '7', '8'];
+        
+        for (const file of filesList) {
+          for (const rank of ranksList) {
+            const sq = file + rank;
+            const oldP = oldChess.get(sq);
+            const newP = newChess.get(sq);
+            
+            if (newP && (!oldP || oldP.type !== newP.type || oldP.color !== newP.color)) {
+              movedTo = sq;
+              break;
+            }
+          }
+          if (movedTo) break;
+        }
+        
+        if (movedTo) {
+          setAnimatedSquare(movedTo);
+          const timer = setTimeout(() => {
+            setAnimatedSquare(null);
+          }, 200);
+          return () => clearTimeout(timer);
+        }
+      } catch (err) {
+        console.error("Error calculating animation square:", err);
+      }
+    }
+    prevBoardRef.current = fen;
+  }, [fen]);
+
   const themes = {
-    green: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png' },
-    brown: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png' },
-    blue: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png' },
-    red: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png' },
-    icy_sea: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png' },
-    tournament: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png' },
+    green: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png', color: '#769656' },
+    brown: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png', color: '#b58863' },
+    blue: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png', color: '#4b7399' },
+    red: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png', color: '#b85b56' },
+    icy_sea: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png', color: '#8ca2ac' },
+    tournament: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png', color: '#eedcbf' },
   };
 
   const currentThemeUrl = themes[boardTheme]?.url || themes.green.url;
+  const currentThemeColor = themes[boardTheme]?.color || '#769656';
 
   
   const renderPiece = (piece, sq) => {
@@ -296,6 +345,9 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
     const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
     const isDraggable = interactive && isMyTurn && piece.color === playerColor;
     
+    const isAnimatedSuffix = animatedSquare === sq || arrivedSquare === sq;
+    const animStyle = isAnimatedSuffix ? 'pieceSlide 0.18s ease-out forwards' : 'none';
+
     return (
       <img 
         src={url} 
@@ -316,8 +368,8 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
         style={{ 
           filter: 'none', 
           cursor: isDraggable ? 'grab' : 'default',
-          animation: arrivedSquare === sq ? 'pieceArrive 0.28s ease-out forwards' : 'none',
-          WebkitAnimation: arrivedSquare === sq ? 'pieceArrive 0.28s ease-out forwards' : 'none',
+          animation: animStyle,
+          WebkitAnimation: animStyle,
           willChange: 'transform, opacity',
           transform: 'translateZ(0)'
         }} 
@@ -328,7 +380,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
 
   if (!chess) {
     return (
-      <div className="w-full h-full aspect-square flex items-center justify-center bg-neutral-800" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundSize: '100% 100%' }}>
+      <div className="w-full h-full aspect-square flex items-center justify-center bg-neutral-800" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundColor: currentThemeColor, backgroundSize: '100% 100%' }}>
         <span className="font-mono text-sm opacity-50 text-white bg-black/50 px-3 py-1 rounded">Initializing...</span>
       </div>
     );
@@ -336,7 +388,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
 
   return (
     <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
-      <div className="relative w-full h-full aspect-square" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundSize: '100% 100%' }}>
+      <div className="relative w-full h-full aspect-square" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundColor: currentThemeColor, backgroundSize: '100% 100%' }}>
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
           {ranks.map((rank, row) =>
           files.map((file, col) => {

@@ -383,6 +383,18 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             >
               {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
+
+            <div style={{ marginTop: '14px', background: 'rgba(230,57,70,0.04)', border: '1px dashed rgba(230,57,75,0.2)', borderRadius: '8px', padding: '12px' }}>
+              <div style={{ fontFamily: 'Inter', fontSize: '11px', fontWeight: 600, color: '#e63946', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                💡 PRO-TIP: Prevent Disconnections
+              </div>
+              <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'rgba(242,242,242,0.45)', lineHeight: '1.4' }}>
+                OpenClaw defaults to an aggressive idle timeout. To prevent disconnections during gameplay, copy/paste this configuration into your agent configuration or instruct your agent:
+                <code style={{ display: 'block', background: '#080808', padding: '4px 6px', borderRadius: '4px', fontSize: '11px', color: '#ffd166', marginTop: '6px', fontFamily: 'monospace' }}>
+                  agents.defaults.llm.idleTimeoutSeconds = 0
+                </code>
+              </p>
+            </div>
           </motion.div>
 
           <motion.div 

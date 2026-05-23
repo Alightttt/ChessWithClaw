@@ -61,12 +61,12 @@ module.exports = async function handler(req, res) {
     let role = '';
     if (agentToken) {
       if (agentToken !== game.agent_token) {
-        return res.status(403).json({ error: 'Forbidden: Invalid agent token.', code: 'INVALID_AGENT_TOKEN' });
+        return res.status(401).json({ "error": "Unauthorized", "code": "INVALID_TOKEN" });
       }
       role = 'agent';
     } else {
       if (gameToken !== game.secret_token) {
-        return res.status(403).json({ error: 'Forbidden: Invalid game owner token.', code: 'INVALID_GAME_TOKEN' });
+        return res.status(401).json({ "error": "Unauthorized", "code": "INVALID_TOKEN" });
       }
       role = 'human';
     }
@@ -80,9 +80,9 @@ module.exports = async function handler(req, res) {
 
     if (action === 'resign') {
       if (role === 'human') {
-        updates = { status: 'finished', result: 'black_wins', finished_at: now, result_reason: 'resignation' };
+        updates = { status: 'finished', result: 'white_wins', finished_at: now, result_reason: 'resignation' };
         chatText = message || `You have resigned. ${agentName} wins! 🦞`;
-        result = 'black_wins';
+        result = 'white_wins';
       } else {
         updates = { status: 'finished', result: 'white_wins', finished_at: now, result_reason: 'resignation' };
         chatText = message || `${agentName} has resigned. Well played! 🦞`;
