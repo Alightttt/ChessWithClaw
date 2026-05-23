@@ -54,6 +54,28 @@ export default function Game() {
     return null;
   });
 
+  const getMoodEmoji = () => {
+    if (!game || game.status !== 'active') return '🦞';
+    
+    // Check companion_thought for mood keywords
+    const thought = game.companion_thought || '';
+    if (thought.includes('😂') || thought.includes('haha')) return '😂';
+    if (thought.includes('😅') || thought.includes('yaar')) return '😅';
+    if (thought.includes('🔥') || thought.includes('good')) return '🔥';
+    if (thought.includes('😮') || thought.includes('wow')) return '😮';
+    
+    // Based on material balance
+    const adv = game.material_balance?.advantage;
+    if (adv === 'black') return '😈'; // agent winning
+    if (adv === 'white') return '😰'; // agent losing
+    
+    // Based on game phase
+    if (game.in_check) return '😤';
+    if (game.turn === 'b') return '🤔'; // agent thinking
+    
+    return '🦞'; // default
+  };
+
   useEffect(() => {
     if (!gameId) return;
     const cookieName = `game_owner_${gameId}`;
@@ -1703,7 +1725,15 @@ export default function Game() {
             
             {/* A) AGENT CARD */}
             <div style={{ flexShrink: 0, height: '48px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: `2px solid ${isOpenClawTurn ? 'rgba(230,57,70,0.8)' : 'rgba(230,57,70,0.3)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: `2px solid ${isOpenClawTurn ? 'rgba(230,57,70,0.8)' : 'rgba(230,57,70,0.3)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
+                <span style={{
+                  fontSize: '28px',
+                  transition: 'all 0.4s ease',
+                  fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
+                }}>
+                  {getMoodEmoji()}
+                </span>
+              </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
@@ -1993,7 +2023,15 @@ export default function Game() {
 
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
+            <span style={{
+              fontSize: '28px',
+              transition: 'all 0.4s ease',
+              fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
+            }}>
+              {getMoodEmoji()}
+            </span>
+          </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
