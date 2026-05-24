@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { motion } from 'motion/react';
-import { ChevronLeft, CheckCircle2, Terminal, Bot, ShieldAlert, Copy, Check, Sparkles, Send, Play, Cpu } from 'lucide-react';
+import { ChevronLeft, CheckCircle2 } from 'lucide-react';
 
 // Fixed the recursive call that was causing the browser stack overflow memory crash
 const LobsterEmoji = () => (
@@ -14,34 +14,20 @@ const LobsterEmoji = () => (
 
 export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copyState, setCopyState] = useState('default');
-  const [copiedSkill1, setCopiedSkill1] = useState(false);
-  const [copiedSkill2, setCopiedSkill2] = useState(false);
-  const [copiedTimeout, setCopiedTimeout] = useState(false);
   const [agentToken, setAgentToken] = useState(initialAgentToken || '');
   const [boardOpening, setBoardOpening] = useState(false);
   const [boardOpened, setBoardOpened] = useState(false);
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
+  const [displayName, setDisplayName] = useState(() => localStorage.getItem('cwc_agent_display_name') || '');
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleCopyText = (text, type) => {
-    navigator.clipboard.writeText(text).then(() => {
-      if (type === 'skill1') {
-        setCopiedSkill1(true);
-        setTimeout(() => setCopiedSkill1(false), 2000);
-      } else if (type === 'skill2') {
-        setCopiedSkill2(true);
-        setTimeout(() => setCopiedSkill2(false), 2000);
-      } else if (type === 'timeout') {
-        setCopiedTimeout(true);
-        setTimeout(() => setCopiedTimeout(false), 2000);
-      }
-      toast.success('Copied to clipboard!');
-    }).catch(() => {
-      toast.error('Failed to copy. Please copy manually.');
-    });
+  const handleDisplayNameChange = (e) => {
+    const val = e.target.value;
+    setDisplayName(val);
+    localStorage.setItem('cwc_agent_display_name', val);
   };
 
   useEffect(() => {
@@ -138,25 +124,27 @@ export AGENT_TOKEN="${agentToken}"
 Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last_move_count=0" -H "x-agent-token: ${agentToken}" -H "x-agent-name: YOUR_NAME"`;
 
   const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Chess Challenge 🦞', text: inviteMessage });
+        return;
+      } catch(e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(inviteMessage);
       setCopyState('copied');
-      toast.success('Invitation copied to clipboard!');
       setTimeout(() => setCopyState('default'), 2000);
     } catch(e) {
-      try {
-        const el = document.createElement('textarea');
-        el.value = inviteMessage;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        setCopyState('copied');
-        toast.success('Invitation copied to clipboard!');
-        setTimeout(() => setCopyState('default'), 2000);
-      } catch (err) {
-        toast.error('Failed to copy. Please copy manually.');
-      }
+      const el = document.createElement('textarea');
+      el.value = inviteMessage;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('default'), 2000);
     }
   };
 
@@ -352,105 +340,30 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
 
         {/* Action Cards */}
         <div className="space-y-6">
-          {/* STEP 1: Configure OpenClaw Skills & Timeout */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}
             className="card-container"
           >
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-6">
               <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>1</div>
-              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Configure OpenClaw Skills</h2>
+              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Invite OpenClaw</h2>
             </div>
             
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', fontWeight: 300, lineHeight: '1.5' }} className="text-neutral-400 mb-4">
-              Equip your OpenClaw agent with the official chess-playing capabilities and prevent unwanted idle time-outs.
-            </p>
-
-            <div className="space-y-3">
-              {/* Command 1 */}
-              <div style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-                  <Terminal size={14} className="text-neutral-500 shrink-0" />
-                  <code style={{ fontFamily: 'monospace', fontSize: '12px', color: '#f2f2f2', whiteSpace: 'nowrap', overflowX: 'auto' }} className="scrollbar-none">
-                    npx clawhub install play-chess
-                  </code>
-                </div>
-                <button
-                  onClick={() => handleCopyText('npx clawhub install play-chess', 'skill1')}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedSkill1 ? '#4caf50' : '#888' }}
-                  className="hover:text-white transition-colors p-1"
-                  title="Copy command"
-                >
-                  {copiedSkill1 ? <Check size={16} /> : <Copy size={16} />}
-                </button>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-4 leading-relaxed">1. Ensure you have the required OpenClaw skills installed.</p>
+            <div className="install-cmd-box mb-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <span style={{ color: '#e63946', fontWeight: 'bold' }}>{'>'}</span>
+                <span style={{ color: 'rgba(242,242,242,0.7)' }}>npx clawhub install play-chess</span>
               </div>
-
-              {/* Command 2 */}
-              <div style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-                  <Terminal size={14} className="text-neutral-500 shrink-0" />
-                  <code style={{ fontFamily: 'monospace', fontSize: '12px', color: '#f2f2f2', whiteSpace: 'nowrap', overflowX: 'auto' }} className="scrollbar-none">
-                    npx clawhub install agent-browser-clawdbot
-                  </code>
-                </div>
-                <button
-                  onClick={() => handleCopyText('npx clawhub install agent-browser-clawdbot', 'skill2')}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedSkill2 ? '#4caf50' : '#888' }}
-                  className="hover:text-white transition-colors p-1"
-                  title="Copy command"
-                >
-                  {copiedSkill2 ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-
-              {/* Timeout line */}
-              <div style={{ background: 'rgba(230,57,70,0.04)', border: '1px dashed rgba(230,57,70,0.15)', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-                  <ShieldAlert size={14} className="text-[#ffd166] shrink-0" />
-                  <div className="overflow-hidden flex-1 text-left">
-                    <div style={{ fontSize: '9px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.05em' }}>Disable Idle Timeout</div>
-                    <code style={{ fontFamily: 'monospace', fontSize: '11.5px', color: '#ffd166', whiteSpace: 'nowrap', overflowX: 'auto' }} className="scrollbar-none">
-                      agents.defaults.llm.idleTimeoutSeconds = 0
-                    </code>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleCopyText('agents.defaults.llm.idleTimeoutSeconds = 0', 'timeout')}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedTimeout ? '#4caf50' : '#888' }}
-                  className="hover:text-white transition-colors p-1"
-                  title="Copy timeout config"
-                >
-                  {copiedTimeout ? <Check size={16} /> : <Copy size={16} />}
-                </button>
+              <div className="flex items-center gap-3">
+                <span style={{ color: '#e63946', fontWeight: 'bold' }}>{'>'}</span>
+                <span style={{ color: 'rgba(242,242,242,0.7)' }}>npx clawhub install agent-browser-clawdbot</span>
               </div>
             </div>
-          </motion.div>
 
-          {/* Seamless visual connector */}
-          <div className="flex flex-col items-center justify-center -my-3 relative z-10">
-            <div className="w-[2px] h-6 bg-gradient-to-b from-[#e63946] to-transparent" />
-            <div className="w-7 h-7 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center text-[#e63946] shadow-[0_0_12px_rgba(230,57,70,0.15)] text-xs font-bold">
-              ↓
-            </div>
-            <div className="w-[2px] h-4 bg-transparent" />
-          </div>
-
-          {/* STEP 2: Invite OpenClaw */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
-            className="card-container"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>2</div>
-              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Invite OpenClaw</h2>
-            </div>
-            
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', fontWeight: 300, lineHeight: '1.5' }} className="text-neutral-400 mb-3 text-left">
-              Send the connection string below in the agent chat window. It will interpret this code, register its live socket, and connect.
-            </p>
-
-            <div className="relative mb-4">
-              <div className="invite-msg-box relative h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 whitespace-pre-wrap text-left">
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-3 leading-relaxed">2. Send the connection string below to your OpenClaw:</p>
+            <div className="relative mb-6">
+              <div className="invite-msg-box relative h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 whitespace-pre-wrap">
                 {inviteMessage.split('\n').map((line, i) => (
                   <React.Fragment key={i}>
                     {line.startsWith('BOARD:') || line.includes('https://') ? (
@@ -466,57 +379,79 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
 
             <button 
               onClick={handleShare}
-              style={{
-                background: 'linear-gradient(135deg, #e63946 0%, #b31e2b 100%)',
-                boxShadow: '0 4px 18px rgba(230, 57, 70, 0.25)'
-              }}
-              className="h-12 w-full text-sm font-bold rounded-xl text-white transition-all active:scale-[0.98] hover:brightness-110 flex items-center justify-center gap-2"
+              className={`design-btn-primary h-12 w-full text-sm font-semibold rounded-lg ${copyState === 'copied' ? 'copied' : ''}`}
             >
-              <Copy size={16} /> {copyState === 'copied' ? "Invitation Copied! ✓" : "COPY CONNECTION STRING"}
+              {copyState === 'copied' ? "Copied! ✓" : "COPY INVITATION"}
             </button>
+
+            <div style={{ marginTop: '14px', background: 'rgba(230,57,70,0.04)', border: '1px dashed rgba(230,57,75,0.2)', borderRadius: '8px', padding: '12px' }}>
+              <div style={{ fontFamily: 'Inter', fontSize: '11px', fontWeight: 600, color: '#e63946', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                💡 PRO-TIP: Prevent Disconnections
+              </div>
+              <p style={{ fontFamily: 'Inter', fontSize: '12px', color: 'rgba(242,242,242,0.45)', lineHeight: '1.4' }}>
+                OpenClaw defaults to an aggressive idle timeout. To prevent disconnections during gameplay, copy/paste this configuration into your agent configuration or instruct your agent:
+                <code style={{ display: 'block', background: '#080808', padding: '4px 6px', borderRadius: '4px', fontSize: '11px', color: '#ffd166', marginTop: '6px', fontFamily: 'monospace' }}>
+                  agents.defaults.llm.idleTimeoutSeconds = 0
+                </code>
+              </p>
+            </div>
           </motion.div>
 
-          {/* Seamless visual connector */}
-          <div className="flex flex-col items-center justify-center -my-3 relative z-10">
-            <div className="w-[2px] h-6 bg-gradient-to-b from-[#e63946] to-transparent" />
-            <div className="w-7 h-7 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center text-[#e63946] shadow-[0_0_12px_rgba(230,57,70,0.15)] text-xs font-bold">
-              ↓
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
+            className="card-container"
+          >
+            <div className="flex flex-col gap-2">
+              <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#e63946', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                What do you call your OpenClaw? (Optional)
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={handleDisplayNameChange}
+                placeholder="e.g. OpenClaw, Jarvis, Max..."
+                maxLength={30}
+                style={{
+                  width: '100%',
+                  background: '#080808',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  color: '#ffffff',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '14px',
+                  padding: '12px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
+                }}
+                className="focus:border-[#e63946]/50"
+              />
             </div>
-            <div className="w-[2px] h-4 bg-transparent" />
-          </div>
+          </motion.div>
 
-          {/* STEP 3: Enter the Arena */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
             className="card-container"
-            style={{
-              background: 'linear-gradient(145deg, #221314 0%, #161514 100%)',
-              border: '1px solid rgba(230,57,70,0.15)',
-              boxShadow: '0 8px 32px rgba(230,57,70,0.06)'
-            }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>3</div>
-                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Enter the Arena</h2>
+                <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>2</div>
+                <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Enter the Arena</h2>
               </div>
-              <span className="text-[10px] bg-[#e63946]/10 text-[#e63946] font-bold px-2 py-0.5 rounded border border-[#e63946]/20 uppercase tracking-wider">Play Now</span>
             </div>
             
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', fontWeight: 300, lineHeight: '1.5' }} className="text-neutral-400 mb-6 text-left">
-              The chess board is fully initialized. Launch the Arena now to watch the board live, receive instant commentary, and make your opening move!
-            </p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-6 leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
-              className={`design-btn-primary h-14 w-full text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_20px_rgba(230,57,70,0.25)]`}
+              className={`design-btn-primary h-12 w-full text-sm font-semibold rounded-lg flex items-center justify-center gap-2`}
               style={boardOpened ? { background: '#111111', border: '1px solid #222222', boxShadow: 'none', color: '#e63946' } : {}}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
                 </motion.div>
-              ) : boardOpened ? "RETURN TO ACTIVE MATCH" : "LAUNCH CHESS BOARD 🦞"}
+              ) : boardOpened ? "RETURN TO MATCH" : "OPEN ARENA WINDOW"}
             </button>
           </motion.div>
         </div>

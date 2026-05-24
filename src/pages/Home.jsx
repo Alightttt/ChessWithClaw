@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield, Bot, Flame, Terminal, ShieldAlert, Sparkles, Copy, Check } from "lucide-react";
+import { ChevronDown, Zap, Shield } from "lucide-react";
 
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -93,20 +93,6 @@ export default function Home() {
   const { toast } = useToast();
 
   const [resumeGame, setResumeGame] = useState(null);
-
-  const [copiedSkill1, setCopiedSkill1] = useState(false);
-  const [copiedSkill2, setCopiedSkill2] = useState(false);
-  const [copiedTimeout, setCopiedTimeout] = useState(false);
-
-  const triggerCopy = (text, setCopied) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {
-      toast.error('Could not copy automatically.');
-    });
-  };
 
   useEffect(() => {
     const savedGame = localStorage.getItem('cwc_active_game');
@@ -562,132 +548,25 @@ export default function Home() {
 
       
       <section id="how" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
-        <div className="text-center mb-12">
-          <span style={{ color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }} className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles size={14} /> Quick Start Guide
-          </span>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(40px, 10vw)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#f2f2f2' }}>Configure Your Agent</h2>
-          <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.5)', maxWidth: '580px', margin: '12px auto 0' }}>
-            Get your OpenClaw agent fully equipped for high-stakes chess battle in seconds.
-          </p>
-        </div>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>Quick Start</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Card 1: Skills installation */}
-          <div 
-            className="design-card" 
-            style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '20px', 
-              background: 'linear-gradient(145deg, #161514 0%, #111111 100%)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              padding: '32px'
-            }}
-          >
-            <div className="flex items-start justify-between">
-              <div style={{ background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.15)', color: '#e63946', padding: '12px', borderRadius: '12px' }}>
-                <Bot size={28} />
-              </div>
-              <span className="text-[10px] uppercase font-bold tracking-widest bg-[#e63946]/10 text-[#e63946] border border-[#e63946]/20 px-2.5 py-1 rounded">
-                Step 1: Skills
-              </span>
-            </div>
-
-            <div>
-              <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, color: '#f2f2f2', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                Equip Both Skills
-              </h3>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14.5px', color: 'rgba(242,242,242,0.55)', lineHeight: '1.6', margin: 0 }}>
-                Install both official board-parsing and connector skills to enable real-time game state analysis and automatic API queries.
-              </p>
-            </div>
-
-            <div className="space-y-3.5 mt-2">
-              <div style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  <Terminal size={14} className="text-[#666] shrink-0" />
-                  <code style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(242,242,242,0.85)', overflowX: 'auto', whiteSpace: 'nowrap' }} className="scrollbar-none">
-                    npx clawhub install play-chess
-                  </code>
-                </div>
-                <button
-                  onClick={() => triggerCopy('npx clawhub install play-chess', setCopiedSkill1)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedSkill1 ? '#4caf50' : 'rgba(242,242,242,0.4)' }}
-                  className="hover:scale-105 active:scale-95 transition-all p-1.5 hover:text-white shrink-0 text-neutral-400"
-                  title="Copy command"
-                >
-                  {copiedSkill1 ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-
-              <div style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  <Terminal size={14} className="text-[#666] shrink-0" />
-                  <code style={{ fontFamily: 'monospace', fontSize: '13px', color: 'rgba(242,242,242,0.85)', overflowX: 'auto', whiteSpace: 'nowrap' }} className="scrollbar-none">
-                    npx clawhub install agent-browser-clawdbot
-                  </code>
-                </div>
-                <button
-                  onClick={() => triggerCopy('npx clawhub install agent-browser-clawdbot', setCopiedSkill2)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedSkill2 ? '#4caf50' : 'rgba(242,242,242,0.4)' }}
-                  className="hover:scale-105 active:scale-95 transition-all p-1.5 hover:text-white shrink-0 text-neutral-400"
-                  title="Copy command"
-                >
-                  {copiedSkill2 ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>1</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Create a Match</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Click &apos;Challenge OpenClaw&apos; to generate a unique arena. You will get a special invitation link.</p>
           </div>
 
-          {/* Card 2: Idle configuration */}
-          <div 
-            className="design-card" 
-            style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '20px', 
-              background: 'linear-gradient(145deg, #161514 0%, #111111 100%)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              padding: '32px'
-            }}
-          >
-            <div className="flex items-start justify-between">
-              <div style={{ background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.15)', color: '#ffd166', padding: '12px', borderRadius: '12px' }}>
-                <ShieldAlert size={28} />
-              </div>
-              <span className="text-[10px] uppercase font-bold tracking-widest bg-[#ffd166]/10 text-[#ffd166] border border-[#ffd166]/20 px-2.5 py-1 rounded">
-                Step 2: Stability
-              </span>
-            </div>
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>2</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Configure OpenClaw</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Run <code style={{ color: '#e63946' }}>npx clawhub install play-chess</code> and <code style={{ color: '#e63946' }}>agent-browser-clawdbot</code> to prep your agent.</p>
+          </div>
 
-            <div>
-              <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, color: '#f2f2f2', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                Timeout Preventer
-              </h3>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14.5px', color: 'rgba(242,242,242,0.55)', lineHeight: '1.6', margin: 0 }}>
-                Configure OpenClaw&apos;s active worker to disable its default aggressive idle session timeout. This ensures it stays online and responds continuously during deep chess pondering.
-              </p>
-            </div>
-
-            <div className="space-y-3.5 mt-2 flex-1 justify-end flex flex-col">
-              <div style={{ background: '#080808', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: '10px', color: '#666', fontFamily: "'Inter', sans-serif", fontWeight: 600, textTransform: 'uppercase' }}>Config Value</span>
-                  <code style={{ fontFamily: 'monospace', fontSize: '12px', color: '#ffd166', overflowX: 'auto', whiteSpace: 'nowrap' }} className="scrollbar-none">
-                    agents.defaults.llm.idleTimeoutSeconds = 0
-                  </code>
-                </div>
-                <button
-                  onClick={() => triggerCopy('agents.defaults.llm.idleTimeoutSeconds = 0', setCopiedTimeout)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: copiedTimeout ? '#4caf50' : 'rgba(242,242,242,0.4)' }}
-                  className="hover:scale-105 active:scale-95 transition-all p-1.5 hover:text-white shrink-0 text-neutral-400"
-                  title="Copy configuration line"
-                >
-                  {copiedTimeout ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>3</div>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Send the Invite</h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Give OpenClaw the connection string. It will automatically navigate to the board and start thinking.</p>
           </div>
         </div>
       </section>

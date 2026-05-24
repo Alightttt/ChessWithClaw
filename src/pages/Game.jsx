@@ -2306,169 +2306,55 @@ export default function Game() {
           position: 'fixed',
           inset: 0,
           zIndex: 1000,
-          background: 'rgba(5, 5, 5, 0.9)',
-          backdropFilter: 'blur(12px)',
+          background: 'rgba(5, 5, 5, 0.85)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '20px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+            background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '28px',
-            padding: '36px 32px',
-            maxWidth: '440px',
+            borderRadius: '24px',
+            padding: '40px 32px',
+            maxWidth: '420px',
             width: '100%',
             textAlign: 'center',
-            boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.8), 0 0 50px rgba(0,0,0,0.5)',
-            position: 'relative',
-            overflow: 'hidden',
-          }} className="animate-in fade-in zoom-in-95 duration-300">
-            {/* Elegant top-down light streak corresponding to match status */}
+            boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+            animation: 'gameOverIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+          }}>
             <div style={{
-              position: 'absolute',
-              top: 0,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '180px',
-              height: '3px',
-              background: game?.result === (game?.player_color === 'b' ? 'black' : 'white') 
-                ? 'linear-gradient(90deg, transparent, #ffd166, transparent)' 
-                : game?.result === 'draw' 
-                  ? 'linear-gradient(90deg, transparent, #a1a1aa, transparent)' 
-                  : 'linear-gradient(90deg, transparent, #e63946, transparent)'
-            }} />
-
-            {/* Glowing avatar sphere representing result */}
-            <div style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '50%',
-              margin: '0 auto 24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '44px',
-              background: game?.result === (game?.player_color === 'b' ? 'black' : 'white')
-                ? 'radial-gradient(circle, rgba(255,209,102,0.15) 0%, rgba(255,209,102,0.02) 70%)'
-                : game?.result === 'draw'
-                  ? 'radial-gradient(circle, rgba(161,161,170,0.15) 0%, rgba(161,161,170,0.02) 70%)'
-                  : 'radial-gradient(circle, rgba(230,57,70,0.15) 0%, rgba(230,57,70,0.02) 70%)',
-              border: game?.result === (game?.player_color === 'b' ? 'black' : 'white')
-                ? '1px dashed rgba(255,209,102,0.3)'
-                : game?.result === 'draw'
-                  ? '1px dashed rgba(161,161,170,0.3)'
-                  : '1px dashed rgba(230,57,70,0.3)',
-              boxShadow: game?.result === (game?.player_color === 'b' ? 'black' : 'white')
-                ? '0 0 30px rgba(255,209,102,0.1)'
-                : game?.result === 'draw'
-                  ? '0 0 30px rgba(161,161,170,0.1)'
-                  : '0 0 30px rgba(230,57,70,0.1)'
+              fontSize: '64px',
+              marginBottom: '20px',
+              filter: 'drop-shadow(0 8px 16px rgba(230, 57, 70, 0.2))'
             }}>
               {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '💀'}
             </div>
-
+            
             <h2 style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontSize: '32px',
-              fontWeight: 800,
-              color: '#ffffff',
+              fontWeight: 700,
+              color: '#fff',
               letterSpacing: '-0.02em',
-              marginBottom: '6px',
-              lineHeight: 1.12
+              marginBottom: '8px'
             }}>
               {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Victory!' : game?.result === 'draw' ? 'Draw Game' : 'Defeat'}
             </h2>
-
-            <div style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '12px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: game?.result === (game?.player_color === 'b' ? 'black' : 'white') 
-                ? '#ffd166' 
-                : game?.result === 'draw' 
-                  ? '#a1a1aa' 
-                  : '#e63946',
-              marginBottom: '16px'
-            }}>
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') 
-                ? 'You defeated OpenClaw' 
-                : game?.result === 'draw' 
-                  ? 'Mutual standoff' 
-                  : `Bested by ${agentName}`}
-            </div>
-
+            
             <p style={{
               fontFamily: "'Inter', sans-serif",
-              fontSize: '14.5px',
+              fontSize: '15px',
               color: 'rgba(255, 255, 255, 0.6)',
               lineHeight: 1.5,
-              marginBottom: '28px',
-              padding: '0 8px'
+              marginBottom: '32px'
             }}>
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? "Magnificent! You demonstrated pristine chess mastery and out-calculated OpenClaw from start to finish." :
-               game?.result === 'draw' ? "An absolute masterclass of strategy. Both players defended courageously to force a theoretical draw." :
-               `${agentName} breached the defensive structure to secure the victory. Setup another match to mount your retaliation.`}
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? "Fantastic play! You navigated the game perfectly and took down OpenClaw." :
+               game?.result === 'draw' ? "An absolute staleness! Both players traded blows to a hard-fought draw." :
+               `${agentName} managed to break your defenses and claim the win. Try another game to exact revenge.`}
             </p>
 
-            {/* Statistics recap grid dashboard style */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              borderRadius: '16px',
-              padding: '16px',
-              marginBottom: '32px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '12px',
-              textAlign: 'left'
-            }}>
-              <div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Opponent
-                </div>
-                <div style={{ fontSize: '14px', color: '#fff', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  🤖 {agentName}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Moves Made
-                </div>
-                <div style={{ fontSize: '14px', color: '#fff', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
-                  ⚡ {Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2)} moves
-                </div>
-              </div>
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Played As
-                </div>
-                <div style={{ fontSize: '14px', color: '#fff', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {game?.player_color === 'w' ? (
-                    <>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff', border: '1px solid currentColor' }} /> White
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#000', border: '1px solid rgba(255,255,255,0.4)' }} /> Black
-                    </>
-                  )}
-                </div>
-              </div>
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Game Outcome
-                </div>
-                <div style={{ fontSize: '14px', color: '#fff', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
-                  🎌 {game?.result === 'draw' ? 'Draw' : game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Victory' : 'Defeat'}
-                </div>
-              </div>
-            </div>
-
-            {/* Elegant control block with high quality, responsive visual feedback */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -2480,94 +2366,22 @@ export default function Game() {
                   navigate('/');
                 }}
                 style={{
-                  background: 'linear-gradient(135deg, #e63946 0%, #c12935 100%)',
+                  background: '#e63946',
                   color: '#fff',
                   fontFamily: "'Inter', sans-serif",
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '15px',
                   padding: '14px 28px',
                   borderRadius: '12px',
                   border: 'none',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s, background 0.2s, box-shadow 0.2s',
-                  boxShadow: '0 4px 15px rgba(230, 57, 70, 0.3)'
+                  transition: 'background 0.2s',
                 }}
-                className="hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                onMouseEnter={(e) => e.currentTarget.style.background = '#e63946cc'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#e63946'}
               >
-                Play New Match
+                Play Again
               </button>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px'
-              }}>
-                <button
-                  onClick={handleShareResult}
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    color: 'rgba(255,255,255,0.8)',
-                    fontFamily: "'Inter', sans-serif",
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                    e.currentTarget.style.color = '#fff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                  }}
-                  className="active:scale-[0.96]"
-                >
-                  <Share2 size={16} /> Share Result
-                </button>
-
-                <button
-                  onClick={() => setShowGameOver(false)}
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    color: 'rgba(255,255,255,0.8)',
-                    fontFamily: "'Inter', sans-serif",
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                    e.currentTarget.style.color = '#fff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                  }}
-                  className="active:scale-[0.96]"
-                >
-                  <XIcon size={16} /> Review Board
-                </button>
-              </div>
             </div>
           </div>
         </div>
