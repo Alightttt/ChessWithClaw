@@ -20,15 +20,8 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
-  const [displayName, setDisplayName] = useState(() => localStorage.getItem('cwc_agent_display_name') || '');
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const handleDisplayNameChange = (e) => {
-    const val = e.target.value;
-    setDisplayName(val);
-    localStorage.setItem('cwc_agent_display_name', val);
-  };
 
   useEffect(() => {
     // If we do not have a valid gameId or if gameId is empty/null, redirect to serverless /api/new
@@ -124,27 +117,25 @@ export AGENT_TOKEN="${agentToken}"
 Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last_move_count=0" -H "x-agent-token: ${agentToken}" -H "x-agent-name: YOUR_NAME"`;
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Chess Challenge 🦞', text: inviteMessage });
-        return;
-      } catch(e) {
-        if (e.name === 'AbortError') return;
-      }
-    }
     try {
       await navigator.clipboard.writeText(inviteMessage);
       setCopyState('copied');
+      toast.success('Invitation copied to clipboard!');
       setTimeout(() => setCopyState('default'), 2000);
     } catch(e) {
-      const el = document.createElement('textarea');
-      el.value = inviteMessage;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-      setCopyState('copied');
-      setTimeout(() => setCopyState('default'), 2000);
+      try {
+        const el = document.createElement('textarea');
+        el.value = inviteMessage;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        setCopyState('copied');
+        toast.success('Invitation copied to clipboard!');
+        setTimeout(() => setCopyState('default'), 2000);
+      } catch (err) {
+        toast.error('Failed to copy. Please copy manually.');
+      }
     }
   };
 
@@ -397,61 +388,46 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             </div>
           </motion.div>
 
+          {/* Seamless visual connector */}
+          <div className="flex flex-col items-center justify-center -my-3 relative z-10">
+            <div className="w-[2px] h-6 bg-gradient-to-b from-[#e63946] to-transparent" />
+            <div className="w-7 h-7 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center text-[#e63946] shadow-[0_0_12px_rgba(230,57,70,0.15)] text-xs font-bold">
+              ↓
+            </div>
+            <div className="w-[2px] h-4 bg-transparent" />
+          </div>
+
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
             className="card-container"
+            style={{
+              background: 'linear-gradient(145deg, #221314 0%, #161514 100%)',
+              border: '1px solid rgba(230,57,70,0.15)',
+              boxShadow: '0 8px 32px rgba(230,57,70,0.06)'
+            }}
           >
-            <div className="flex flex-col gap-2">
-              <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#e63946', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                What do you call your OpenClaw? (Optional)
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={handleDisplayNameChange}
-                placeholder="e.g. OpenClaw, Jarvis, Max..."
-                maxLength={30}
-                style={{
-                  width: '100%',
-                  background: '#080808',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '8px',
-                  color: '#ffffff',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '14px',
-                  padding: '12px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
-                className="focus:border-[#e63946]/50"
-              />
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="card-container"
-          >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>2</div>
+                <div style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', color: '#e63946', borderRadius: '6px', padding: '4px 10px', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600 }}>2</div>
                 <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }} className="text-white">Enter the Arena</h2>
               </div>
+              <span className="text-[10px] bg-[#e63946]/10 text-[#e63946] font-bold px-2 py-0.5 rounded border border-[#e63946]/20 uppercase tracking-wider">Play Now</span>
             </div>
             
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-6 leading-relaxed">The board is set. Open it in a new tab and wait for your opponent.</p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300 }} className="text-neutral-400 mb-6 leading-relaxed">
+              The board is fully initialized. Launch the Arena now to watch the board live and make your opening move!
+            </p>
 
             <button 
               onClick={handleOpenBoard} disabled={boardOpening}
-              className={`design-btn-primary h-12 w-full text-sm font-semibold rounded-lg flex items-center justify-center gap-2`}
+              className={`design-btn-primary h-14 w-full text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_20px_rgba(230,57,70,0.25)]`}
               style={boardOpened ? { background: '#111111', border: '1px solid #222222', boxShadow: 'none', color: '#e63946' } : {}}
             >
               {boardOpening ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
                 </motion.div>
-              ) : boardOpened ? "RETURN TO MATCH" : "OPEN ARENA WINDOW"}
+              ) : boardOpened ? "RETURN TO ACTIVE MATCH" : "LAUNCH CHESS BOARD 🦞"}
             </button>
           </motion.div>
         </div>
