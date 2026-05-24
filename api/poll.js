@@ -64,6 +64,15 @@ module.exports = async function handler(req, res) {
       detail:error?.message})
   }
 
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (body && typeof body === 'object') {
+      body.agent_last_seen = game.agent_last_seen || null;
+      body.agent_connected = game.agent_connected || false;
+    }
+    return originalJson(body);
+  };
+
   // Fetch move history
   const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
   if (!movesError && movesData && movesData.length > 0) {

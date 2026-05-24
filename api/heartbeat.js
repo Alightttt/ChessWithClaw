@@ -81,8 +81,10 @@ module.exports = async function handler(req, res) {
   const updates = { updated_at: new Date().toISOString() };
 
   if (isAgentRequest) {
-    updates.agent_last_seen = new Date().toISOString();
+    const NOW = new Date().toISOString();
+    updates.agent_last_seen = NOW;
     updates.agent_connected = true;
+    updates.updated_at = NOW;
   } else {
     updates.player_last_seen = new Date().toISOString();
     updates.player_connected = true;

@@ -298,7 +298,27 @@ export default function Game() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const [lastMoveTo, setLastMoveTo] = useState(null);
-  const [agentConnected, setAgentConnected] = useState(false);
+  const [agentConnectedState, setAgentConnected] = useState(false);
+  const getAgentPresence = () => {
+    if (!game?.agent_connected) return 'not_here';
+    const lastSeen = game?.agent_last_seen;
+    if (!lastSeen) return 'not_here';
+    
+    const secondsAgo = (Date.now() - new Date(lastSeen).getTime()) / 1000;
+    
+    if (secondsAgo < 45) return 'connected';
+    if (secondsAgo < 180) return 'reconnecting';
+    return 'not_here';
+  };
+  const agentPresence = getAgentPresence();
+  const agentConnected = agentPresence !== 'not_here';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGame(prev => prev ? { ...prev } : prev);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -974,7 +994,14 @@ export default function Game() {
             fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
               setGame(prev => {
                 const { board_theme, piece_style, ...safeNewData } = newData;
-                const updated = { ...prev, ...safeNewData };
+                const updated = {
+                  ...prev,
+                  ...safeNewData,
+                  agent_last_seen: freshData.agent_last_seen || newData.agent_last_seen || prev?.agent_last_seen,
+                  agent_connected: freshData.agent_connected !== undefined
+                    ? freshData.agent_connected
+                    : (newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected)
+                };
                 if (freshData.move_history) updated.move_history = freshData.move_history;
                 if (freshData.chat_history) {
                   const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
@@ -986,7 +1013,12 @@ export default function Game() {
             }).catch(() => {
               setGame(prev => {
                 const { board_theme, piece_style, ...safeNewData } = newData;
-                const updated = { ...prev, ...safeNewData };
+                const updated = {
+                  ...prev,
+                  ...safeNewData,
+                  agent_last_seen: newData.agent_last_seen || prev?.agent_last_seen,
+                  agent_connected: newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected
+                };
                 return updated;
               });
             });
@@ -1740,6 +1772,10 @@ export default function Game() {
       }}
     >
       <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.9); }
+        }
         @keyframes typingDot {
           0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
           30% { opacity: 1; transform: translateY(-4px); }
@@ -1830,7 +1866,13 @@ export default function Game() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+                  {agentPresence === 'connected' ? (
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+                  ) : agentPresence === 'reconnecting' ? (
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s ease-in-out infinite', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#444444', flexShrink: 0 }} />
+                  )}
                   {visibleThought && (
                     <div style={{
                       color: 'rgba(242,242,242,0.5)',
@@ -1852,12 +1894,17 @@ export default function Game() {
                   )}
                 </div>
                 
-                {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
-                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                    Game starts when your OpenClaw joins
+                {agentPresence === 'reconnecting' && (
+                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter', marginTop: '2px' }}>
+                    Reconnecting...
                   </div>
                 )}
-                {agentDisconnected && game?.agent_connected && (
+                {agentPresence === 'not_here' && game?.status !== 'finished' && game?.status !== 'abandoned' && (
+                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
+                    {(game?.move_count || game?.move_history?.length || 0) === 0 ? "Game starts when your OpenClaw joins" : "OpenClaw not here"}
+                  </div>
+                )}
+                {agentDisconnected && agentPresence === 'connected' && (
                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
                 )}
               </div>
@@ -1893,7 +1940,7 @@ export default function Game() {
                     )}
 
                     <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-                      <div style={{ pointerEvents: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 'auto' : 'none', opacity: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 1 : 0.7, height: '100%', width: '100%' }}>
+                      <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         <ChessBoard 
                           fen={optimisticFen || game.fen} 
                           onMove={makeMove} 
@@ -2081,7 +2128,13 @@ export default function Game() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              {agentPresence === 'connected' ? (
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              ) : agentPresence === 'reconnecting' ? (
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s ease-in-out infinite', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#444444', flexShrink: 0 }} />
+              )}
               {visibleThought && (
                 <div style={{
                   color: 'rgba(242,242,242,0.5)',
@@ -2103,12 +2156,17 @@ export default function Game() {
               )}
             </div>
             
-            {(!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned') && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                Game starts when your OpenClaw joins
+            {agentPresence === 'reconnecting' && (
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter', marginTop: '2px' }}>
+                Reconnecting...
               </div>
             )}
-            {agentDisconnected && game?.agent_connected && (
+            {agentPresence === 'not_here' && game?.status !== 'finished' && game?.status !== 'abandoned' && (
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
+                {(game?.move_count || game?.move_history?.length || 0) === 0 ? "Game starts when your OpenClaw joins" : "OpenClaw not here"}
+              </div>
+            )}
+            {agentDisconnected && agentPresence === 'connected' && (
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
           </div>
@@ -2131,7 +2189,7 @@ export default function Game() {
             </div>
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <div style={{ pointerEvents: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 'auto' : 'none', opacity: game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned' ? 1 : 0.7 }}>
+          <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           <ChessBoard 
             fen={optimisticFen || game.fen} 
             showCoordinates={false}
