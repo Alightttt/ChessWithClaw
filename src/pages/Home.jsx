@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield } from "lucide-react";
+import { ChevronDown, Zap, Shield, Terminal, Copy, Check } from "lucide-react";
 
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -93,6 +93,9 @@ export default function Home() {
   const { toast } = useToast();
 
   const [resumeGame, setResumeGame] = useState(null);
+  const [copied1, setCopied1] = useState(false);
+  const [copied2, setCopied2] = useState(false);
+  const [copied3, setCopied3] = useState(false);
 
   useEffect(() => {
     const savedGame = localStorage.getItem('cwc_active_game');
@@ -548,26 +551,227 @@ export default function Home() {
 
       
       <section id="how" className="fade-in-section max-w-5xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
-        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>Quick Start</h2>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.03em' }}>Quick Start</h2>
+        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '48px' }}>Two steps. Done once. Play forever.</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>1</div>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Create a Match</h3>
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Click &apos;Challenge OpenClaw&apos; to generate a unique arena. You will get a special invitation link.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Card 1: Skill Suite Installation */}
+          <div style={{
+            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+            transition: 'border-color 0.3s'
+          }} className="hover:border-[rgba(230,57,70,0.3)]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Terminal size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 1
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Install Companion Skills
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              Enable your OpenClaw to understand chess commands and navigate the chess board interface automatically. Run both commands.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Play-chess Row */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>PLAY-CHESS SKILL:</div>
+                <div style={{
+                  background: '#070707',
+                  border: '1px solid #1a1a1a',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '12px',
+                  color: '#739552',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ wordBreak: 'break-all' }}>npx clawhub install play-chess</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("npx clawhub install play-chess");
+                      setCopied1(true);
+                      setTimeout(() => setCopied1(false), 2000);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: copied1 ? '#39d353' : 'rgba(242,242,242,0.4)',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontFamily: "'Inter', sans-serif",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginLeft: '12px',
+                      flexShrink: 0
+                    }}
+                    className="hover:text-white"
+                  >
+                    {copied1 ? <Check size={14} className="text-[#39d353]" /> : <Copy size={13} />}
+                    <span>{copied1 ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Browser Row */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>BROWSER AUTOMATION SKILL:</div>
+                <div style={{
+                  background: '#070707',
+                  border: '1px solid #1a1a1a',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '12px',
+                  color: '#739552',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ wordBreak: 'break-all' }}>npx clawhub install agent-browser-clawdbot</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("npx clawhub install agent-browser-clawdbot");
+                      setCopied2(true);
+                      setTimeout(() => setCopied2(false), 2000);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: copied2 ? '#39d353' : 'rgba(242,242,242,0.4)',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontFamily: "'Inter', sans-serif",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginLeft: '12px',
+                      flexShrink: 0
+                    }}
+                    className="hover:text-white"
+                  >
+                    {copied2 ? <Check size={14} className="text-[#39d353]" /> : <Copy size={13} />}
+                    <span>{copied2 ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>2</div>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Configure OpenClaw</h3>
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Run <code style={{ color: '#e63946' }}>npx clawhub install play-chess</code> and <code style={{ color: '#e63946' }}>agent-browser-clawdbot</code> to prep your agent.</p>
-          </div>
+          {/* Card 2: Configuration - Fix Timeout */}
+          <div style={{
+            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+            transition: 'border-color 0.3s'
+          }} className="hover:border-[rgba(230,57,70,0.3)]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Zap size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 2 (Recommended)
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Fix Response Timeout
+                </span>
+              </div>
+            </div>
 
-          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'rgba(230,57,70,0.1)', color: '#e63946', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>3</div>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, color: '#f2f2f2' }}>Send the Invite</h3>
-            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', color: 'rgba(242,242,242,0.6)', lineHeight: 1.6 }}>Give OpenClaw the connection string. It will automatically navigate to the board and start thinking.</p>
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              By default, OpenClaw stops waiting if a response takes long. Disable this idle timeout in its configurations permanently to keep the game board alive.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>RUN IN CONFIG COMMAND:</div>
+                <div style={{
+                  background: '#070707',
+                  border: '1px solid #1a1a1a',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '12px',
+                  color: '#739552',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ wordBreak: 'break-all' }}>agents.defaults.llm.idleTimeoutSeconds = 0</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("agents.defaults.llm.idleTimeoutSeconds = 0");
+                      setCopied3(true);
+                      setTimeout(() => setCopied3(false), 2000);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: copied3 ? '#39d353' : 'rgba(242,242,242,0.4)',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontFamily: "'Inter', sans-serif",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginLeft: '12px',
+                      flexShrink: 0
+                    }}
+                    className="hover:text-white"
+                  >
+                    {copied3 ? <Check size={14} className="text-[#39d353]" /> : <Copy size={13} />}
+                    <span>{copied3 ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div style={{ fontSize: '12px', color: '#444', textAlign: 'center', marginTop: '24px', fontFamily: "'Inter', sans-serif" }}>
+          Do these once. Your OpenClaw remembers forever.
         </div>
       </section>
 
