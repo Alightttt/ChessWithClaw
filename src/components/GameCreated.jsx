@@ -22,6 +22,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [quickSetupExpanded, setQuickSetupExpanded] = useState(false);
   const [copiedRow1, setCopiedRow1] = useState(false);
   const [copiedRow2, setCopiedRow2] = useState(false);
+  const [copiedRow2b, setCopiedRow2b] = useState(false);
   const [copiedRow3, setCopiedRow3] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -278,120 +279,166 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           {quickSetupExpanded && (
             <div style={{ marginTop: '14px' }} onClick={(e) => e.stopPropagation()}>
               {/* Row 1 */}
-              <div style={{
-                background: '#080808',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontFamily: 'JetBrains Mono',
-                fontSize: '12px',
-                color: '#888',
-                margin: '8px 0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                  <Terminal size={14} className="text-[#e63946] flex-shrink-0" />
-                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>npx clawhub install play-chess</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0' }}>
+                <div style={{
+                  background: '#080808',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: '12px',
+                  color: '#888'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <Terminal size={14} className="text-[#e63946] flex-shrink-0" />
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>openclaw skills install play-chess</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("openclaw skills install play-chess");
+                      setCopiedRow1(true);
+                      setTimeout(() => setCopiedRow1(false), 1500);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      color: copiedRow1 ? '#39d353' : '#e63946',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px 8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 600,
+                      flexShrink: 0
+                    }}
+                  >
+                    {copiedRow1 ? "✓" : "COPY"}
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText("npx clawhub install play-chess");
-                    setCopiedRow1(true);
-                    setTimeout(() => setCopiedRow1(false), 1500);
-                  }}
-                  style={{
-                    fontSize: '11px',
-                    color: copiedRow1 ? '#39d353' : '#e63946',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: '2px 8px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}
-                >
-                  {copiedRow1 ? "✓" : "COPY"}
-                </button>
               </div>
 
-              {/* Row 2 */}
-              <div style={{
-                background: '#080808',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontFamily: 'JetBrains Mono',
-                fontSize: '12px',
-                color: '#888',
-                margin: '8px 0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                  <Globe size={14} className="text-[#e63946] flex-shrink-0" />
-                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>npx clawhub install agent-browser-clawdbot</span>
+              {/* Row 2a */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0' }}>
+                <div style={{ fontSize: '10px', color: '#888', fontFamily: 'Inter', marginLeft: '4px' }}>Recommended for most users</div>
+                <div style={{
+                  background: '#080808',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: '12px',
+                  color: '#888'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <Globe size={14} className="text-[#e63946] flex-shrink-0" />
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>openclaw skills install agent-browser-clawdbot</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("openclaw skills install agent-browser-clawdbot");
+                      setCopiedRow2(true);
+                      setTimeout(() => setCopiedRow2(false), 1500);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      color: copiedRow2 ? '#39d353' : '#e63946',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px 8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 600,
+                      flexShrink: 0
+                    }}
+                  >
+                    {copiedRow2 ? "✓" : "COPY"}
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText("npx clawhub install agent-browser-clawdbot");
-                    setCopiedRow2(true);
-                    setTimeout(() => setCopiedRow2(false), 1500);
-                  }}
-                  style={{
-                    fontSize: '11px',
-                    color: copiedRow2 ? '#39d353' : '#e63946',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: '2px 8px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}
-                >
-                  {copiedRow2 ? "✓" : "COPY"}
-                </button>
+              </div>
+
+              {/* Row 2b */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0' }}>
+                <div style={{ fontSize: '10px', color: '#888', fontFamily: 'Inter', marginLeft: '4px' }}>Advanced &mdash; more human-like browsing</div>
+                <div style={{
+                  background: '#080808',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: '12px',
+                  color: '#888'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <Zap size={14} className="text-amber-500 flex-shrink-0" />
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>npx skills add https://github.com/browser-use/browser-harness-js --skill cdp</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("npx skills add https://github.com/browser-use/browser-harness-js --skill cdp");
+                      setCopiedRow2b(true);
+                      setTimeout(() => setCopiedRow2b(false), 1500);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      color: copiedRow2b ? '#39d353' : '#e63946',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px 8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 600,
+                      flexShrink: 0
+                    }}
+                  >
+                    {copiedRow2b ? "✓" : "COPY"}
+                  </button>
+                </div>
               </div>
 
               {/* Row 3 */}
-              <div style={{
-                background: '#080808',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontFamily: 'JetBrains Mono',
-                fontSize: '12px',
-                color: '#888',
-                margin: '8px 0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                  <Zap size={14} className="text-[#e63946] flex-shrink-0" />
-                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>agents.defaults.llm.idleTimeoutSeconds = 0</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0' }}>
+                <div style={{ fontSize: '10px', color: '#888', fontFamily: 'Inter', marginLeft: '4px' }}>Prevents agent disconnections. Do once.</div>
+                <div style={{
+                  background: '#080808',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: '12px',
+                  color: '#888'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <Zap size={14} className="text-[#e63946] flex-shrink-0" />
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>Set agents.defaults.llm.idleTimeoutSeconds = 0 in your config</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("agents.defaults.llm.idleTimeoutSeconds = 0");
+                      setCopiedRow3(true);
+                      setTimeout(() => setCopiedRow3(false), 1500);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      color: copiedRow3 ? '#39d353' : '#e63946',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px 8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 600,
+                      flexShrink: 0
+                    }}
+                  >
+                    {copiedRow3 ? "✓" : "COPY"}
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText("agents.defaults.llm.idleTimeoutSeconds = 0");
-                    setCopiedRow3(true);
-                    setTimeout(() => setCopiedRow3(false), 1500);
-                  }}
-                  style={{
-                    fontSize: '11px',
-                    color: copiedRow3 ? '#39d353' : '#e63946',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: '2px 8px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}
-                >
-                  {copiedRow3 ? "✓" : "COPY"}
-                </button>
               </div>
 
               <div style={{ fontSize: '11px', color: '#555', textAlign: 'center', marginTop: '8px', fontFamily: 'Inter' }}>

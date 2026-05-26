@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield, Terminal, Copy, Check } from "lucide-react";
+import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe } from "lucide-react";
 
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -95,6 +95,7 @@ export default function Home() {
   const [resumeGame, setResumeGame] = useState(null);
   const [copied1, setCopied1] = useState(false);
   const [copied2, setCopied2] = useState(false);
+  const [copied2b, setCopied2b] = useState(false);
   const [copied3, setCopied3] = useState(false);
 
   useEffect(() => {
@@ -136,7 +137,7 @@ export default function Home() {
 
 
   const faqs = [
-    { q: "Does my OpenClaw need special configuration?", a: "Yes. Install the chess skill first: npx clawhub install play-chess. After that, send it the invite and it connects automatically." },
+    { q: "Does my OpenClaw need special configuration?", a: "Yes. Install the chess skill first: openclaw skills install play-chess. After that, send it the invite and it connects automatically." },
     { q: "What exactly does the skill.md file teach my OpenClaw?", a: "The skill.md file contains full chess knowledge, rules, platform protocols, and optimal connection methods." },
     { q: "Is ChessWithClaw actually free?", a: "Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever." },
     { q: "What if my OpenClaw disconnects mid-game?", a: "Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off." },
@@ -611,10 +612,10 @@ export default function Home() {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span style={{ wordBreak: 'break-all' }}>npx clawhub install play-chess</span>
+                  <span style={{ wordBreak: 'break-all' }}>openclaw skills install play-chess</span>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText("npx clawhub install play-chess");
+                      navigator.clipboard.writeText("openclaw skills install play-chess");
                       setCopied1(true);
                       setTimeout(() => setCopied1(false), 2000);
                     }}
@@ -639,9 +640,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Browser Row */}
+              {/* Browser Row 2a */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>BROWSER AUTOMATION SKILL:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>
+                  <Globe size={12} className="text-sky-500" />
+                  <span>INSTALL BROWSER SKILL:</span>
+                </div>
                 <div style={{
                   background: '#070707',
                   border: '1px solid #1a1a1a',
@@ -654,10 +658,10 @@ export default function Home() {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span style={{ wordBreak: 'break-all' }}>npx clawhub install agent-browser-clawdbot</span>
+                  <span style={{ wordBreak: 'break-all' }}>openclaw skills install agent-browser-clawdbot</span>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText("npx clawhub install agent-browser-clawdbot");
+                      navigator.clipboard.writeText("openclaw skills install agent-browser-clawdbot");
                       setCopied2(true);
                       setTimeout(() => setCopied2(false), 2000);
                     }}
@@ -678,6 +682,68 @@ export default function Home() {
                   >
                     {copied2 ? <Check size={14} className="text-[#39d353]" /> : <Copy size={13} />}
                     <span>{copied2 ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Browser Row 2b */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>
+                    <Zap size={12} className="text-amber-500" />
+                    <span>BROWSER HARNESS (ADVANCED):</span>
+                  </div>
+                  <span style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: '4px',
+                    padding: '1px 6px',
+                    fontSize: '9px',
+                    color: '#555',
+                    letterSpacing: '0.08em',
+                    fontWeight: 700
+                  }}>
+                    ADVANCED
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#555', fontFamily: 'Inter', marginTop: '-4px' }}>
+                  Faster, self-healing, more human-like
+                </div>
+                <div style={{
+                  background: '#070707',
+                  border: '1px solid #1a1a1a',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '12px',
+                  color: '#739552',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ wordBreak: 'break-all' }}>npx skills add https://github.com/browser-use/browser-harness-js --skill cdp</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("npx skills add https://github.com/browser-use/browser-harness-js --skill cdp");
+                      setCopied2b(true);
+                      setTimeout(() => setCopied2b(false), 2000);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: copied2b ? '#39d353' : 'rgba(242,242,242,0.4)',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontFamily: "'Inter', sans-serif",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginLeft: '12px',
+                      flexShrink: 0
+                    }}
+                    className="hover:text-white"
+                  >
+                    {copied2b ? <Check size={14} className="text-[#39d353]" /> : <Copy size={13} />}
+                    <span>{copied2b ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
               </div>
@@ -726,7 +792,13 @@ export default function Home() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>RUN IN CONFIG COMMAND:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>
+                  <Zap size={12} className="text-[#e63946]" />
+                  <span>FIX RESPONSE TIMEOUT:</span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#555', fontFamily: 'Inter', marginTop: '-4px' }}>
+                  One-time fix. Prevents agent disconnections.
+                </div>
                 <div style={{
                   background: '#070707',
                   border: '1px solid #1a1a1a',
@@ -739,7 +811,10 @@ export default function Home() {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span style={{ wordBreak: 'break-all' }}>agents.defaults.llm.idleTimeoutSeconds = 0</span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter', marginBottom: '4px' }}>In your config:</span>
+                    <span style={{ wordBreak: 'break-all' }}>set agents.defaults.llm.idleTimeoutSeconds = 0</span>
+                  </div>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText("agents.defaults.llm.idleTimeoutSeconds = 0");

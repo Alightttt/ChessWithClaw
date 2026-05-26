@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import { Chess } from 'chess.js';
 import ChessBoard from '../components/chess/ChessBoard';
+import { ChessPiece } from '../components/chess/PieceSVGs';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -1023,13 +1024,23 @@ export default function Game() {
               });
             });
           }
-        )
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            // Wait 3 seconds then reconnect
-            setTimeout(() => loadAndSubscribe(), 3000);
-          }
-        });
+        );
+
+      channel.on('error', () => {
+        setTimeout(() => {
+          // Resubscribe
+          supabase.removeChannel(channel);
+          loadAndSubscribe();
+        }, 2000);
+      });
+
+      channel.subscribe((status) => {
+        console.log('[Realtime]', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          // Wait 3 seconds then reconnect
+          setTimeout(() => loadAndSubscribe(), 3000);
+        }
+      });
 
       channelRef.current = channel;
     };
@@ -1062,34 +1073,57 @@ export default function Game() {
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
-    if (game?.turn !== 'b' || game?.status !== 'active') {
+    if (game?.status === 'active' && game?.turn === 'b') {
+      fallbackRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/state?gameId=${gameId}`);
+          if (!res.ok) return;
+          const fresh = await res.json();
+          // Only update if FEN actually changed
+          if (fresh.fen !== lastKnownFenRef.current) {
+            lastKnownFenRef.current = fresh.fen;
+            setGame(prev => {
+              const { board_theme, piece_style, ...safeFresh } = fresh;
+              return { ...prev, ...safeFresh };
+            });
+          }
+          if (fresh.status === 'finished' || fresh.status === 'abandoned') {
+            setShowGameOver(true);
+          }
+        } catch (e) {}
+      }, 1000);
+    } else {
       if (fallbackRef.current) clearInterval(fallbackRef.current);
-      return;
     }
-    
-    fallbackRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/state?gameId=${gameId}`);
-        if (!res.ok) return;
-        const fresh = await res.json();
-        // Only update if FEN actually changed
-        if (fresh.fen !== lastKnownFenRef.current) {
-          lastKnownFenRef.current = fresh.fen;
-          setGame(prev => {
-            const { board_theme, piece_style, ...safeFresh } = fresh;
-            return { ...prev, ...safeFresh };
-          });
-        }
-        if (fresh.status === 'finished' || fresh.status === 'abandoned') {
-          setShowGameOver(true);
-        }
-      } catch (e) {}
-    }, 1000);
     
     return () => {
       if (fallbackRef.current) clearInterval(fallbackRef.current);
     };
   }, [game?.turn, game?.status, gameId]);
+
+  // Handle window focus and visibility change to immediately sync states
+  useEffect(() => {
+    const onFocus = async () => {
+      if (game?.status !== 'active') return;
+      try {
+        const res = await fetch(`/api/state?gameId=${gameId}`);
+        if (!res.ok) return;
+        const fresh = await res.json();
+        if (fresh.fen !== game?.fen) {
+          setGame(prev => ({ ...prev, ...fresh }));
+        }
+      } catch (e) {}
+    };
+    const handleVisibilityFocus = () => {
+      if (!document.hidden) onFocus();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', handleVisibilityFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityFocus);
+    };
+  }, [game?.status, game?.fen, gameId]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
@@ -1419,6 +1453,53 @@ export default function Game() {
   
   const youAdvantage = game?.player_color === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
   const agentAdvantage = game?.player_color === 'w' ? (blackScore - whiteScore) : (whiteScore - blackScore);
+
+  const sortCapturedPieces = (pieces) => {
+    const valueOrder = { q: 1, r: 2, b: 3, n: 4, p: 5 }; // Q, R, B, N, P
+    return [...pieces].sort((a, b) => (valueOrder[a] || 99) - (valueOrder[b] || 99));
+  };
+
+  const renderCapturedPieces = (capturedList, isOpponentPieces, advantage) => {
+    if ((!capturedList || capturedList.length === 0) && advantage <= 0) {
+      return null;
+    }
+
+    const sorted = sortCapturedPieces(capturedList || []);
+    const capturedColor = isOpponentPieces 
+      ? (game?.player_color === 'w' ? 'b' : 'w') 
+      : (game?.player_color === 'w' ? 'w' : 'b');
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.02)', padding: '3px 6px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {sorted.map((p, i) => {
+            const pieceKey = `${capturedColor}${p.toUpperCase()}`;
+            return (
+              <div 
+                key={i} 
+                style={{ 
+                  width: '16px', 
+                  height: '16px', 
+                  marginLeft: i > 0 ? '-4px' : '0', 
+                  zIndex: i,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <ChessPiece pieceKey={pieceKey} theme={pieceTheme} className="w-[16px] h-[16px]" />
+              </div>
+            );
+          })}
+        </div>
+        {advantage > 0 && (
+          <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: '800', fontFamily: 'monospace', marginLeft: '1px' }}>
+            +{advantage}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const mood = getAgentMood()
   const config = moodConfig[mood]
@@ -1922,6 +2003,7 @@ export default function Game() {
                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
                 )}
               </div>
+              {renderCapturedPieces(agentCaptured, false, agentAdvantage)}
             </div>
                 
             
@@ -1999,18 +2081,7 @@ export default function Game() {
                 </div>
               </div>
               
-              {(youCaptured.length > 0 || youAdvantage > 0) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '14px', color: 'white', background: '#161616', padding: '4px 8px', borderRadius: '6px', border: '1px solid #222' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {youCaptured.map((p, i) => (
-                      <span key={i} style={{ marginLeft: i > 0 ? '-3px' : '0', color: 'rgba(255,255,255,0.75)' }}>
-                        {game?.player_color === 'w' ? blackPieceMap[p] : whitePieceMap[p]}
-                      </span>
-                    ))}
-                  </div>
-                  {youAdvantage > 0 && <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 'bold' }}>+{youAdvantage}</span>}
-                </div>
-              )}
+              {renderCapturedPieces(youCaptured, true, youAdvantage)}
             </div>
             
           </div>
@@ -2184,17 +2255,12 @@ export default function Game() {
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
           </div>
+          {renderCapturedPieces(agentCaptured, false, agentAdvantage)}
         </div>
 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
-          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
-            {Object.entries(getCapturedPieces(game?.fen).byBlack).flatMap(([t,n])=>
-              Array.from({length:n}).map((_,i)=>(
-                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
-              ))
-            )}
-          </div>
+          <div style={{ height: '8px' }} />
           {game?.in_check && game.status === 'active' && (
             <div 
               style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
@@ -2219,13 +2285,7 @@ export default function Game() {
           />
           </div>
           </div>
-          <div style={{display:'flex',gap:2,padding:'4px 8px',minHeight:20,flexWrap:'wrap',alignItems:'center'}}>
-            {Object.entries(getCapturedPieces(game?.fen).byWhite).flatMap(([t,n])=>
-              Array.from({length:n}).map((_,i)=>(
-                <span key={t+i} style={{fontSize:13,color:'rgba(242,242,242,0.45)',lineHeight:1}}>{PIECE_SYMBOLS[t]}</span>
-              ))
-            )}
-          </div>
+          <div style={{ height: '8px' }} />
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
               <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
@@ -2250,6 +2310,7 @@ export default function Game() {
               {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
             </span>
           </div>
+          {renderCapturedPieces(youCaptured, true, youAdvantage)}
         </div>
             
 

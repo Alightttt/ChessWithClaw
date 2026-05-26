@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-
-
 import { Chess } from 'chess.js';
+import { ChessPiece } from './PieceSVGs';
 
 function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w', arrivedSquare }) {
   const [chess, setChess] = useState(() => {
@@ -284,6 +283,14 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   }, [chess, lastMove]);
 
   useEffect(() => {
+    if (!isMyTurn) {
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setDraggedPiece(null);
+    }
+  }, [isMyTurn]);
+
+  useEffect(() => {
     if (prevBoardRef.current && prevBoardRef.current !== fen) {
       try {
         const oldChess = new Chess(prevBoardRef.current);
@@ -336,22 +343,14 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
   
   const renderPiece = (piece, sq) => {
     if (!piece) return null;
-    const isWhite = piece.color === 'w';
-    const pieceName = `${piece.color}${piece.type.toLowerCase()}`;
-    let pTheme = pieceTheme;
-    if (!['neo', 'tournament', 'ocean'].includes(pTheme)) {
-      pTheme = 'neo';
-    }
-    const url = `https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/${pTheme}/${pieceName}.png`;
+    const pieceKey = `${piece.color}${piece.type.toUpperCase()}`;
     const isDraggable = interactive && isMyTurn && piece.color === playerColor;
     
     const isAnimatedSuffix = animatedSquare === sq || arrivedSquare === sq;
     const animStyle = isAnimatedSuffix ? 'pieceSlide 0.18s ease-out forwards' : 'none';
 
     return (
-      <img 
-        src={url} 
-        alt={pieceName} 
+      <div 
         draggable={isDraggable}
         onDragStart={(e) => {
           setDraggedPiece({ sq, piece });
@@ -364,16 +363,17 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
           setDraggedPiece(null);
           if (e.target) e.target.style.opacity = '1';
         }}
-        className="relative z-10 w-[85%] h-[85%]" 
+        className="relative z-10 w-[85%] h-[85%] flex items-center justify-center select-none"
         style={{ 
-          filter: 'none', 
           cursor: isDraggable ? 'grab' : 'default',
           animation: animStyle,
           WebkitAnimation: animStyle,
           willChange: 'transform, opacity',
           transform: 'translateZ(0)'
         }} 
-      />
+      >
+        <ChessPiece pieceKey={pieceKey} theme={pieceTheme} className="w-[85%] h-[85%] select-none pointer-events-none" />
+      </div>
     );
   };
 
@@ -419,6 +419,7 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
                 {/* Overlays */}
                 {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
                 {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
+                {isCheck && <div className="absolute inset-0 z-0" style={{ background: 'radial-gradient(circle at center, rgba(230,57,70,0.85) 0%, rgba(230,57,70,0.3) 60%, transparent 100%)' }} />}
                 {arrivedSquare === sq && <div className="absolute inset-0" style={{ animation: 'agentMoveFlash 0.7s ease-out forwards', WebkitAnimation: 'agentMoveFlash 0.7s ease-out forwards', pointerEvents: 'none', willChange: 'background-color', zIndex: 2 }} />}
                 
                 {/* Legal move indicators */}
@@ -442,25 +443,6 @@ function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordina
             );
           })
         )}
-        </div>
-        
-        {/* Top Overlays Layer (Above Pieces) */}
-        <div className="absolute inset-0 grid grid-cols-8 grid-rows-8 pointer-events-none z-20">
-          {ranks.map((rank, row) =>
-            files.map((file, col) => {
-              const sq = file + rank;
-              const piece = chess.get(sq);
-              const isCheck = isKingInCheck(sq, piece);
-              
-              if (!isCheck) return <div key={sq} />;
-              
-              return (
-                <div key={sq} className="relative w-full h-full">
-                  <div className="absolute inset-0" style={{ borderRadius: 'inherit', background: 'radial-gradient(circle at center, rgba(230,57,70,0.7) 0%, rgba(230,57,70,0.15) 60%, transparent 100%)', pointerEvents: 'none', zIndex: 3 }} />
-                </div>
-              );
-            })
-          )}
         </div>
 
         {promotionMove && (
