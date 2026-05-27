@@ -161,25 +161,43 @@ module.exports = async function handler(req, res) {
     (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
-  
-  const { data: game, error } = await supabase.from('games').select('*').eq('id', id).single();
 
-  if (error || !game) {
-    return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
+  const agentToken = req.headers['x-agent-token'];
+  const isAgentMove = Boolean(agentToken);
+  const isHumanMove = !isAgentMove;
+  const targetGameId = id;
+
+  // Fetch the game first
+  const { data: game, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('id', targetGameId)
+    .single();
+
+  if (!game) return res.status(404).json({ error: 'Game not found' });
+  if (game.status === 'finished' || game.status === 'abandoned') {
+    return res.status(400).json({ error: 'Game is over' });
   }
 
-  const isAgentRequest = !!(req.headers['x-agent-token'] || token);
-  if (isAgentRequest) {
-    if (game.status === 'waiting') {
-      return res.status(403).json({ "error": "Game has not started yet", "code": "GAME_NOT_STARTED" });
+  if (isAgentMove) {
+    // Agent (Black) move — validate token
+    if (game.agent_token !== agentToken) {
+      return res.status(401).json({ error: 'Invalid agent token' });
     }
     if (game.turn !== 'b') {
-      return res.status(403).json({ "error": "Not your turn", "code": "NOT_YOUR_TURN" });
+      return res.status(400).json({ error: 'Not agent turn' });
+    }
+  } else {
+    // Human (White) move — no token needed
+    // Just validate it is White's turn
+    if (game.turn !== 'w') {
+      return res.status(400).json({ error: 'Not your turn' });
     }
   }
-  
+
   // Fetch move history from the new table
-  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', id).order('created_at', { ascending: true });
+  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', targetGameId).order('created_at', { ascending: true });
+  game.move_history = [];
   if (!movesError && movesData && movesData.length > 0) {
     game.move_history = movesData.map(m => ({
       ...m,
@@ -188,42 +206,6 @@ module.exports = async function handler(req, res) {
       uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
       san: m.san
     }));
-  }
-
-  const playerColor = game.player_color || 'w';
-  const isHumanMove = game.turn === playerColor;
-  const isAgentMove = game.turn !== playerColor;
-
-  if (isAgentMove) {
-    const agentToken = req.headers['x-agent-token'] || token || '';
-    if (!agentToken || agentToken !== game.agent_token) {
-      return res.status(401).json({ 
-        error: 'Invalid agent token',
-        code: 'INVALID_AGENT_TOKEN'
-      });
-    }
-
-    if (!game.agent_connected) {
-      await supabase
-        .from('games')
-        .update({ 
-          agent_connected: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('agent_connected', false);
-    }
-  }
-
-  if (game.status === 'finished') {
-    return res.status(400).json({
-      error: 'Game is finished',
-      code: 'GAME_FINISHED'
-    });
-  }
-
-  if (game.status !== 'active' && game.status !== 'waiting') {
-    return res.status(400).json({ error: 'Game over' });
   }
 
   const from = move.substring(0, 2);
@@ -405,6 +387,13 @@ module.exports = async function handler(req, res) {
       error: 'Move already processed',
       code: 'TURN_CONFLICT'
     });
+  }
+
+  if (!isAgentMove && game.status === 'waiting') {
+    await supabase.from('games').update({
+      status: 'active',
+      opponent_connected: true
+    }).eq('id', targetGameId);
   }
 
   if (isHumanMove && game.webhook_url) {

@@ -76,6 +76,7 @@ export default function Game() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const pendingMoveFenRef = useRef(null);
+  const skipNextRealtimeRef = useRef(false);
 
   const getMoodEmoji = useMemo(() => {
     if (!game || game.status !== 'active') return '🦞';
@@ -307,6 +308,13 @@ export default function Game() {
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
+
+  useEffect(() => {
+    if (game?.status === 'finished' || game?.status === 'abandoned') {
+      // Show immediately — no setTimeout, no delay
+      setShowGameOver(true);
+    }
+  }, [game?.status]);
   
   const skeletonStyle = {
     background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
@@ -997,6 +1005,10 @@ export default function Game() {
             filter: `id=eq.${gameId}`
           },
           (payload) => {
+            if (skipNextRealtimeRef.current) {
+              skipNextRealtimeRef.current = false;
+              return; // Skip this update — it's confirming our optimistic move
+            }
             const newData = payload.new;
             if (!newData) return;
 
@@ -1175,8 +1187,7 @@ export default function Game() {
             localStorage.setItem('cwc_pieces', fresh.piece_style);
           }
           // Only update if FEN actually changed
-          if (fresh.fen === pendingMoveFenRef.current) return;
-          if (fresh.fen === game?.fen && fresh.turn === game?.turn) return;
+          if (fresh.fen === game?.fen) return;
           if (fresh.fen !== lastKnownFenRef.current) {
             lastKnownFenRef.current = fresh.fen;
             setGame(prev => {
@@ -1331,6 +1342,8 @@ export default function Game() {
 
       const prevFen = game.fen;
       const gameIdValue = gameId;
+
+      skipNextRealtimeRef.current = true;
 
       fetch('/api/move', {
         method: 'POST',
@@ -2209,13 +2222,14 @@ export default function Game() {
                           }} />
                         ) : (
                           <ChessBoard 
-                            fen={game?.fen}
+                            fen={optimisticFen || game?.fen}
                             turn={game?.turn}
                             legalMoves={legalMovesArray}
                             lastMove={game?.last_move}
                             inCheck={game?.in_check}
                             checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
                             boardTheme={boardTheme}
+                            pieceStyle={pieceTheme}
                             playerColor={game?.player_color || 'w'}
                             gameStatus={game?.status}
                             onMove={handlePlayerMove}
@@ -2496,7 +2510,7 @@ export default function Game() {
             }} />
           ) : (
             <ChessBoard 
-              fen={game?.fen} 
+              fen={optimisticFen || game?.fen} 
               showCoordinates={false}
               turn={game?.turn}
               legalMoves={legalMovesArray}
@@ -2504,6 +2518,7 @@ export default function Game() {
               inCheck={game?.in_check}
               checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
               boardTheme={boardTheme}
+              pieceStyle={pieceTheme}
               playerColor={game?.player_color || 'w'}
               gameStatus={game?.status}
               onMove={handlePlayerMove}
@@ -2682,187 +2697,106 @@ export default function Game() {
         tabIndex={-1} 
       />
 
-      {showGameOver && (
+      {showGameOver && game?.status === 'finished' && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'rgba(6,6,6,0.96)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'center', padding: '20px'
+          position:'fixed', inset:0, zIndex:1000,
+          background:'rgba(6,6,6,0.97)',
+          backdropFilter:'blur(10px)',
+          WebkitBackdropFilter:'blur(10px)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'20px'
         }}>
-          
-          {/* Chess grid pattern */}
           <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage:
-              'repeating-conic-gradient(rgba(255,255,255,0.025) 0% 25%, transparent 0% 50%)',
-            backgroundSize: '48px 48px'
-          }} />
-          
-          {/* For wins only: decorative accent line at top */}
-          {game?.result === 'white_wins' && (
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0,
-              height: '3px',
-              background: 'linear-gradient(90deg, transparent, #739552, transparent)'
-            }} />
-          )}
-          
-          {/* Card */}
-          <div style={{
-            background: 'linear-gradient(180deg, #161616 0%, #111111 100%)',
-            border: '1px solid #242424',
-            borderRadius: '24px',
-            padding: '36px 28px 28px',
-            maxWidth: '340px', width: '100%',
-            position: 'relative', zIndex: 1,
-            textAlign: 'center',
-            animation: 'gameOverIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.6)'
+            background:'#111', border:'1px solid #222',
+            borderRadius:'24px', padding:'40px 28px',
+            maxWidth:'340px', width:'100%', textAlign:'center',
+            animation:'gameOverIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards'
           }}>
-            
             {/* Result icon */}
-            <div style={{
-              fontSize: '72px', lineHeight: 1, marginBottom: '20px',
-              fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
-              animation: 'resultIconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both',
-              display: 'block'
-            }}>
-              {game?.result === 'white_wins' ? '♛' :
-               game?.result === 'black_wins' ? '🦞' : '🤝'}
+            <div style={{fontSize:'64px',lineHeight:1,marginBottom:'16px',
+              animation:'resultBounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.15s both'}}>
+              {game.result==='white_wins' ? '♛' : game.result==='black_wins' ? '🦞' : '🤝'}
             </div>
             
-            {/* Colored accent line above title based on result */}
+            {/* Accent line */}
             <div style={{
-              width: '40px', height: '3px', borderRadius: '100px',
-              margin: '0 auto 16px',
-              background: game?.result === 'white_wins' ? '#739552' :
-                          game?.result === 'black_wins' ? '#e63946' : '#555'
-            }} />
+              width:'40px',height:'3px',borderRadius:'100px',
+              margin:'0 auto 16px',
+              background: game.result==='white_wins' ? '#739552' :
+                          game.result==='black_wins' ? '#e63946' : '#555'
+            }}/>
             
-            {/* Result headline */}
-            <h2 style={{
-              fontFamily: 'Inter, sans-serif', fontWeight: 800,
-              fontSize: '28px', color: '#f2f2f2',
-              margin: '0 0 8px', letterSpacing: '-0.025em', lineHeight: 1.1
-            }}>
-              {game?.result === 'white_wins' ? 'You Won!' :
-               game?.result === 'black_wins' ? `${agentName} Wins` : 'Draw'}
+            {/* Headline */}
+            <h2 style={{fontFamily:'Inter',fontWeight:800,fontSize:'26px',
+              color:'#f2f2f2',margin:'0 0 8px',letterSpacing:'-0.025em'}}>
+              {game.result==='white_wins' ? 'You Won!' :
+               game.result==='black_wins' ? `${agentName} Wins` : 'Draw'}
             </h2>
             
-            {/* Result subtext */}
-            <p style={{
-              fontFamily: 'Inter, sans-serif', fontSize: '14px', lineHeight: 1.5,
-              color: 'rgba(242,242,242,0.4)', margin: '0 0 24px'
-            }}>
-              {game?.result === 'white_wins'
-                ? `${agentName} gave it everything. You were better today.`
-                : game?.result === 'black_wins'
-                ? `${agentName} outplayed you this time. Want revenge?`
-                : 'An evenly matched battle. Respect on both sides.'}
+            {/* Subtext */}
+            <p style={{fontFamily:'Inter',fontSize:'14px',lineHeight:1.5,
+              color:'rgba(242,242,242,0.4)',margin:'0 0 24px'}}>
+              {game.result==='white_wins'
+                ? `${agentName} put up a great fight.`
+                : game.result==='black_wins'
+                ? `${agentName} outplayed you. Rematch?`
+                : 'Evenly matched. Good game.'}
             </p>
             
-            {/* Stats row */}
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: '0',
-              borderTop: '1px solid #1e1e1e', borderBottom: '1px solid #1e1e1e',
-              marginBottom: '24px'
-            }}>
-              {/* Moves stat */}
-              <div style={{
-                flex: 1, padding: '16px 8px', textAlign: 'center',
-                borderRight: '1px solid #1e1e1e'
-              }}>
-                <div style={{
-                  fontFamily: 'Inter', fontWeight: 700, fontSize: '26px',
-                  color: '#f2f2f2', lineHeight: 1
-                }}>
-                  {(game?.move_history || []).length}
+            {/* Stats */}
+            <div style={{display:'flex',justifyContent:'center',
+              borderTop:'1px solid #1e1e1e',borderBottom:'1px solid #1e1e1e',
+              marginBottom:'24px'}}>
+              <div style={{flex:1,padding:'16px 8px',textAlign:'center',
+                borderRight:'1px solid #1e1e1e'}}>
+                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
+                  color:'#f2f2f2',lineHeight:1}}>
+                  {(game.move_history||[]).length}
                 </div>
-                <div style={{
-                  fontFamily: 'Inter', fontSize: '10px', color: '#444',
-                  letterSpacing: '0.1em', marginTop: '4px', textTransform: 'uppercase'
-                }}>
+                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
+                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
                   Moves
                 </div>
               </div>
-              
-              {/* Result stat */}
-              <div style={{ flex: 1, padding: '16px 8px', textAlign: 'center' }}>
-                <div style={{
-                  fontFamily: 'Inter', fontWeight: 700, fontSize: '26px',
-                  color: game?.result === 'white_wins' ? '#739552' :
-                         game?.result === 'black_wins' ? '#e63946' : '#888',
-                  lineHeight: 1
-                }}>
-                  {game?.result === 'white_wins' ? 'WIN' :
-                   game?.result === 'black_wins' ? 'LOSS' : 'DRAW'}
+              <div style={{flex:1,padding:'16px 8px',textAlign:'center'}}>
+                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
+                  color: game.result==='white_wins'?'#739552':
+                         game.result==='black_wins'?'#e63946':'#888',lineHeight:1}}>
+                  {game.result==='white_wins'?'WIN':
+                   game.result==='black_wins'?'LOSS':'DRAW'}
                 </div>
-                <div style={{
-                  fontFamily: 'Inter', fontSize: '10px', color: '#444',
-                  letterSpacing: '0.1em', marginTop: '4px', textTransform: 'uppercase'
-                }}>
+                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
+                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
                   Result
                 </div>
               </div>
             </div>
             
-            {/* Primary CTA — Play Again */}
-            <button
-              onClick={() => { window.location.href = '/'; }}
-              style={{
-                width: '100%', height: '50px',
-                background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.04) 100%), #e63946',
-                boxShadow:
-                  'rgba(255,255,255,0.18) 0px 1px 0px inset, rgba(0,0,0,0.25) 0px -1px 0px inset',
-                border: 'none', borderRadius: '12px',
-                color: '#ffffff', fontFamily: 'Inter, sans-serif',
-                fontWeight: 700, fontSize: '15px', cursor: 'pointer',
-                marginBottom: '10px', letterSpacing: '-0.01em'
-              }}
-            >
+            {/* Play Again */}
+            <button onClick={()=>{window.location.href='/'}} style={{
+              width:'100%',height:'50px',border:'none',borderRadius:'12px',
+              background:'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(0,0,0,0.04) 100%),#e63946',
+              boxShadow:'rgba(255,255,255,0.18) 0px 1px 0px inset',
+              color:'#fff',fontFamily:'Inter',fontWeight:700,fontSize:'15px',
+              cursor:'pointer',marginBottom:'10px'
+            }}>
               Play Again
             </button>
             
-            {/* Secondary CTA — Share */}
-            <button
-              onClick={() => {
-                const movesPlayed = (game?.move_history || []).length;
-                const resultText =
-                  game?.result === 'white_wins' ? 'i won' :
-                  game?.result === 'black_wins' ? `${agentName} won` : 'we drew';
-                const shareText =
-                  `Just played chess vs ${agentName} on ChessWithClaw — ${resultText} in ${movesPlayed} moves. chesswithclaw.vercel.app 🦞`;
-                if (navigator.share) {
-                  navigator.share({ text: shareText }).catch(() =>
-                    navigator.clipboard.writeText(shareText)
-                  );
-                } else {
-                  navigator.clipboard.writeText(shareText);
-                }
-              }}
-              style={{
-                width: '100%', height: '44px',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-                color: 'rgba(242,242,242,0.45)',
-                fontFamily: 'Inter, sans-serif', fontWeight: 500,
-                fontSize: '14px', cursor: 'pointer'
-              }}
-            >
+            {/* Share */}
+            <button onClick={()=>{
+              const t=`Played chess vs ${agentName} on ChessWithClaw — ${
+                game.result==='white_wins'?'I won':game.result==='black_wins'?`${agentName} won`:'drew'
+              } in ${(game.move_history||[]).length} moves. chesswithclaw.vercel.app 🦞`;
+              navigator.clipboard?.writeText(t);
+            }} style={{
+              width:'100%',height:'44px',background:'transparent',
+              border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',
+              color:'rgba(242,242,242,0.4)',fontFamily:'Inter',
+              fontWeight:500,fontSize:'14px',cursor:'pointer'
+            }}>
               Share Result
             </button>
-            
-            {/* Agent name credit at bottom */}
-            <p style={{
-              fontFamily: 'Inter', fontSize: '11px',
-              color: 'rgba(242,242,242,0.2)', marginTop: '16px', marginBottom: '0'
-            }}>
-              vs {agentName} · ChessWithClaw
-            </p>
           </div>
         </div>
       )}
