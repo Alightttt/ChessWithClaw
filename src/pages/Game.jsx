@@ -63,6 +63,31 @@ export default function Game() {
   const location = useLocation();
   const { toast } = useToast();
 
+  const submittingRef = useRef(false);
+  const audioCtxRef = useRef(null);
+  const prevMoveCountRef = useRef(0);
+  const prevStatusRef = useRef('waiting');
+  const prevAgentConnected = useRef(false);
+  const connectedToastShown = useRef(false);
+  const boardRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+
+  const channelRef = useRef(null);
+  const containerRef = useRef(null);
+  const prevFenRef = useRef(null);
+  const lastKnownFenRef = useRef(null);
+  const optimisticFenRef = useRef(null);
+  const fallbackRef = useRef(null);
+  const gameOverPollingRef = useRef(null);
+
+  const intervalsRef = useRef([]);
+  const heartbeatRef = useRef(null);
+  const addInterval = useCallback((fn, ms) => {
+    const id = setInterval(fn, ms);
+    intervalsRef.current.push(id);
+    return id;
+  }, []);
+
   const agentToken = location.state?.agentToken;
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
   const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
@@ -349,6 +374,71 @@ export default function Game() {
   };
   const optimisticFen = optimisticFenState;
 
+  const loadGameData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/state?gameId=${gameId}`);
+      if (res.ok) {
+        const data = await res.json();
+        prevFenRef.current = data.fen;
+        lastKnownFenRef.current = data.fen;
+        setGame(prev => {
+          const { board_theme, piece_style, ...safeData } = data;
+          const updated = { ...safeData };
+          if (prev?.chat_history && data?.chat_history) {
+            const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
+            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
+            updated.chat_history = [...data.chat_history, ...optimistic];
+          }
+          return updated;
+        });
+        setOptimisticFen(null);
+        
+        if (data.companion_thought && data.companion_thought.trim() !== '') {
+           prevThoughtValRef.current = data.companion_thought;
+           setVisibleThought(data.companion_thought);
+        }
+
+        // Restore chat messages
+        if (data.chat_history && Array.isArray(data.chat_history)) {
+          setChatMessages(data.chat_history.slice(-50));
+        }
+
+        // Restore last move highlight
+        if (data.last_move?.from && data.last_move?.to) {
+          setLastMoveHighlight({ 
+            from: data.last_move.from, 
+            to: data.last_move.to 
+          });
+        }
+
+        // Restore board theme from DB (agent may have changed it)
+        if (data.board_theme) {
+          setBoardTheme(data.board_theme);
+          localStorage.setItem('cwc_board_theme', data.board_theme);
+        }
+
+        // Restore piece style from DB
+        const savedStyle = data.piece_style || 
+                           localStorage.getItem('cwc_piece_style') || 
+                           'neo';
+          setPieceStyle(savedStyle);
+        localStorage.setItem('cwc_piece_style', savedStyle);
+
+        // Mark as loaded LAST
+        setIsLoaded(true);
+        setIsLoading(false);
+      } else if (res.status === 404) {
+        setNotFound(true);
+        setIsLoading(false);
+        setIsLoaded(true);
+      }
+    } catch (e) {
+      setIsLoading(false);
+      setIsLoaded(true);
+    }
+    setLoading(false);
+  }, [gameId]);
+
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
@@ -535,33 +625,6 @@ export default function Game() {
     }
   }, []);
   
-  const submittingRef = useRef(false);
-  const audioCtxRef = useRef(null);
-  const prevMoveCountRef = useRef(0);
-  const prevStatusRef = useRef('waiting');
-  const prevAgentConnected = useRef(false);
-  const connectedToastShown = useRef(false);
-  const boardRef = useRef(null);
-  const chatMessagesRef = useRef(null);
-
-  const channelRef = useRef(null);
-  const containerRef = useRef(null);
-  const prevFenRef = useRef(null);
-  const lastKnownFenRef = useRef(null);
-  const optimisticFenRef = useRef(null);
-  const fallbackRef = useRef(null);
-  const gameOverPollingRef = useRef(null);
-
-  const intervalsRef = useRef([]);
-  const heartbeatRef = useRef(null);
-  const addInterval = useCallback((fn, ms) => {
-    const id = setInterval(fn, ms);
-    intervalsRef.current.push(id);
-    return id;
-  }, []);
-
-
-
   // Calculate Board Size and Viewport Height
   useEffect(() => {
     const calc = () => {
@@ -1062,71 +1125,6 @@ export default function Game() {
     }
   }, [game, toast, agentName, gameId, soundEnabled, playSound]);
   
-  const loadGameData = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/state?gameId=${gameId}`);
-      if (res.ok) {
-        const data = await res.json();
-        prevFenRef.current = data.fen;
-        lastKnownFenRef.current = data.fen;
-        setGame(prev => {
-          const { board_theme, piece_style, ...safeData } = data;
-          const updated = { ...safeData };
-          if (prev?.chat_history && data?.chat_history) {
-            const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
-            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
-            updated.chat_history = [...data.chat_history, ...optimistic];
-          }
-          return updated;
-        });
-        setOptimisticFen(null);
-        
-        if (data.companion_thought && data.companion_thought.trim() !== '') {
-           prevThoughtValRef.current = data.companion_thought;
-           setVisibleThought(data.companion_thought);
-        }
-
-        // Restore chat messages
-        if (data.chat_history && Array.isArray(data.chat_history)) {
-          setChatMessages(data.chat_history.slice(-50));
-        }
-
-        // Restore last move highlight
-        if (data.last_move?.from && data.last_move?.to) {
-          setLastMoveHighlight({ 
-            from: data.last_move.from, 
-            to: data.last_move.to 
-          });
-        }
-
-        // Restore board theme from DB (agent may have changed it)
-        if (data.board_theme) {
-          setBoardTheme(data.board_theme);
-          localStorage.setItem('cwc_board_theme', data.board_theme);
-        }
-
-        // Restore piece style from DB
-        const savedStyle = data.piece_style || 
-                           localStorage.getItem('cwc_piece_style') || 
-                           'neo';
-        setPieceStyle(savedStyle);
-        localStorage.setItem('cwc_piece_style', savedStyle);
-
-        // Mark as loaded LAST
-        setIsLoaded(true);
-        setIsLoading(false);
-      } else if (res.status === 404) {
-        setNotFound(true);
-        setIsLoading(false);
-        setIsLoaded(true);
-      }
-    } catch (e) {
-      setIsLoading(false);
-      setIsLoaded(true);
-    }
-    setLoading(false);
-  }, [gameId]);
-
   const handleRealtimeUpdate = useCallback((payload) => {
     if (skipNextRealtimeRef.current) {
       skipNextRealtimeRef.current = false;
