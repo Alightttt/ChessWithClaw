@@ -79,6 +79,44 @@ export default function ChessBoard({
     return map;
   }, [legalMoves]);
 
+  const customPiecesMap = useMemo(() => {
+    const SETS = {
+      neo:        'https://images.chesscomfiles.com/chess-themes/pieces/neo/150',
+      ocean:      'https://images.chesscomfiles.com/chess-themes/pieces/ocean/150',
+      tournament: 'https://images.chesscomfiles.com/chess-themes/pieces/tournament/150',
+      standard:   'https://lichess1.org/assets/piece/cburnett',
+    };
+    const EXTS = { neo:'png', ocean:'png', tournament:'png', standard:'svg' };
+    const FILES_CC = { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
+                       bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' };
+    const FILES_LI = { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
+                       bP:'bP',bN:'bN',bB:'bB',bR:'bR',bQ:'bQ',bK:'bK' };
+    
+    const base = SETS[activePieceStyle] || SETS.neo;
+    const ext  = EXTS[activePieceStyle] || 'png';
+    const files = (activePieceStyle === 'standard') ? FILES_LI : FILES_CC;
+    
+    return Object.fromEntries(
+      Object.entries(files).map(([key, filename]) => [
+        key,
+        ({ squareWidth }) => (
+          <img
+            src={`${base}/${filename}.${ext}`}
+            alt={key}
+            width={squareWidth}
+            height={squareWidth}
+            style={{ objectFit:'contain', display:'block', pointerEvents:'none' }}
+            onError={e => {
+              e.target.onerror = null;
+              e.target.src = `https://lichess1.org/assets/piece/cburnett/${
+                key[0]==='w'?'w':'b'}${key[1]}.svg`;
+            }}
+          />
+        )
+      ])
+    );
+  }, [activePieceStyle]);
+
   // Custom square styles: last move, legal dots, check glow
   const customSquareStyles = {};
 
@@ -106,8 +144,8 @@ export default function ChessBoard({
   // Check glow on king square
   if (inCheck && checkedKingSquare) {
     customSquareStyles[checkedKingSquare] = {
-      background:
-        'radial-gradient(ellipse at center, rgba(220,30,30,0.85) 0%, rgba(220,30,30,0.4) 40%, transparent 70%)',
+      background: 'radial-gradient(ellipse at center, rgba(220,30,30,0.9) 0%, rgba(220,30,30,0.5) 40%, rgba(220,30,30,0.1) 70%, transparent 100%)',
+      zIndex: 5,
     };
   }
 
@@ -162,30 +200,8 @@ export default function ChessBoard({
         customLightSquareStyle={{ backgroundColor: theme.light }}
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
         animationDuration={150}
-        arePiecesDraggable={
-          (gameStatus === 'active' || gameStatus === 'waiting') && turn === playerColor && !disabled
-        }
-        customPieces={Object.fromEntries(
-          ['wP','wN','wB','wR','wQ','wK','bP','bN','bB','bR','bQ','bK'].map(key => [
-            key,
-            ({ squareWidth }) => (
-              <img
-                src={getPieceUrl(key, activePieceStyle)}
-                alt={key}
-                style={{
-                  width: squareWidth,
-                  height: squareWidth,
-                  objectFit: 'contain',
-                  display: 'block',
-                }}
-                onError={(e) => {
-                  // Fallback to standard if CDN fails
-                  e.target.src = getPieceUrl(key, 'standard');
-                }}
-              />
-            )
-          ])
-        )}
+        arePiecesDraggable={false}
+        customPieces={customPiecesMap}
         boardStyle={{
           borderRadius: '4px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',

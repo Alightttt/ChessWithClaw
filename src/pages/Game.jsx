@@ -36,6 +36,27 @@ function findKingSquare(fen, color) {
   return null;
 }
 
+const getCheckedKingSquare = (fen, turn) => {
+  if (!fen) return null;
+  try {
+    const chess = new Chess(fen);
+    if (!chess.inCheck()) return null;
+    const kingColor = turn === 'w' ? 'w' : 'b';
+    const board = chess.board();
+    for (let r = 0; r < 8; r++) {
+      for (let f = 0; f < 8; f++) {
+        const piece = board[r][f];
+        if (piece && piece.type === 'k' && piece.color === kingColor) {
+          const file = String.fromCharCode(97 + f);
+          const rank = 8 - r;
+          return file + rank;
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
@@ -204,25 +225,6 @@ export default function Game() {
     return true;
   });
 
-  const getCapturedPieces = (fenString) => {
-    const start = { w:{p:8,r:2,n:2,b:2,q:1}, b:{p:8,r:2,n:2,b:2,q:1} };
-    const fen = fenString || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-    const pos = fen.split(' ')[0];
-    const cur = { w:{p:0,r:0,n:0,b:0,q:0}, b:{p:0,r:0,n:0,b:0,q:0} };
-    for (const c of pos) {
-      if(c==='P')cur.w.p++;else if(c==='R')cur.w.r++;else if(c==='N')cur.w.n++;
-      else if(c==='B')cur.w.b++;else if(c==='Q')cur.w.q++;
-      else if(c==='p')cur.b.p++;else if(c==='r')cur.b.r++;else if(c==='n')cur.b.n++;
-      else if(c==='b')cur.b.b++;else if(c==='q')cur.b.q++;
-    }
-    const byWhite={},byBlack={};
-    for(const t of['p','r','n','b','q']){
-      const w=start.b[t]-cur.b[t];if(w>0)byWhite[t]=w;
-      const b=start.w[t]-cur.w[t];if(b>0)byBlack[t.toUpperCase()]=b;
-    }
-    return{byWhite,byBlack};
-  };
-  const PIECE_SYMBOLS = { P:'♙', R:'♖', N:'♘', B:'♗', Q:'♕', p:'♟', r:'♜', n:'♞', b:'♝', q:'♛' };
   const [notFound, setNotFound] = useState(false);
   
   const [showSettings, setShowSettings] = useState(false);
@@ -233,18 +235,9 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(
     localStorage.getItem('cwc_board_theme') || localStorage.getItem('cwc_theme') || 'green'
   );
-  const [pieceTheme, setPieceTheme] = useState(() => {
-    try {
-      const cached = localStorage.getItem('cwc_active_game');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed && parsed.gameId === gameId && parsed.piece_style) {
-          return parsed.piece_style;
-        }
-      }
-    } catch (e) {}
-    return localStorage.getItem('cwc_pieces') || 'neo';
-  });
+  const [pieceStyle, setPieceStyle] = useState(
+    localStorage.getItem('cwc_piece_style') || 'neo'
+  );
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
@@ -253,11 +246,11 @@ export default function Game() {
     if (game?.piece_style) {
       if (prevDbPieceStyleRef.current === null) {
         prevDbPieceStyleRef.current = game.piece_style;
-        setPieceTheme(game.piece_style);
-        localStorage.setItem('cwc_pieces', game.piece_style);
+        setPieceStyle(game.piece_style);
+        localStorage.setItem('cwc_piece_style', game.piece_style);
       } else if (game.piece_style !== prevDbPieceStyleRef.current) {
-        setPieceTheme(game.piece_style);
-        localStorage.setItem('cwc_pieces', game.piece_style);
+        setPieceStyle(game.piece_style);
+        localStorage.setItem('cwc_piece_style', game.piece_style);
         prevDbPieceStyleRef.current = game.piece_style;
       }
     }
@@ -292,6 +285,11 @@ export default function Game() {
     }
   }, [game?.fen]);
   
+  const checkedKingSquare = useMemo(
+    () => game?.in_check ? getCheckedKingSquare(game.fen, game.turn) : null,
+    [game?.fen, game?.in_check, game?.turn]
+  );
+  
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
@@ -308,13 +306,31 @@ export default function Game() {
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
+  const [isTabActive, setIsTabActive] = useState(true);
 
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
-      // Show immediately — no setTimeout, no delay
+      // Clear ALL intervals immediately on game over
+      intervalsRef.current.forEach(clearInterval);
+      intervalsRef.current = [];
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
       setShowGameOver(true);
     }
   }, [game?.status]);
+
+  useEffect(() => {
+    return () => {
+      intervalsRef.current.forEach(clearInterval);
+      intervalsRef.current = [];
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+    };
+  }, []);
   
   const skeletonStyle = {
     background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
@@ -358,11 +374,14 @@ export default function Game() {
   const agentConnected = agentPresence !== 'not_here';
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = addInterval(() => {
       setGame(prev => prev ? { ...prev } : prev);
     }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      intervalsRef.current = intervalsRef.current.filter(x => x !== interval);
+    };
+  }, [addInterval]);
 
   const [chatPaddingBottom, setChatPaddingBottom] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -533,6 +552,14 @@ export default function Game() {
   const fallbackRef = useRef(null);
   const gameOverPollingRef = useRef(null);
 
+  const intervalsRef = useRef([]);
+  const heartbeatRef = useRef(null);
+  const addInterval = useCallback((fn, ms) => {
+    const id = setInterval(fn, ms);
+    intervalsRef.current.push(id);
+    return id;
+  }, []);
+
 
 
   // Calculate Board Size and Viewport Height
@@ -630,23 +657,8 @@ export default function Game() {
 
   // Sound Effects
   const playSound = useCallback((type) => {
-    if (!soundEnabled) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      const sounds = {
-        move:       { freq: 440, type: 'square', duration: 0.08, vol: 0.15 },
-        capture:    { freq: 200, type: 'sawtooth', duration: 0.15, vol: 0.2 },
-        check:      { freq: 660, type: 'square', duration: 0.2, vol: 0.25 },
-        gameStart:  { freq: 520, type: 'sine', duration: 0.3, vol: 0.2 },
-        gameEnd:    { freq: 330, type: 'sine', duration: 0.5, vol: 0.2 },
-        chat:       { freq: 880, type: 'sine', duration: 0.06, vol: 0.1 },
-        connect:    { freq: 600, type: 'sine', duration: 0.25, vol: 0.15 },
-      };
       
       let resolvedType = type;
       if (type === 'start') resolvedType = 'gameStart';
@@ -654,14 +666,129 @@ export default function Game() {
       else if (type === 'agentCheck' || type === 'check') resolvedType = 'check';
       else if (type === 'agentCapture' || type === 'capture') resolvedType = 'capture';
       else if (type === 'agentMove' || type === 'move') resolvedType = 'move';
+
+      const sounds = {
+        move: () => {
+          // Soft wood thud
+          const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.025));
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 800;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.4, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          src.start();
+        },
+        capture: () => {
+          // Harder thud for capture
+          const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 600;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.65, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          src.start();
+        },
+        check: () => {
+          // Warning bell-like tone
+          [440, 554, 659].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const t = ctx.currentTime + i * 0.08;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.25, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            osc.start(t);
+            osc.stop(t + 0.4);
+          });
+        },
+        gameStart: () => {
+          [330, 440, 550, 660].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const t = ctx.currentTime + i * 0.12;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+            osc.start(t);
+            osc.stop(t + 0.35);
+          });
+        },
+        gameEnd: () => {
+          [660, 550, 440, 330].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const t = ctx.currentTime + i * 0.15;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            osc.start(t);
+            osc.stop(t + 0.45);
+          });
+        },
+        connect: () => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        },
+        chat: () => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = 660;
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.12);
+        },
+      };
       
-      const s = sounds[resolvedType] || sounds.move;
-      osc.frequency.setValueAtTime(s.freq, ctx.currentTime);
-      osc.type = s.type;
-      gain.gain.setValueAtTime(s.vol, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + s.duration);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + s.duration);
+      if (soundEnabled && sounds[resolvedType]) {
+        sounds[resolvedType]();
+      }
+      
+      setTimeout(() => ctx.close(), 1000);
     } catch (e) {}
   }, [soundEnabled]);
 
@@ -747,14 +874,18 @@ export default function Game() {
 
   const agentTimeoutRef = useRef(null);
   useEffect(() => {
-    agentTimeoutRef.current = setInterval(() => {
+    if (!isTabActive) return;
+    agentTimeoutRef.current = addInterval(() => {
       if (!game?.agent_last_seen) return;
       const lastSeen = new Date(game.agent_last_seen);
       const secondsAgo = (Date.now() - lastSeen) / 1000;
       setAgentDisconnected(secondsAgo > 90);
     }, 15000);
-    return () => clearInterval(agentTimeoutRef.current);
-  }, [game?.agent_last_seen]);
+    return () => {
+      clearInterval(agentTimeoutRef.current);
+      intervalsRef.current = intervalsRef.current.filter(x => x !== agentTimeoutRef.current);
+    };
+  }, [game?.agent_last_seen, isTabActive, addInterval]);
 
   // Heartbeat & Idle Chat
   useEffect(() => {
@@ -762,7 +893,7 @@ export default function Game() {
       return;
     }
     
-    const heartbeatInterval = setInterval(() => {
+    heartbeatRef.current = setInterval(() => {
       fetch('/api/heartbeat', {
         method: 'POST',
         headers: { 
@@ -772,37 +903,45 @@ export default function Game() {
         body: JSON.stringify({ id: gameId, role: 'human' })
       }).catch(() => {});
       
-      // Poll game state if it's the agent's turn to catch missed real-time events
-      if (game?.turn !== (game?.player_color || 'w') && game?.status === 'active') {
+      // Poll game state if it's the agent's turn to catch missed real-time events, but only if visible!
+      if (isTabActive && game?.turn !== (game?.player_color || 'w') && game?.status === 'active') {
         supabase.from('games').select('turn, move_history').eq('id', gameId).single().then(({ data }) => {
           if (data && data.turn === (game?.player_color || 'w')) {
-            // Agent made a move but we missed the event, trigger a full reload
-            document.dispatchEvent(new Event('visibilitychange'));
+            loadGameData();
           }
         });
       }
     }, 15000);
 
-    const idleChatInterval = setInterval(() => {
-      if (game?.status !== 'active') return;
-      
-      const rand = Math.random();
-      if (rand < 0.3) {
-        fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
-           headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
-        }).catch(() => {});
-      } else if (rand < 0.6) {
-        fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
-           headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
-        }).catch(() => {});
-      }
-    }, 45000);
+    let idleChatInterval = null;
+    if (isTabActive) {
+      idleChatInterval = addInterval(() => {
+        if (game?.status !== 'active') return;
+        
+        const rand = Math.random();
+        if (rand < 0.3) {
+          fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
+             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+          }).catch(() => {});
+        } else if (rand < 0.6) {
+          fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
+             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+          }).catch(() => {});
+        }
+      }, 45000);
+    }
 
     return () => {
-      clearInterval(heartbeatInterval);
-      clearInterval(idleChatInterval);
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      if (idleChatInterval) {
+        clearInterval(idleChatInterval);
+        intervalsRef.current = intervalsRef.current.filter(x => x !== idleChatInterval);
+      }
     };
-  }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at, gameId]);
+  }, [game, game?.turn, game?.status, game?.agent_last_seen, game?.updated_at, game?.created_at, gameId, isTabActive, loadGameData, addInterval]);
 
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
@@ -819,15 +958,17 @@ export default function Game() {
 
   // Start game over / general fallback polling when the game is not finished
   useEffect(() => {
+    if (!isTabActive) return;
     if (game?.status === 'finished' || game?.status === 'abandoned') {
       if (gameOverPollingRef.current) {
         clearInterval(gameOverPollingRef.current);
+        intervalsRef.current = intervalsRef.current.filter(x => x !== gameOverPollingRef.current);
         gameOverPollingRef.current = null;
       }
       return;
     }
     
-    gameOverPollingRef.current = setInterval(async () => {
+    gameOverPollingRef.current = addInterval(async () => {
       try {
         const res = await fetch(`/api/state?gameId=${gameId}`);
         if (!res.ok) return;
@@ -847,10 +988,11 @@ export default function Game() {
     return () => {
       if (gameOverPollingRef.current) {
         clearInterval(gameOverPollingRef.current);
+        intervalsRef.current = intervalsRef.current.filter(x => x !== gameOverPollingRef.current);
         gameOverPollingRef.current = null;
       }
     };
-  }, [game?.status, gameId, game?.fen]);
+  }, [game?.status, gameId, game?.fen, isTabActive, addInterval]);
 
   useEffect(() => {
     if (!game) return;
@@ -866,8 +1008,9 @@ export default function Game() {
 
   // Auto-resignation timer
   useEffect(() => {
+    if (!isTabActive) return;
     if (!game || game.status !== 'active') return;
-    const interval = setInterval(async () => {
+    const interval = addInterval(async () => {
       const isHumanTurn = game.turn === (game.player_color || 'w');
       const maxTimeMs = 15 * 60 * 1000; // 15 minutes
       const lastMoveTs = game.move_history?.length > 0 
@@ -888,8 +1031,11 @@ export default function Game() {
         }
       }
     }, 10000);
-    return () => clearInterval(interval);
-  }, [game, gameId]);
+    return () => {
+      clearInterval(interval);
+      intervalsRef.current = intervalsRef.current.filter(x => x !== interval);
+    };
+  }, [game, gameId, isTabActive, addInterval]);
 
   useEffect(() => {
     if (game?.agent_connected) {
@@ -916,6 +1062,182 @@ export default function Game() {
     }
   }, [game, toast, agentName, gameId, soundEnabled, playSound]);
   
+  const loadGameData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/state?gameId=${gameId}`);
+      if (res.ok) {
+        const data = await res.json();
+        prevFenRef.current = data.fen;
+        lastKnownFenRef.current = data.fen;
+        setGame(prev => {
+          const { board_theme, piece_style, ...safeData } = data;
+          const updated = { ...safeData };
+          if (prev?.chat_history && data?.chat_history) {
+            const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
+            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
+            updated.chat_history = [...data.chat_history, ...optimistic];
+          }
+          return updated;
+        });
+        setOptimisticFen(null);
+        
+        if (data.companion_thought && data.companion_thought.trim() !== '') {
+           prevThoughtValRef.current = data.companion_thought;
+           setVisibleThought(data.companion_thought);
+        }
+
+        // Restore chat messages
+        if (data.chat_history && Array.isArray(data.chat_history)) {
+          setChatMessages(data.chat_history.slice(-50));
+        }
+
+        // Restore last move highlight
+        if (data.last_move?.from && data.last_move?.to) {
+          setLastMoveHighlight({ 
+            from: data.last_move.from, 
+            to: data.last_move.to 
+          });
+        }
+
+        // Restore board theme from DB (agent may have changed it)
+        if (data.board_theme) {
+          setBoardTheme(data.board_theme);
+          localStorage.setItem('cwc_board_theme', data.board_theme);
+        }
+
+        // Restore piece style from DB
+        const savedStyle = data.piece_style || 
+                           localStorage.getItem('cwc_piece_style') || 
+                           'neo';
+        setPieceStyle(savedStyle);
+        localStorage.setItem('cwc_piece_style', savedStyle);
+
+        // Mark as loaded LAST
+        setIsLoaded(true);
+        setIsLoading(false);
+      } else if (res.status === 404) {
+        setNotFound(true);
+        setIsLoading(false);
+        setIsLoaded(true);
+      }
+    } catch (e) {
+      setIsLoading(false);
+      setIsLoaded(true);
+    }
+    setLoading(false);
+  }, [gameId]);
+
+  const handleRealtimeUpdate = useCallback((payload) => {
+    if (skipNextRealtimeRef.current) {
+      skipNextRealtimeRef.current = false;
+      return; // Skip this update — it's confirming our optimistic move
+    }
+    const newData = payload.new;
+    if (!newData) return;
+
+    if (newData.board_theme && newData.board_theme !== boardTheme) {
+      setBoardTheme(newData.board_theme);
+      localStorage.setItem('cwc_board_theme', newData.board_theme);
+      toast.success(`Agent changed board theme to ${newData.board_theme}!`);
+    }
+    if (newData.piece_style && newData.piece_style !== pieceStyle) {
+      setPieceStyle(newData.piece_style);
+      localStorage.setItem('cwc_piece_style', newData.piece_style);
+    }
+
+    // Detect if this is an agent move arriving
+    // Agent is Black ('b'). After agent moves, turn becomes 'w'
+    const fenChanged = newData.fen && newData.fen !== prevFenRef.current;
+    const isAgentMoveLanding = fenChanged &&
+      newData.turn === 'w' &&
+      optimisticFenRef.current === null;
+
+    if (isAgentMoveLanding) {
+      // This is a real agent move - show animation + sound
+      const toSquare = newData.last_move?.to || newData.last_move?.to_square;
+      if (toSquare) {
+        setArrivedSquare(toSquare);
+        setTimeout(() => setArrivedSquare(null), 600);
+      }
+      // Play appropriate sound
+      if (soundEnabled) {
+        if (newData.in_check) {
+          playSound('check');
+        } else if (newData.last_move && (newData.last_move.captured || newData.last_move.san?.includes('x'))) {
+          playSound('capture');
+        } else {
+          playSound('move');
+        }
+      }
+    }
+
+    // Update FEN ref
+    if (newData.fen) {
+      prevFenRef.current = newData.fen;
+      lastKnownFenRef.current = newData.fen;
+    }
+
+    // Clear optimistic state
+    setOptimisticFen(null);
+    submittingRef.current = false;
+    setBoardLocked(false);
+
+    // Update last move highlight and flash arrived square
+    if (fenChanged) {
+      const agentMoveTo = newData.last_move?.to || newData.last_move?.to_square;
+      setLastMoveHighlight({
+        from: newData.last_move?.from || newData.last_move?.from_square,
+        to: agentMoveTo
+      });
+      if (agentMoveTo) {
+        setArrivedSquare(agentMoveTo);
+        setTimeout(() => setArrivedSquare(null), 700);
+      }
+    }
+
+    if (newData.status === 'finished' || newData.status === 'abandoned') {
+      setShowGameOver(true);
+    }
+
+    if (newData.companion_thought && newData.companion_thought !== prevThoughtValRef.current && newData.companion_thought.trim() !== '') {
+      prevThoughtValRef.current = newData.companion_thought;
+      setVisibleThought(newData.companion_thought);
+    }
+
+    // Fetch fresh state to get moves from separate table
+    fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
+      setGame(prev => {
+        const { board_theme, piece_style, ...safeNewData } = newData;
+        const updated = {
+          ...prev,
+          ...safeNewData,
+          agent_last_seen: freshData.agent_last_seen || newData.agent_last_seen || prev?.agent_last_seen,
+          agent_connected: freshData.agent_connected !== undefined
+            ? freshData.agent_connected
+            : (newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected)
+        };
+        if (freshData.move_history) updated.move_history = freshData.move_history;
+        if (freshData.chat_history) {
+          const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
+          const optimistic = (prev?.chat_history || []).filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
+          updated.chat_history = [...freshData.chat_history, ...optimistic];
+        }
+        return updated;
+      });
+    }).catch(() => {
+      setGame(prev => {
+        const { board_theme, piece_style, ...safeNewData } = newData;
+        const updated = {
+          ...prev,
+          ...safeNewData,
+          agent_last_seen: newData.agent_last_seen || prev?.agent_last_seen,
+          agent_connected: newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected
+        };
+        return updated;
+      });
+    });
+  }, [gameId, boardTheme, pieceStyle, soundEnabled, playSound, toast]);
+
   useEffect(() => {
     if (!gameId) {
       setNotFound(true);
@@ -923,228 +1245,7 @@ export default function Game() {
       return;
     }
 
-    const loadAndSubscribe = async () => {
-      // Clean up existing subscription first
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-
-      // Always load fresh state from API when (re)subscribing
-      try {
-        const res = await fetch(`/api/state?gameId=${gameId}`);
-        if (res.ok) {
-          const data = await res.json();
-          prevFenRef.current = data.fen;
-          lastKnownFenRef.current = data.fen;
-          setGame(prev => {
-            const { board_theme, piece_style, ...safeData } = data;
-            const updated = { ...safeData };
-            if (prev?.chat_history && data?.chat_history) {
-              const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
-              const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
-              updated.chat_history = [...data.chat_history, ...optimistic];
-            }
-            return updated;
-          });
-          setOptimisticFen(null);
-          
-          if (data.companion_thought && data.companion_thought.trim() !== '') {
-             prevThoughtValRef.current = data.companion_thought;
-             setVisibleThought(data.companion_thought);
-          }
-
-          // Restore chat messages
-          if (data.chat_history && Array.isArray(data.chat_history)) {
-            setChatMessages(data.chat_history);
-          }
-
-          // Restore last move highlight
-          if (data.last_move?.from && data.last_move?.to) {
-            setLastMoveHighlight({ 
-              from: data.last_move.from, 
-              to: data.last_move.to 
-            });
-          }
-
-          // Restore board theme from DB (agent may have changed it)
-          if (data.board_theme) {
-            setBoardTheme(data.board_theme);
-            localStorage.setItem('cwc_board_theme', data.board_theme);
-          }
-
-          // Restore piece style from DB
-          if (data.piece_style) {
-            setPieceTheme(data.piece_style);
-            localStorage.setItem('cwc_pieces', data.piece_style);
-          }
-
-          // Mark as loaded LAST
-          setIsLoaded(true);
-          setIsLoading(false);
-        } else if (res.status === 404) {
-          setNotFound(true);
-          setIsLoading(false);
-          setIsLoaded(true);
-        }
-      } catch (e) {
-        setIsLoading(false);
-        setIsLoaded(true);
-      }
-      setLoading(false);
-
-      // Create new subscription
-      const channel = supabase
-        .channel(`cwc-game-${gameId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'games',
-            filter: `id=eq.${gameId}`
-          },
-          (payload) => {
-            if (skipNextRealtimeRef.current) {
-              skipNextRealtimeRef.current = false;
-              return; // Skip this update — it's confirming our optimistic move
-            }
-            const newData = payload.new;
-            if (!newData) return;
-
-            if (newData.board_theme && newData.board_theme !== boardTheme) {
-              setBoardTheme(newData.board_theme);
-              localStorage.setItem('cwc_board_theme', newData.board_theme);
-              toast.success(`Agent changed board theme to ${newData.board_theme}!`);
-            }
-            if (newData.piece_style && newData.piece_style !== pieceTheme) {
-              setPieceTheme(newData.piece_style);
-              localStorage.setItem('cwc_pieces', newData.piece_style);
-            }
-
-            // If this Realtime event confirms our pending optimistic move, skip
-            if (pendingMoveFenRef.current && 
-                (newData.fen || newData.new?.fen) === pendingMoveFenRef.current) {
-              pendingMoveFenRef.current = null;
-              return; // ← DO NOT call setGame again. The board is already correct.
-            }
-            pendingMoveFenRef.current = null;
-
-            if (newData.status === 'finished' || newData.status === 'abandoned') {
-              setShowGameOver(true);
-            }
-
-            if (newData.companion_thought && newData.companion_thought !== prevThoughtValRef.current && newData.companion_thought.trim() !== '') {
-              prevThoughtValRef.current = newData.companion_thought;
-              setVisibleThought(newData.companion_thought);
-            }
-
-            // Detect if this is an agent move arriving
-            // Agent is Black ('b'). After agent moves, turn becomes 'w'
-            const fenChanged = newData.fen &&
-              newData.fen !== prevFenRef.current;
-            const isAgentMoveLanding = fenChanged &&
-              newData.turn === 'w' &&
-              optimisticFenRef.current === null;
-
-            if (isAgentMoveLanding) {
-              // This is a real agent move - show animation + sound
-              const toSquare = newData.last_move?.to ||
-                newData.last_move?.to_square;
-              if (toSquare) {
-                setArrivedSquare(toSquare);
-                setTimeout(() => setArrivedSquare(null), 600);
-              }
-              // Play appropriate sound
-              if (newData.in_check) {
-                playSound('check');
-              } else if (newData.last_move && (newData.last_move.captured || newData.last_move.san?.includes('x'))) {
-                playSound('capture');
-              } else {
-                playSound('move');
-              }
-            }
-
-            // Update FEN ref
-            if (newData.fen) {
-              prevFenRef.current = newData.fen;
-              lastKnownFenRef.current = newData.fen;
-            }
-
-            // Clear optimistic state
-            setOptimisticFen(null);
-            submittingRef.current = false;
-            setBoardLocked(false);
-
-            
-            // Update last move highlight and flash arrived square
-            if (fenChanged) {
-              const agentMoveTo = newData.last_move?.to || newData.last_move?.to_square;
-              setLastMoveHighlight({
-                from: newData.last_move?.from || newData.last_move?.from_square,
-                to: agentMoveTo
-              });
-              if (agentMoveTo) {
-                setArrivedSquare(agentMoveTo);
-                setTimeout(() => setArrivedSquare(null), 700);
-              }
-            }
-
-            // Fetch fresh state to get moves from separate table
-            fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
-              setGame(prev => {
-                const { board_theme, piece_style, ...safeNewData } = newData;
-                const updated = {
-                  ...prev,
-                  ...safeNewData,
-                  agent_last_seen: freshData.agent_last_seen || newData.agent_last_seen || prev?.agent_last_seen,
-                  agent_connected: freshData.agent_connected !== undefined
-                    ? freshData.agent_connected
-                    : (newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected)
-                };
-                if (freshData.move_history) updated.move_history = freshData.move_history;
-                if (freshData.chat_history) {
-                  const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
-                  const optimistic = (prev.chat_history || []).filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
-                  updated.chat_history = [...freshData.chat_history, ...optimistic];
-                }
-                return updated;
-              });
-            }).catch(() => {
-              setGame(prev => {
-                const { board_theme, piece_style, ...safeNewData } = newData;
-                const updated = {
-                  ...prev,
-                  ...safeNewData,
-                  agent_last_seen: newData.agent_last_seen || prev?.agent_last_seen,
-                  agent_connected: newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected
-                };
-                return updated;
-              });
-            });
-          }
-        );
-
-      channel.on('error', () => {
-        setTimeout(() => {
-          // Resubscribe
-          supabase.removeChannel(channel);
-          loadAndSubscribe();
-        }, 2000);
-      });
-
-      channel.subscribe((status) => {
-        console.log('[Realtime]', status);
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Wait 3 seconds then reconnect
-          setTimeout(() => loadAndSubscribe(), 3000);
-        }
-      });
-
-      channelRef.current = channel;
-    };
-
-    loadAndSubscribe();
+    loadGameData();
     
     const handleBeforeUnload = () => {
       getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId);
@@ -1153,7 +1254,7 @@ export default function Game() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         lastKnownFenRef.current = null;
-        loadAndSubscribe();
+        loadGameData();
       }
     };
     
@@ -1161,33 +1262,56 @@ export default function Game() {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibility);
       try { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
     };
-  }, [gameId, playSound]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameId, loadGameData]);
+
+  useEffect(() => {
+    if (!gameId) return;
+    
+    const channelName = `game-${gameId}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'games',
+        filter: `id=eq.${gameId}`
+      }, handleRealtimeUpdate)
+      .subscribe();
+    
+    // CRITICAL: cleanup function removes the subscription
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId, handleRealtimeUpdate]);
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
-    if (game?.status === 'active' && game?.turn === 'b') {
-      fallbackRef.current = setInterval(async () => {
+    if (fallbackRef.current) {
+      clearInterval(fallbackRef.current);
+      intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
+    }
+
+    if (game?.status === 'active' && game?.turn === 'b' && isTabActive) {
+      fallbackRef.current = addInterval(async () => {
         try {
+          if (skipNextRealtimeRef.current) return; // Skip if waiting for Realtime confirm
           const res = await fetch(`/api/state?gameId=${gameId}`);
           if (!res.ok) return;
           const fresh = await res.json();
+          if (!fresh || fresh.fen === game?.fen) return; // Skip if unchanged
           if (fresh.board_theme && fresh.board_theme !== boardTheme) {
             setBoardTheme(fresh.board_theme);
             localStorage.setItem('cwc_board_theme', fresh.board_theme);
           }
-          if (fresh.piece_style && fresh.piece_style !== pieceTheme) {
-            setPieceTheme(fresh.piece_style);
-            localStorage.setItem('cwc_pieces', fresh.piece_style);
+          if (fresh.piece_style && fresh.piece_style !== pieceStyle) {
+            setPieceStyle(fresh.piece_style);
+            localStorage.setItem('cwc_piece_style', fresh.piece_style);
           }
           // Only update if FEN actually changed
-          if (fresh.fen === game?.fen) return;
           if (fresh.fen !== lastKnownFenRef.current) {
             lastKnownFenRef.current = fresh.fen;
             setGame(prev => {
@@ -1201,18 +1325,45 @@ export default function Game() {
         } catch (e) {}
       }, 1000);
     } else {
-      if (fallbackRef.current) clearInterval(fallbackRef.current);
+      if (fallbackRef.current) {
+        clearInterval(fallbackRef.current);
+        intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
+        fallbackRef.current = null;
+      }
     }
     
     return () => {
-      if (fallbackRef.current) clearInterval(fallbackRef.current);
+      if (fallbackRef.current) {
+        clearInterval(fallbackRef.current);
+        intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
+      }
     };
-  }, [game?.turn, game?.status, game?.fen, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval]);
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
-    const onFocus = async () => {
-      if (game?.status !== 'active') return;
+    const handleVisibility = () => {
+      if (document.hidden) {
+        setIsTabActive(false);
+        // Pause: clear all intervals except heartbeat (which is in heartbeatRef.current)
+        intervalsRef.current.forEach(clearInterval);
+        intervalsRef.current = [];
+      } else {
+        setIsTabActive(true);
+        const fetchFreshGameState = async () => {
+          try {
+            const res = await fetch(`/api/state?gameId=${gameId}`);
+            if (!res.ok) return;
+            const fresh = await res.json();
+            setGame(prev => ({ ...prev, ...fresh }));
+          } catch (e) {}
+        };
+        fetchFreshGameState();
+      }
+    };
+    
+    const handleFocus = async () => {
+      if (document.hidden || game?.status !== 'active') return;
       try {
         const res = await fetch(`/api/state?gameId=${gameId}`);
         if (!res.ok) return;
@@ -1222,16 +1373,15 @@ export default function Game() {
         }
       } catch (e) {}
     };
-    const handleVisibilityFocus = () => {
-      if (!document.hidden) onFocus();
-    };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', handleVisibilityFocus);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+    
     return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
     };
-  }, [game?.status, game?.fen, gameId]);
+  }, [gameId, game?.status, game?.fen]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
@@ -1419,7 +1569,7 @@ export default function Game() {
     
     setGame(prev => ({
       ...prev,
-      chat_history: [...(prev?.chat_history || []), optimisticMsg]
+      chat_history: [...(prev?.chat_history || []).slice(-50), optimisticMsg]
     }));
 
     // Remove setLocalMessages or similar if not needed, as the prompt specifies setGame.
@@ -1519,93 +1669,103 @@ export default function Game() {
     neutral:  { label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
   }
 
-  const [capturedPieces, setCapturedPieces] = useState({ capturedByWhite: [], capturedByBlack: [] });
-
-  useEffect(() => {
-    let chess;
-    try {
-      chess = new Chess();
-    } catch(e) {
-      return;
-    }
-    
-    const capturedW = [];
-    const capturedB = [];
-    
-    for (const move of game?.move_history || []) {
-      try {
-        const result = chess.move(move);
-        if (result?.captured) {
-          if (result.color === 'w') {
-            capturedW.push(result.captured);
-          } else {
-            capturedB.push(result.captured);
-          }
-        }
-      } catch(e) {
-        // ignore
+  const getCapturedPieces = (fen) => {
+    if (!fen) return { white: [], black: [] };
+    const startPieces = {
+      P:8,N:2,B:2,R:2,Q:1,K:1,p:8,n:2,b:2,r:2,q:1,k:1
+    };
+    const currentPieces = {};
+    const piecePart = fen.split(' ')[0];
+    for (const ch of piecePart) {
+      if (/[pnbrqkPNBRQK]/.test(ch)) {
+        currentPieces[ch] = (currentPieces[ch] || 0) + 1;
       }
     }
-    setCapturedPieces({ capturedByWhite: capturedW, capturedByBlack: capturedB });
-  }, [game?.move_history]);
-
-  const { capturedByWhite, capturedByBlack } = capturedPieces;
-
-  const blackPieceMap = { p:'♟', n:'♞', b:'♝', r:'♜', q:'♛' } // black pieces (captured by white)
-  const whitePieceMap = { p:'♙', n:'♘', b:'♗', r:'♖', q:'♕' } // white pieces (captured by black)
-
-  const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-  const getScore = (pieces) => pieces.reduce((sum, p) => sum + (pieceValues[p] || 0), 0);
-  const whiteScore = getScore(capturedByWhite); // White captured black pieces
-  const blackScore = getScore(capturedByBlack); // Black captured white pieces
-
-  const youCaptured = game?.player_color === 'w' ? capturedByWhite : capturedByBlack;
-  const agentCaptured = game?.player_color === 'w' ? capturedByBlack : capturedByWhite;
-  
-  const youAdvantage = game?.player_color === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
-  const agentAdvantage = game?.player_color === 'w' ? (blackScore - whiteScore) : (whiteScore - blackScore);
-
-  const sortCapturedPieces = (pieces) => {
-    const valueOrder = { q: 1, r: 2, b: 3, n: 4, p: 5 }; // Q, R, B, N, P
-    return [...pieces].sort((a, b) => (valueOrder[a] || 99) - (valueOrder[b] || 99));
+    const capturedByWhite = []; // Black pieces that White captured
+    const capturedByBlack = []; // White pieces that Black captured
+    
+    for (const [piece, start] of Object.entries(startPieces)) {
+      const current = currentPieces[piece] || 0;
+      const captured = start - current;
+      for (let i = 0; i < captured; i++) {
+        if (piece === piece.toLowerCase()) {
+          // Black piece captured by White
+          capturedByWhite.push('b' + piece.toUpperCase());
+        } else {
+          // White piece captured by Black
+          capturedByBlack.push('w' + piece);
+        }
+      }
+    }
+    return { white: capturedByWhite, black: capturedByBlack };
   };
 
-  const renderCapturedPieces = (capturedList, isOpponentPieces, advantage) => {
-    if ((!capturedList || capturedList.length === 0) && advantage <= 0) {
-      return null;
-    }
+  const captured = getCapturedPieces(game?.fen);
+  const whiteScore = captured.white.reduce((sum, p) => sum + ({P:1,N:3,B:3,R:5,Q:9}[p[1]] || 0), 0);
+  const blackScore = captured.black.reduce((sum, p) => sum + ({P:1,N:3,B:3,R:5,Q:9}[p[1]] || 0), 0);
+  const youAdvantage = game?.player_color === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
 
-    const sorted = sortCapturedPieces(capturedList || []);
-    const capturedColor = isOpponentPieces 
-      ? (game?.player_color === 'w' ? 'b' : 'w') 
-      : (game?.player_color === 'w' ? 'w' : 'b');
-
+  const CapturedPiecesRow = ({ pieces, side }) => {
+    const SETS = {
+      neo: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150',
+      ocean: 'https://images.chesscomfiles.com/chess-themes/pieces/ocean/150',
+      tournament: 'https://images.chesscomfiles.com/chess-themes/pieces/tournament/150',
+      standard: 'https://lichess1.org/assets/piece/cburnett'
+    };
+    const EXTS = { neo:'png', ocean:'png', tournament:'png', standard:'svg' };
+    const FILES_CC = { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
+                       bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' };
+    const FILES_LI = { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
+                       bP:'bP',bN:'bN',bB:'bB',bR:'bR',bQ:'bQ',bK:'bK' };
+    
+    const base = SETS[pieceStyle] || SETS.neo;
+    const ext  = EXTS[pieceStyle] || 'png';
+    const files = pieceStyle === 'standard' ? FILES_LI : FILES_CC;
+    
+    const sorted = [...pieces].sort((a,b) => {
+      const order = {Q:0,R:1,B:2,N:3,P:4,q:0,r:1,b:2,n:3,p:4};
+      return (order[a[1]]||5) - (order[b[1]]||5);
+    });
+    
+    const materialValue = pieces.reduce((sum, p) => {
+      const vals = {P:1,N:3,B:3,R:5,Q:9,p:1,n:3,b:3,r:5,q:9};
+      return sum + (vals[p[1]] || 0);
+    }, 0);
+    
+    if (sorted.length === 0) return <div style={{height:'20px'}} />;
+    
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.02)', padding: '3px 6px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {sorted.map((p, i) => {
-            const pieceKey = `${capturedColor}${p.toUpperCase()}`;
-            return (
-              <div 
-                key={i} 
-                style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  marginLeft: i > 0 ? '-4px' : '0', 
-                  zIndex: i,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ChessPiece pieceKey={pieceKey} theme={pieceTheme} className="w-[16px] h-[16px]" />
-              </div>
-            );
-          })}
-        </div>
-        {advantage > 0 && (
-          <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: '800', fontFamily: 'monospace', marginLeft: '1px' }}>
-            +{advantage}
+      <div style={{
+        display:'flex', alignItems:'center', gap:'2px',
+        flexWrap:'wrap', padding:'2px 0', minHeight:'22px'
+      }}>
+        {sorted.map((pieceKey, i) => {
+          const filename = files[pieceKey];
+          return (
+            <img
+              key={i}
+              src={`${base}/${filename}.${ext}`}
+              alt={pieceKey}
+              style={{
+                width:'18px', height:'18px',
+                objectFit:'contain',
+                marginLeft: i > 0 ? '-4px' : '0',
+                opacity: 0.85,
+              }}
+              onError={e => {
+                e.target.onerror = null;
+                e.target.src = `https://lichess1.org/assets/piece/cburnett/${
+                  pieceKey[0]==='w'?'w':'b'}${pieceKey[1]}.svg`;
+              }}
+            />
+          );
+        })}
+        {materialValue > 0 && (
+          <span style={{
+            fontSize:'11px', fontFamily:'Inter', fontWeight:600,
+            color:'rgba(242,242,242,0.5)', marginLeft:'4px'
+          }}>
+            +{materialValue}
           </span>
         )}
       </div>
@@ -1645,7 +1805,7 @@ export default function Game() {
 
   useEffect(() => {
     if (game?.chat_history && Array.isArray(game.chat_history)) {
-      setChatMessages(game.chat_history);
+      setChatMessages(game.chat_history.slice(-50));
     }
   }, [game?.chat_history]);
 
@@ -2168,7 +2328,6 @@ export default function Game() {
                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
                 )}
               </div>
-              {renderCapturedPieces(agentCaptured, false, agentAdvantage)}
             </div>
                 
             
@@ -2221,19 +2380,25 @@ export default function Game() {
                             animation: 'pulse 1.5s ease infinite'
                           }} />
                         ) : (
-                          <ChessBoard 
-                            fen={optimisticFen || game?.fen}
-                            turn={game?.turn}
-                            legalMoves={legalMovesArray}
-                            lastMove={game?.last_move}
-                            inCheck={game?.in_check}
-                            checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
-                            boardTheme={boardTheme}
-                            pieceStyle={pieceTheme}
-                            playerColor={game?.player_color || 'w'}
-                            gameStatus={game?.status}
-                            onMove={handlePlayerMove}
-                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
+                            <CapturedPiecesRow pieces={captured.white} side="top" />
+                            <div style={{ flex: 1, minHeight: 0 }}>
+                              <ChessBoard 
+                                fen={optimisticFen || game?.fen}
+                                turn={game?.turn}
+                                legalMoves={legalMovesArray}
+                                lastMove={game?.last_move}
+                                inCheck={game?.in_check}
+                                checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
+                                boardTheme={boardTheme}
+                                pieceStyle={pieceStyle}
+                                playerColor={game?.player_color || 'w'}
+                                gameStatus={game?.status}
+                                onMove={handlePlayerMove}
+                              />
+                            </div>
+                            <CapturedPiecesRow pieces={captured.black} side="bottom" />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -2265,8 +2430,6 @@ export default function Game() {
                   {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (isMyTurn ? 'your turn' : 'waiting')}
                 </div>
               </div>
-              
-              {renderCapturedPieces(youCaptured, true, youAdvantage)}
             </div>
             
           </div>
@@ -2476,7 +2639,6 @@ export default function Game() {
                <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
           </div>
-          {renderCapturedPieces(agentCaptured, false, agentAdvantage)}
         </div>
 
         {/* B) CHESS BOARD */}
@@ -2509,20 +2671,26 @@ export default function Game() {
               animation: 'pulse 1.3s ease infinite'
             }} />
           ) : (
-            <ChessBoard 
-              fen={optimisticFen || game?.fen} 
-              showCoordinates={false}
-              turn={game?.turn}
-              legalMoves={legalMovesArray}
-              lastMove={game?.last_move}
-              inCheck={game?.in_check}
-              checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
-              boardTheme={boardTheme}
-              pieceStyle={pieceTheme}
-              playerColor={game?.player_color || 'w'}
-              gameStatus={game?.status}
-              onMove={handlePlayerMove}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+              <CapturedPiecesRow pieces={captured.white} side="top" />
+              <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
+                <ChessBoard 
+                  fen={optimisticFen || game?.fen} 
+                  showCoordinates={false}
+                  turn={game?.turn}
+                  legalMoves={legalMovesArray}
+                  lastMove={game?.last_move}
+                  inCheck={game?.in_check}
+                  checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
+                  boardTheme={boardTheme}
+                  pieceStyle={pieceStyle}
+                  playerColor={game?.player_color || 'w'}
+                  gameStatus={game?.status}
+                  onMove={handlePlayerMove}
+                />
+              </div>
+              <CapturedPiecesRow pieces={captured.black} side="bottom" />
+            </div>
           )}
           </div>
           </div>
@@ -2551,7 +2719,6 @@ export default function Game() {
               {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
             </span>
           </div>
-          {renderCapturedPieces(youCaptured, true, youAdvantage)}
         </div>
             
 
@@ -2909,12 +3076,12 @@ export default function Game() {
                     data-testid={`piece-button-${piece.id}`}
                     key={piece.id}
                     onClick={() => {
-                      setPieceTheme(piece.id);
-                      localStorage.setItem('cwc_pieces', piece.id);
+                      setPieceStyle(piece.id);
+                      localStorage.setItem('cwc_piece_style', piece.id);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
-                          'Content-Type': 'application/json',
+                        'Content-Type': 'application/json',
                           'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                         }, 
                         body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
@@ -2927,14 +3094,14 @@ export default function Game() {
                       gap: '4px',
                       padding: '8px',
                       borderRadius: '8px',
-                      border: pieceTheme === piece.id ? '1px solid #e63946' : '1px solid #1a1a1a',
-                      background: pieceTheme === piece.id ? 'rgba(230,57,70,0.1)' : '#111',
+                      border: pieceStyle === piece.id ? '1px solid #e63946' : '1px solid #1a1a1a',
+                      background: pieceStyle === piece.id ? 'rgba(230,57,70,0.1)' : '#111',
                       cursor: 'pointer',
                       outline: 'none'
                     }}
                   >
                     <div style={{ width: '24px', height: '24px' }}>{piece.icon}</div>
-                    <span style={{ fontSize: '11px', fontWeight: 500, color: pieceTheme === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: pieceStyle === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
                   </button>
                 ))}
               </div>
