@@ -1,493 +1,139 @@
-'use client';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Chessboard } from 'react-chessboard';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Chess } from 'chess.js';
-import { ChessPiece } from './PieceSVGs';
+const BOARD_THEMES = {
+  green:  { light: '#EEEED2', dark: '#769656' },
+  brown:  { light: '#F0D9B5', dark: '#B58863' },
+  slate:  { light: '#DEE3E6', dark: '#4C7B9B' },
+  navy:   { light: '#C8D8E8', dark: '#5B84A8' },
+  red:    { light: '#EDD5B3', dark: '#C45A41' },
+  forest: { light: '#F5F5F0', dark: '#2E6B34' },
+};
 
-function ChessBoard({ fen, onMove, isMyTurn, lastMove, moveHistory, showCoordinates = true, interactive = true, boardTheme = 'green', pieceTheme = 'merida', onIllegalMove, onCapture, playerColor = 'w', arrivedSquare }) {
-  const [chess, setChess] = useState(() => {
-    try {
-      return new Chess(fen);
-    } catch(e) {
-      return new Chess();
-    }
-  });
-
+export default function ChessBoard({
+  fen,
+  turn,
+  legalMoves = [],
+  lastMove = null,
+  inCheck = false,
+  checkedKingSquare = null,
+  boardTheme = 'green',
+  pieceStyle = 'standard',
+  playerColor = 'w',
+  gameStatus = 'waiting',
+  onMove,
+  disabled = false,
+}) {
   const [selectedSquare, setSelectedSquare] = useState(null);
-  const [legalMoves, setLegalMoves] = useState([]);
-  const [promotionMove, setPromotionMove] = useState(null);
-  const [draggedPiece, setDraggedPiece] = useState(null);
-  
-  const [pieces, setPieces] = useState([]);
-  const prevMoveHistoryLength = useRef(0);
-  const [animatedSquare, setAnimatedSquare] = useState(null);
-  const prevBoardRef = useRef(null);
+  const [optionSquares, setOptionSquares] = useState({});
+  const lastAppliedMoveRef = useRef(null);
 
-  useEffect(() => {
-    let newChess;
-    try {
-      newChess = new Chess(fen);
-    } catch(e) {
-      newChess = new Chess();
-    }
-    
-    setChess(newChess);
-    setSelectedSquare(null);
-    setLegalMoves([]);
-    setPromotionMove(null);
-    
-    // Generate stable pieces for animation
-    const initialChess = new Chess();
-    const currentPieces = [];
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
-    
-    for (let r of ranks) {
-      for (let f of files) {
-        const sq = f + r;
-        const p = initialChess.get(sq);
-        if (p) {
-          currentPieces.push({ id: `${p.color}${p.type}-${sq}`, type: p.type, color: p.color, square: sq });
-        }
-      }
-    }
-    
-    let lastMoveWasCapture = false;
+  const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
+  const orientation = playerColor === 'b' ? 'black' : 'white';
 
-    if (moveHistory && moveHistory.length > 0) {
-      for (let i = 0; i < moveHistory.length; i++) {
-        const moveInput = moveHistory[i];
-        let moveObj;
-        try {
-          moveObj = initialChess.move(typeof moveInput === 'string' ? moveInput : (moveInput.san || moveInput));
-        } catch (e) {
-          console.error("Error replaying move:", moveInput, e);
-          continue;
-        }
-        if (!moveObj) continue;
+  // Build legal move map: from square → [to squares]
+  const legalMoveMap = useMemo(() => {
+    const map = {};
+    (legalMoves || []).forEach(move => {
+      const from = move.slice(0, 2);
+      const to   = move.slice(2, 4);
+      if (!map[from]) map[from] = [];
+      map[from].push(to);
+    });
+    return map;
+  }, [legalMoves]);
 
-        // Handle capture
-        const isEnPassant = moveObj.flags.includes('e');
-        let capturedSquare = moveObj.to;
-        if (isEnPassant) {
-          capturedSquare = moveObj.to[0] + moveObj.from[1];
-        }
-        
-        // Remove captured piece if any
-        const capturedIndex = currentPieces.findIndex(p => p.square === capturedSquare && p.square !== moveObj.from);
-        if (capturedIndex !== -1) {
-          currentPieces[capturedIndex].captured = true;
-          if (i === moveHistory.length - 1) {
-            lastMoveWasCapture = true;
-          }
-        }
-        
-        // Update moved piece
-        const pieceIndex = currentPieces.findIndex(p => p.square === moveObj.from);
-        if (pieceIndex !== -1) {
-          currentPieces[pieceIndex].square = moveObj.to;
-          if (i === moveHistory.length - 1) {
-            
-          }
-          
-          // Handle promotion
-          if (moveObj.promotion) {
-            currentPieces[pieceIndex].type = moveObj.promotion;
-          }
-          
-          // Handle castling
-          if (moveObj.flags.includes('k') || moveObj.flags.includes('q')) {
-            let rookFrom, rookTo;
-            if (moveObj.to === 'g1') { rookFrom = 'h1'; rookTo = 'f1'; }
-            else if (moveObj.to === 'c1') { rookFrom = 'a1'; rookTo = 'd1'; }
-            else if (moveObj.to === 'g8') { rookFrom = 'h8'; rookTo = 'f8'; }
-            else if (moveObj.to === 'c8') { rookFrom = 'a8'; rookTo = 'd8'; }
-            
-            const rookIndex = currentPieces.findIndex(p => p.square === rookFrom);
-            if (rookIndex !== -1) {
-              currentPieces[rookIndex].square = rookTo;
-            }
-          }
-        }
-      }
-      
-      if (lastMoveWasCapture && moveHistory.length > prevMoveHistoryLength.current) {
-        if (onCapture) onCapture();
-      }
-      prevMoveHistoryLength.current = moveHistory.length;
-      
-      // Check if moveHistory matches fen to prevent flashing during split-second Realtime sync
-      const historyFen = initialChess.fen().split(' ')[0];
-      const targetFen = newChess.fen().split(' ')[0];
-      if (historyFen !== targetFen) {
-        console.warn("historyFen and targetFen mismatch", historyFen, targetFen);
-        // Fallback to customPieces but try to preserve IDs from currentPieces
-        const customPieces = [];
-        const availableCurrentPieces = [...currentPieces];
-        
-        for (let r of ranks) {
-          for (let f of files) {
-            const sq = f + r;
-            const p = newChess.get(sq);
-            if (p) {
-              // Find a matching piece in currentPieces to preserve its ID
-              // First try to find a piece of the same type/color at the EXACT SAME square
-              let matchingPieceIndex = availableCurrentPieces.findIndex(cp => cp.type === p.type && cp.color === p.color && cp.square === sq && !cp.captured);
-              
-              // If not found, find ANY piece of the same type/color
-              if (matchingPieceIndex === -1) {
-                matchingPieceIndex = availableCurrentPieces.findIndex(cp => cp.type === p.type && cp.color === p.color && !cp.captured);
-              }
-              
-              let id;
-              if (matchingPieceIndex !== -1) {
-                id = availableCurrentPieces[matchingPieceIndex].id;
-                availableCurrentPieces.splice(matchingPieceIndex, 1);
-              } else {
-                id = `${p.color}${p.type}-${sq}-${Date.now()}`;
-              }
-              customPieces.push({ id, type: p.type, color: p.color, square: sq });
-            }
-          }
-        }
-        setPieces(customPieces);
-        return;
-      }
-    } else {
-      // If no move history (e.g. custom FEN), just use the current board state
-      const customPieces = [];
-      for (let r of ranks) {
-        for (let f of files) {
-          const sq = f + r;
-          const p = newChess.get(sq);
-          if (p) {
-            customPieces.push({ id: `${p.color}${p.type}-${sq}`, type: p.type, color: p.color, square: sq });
-          }
-        }
-      }
-      setPieces(customPieces);
-      return;
-    }
-    
-    setPieces(currentPieces);
-  }, [fen, moveHistory, onCapture]);
+  // Custom square styles: last move, legal dots, check glow
+  const customSquareStyles = {};
 
-  const pieceMap = {
-    wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
-    bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟'
-  };
-
-  const files = playerColor === 'b' ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  const ranks = playerColor === 'b' ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['8', '7', '6', '5', '4', '3', '2', '1'];
-
-  const handleSquareClick = (row, col, sourceSq = null) => {
-    if (!interactive || !isMyTurn) return;
-
-    const square = files[col] + ranks[row];
-    const piece = chess.get(square);
-
-    if (sourceSq) {
-      const movesToSquare = chess.moves({ square: sourceSq, verbose: true }).filter(m => m.to === square);
-      if (movesToSquare.length > 0) {
-        if (movesToSquare[0].promotion) {
-          setPromotionMove({ from: sourceSq, to: square });
-        } else {
-          onMove(sourceSq, square);
-          setSelectedSquare(null);
-          setLegalMoves([]);
-        }
-      }
-      return;
-    }
-    
-    if (!selectedSquare) {
-      if (piece && piece.color === playerColor) {
-        setSelectedSquare(square);
-        setLegalMoves(chess.moves({ square, verbose: true }));
-      }
-    } else {
-      const movesToSquare = legalMoves.filter(m => m.to === square);
-      if (movesToSquare.length > 0) {
-        if (movesToSquare[0].promotion) {
-          setPromotionMove({ from: selectedSquare, to: square });
-        } else {
-          onMove(selectedSquare, square);
-          setSelectedSquare(null);
-          setLegalMoves([]);
-        }
-      } else if (piece && piece.color === playerColor) {
-        setSelectedSquare(square);
-        setLegalMoves(chess.moves({ square, verbose: true }));
-      } else {
-        if (onIllegalMove) onIllegalMove();
-        setSelectedSquare(null);
-        setLegalMoves([]);
-      }
-    }
-  };
-
-  const isLight = (row, col) => (row + col) % 2 === 0;
-  
-  const isLastMoveSquare = (sq) => {
-    if (!lastMove) return false;
-    let lastMoveFrom, lastMoveTo;
-    if (typeof lastMove === 'string') {
-        lastMoveFrom = lastMove.substring(0, 2);
-        lastMoveTo = lastMove.substring(2, 4);
-    } else {
-        lastMoveFrom = lastMove.from;
-        lastMoveTo = lastMove.to;
-    }
-    if (!lastMoveFrom || !lastMoveTo) return false;
-    return sq === lastMoveFrom || sq === lastMoveTo;
-  };
-  
-  const isLegalDestination = (sq) => legalMoves.some(m => m.to === sq);
-  const isCapture = (sq) => legalMoves.some(m => m.to === sq && m.captured);
-  const isKingInCheck = (sq, piece) => piece && piece.type === 'k' && piece.color === chess.turn() && (chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false);
-
-  const prevTurnRef = useRef(null);
-
-  
-  
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.id = 'piece-arrive';
-    if (!document.getElementById('piece-arrive')) {
-      style.textContent = `
-        @keyframes pieceArrive {
-          from { transform: scale(0.85) translateZ(0); opacity: 0.7; }
-          to   { transform: scale(1) translateZ(0); opacity: 1; }
-        }
-        @-webkit-keyframes pieceArrive {
-          from { -webkit-transform: scale(0.85) translateZ(0); opacity: 0.7; }
-          to   { -webkit-transform: scale(1) translateZ(0); opacity: 1; }
-        }
-        @keyframes pieceSlide {
-          from { transform: scale(0.85); opacity: 0.7; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @-webkit-keyframes pieceSlide {
-          from { -webkit-transform: scale(0.85); opacity: 0.7; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
-
-
-  useEffect(() => {
-    const currentTurn = chess.turn();
-    prevTurnRef.current = currentTurn;
-  }, [chess, lastMove]);
-
-  useEffect(() => {
-    if (!isMyTurn) {
-      setSelectedSquare(null);
-      setLegalMoves([]);
-      setDraggedPiece(null);
-    }
-  }, [isMyTurn]);
-
-  useEffect(() => {
-    if (prevBoardRef.current && prevBoardRef.current !== fen) {
-      try {
-        const oldChess = new Chess(prevBoardRef.current);
-        const newChess = new Chess(fen);
-        
-        let movedTo = null;
-        const filesList = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const ranksList = ['1', '2', '3', '4', '5', '6', '7', '8'];
-        
-        for (const file of filesList) {
-          for (const rank of ranksList) {
-            const sq = file + rank;
-            const oldP = oldChess.get(sq);
-            const newP = newChess.get(sq);
-            
-            if (newP && (!oldP || oldP.type !== newP.type || oldP.color !== newP.color)) {
-              movedTo = sq;
-              break;
-            }
-          }
-          if (movedTo) break;
-        }
-        
-        if (movedTo) {
-          setAnimatedSquare(movedTo);
-          const timer = setTimeout(() => {
-            setAnimatedSquare(null);
-          }, 200);
-          return () => clearTimeout(timer);
-        }
-      } catch (err) {
-        console.error("Error calculating animation square:", err);
-      }
-    }
-    prevBoardRef.current = fen;
-  }, [fen]);
-
-  const themes = {
-    green: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/green.png', color: '#769656' },
-    brown: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/brown.png', color: '#b58863' },
-    blue: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/blue.png', color: '#4b7399' },
-    red: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/red.png', color: '#b85b56' },
-    icy_sea: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/icy_sea.png', color: '#8ca2ac' },
-    tournament: { url: 'https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/boards/tournament.png', color: '#eedcbf' },
-  };
-
-  const currentThemeUrl = themes[boardTheme]?.url || themes.green.url;
-  const currentThemeColor = themes[boardTheme]?.color || '#769656';
-
-  
-  const renderPiece = (piece, sq) => {
-    if (!piece) return null;
-    const pieceKey = `${piece.color}${piece.type.toUpperCase()}`;
-    const isDraggable = interactive && isMyTurn && piece.color === playerColor;
-    
-    const isAnimatedSuffix = animatedSquare === sq || arrivedSquare === sq;
-    const animStyle = isAnimatedSuffix ? 'pieceSlide 0.18s ease-out forwards' : 'none';
-
-    return (
-      <div 
-        draggable={isDraggable}
-        onDragStart={(e) => {
-          setDraggedPiece({ sq, piece });
-          e.dataTransfer.setData('text/plain', sq);
-          setTimeout(() => {
-            if (e.target) e.target.style.opacity = '0.4';
-          }, 0);
-        }}
-        onDragEnd={(e) => {
-          setDraggedPiece(null);
-          if (e.target) e.target.style.opacity = '1';
-        }}
-        className="relative z-10 w-[85%] h-[85%] flex items-center justify-center select-none"
-        style={{ 
-          cursor: isDraggable ? 'grab' : 'default',
-          animation: animStyle,
-          WebkitAnimation: animStyle,
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)'
-        }} 
-      >
-        <ChessPiece pieceKey={pieceKey} theme={pieceTheme} className="w-[85%] h-[85%] select-none pointer-events-none" />
-      </div>
-    );
-  };
-
-
-  if (!chess) {
-    return (
-      <div className="w-full h-full aspect-square flex items-center justify-center bg-neutral-800" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundColor: currentThemeColor, backgroundSize: '100% 100%' }}>
-        <span className="font-mono text-sm opacity-50 text-white bg-black/50 px-3 py-1 rounded">Initializing...</span>
-      </div>
-    );
+  // Last move highlight
+  if (lastMove) {
+    const lastMoveStyle = { backgroundColor: 'rgba(255, 215, 0, 0.45)' };
+    if (lastMove.from) customSquareStyles[lastMove.from] = lastMoveStyle;
+    if (lastMove.to)   customSquareStyles[lastMove.to]   = lastMoveStyle;
   }
 
+  // Legal move dots for selected square
+  if (selectedSquare && legalMoveMap[selectedSquare]) {
+    customSquareStyles[selectedSquare] = {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    };
+    legalMoveMap[selectedSquare].forEach(sq => {
+      customSquareStyles[sq] = {
+        background:
+          'radial-gradient(circle, rgba(0,0,0,0.25) 25%, transparent 27%)',
+        cursor: 'pointer',
+      };
+    });
+  }
+
+  // Check glow on king square
+  if (inCheck && checkedKingSquare) {
+    customSquareStyles[checkedKingSquare] = {
+      background:
+        'radial-gradient(ellipse at center, rgba(220,30,30,0.85) 0%, rgba(220,30,30,0.4) 40%, transparent 70%)',
+    };
+  }
+
+  const handleSquareClick = useCallback((square) => {
+    if (disabled || gameStatus !== 'active' || turn !== playerColor) return;
+
+    // If a square is already selected
+    if (selectedSquare) {
+      const moves = legalMoveMap[selectedSquare] || [];
+      if (moves.includes(square)) {
+        // Valid move — execute it
+        const moveStr = selectedSquare + square;
+        // Handle pawn promotion
+        const isPromotion =
+          fen.includes('P') &&
+          selectedSquare[1] === '7' && square[1] === '8' ||
+          fen.includes('p') &&
+          selectedSquare[1] === '2' && square[1] === '1';
+        onMove?.(selectedSquare, square, isPromotion ? 'q' : undefined);
+        setSelectedSquare(null);
+        setOptionSquares({});
+        return;
+      }
+    }
+
+    // Select a new piece if it's ours
+    if (legalMoveMap[square]) {
+      setSelectedSquare(square);
+    } else {
+      setSelectedSquare(null);
+    }
+  }, [selectedSquare, legalMoveMap, disabled, gameStatus, turn, playerColor, fen, onMove]);
+
+  const handlePieceDrop = useCallback((sourceSquare, targetSquare) => {
+    if (disabled || gameStatus !== 'active' || turn !== playerColor) return false;
+    const moves = legalMoveMap[sourceSquare] || [];
+    if (!moves.includes(targetSquare)) return false;
+    onMove?.(sourceSquare, targetSquare);
+    setSelectedSquare(null);
+    return true;
+  }, [legalMoveMap, disabled, gameStatus, turn, playerColor, onMove]);
+
   return (
-    <div data-testid="chess-board" className={`flex flex-col select-none overflow-hidden ${!interactive || !isMyTurn ? 'opacity-90' : 'opacity-100'}`} style={{ width: '100%', aspectRatio: '1/1', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 4px 16px rgba(0,0,0,0.6)' }}>
-      <div className="relative w-full h-full aspect-square" style={{ backgroundImage: `url(${currentThemeUrl})`, backgroundColor: currentThemeColor, backgroundSize: '100% 100%' }}>
-        <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
-          {ranks.map((rank, row) =>
-          files.map((file, col) => {
-            const sq = file + rank;
-            const piece = chess.get(sq);
-            const isSelected = selectedSquare === sq;
-            const isLast = isLastMoveSquare(sq);
-            const isLegal = isLegalDestination(sq);
-            const isCap = isCapture(sq);
-            const isCheck = isKingInCheck(sq, piece);
-
-            return (
-              <div
-                key={sq}
-                data-testid={`square-${sq}`}
-                onClick={() => handleSquareClick(row, col)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedPiece) {
-                    handleSquareClick(row, col, draggedPiece.sq);
-                  }
-                }}
-                className="relative w-full h-full flex items-center justify-center cursor-pointer hover:bg-white/50 transition-colors"
-                style={{ backgroundColor: 'transparent' }}
-                aria-label={`${sq}, ${piece ? (piece.color === 'w' ? 'white ' : 'black ') + piece.type : 'empty'}`}
-              >
-                {/* Overlays */}
-                {isSelected && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255, 255, 0, 0.5)' }} />}
-                {!isSelected && isLast && <div className="absolute inset-0 z-0" style={{ backgroundColor: 'rgba(255,255,0,0.4)' }} />}
-                {isCheck && <div className="absolute inset-0 z-0" style={{ background: 'radial-gradient(circle at center, rgba(230,57,70,0.85) 0%, rgba(230,57,70,0.3) 60%, transparent 100%)' }} />}
-                {arrivedSquare === sq && <div className="absolute inset-0" style={{ animation: 'agentMoveFlash 0.7s ease-out forwards', WebkitAnimation: 'agentMoveFlash 0.7s ease-out forwards', pointerEvents: 'none', willChange: 'background-color', zIndex: 2 }} />}
-                
-                {/* Legal move indicators */}
-                {isLegal && !isCap && <div className="absolute w-[28%] h-[28%] rounded-full z-0" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />}
-                {isLegal && isCap && <div className="absolute inset-0 border-[4px] opacity-80 z-0" style={{ borderColor: 'rgba(0,0,0,0.2)' }} />}
-
-                {/* Coordinates */}
-                {showCoordinates && col === 0 && (
-                  <span className="absolute top-0.5 left-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
-                    {rank}
-                  </span>
-                )}
-                {showCoordinates && row === 7 && (
-                  <span className="absolute bottom-0 right-1 text-[10px] font-bold z-0 font-mono" style={{ color: isLight(row, col) ? 'rgba(100,140,80,0.8)' : 'rgba(220,220,180,0.8)' }}>
-                    {file}
-                  </span>
-                )}
-              
-                {renderPiece(piece, sq)}
-              </div>
-            );
-          })
-        )}
-        </div>
-
-        {promotionMove && (
-          <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--color-bg-surface)] p-4 rounded-xl flex gap-4 border border-[var(--color-border-subtle)] shadow-2xl">
-              {['q', 'r', 'b', 'n'].map(p => (
-                <button 
-                  key={p} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMove(promotionMove.from, promotionMove.to, p);
-                    setPromotionMove(null);
-                    setSelectedSquare(null);
-                    setLegalMoves([]);
-                  }}
-                  className="w-14 h-14 sm:w-20 sm:h-20 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] rounded-lg flex items-center justify-center border border-[var(--color-border-subtle)] hover:border-[var(--color-red-primary)] transition-all transform hover:scale-105"
-                >
-                  {renderPiece({ type: p, color: chess.turn() })}
-                </button>
-              ))}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPromotionMove(null);
-                }}
-                className="w-14 h-14 sm:w-20 sm:h-20 bg-[var(--color-red-primary)]/10 hover:bg-[var(--color-red-primary)]/20 text-[var(--color-red-primary)] rounded-lg flex items-center justify-center text-xl font-bold border border-[var(--color-red-primary)]/30 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+    <div style={{ width: '100%', userSelect: 'none' }}>
+      <Chessboard
+        id="cwc-board"
+        position={fen || 'start'}
+        onSquareClick={handleSquareClick}
+        onPieceDrop={handlePieceDrop}
+        boardOrientation={orientation}
+        customSquareStyles={customSquareStyles}
+        customLightSquareStyle={{ backgroundColor: theme.light }}
+        customDarkSquareStyle={{ backgroundColor: theme.dark }}
+        animationDuration={180}
+        arePiecesDraggable={
+          gameStatus === 'active' && turn === playerColor && !disabled
+        }
+        boardStyle={{
+          borderRadius: '4px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}
+      />
     </div>
   );
 }
-
-export default React.memo(ChessBoard, (prev, next) => {
-  return prev.fen === next.fen &&
-    prev.selectedSquare === next.selectedSquare &&
-    JSON.stringify(prev.legalMoves) === JSON.stringify(next.legalMoves) &&
-    JSON.stringify(prev.lastMove) === JSON.stringify(next.lastMove) &&
-    prev.boardTheme === next.boardTheme &&
-    prev.pieceTheme === next.pieceTheme &&
-    prev.interactive === next.interactive &&
-    prev.isMyTurn === next.isMyTurn &&
-    prev.arrivedSquare === next.arrivedSquare;
-});
