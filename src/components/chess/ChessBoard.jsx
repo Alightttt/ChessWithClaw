@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
+import { PIECE_COMPONENTS } from './ChessPieces';
 
 const BOARD_THEMES = {
   green:  { light: '#EEEED2', dark: '#769656' },
@@ -76,7 +77,7 @@ export default function ChessBoard({
   }
 
   const handleSquareClick = useCallback((square) => {
-    if (disabled || gameStatus !== 'active' || turn !== playerColor) return;
+    if (disabled || (gameStatus !== 'active' && gameStatus !== 'waiting') || turn !== playerColor) return;
 
     // If a square is already selected
     if (selectedSquare) {
@@ -106,7 +107,7 @@ export default function ChessBoard({
   }, [selectedSquare, legalMoveMap, disabled, gameStatus, turn, playerColor, fen, onMove]);
 
   const handlePieceDrop = useCallback((sourceSquare, targetSquare) => {
-    if (disabled || gameStatus !== 'active' || turn !== playerColor) return false;
+    if (disabled || (gameStatus !== 'active' && gameStatus !== 'waiting') || turn !== playerColor) return false;
     const moves = legalMoveMap[sourceSquare] || [];
     if (!moves.includes(targetSquare)) return false;
     onMove?.(sourceSquare, targetSquare);
@@ -127,8 +128,18 @@ export default function ChessBoard({
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
         animationDuration={180}
         arePiecesDraggable={
-          gameStatus === 'active' && turn === playerColor && !disabled
+          (gameStatus === 'active' || gameStatus === 'waiting') && turn === playerColor && !disabled
         }
+        customPieces={Object.fromEntries(
+          Object.entries(PIECE_COMPONENTS).map(([key, Component]) => [
+            key,
+            ({ squareWidth }) => (
+              <div style={{ width: squareWidth, height: squareWidth }}>
+                <Component pieceStyle={pieceStyle} />
+              </div>
+            )
+          ])
+        )}
         boardStyle={{
           borderRadius: '4px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',

@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast';
 import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
 import { Chess } from 'chess.js';
 import ChessBoard from '../components/chess/ChessBoard';
+import { wN as WN } from '../components/chess/ChessPieces';
 import { supabase } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -2019,9 +2020,9 @@ export default function Agent() {
               <label className="text-sm text-[var(--color-text-secondary)]">Piece Style</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="32" height="32" alt="neo" /> },
-                  { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="32" height="32" alt="tournament" /> },
-                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="32" height="32" alt="ocean" /> }
+                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 32, height: 32 }}><WN pieceStyle="neo" /></div> },
+                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 32, height: 32 }}><WN pieceStyle="tournament" /></div> },
+                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 32, height: 32 }}><WN pieceStyle="ocean" /></div> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}

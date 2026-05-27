@@ -7,6 +7,7 @@ import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Down
 import { Chess } from 'chess.js';
 import ChessBoard from '../components/chess/ChessBoard';
 import { ChessPiece } from '../components/chess/PieceSVGs';
+import { wN as WN } from '../components/chess/ChessPieces';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -72,6 +73,7 @@ export default function Game() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const pendingMoveFenRef = useRef(null);
 
@@ -932,7 +934,7 @@ export default function Game() {
             const updated = { ...safeData };
             if (prev?.chat_history && data?.chat_history) {
               const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
-              const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
+              const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
               updated.chat_history = [...data.chat_history, ...optimistic];
             }
             return updated;
@@ -943,13 +945,43 @@ export default function Game() {
              prevThoughtValRef.current = data.companion_thought;
              setVisibleThought(data.companion_thought);
           }
+
+          // Restore chat messages
+          if (data.chat_history && Array.isArray(data.chat_history)) {
+            setChatMessages(data.chat_history);
+          }
+
+          // Restore last move highlight
+          if (data.last_move?.from && data.last_move?.to) {
+            setLastMoveHighlight({ 
+              from: data.last_move.from, 
+              to: data.last_move.to 
+            });
+          }
+
+          // Restore board theme from DB (agent may have changed it)
+          if (data.board_theme) {
+            setBoardTheme(data.board_theme);
+            localStorage.setItem('cwc_board_theme', data.board_theme);
+          }
+
+          // Restore piece style from DB
+          if (data.piece_style) {
+            setPieceTheme(data.piece_style);
+            localStorage.setItem('cwc_pieces', data.piece_style);
+          }
+
+          // Mark as loaded LAST
+          setIsLoaded(true);
           setIsLoading(false);
         } else if (res.status === 404) {
           setNotFound(true);
           setIsLoading(false);
+          setIsLoaded(true);
         }
       } catch (e) {
         setIsLoading(false);
+        setIsLoaded(true);
       }
       setLoading(false);
 
@@ -967,6 +999,16 @@ export default function Game() {
           (payload) => {
             const newData = payload.new;
             if (!newData) return;
+
+            if (newData.board_theme && newData.board_theme !== boardTheme) {
+              setBoardTheme(newData.board_theme);
+              localStorage.setItem('cwc_board_theme', newData.board_theme);
+              toast.success(`Agent changed board theme to ${newData.board_theme}!`);
+            }
+            if (newData.piece_style && newData.piece_style !== pieceTheme) {
+              setPieceTheme(newData.piece_style);
+              localStorage.setItem('cwc_pieces', newData.piece_style);
+            }
 
             // If this Realtime event confirms our pending optimistic move, skip
             if (pendingMoveFenRef.current && 
@@ -1114,7 +1156,7 @@ export default function Game() {
       document.removeEventListener('visibilitychange', handleVisibility);
       try { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
     };
-  }, [gameId, playSound]);
+  }, [gameId, playSound]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1124,6 +1166,14 @@ export default function Game() {
           const res = await fetch(`/api/state?gameId=${gameId}`);
           if (!res.ok) return;
           const fresh = await res.json();
+          if (fresh.board_theme && fresh.board_theme !== boardTheme) {
+            setBoardTheme(fresh.board_theme);
+            localStorage.setItem('cwc_board_theme', fresh.board_theme);
+          }
+          if (fresh.piece_style && fresh.piece_style !== pieceTheme) {
+            setPieceTheme(fresh.piece_style);
+            localStorage.setItem('cwc_pieces', fresh.piece_style);
+          }
           // Only update if FEN actually changed
           if (fresh.fen === pendingMoveFenRef.current) return;
           if (fresh.fen === game?.fen && fresh.turn === game?.turn) return;
@@ -1146,7 +1196,7 @@ export default function Game() {
     return () => {
       if (fallbackRef.current) clearInterval(fallbackRef.current);
     };
-  }, [game?.turn, game?.status, game?.fen, gameId]);
+  }, [game?.turn, game?.status, game?.fen, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
@@ -1562,16 +1612,21 @@ export default function Game() {
     setTimeout(() => setShaking(false), 300);
   }, []);
 
-  const legalMoves = useMemo(() => {
+  const [legalMoves, setLegalMoves] = useState([]);
+
+  useEffect(() => {
+    if (!game?.fen) return;
     try {
-      const chess = new Chess(game?.fen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-      return chess.moves({ verbose: true });
-    } catch { return []; }
+      const chess = new Chess(game.fen);
+      const moves = chess.moves({ verbose: true })
+        .map(m => m.from + m.to + (m.promotion || ''));
+      setLegalMoves(moves);
+    } catch (e) {
+      setLegalMoves([]);
+    }
   }, [game?.fen]);
 
-  const legalMovesArray = useMemo(() => {
-    return legalMoves.map(m => m.from + m.to + (m.promotion || ''));
-  }, [legalMoves]);
+  const legalMovesArray = legalMoves;
 
   const handlePlayerMove = makeMove;
 
@@ -2143,8 +2198,16 @@ export default function Game() {
                     )}
 
                     <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-                      <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
-                        {!isLoading && (
+                      <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 1 : 0.7, height: '100%', width: '100%' }}>
+                        {!isLoaded ? (
+                          <div style={{
+                            aspectRatio: '1/1', width: '100%', height: '100%',
+                            background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
+                            backgroundSize: '25% 25%',
+                            borderRadius: 4,
+                            animation: 'pulse 1.5s ease infinite'
+                          }} />
+                        ) : (
                           <ChessBoard 
                             fen={game?.fen}
                             turn={game?.turn}
@@ -2199,49 +2262,53 @@ export default function Game() {
             
 
         {/* D) CHAT SECTION */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
-            CHAT WITH {agentName.toUpperCase()}
-          </div>
-          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
-            {normalizedMessages.length === 0 ? (
-              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
-                <span>{agentName} can chat while playing</span>
-              </div>
-            ) : (
-              renderChatMessages()
-            )}
-          </div>
-          <form 
-            onSubmit={sendMessage} 
-            style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
-          >
-            <input
-              id="chat-input"
-              data-testid="chat-input"
-              type="text"
-              value={chatInput}
-              onChange={handleChatInputChange}
-              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
-              disabled={isSpectator}
-              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
-              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-            />
-            <button 
-              data-testid="chat-send"
-              type="submit"
-              disabled={isSpectator || !chatInput.trim()}
-              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
-              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
-              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        {!isLoaded ? (
+          <div style={{ flex: 1, background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', minHeight: 0 }} />
+        ) : (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
+              CHAT WITH {agentName.toUpperCase()}
+            </div>
+            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
+              {normalizedMessages.length === 0 ? (
+                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
+                  <span>{agentName} can chat while playing</span>
+                </div>
+              ) : (
+                renderChatMessages()
+              )}
+            </div>
+            <form 
+              onSubmit={sendMessage} 
+              style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
             >
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
+              <input
+                id="chat-input"
+                data-testid="chat-input"
+                type="text"
+                value={chatInput}
+                onChange={handleChatInputChange}
+                placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+                disabled={isSpectator}
+                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+                onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
+              />
+              <button 
+                data-testid="chat-send"
+                type="submit"
+                disabled={isSpectator || !chatInput.trim()}
+                style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+                onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+                onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        )}
             
 
         {/* E) MOVE HISTORY */}
@@ -2418,8 +2485,16 @@ export default function Game() {
             </div>
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
-          {!isLoading && (
+          <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 1 : 0.7 }}>
+          {!isLoaded ? (
+            <div style={{
+              aspectRatio: '1/1', width: '100%',
+              background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
+              backgroundSize: '25% 25%',
+              borderRadius: 4,
+              animation: 'pulse 1.3s ease infinite'
+            }} />
+          ) : (
             <ChessBoard 
               fen={game?.fen} 
               showCoordinates={false}
@@ -2466,49 +2541,53 @@ export default function Game() {
             
 
         {/* D) CHAT SECTION */}
-        <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }}>
-          <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
-            CHAT WITH {agentName.toUpperCase()}
-          </div>
-          <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
-            {normalizedMessages.length === 0 ? (
-              <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
-                <span>{agentName} can chat while playing</span>
-              </div>
-            ) : (
-              renderChatMessages()
-            )}
-          </div>
-          <form 
-            onSubmit={sendMessage} 
-            style={{ padding: '6px 12px 8px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0a0a0a', zIndex: 10 }}
-          >
-            <input
-              id="chat-input"
-              data-testid="chat-input"
-              type="text"
-              value={chatInput}
-              onChange={handleChatInputChange}
-              placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
-              disabled={isSpectator}
-              style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
-              onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-            />
-            <button 
-              data-testid="chat-send"
-              type="submit"
-              disabled={isSpectator || !chatInput.trim()}
-              style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
-              onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
-              onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        {!isLoaded ? (
+          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, padding: '0', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }} />
+        ) : (
+          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }}>
+            <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
+              CHAT WITH {agentName.toUpperCase()}
+            </div>
+            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
+              {normalizedMessages.length === 0 ? (
+                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
+                  <span>{agentName} can chat while playing</span>
+                </div>
+              ) : (
+                renderChatMessages()
+              )}
+            </div>
+            <form 
+              onSubmit={sendMessage} 
+              style={{ padding: '6px 12px 8px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0a0a0a', zIndex: 10 }}
             >
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
+              <input
+                id="chat-input"
+                data-testid="chat-input"
+                type="text"
+                value={chatInput}
+                onChange={handleChatInputChange}
+                placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
+                disabled={isSpectator}
+                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+                onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
+              />
+              <button 
+                data-testid="chat-send"
+                type="submit"
+                disabled={isSpectator || !chatInput.trim()}
+                style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+                onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
+                onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        )}
             
 
         {/* E) MOVE HISTORY */}
@@ -2888,9 +2967,9 @@ export default function Game() {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'neo', label: 'Neo', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/neo/wn.png" width="24" height="24" alt="neo" /> },
-                  { id: 'tournament', label: 'Tournament', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/tournament/wn.png" width="24" height="24" alt="tournament" /> },
-                  { id: 'ocean', label: 'Ocean', icon: <img src="https://raw.githubusercontent.com/GiorgioMegrelli/chess.com-boards-and-pieces/master/pieces/ocean/wn.png" width="24" height="24" alt="ocean" /> }
+                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="neo" /></div> },
+                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="tournament" /></div> },
+                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="ocean" /></div> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}

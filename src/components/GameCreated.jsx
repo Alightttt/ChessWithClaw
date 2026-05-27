@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
-import { motion } from 'motion/react';
-import { ChevronLeft, CheckCircle2, Zap, Terminal, Globe, Copy, Check, MessageSquare, Swords, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, Zap, Terminal, Globe, Copy, Check, MessageSquare, Swords } from 'lucide-react';
 
 const LobsterEmoji = () => (
   <span style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle: 'normal' }}>
@@ -15,7 +14,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copied, setCopied] = useState(false);
   const [agentToken, setAgentToken] = useState(initialAgentToken || '');
   const [boardOpening, setBoardOpening] = useState(false);
-  const [boardOpened, setBoardOpened] = useState(false);
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
@@ -28,7 +26,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // If we do not have a valid gameId or if gameId is empty/null, redirect to serverless /api/new
     if (!gameId || gameId === 'new') {
       window.location.href = '/api/new';
       return;
@@ -43,7 +40,6 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
       document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
     }
 
-    // Unconditional redirect to server endpoint if ownership is not detected to prevent unauthorized accesses
     if (!cookieMatch && !localOwner) {
       window.location.href = '/api/new';
       return;
@@ -97,11 +93,8 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     return () => {
       supabase.removeChannel(subscription);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId]);
+  }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  
   const inviteMessage = `🦞 ChessWithClaw Invite
 
 Your rival is waiting. Join as Black.
@@ -130,7 +123,6 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
   const handleOpenBoard = () => {
     if (boardOpening) return;
     setBoardOpening(true);
-    // Navigate in same window to bypass sandbox popup blockages
     navigate(`/game/${gameId}`);
   };
 
@@ -171,13 +163,9 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           0%, 100% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 0 0 rgba(57, 211, 83, 0.4); }
           50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 0 6px rgba(57, 211, 83, 0); }
         }
-        @keyframes headerPulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
       `}</style>
 
-      {/* SECTION A: HEADER */}
+      {/* HEADER ROW */}
       <header style={{
         height: '52px',
         borderBottom: '1px solid #1a1a1a',
@@ -215,63 +203,94 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Title & Subtitle Centered Below Header */}
+      <div style={{ textAlign: 'center', padding: '24px 16px 0' }}>
+        <h1 style={{
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 800,
+          fontSize: '24px',
+          color: '#f2f2f2',
+          marginTop: '24px',
+          marginBottom: '6px',
+          letterSpacing: '-0.02em'
+        }}>
+          Summon Your OpenClaw <LobsterEmoji />
+        </h1>
+        <p style={{
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 400,
+          fontSize: '13px',
+          color: 'rgba(242,242,242,0.4)',
+          margin: 0
+        }}>
+          Your arena is ready. Follow the steps.
+        </p>
+
+        {/* Progress indicator (3 dots) */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20px', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Setup */}
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              border: '1px solid #fff',
+              boxSizing: 'border-box'
+            }} />
+            {/* Invite */}
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: agentConnected ? 'transparent' : '#e63946',
+              border: agentConnected ? '1px solid #fff' : 'none',
+              boxSizing: 'border-box'
+            }} />
+            {/* Battle */}
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: agentConnected ? '#e63946' : '#222',
+              boxSizing: 'border-box'
+            }} />
+          </div>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '10px', color: '#444', fontFamily: 'Inter, sans-serif' }}>
+            <span style={{ color: '#888' }}>Setup</span>
+            <span style={{ color: agentConnected ? '#888' : '#fff', fontWeight: agentConnected ? 400 : 600 }}>Invite</span>
+            <span style={{ color: agentConnected ? '#fff' : '#444', fontWeight: agentConnected ? 600 : 400 }}>Battle</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Form Fields Container */}
       <div style={{
         maxWidth: '480px',
         margin: '0 auto',
-        padding: '0 16px 40px',
+        padding: '24px 16px 40px',
         display: 'flex',
         flexDirection: 'column',
+        gap: '12px',
         boxSizing: 'border-box'
       }}>
-        {/* Page Title */}
-        <div style={{ textAlign: 'center', padding: '24px 0 16px' }}>
-          <h1 style={{
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 800,
-            fontSize: '26px',
-            color: '#f2f2f2',
-            letterSpacing: '-0.02em',
-            margin: '0 0 6px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-          }}>
-            Summon Your OpenClaw <LobsterEmoji />
-          </h1>
-          <p style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '14px',
-            color: 'rgba(242,242,242,0.4)',
-            margin: 0
-          }}>
-            Your rival is set. Follow the steps below.
-          </p>
-        </div>
 
-        {/* SECTION B: QUICK SETUP CARD */}
+        {/* QUICK SETUP (Collapsible, CLOSED by default) */}
         <div style={{
           background: '#111111',
-          border: '1px solid #1a1a1a',
-          borderRadius: '12px',
+          border: '1px solid #1e1e1e',
+          borderRadius: '14px',
           padding: '14px 16px',
           cursor: 'pointer',
           userSelect: 'none',
-          marginBottom: '16px',
-          transition: 'border-color 0.2s'
+          boxSizing: 'border-box',
+          transition: 'all 0.2s ease'
         }} className="hover:border-neutral-800" onClick={() => setQuickSetupExpanded(!quickSetupExpanded)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Inter', fontWeight: 600, fontSize: '14px', color: '#f2f2f2' }}>
               <Zap size={15} className="text-[#e63946]" />
-              <span>Quick Setup</span>
+              <span>⚡ Quick Setup</span>
             </div>
             <ChevronDown 
               size={16} 
               style={{
                 transform: quickSetupExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s',
-                color: 'rgba(242,242,242,0.4)'
+                color: 'rgba(242,242,242,0.4)',
+                marginLeft: 'auto'
               }}
             />
           </div>
@@ -313,12 +332,12 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
                       flexShrink: 0
                     }}
                   >
-                    {copiedRow1 ? "✓" : "COPY"}
+                    {copiedRow1 ? "✓ animate" : (copiedRow1 ? "✓" : "COPY")}
                   </button>
                 </div>
               </div>
 
-              {/* Row 2a */}
+              {/* Row 2 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0' }}>
                 <div style={{ fontSize: '10px', color: '#888', fontFamily: 'Inter', marginLeft: '4px' }}>Recommended for most users</div>
                 <div style={{
@@ -442,74 +461,64 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
               </div>
 
               <div style={{ fontSize: '11px', color: '#555', textAlign: 'center', marginTop: '8px', fontFamily: 'Inter' }}>
-                First time setup. Your OpenClaw learns this once.
+                First-time setup. Your OpenClaw learns this once.
               </div>
             </div>
           )}
         </div>
 
-        {/* SECTION C: STEP 1 — INVITE CARD */}
+        {/* STEP 1 Card — Invite */}
         <div style={{
           background: '#111111',
           border: '1px solid #1e1e1e',
-          borderRadius: '16px',
+          borderRadius: '14px',
           padding: '20px',
-          margin: '0 0 16px',
           boxSizing: 'border-box'
         }}>
-          {/* Step Pill */}
-          <div style={{
-            background: 'rgba(230,57,70,0.1)',
-            border: '1px solid rgba(230,57,70,0.2)',
-            borderRadius: '100px',
-            padding: '3px 10px',
-            fontSize: '10px',
-            color: '#e63946',
-            fontFamily: 'Inter, sans-serif',
-            letterSpacing: '0.1em',
-            fontWeight: 600,
-            display: 'inline-block'
-          }}>
-            STEP 1
+          {/* Large step number pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{
+              width: '20px', height: '20px', borderRadius: '50%',
+              background: '#e63946', color: '#fff', fontSize: '11px', fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'Inter, sans-serif'
+            }}>1</div>
+            <h3 style={{
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: '18px',
+              color: '#f2f2f2',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <MessageSquare size={16} className="text-[#e63946]" />
+              <span>Invite Your OpenClaw</span>
+            </h3>
           </div>
-
-          <h3 style={{
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 700,
-            fontSize: '18px',
-            color: '#f2f2f2',
-            marginTop: '12px',
-            marginBottom: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <MessageSquare size={18} className="text-[#e63946]" />
-            <span>Invite Your OpenClaw</span>
-          </h3>
 
           <p style={{
             fontFamily: 'Inter, sans-serif',
             fontWeight: 400,
             fontSize: '13px',
-            color: 'rgba(242,242,242,0.4)',
-            margin: '0 0 14px',
+            color: '#555',
+            margin: '0 0 12px',
             lineHeight: 1.4
           }}>
-            Send this message to your OpenClaw on Telegram or wherever it lives.
+            Send this to your OpenClaw on Telegram.
           </p>
 
-          {/* Invitation Box */}
           <div style={{
             background: '#080808',
-            border: '1px solid #1a1a1a',
+            border: '1px solid #1e1e1e',
             borderRadius: '10px',
-            padding: '12px 14px',
+            padding: '12px',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '12px',
             color: 'rgba(242,242,242,0.6)',
-            lineHeight: 1.6,
-            maxHeight: '120px',
+            lineHeight: 1.5,
+            maxHeight: '100px',
             overflowY: 'auto',
             width: '100%',
             boxSizing: 'border-box',
@@ -518,86 +527,64 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             {inviteMessage}
           </div>
 
-          {/* Large Copy Invitation Button */}
           <button 
             onClick={handleCopyInvite}
             style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946',
-              boxShadow: 'rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset',
+              background: 'linear-gradient(180deg, #ff4c5a 0%, #e63946 100%)',
               borderRadius: '10px',
               height: '48px',
               border: 'none',
-              color: copied ? '#39d353' : '#fff',
+              color: '#fff',
               fontFamily: 'Inter, sans-serif',
               fontWeight: 600,
               fontSize: '15px',
               cursor: 'pointer',
               width: '100%',
-              marginTop: '14px',
+              marginTop: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.15s'
+              boxShadow: '0 4px 12px rgba(230,57,70,0.35)',
+              transition: 'all 0.15s ease'
             }}
           >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            <span>{copied ? "✓ COPIED TO CLIPBOARD" : "COPY INVITE"}</span>
+            <span>{copied ? "✓ Copied!" : "COPY INVITE"}</span>
           </button>
         </div>
 
-        {/* SECTION D: STEP 2 — OPEN BOARD CARD */}
+        {/* STEP 2 Card — Open Board */}
         <div style={{
           background: '#111111',
           border: '1px solid #1e1e1e',
-          borderRadius: '16px',
+          borderRadius: '14px',
           padding: '20px',
-          margin: '0 0 8px',
           boxSizing: 'border-box'
         }}>
-          {/* Step Pill */}
-          <div style={{
-            background: 'rgba(230,57,70,0.1)',
-            border: '1px solid rgba(230,57,70,0.2)',
-            borderRadius: '100px',
-            padding: '3px 10px',
-            fontSize: '10px',
-            color: '#e63946',
-            fontFamily: 'Inter, sans-serif',
-            letterSpacing: '0.1em',
-            fontWeight: 600,
-            display: 'inline-block'
-          }}>
-            STEP 2
+          {/* Step number pill: "2" */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{
+              width: '20px', height: '20px', borderRadius: '50%',
+              background: '#222', color: '#fff', fontSize: '11px', fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'Inter, sans-serif',
+              border: '1px solid #333'
+            }}>2</div>
+            <h3 style={{
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: '18px',
+              color: '#f2f2f2',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Swords size={16} className="text-[#e63946]" />
+              <span>Open Your Arena</span>
+            </h3>
           </div>
 
-          <h3 style={{
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 700,
-            fontSize: '18px',
-            color: '#f2f2f2',
-            marginTop: '12px',
-            marginBottom: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Swords size={18} className="text-[#e63946]" />
-            <span>Enter The Arena</span>
-          </h3>
-
-          <p style={{
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 400,
-            fontSize: '13px',
-            color: 'rgba(242,242,242,0.4)',
-            margin: '0 0 14px',
-            lineHeight: 1.4
-          }}>
-            Open your game board. After sending the invite, wait here for your OpenClaw to join.
-          </p>
-
-          {/* Connected Indicator Row */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -605,7 +592,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             background: '#080808',
             borderRadius: '8px',
             padding: '10px 14px',
-            marginTop: '14px',
+            marginBottom: '12px',
             border: '1px solid #1a1a1a'
           }}>
             <div style={{
@@ -623,35 +610,33 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
               color: agentConnected ? '#39d353' : 'rgba(242,242,242,0.4)'
             }}>
               {agentConnected 
-                ? `${agentName} connected! Opening board is ready.`
-                : "Waiting for OpenClaw to join..."
+                ? "OpenClaw connected!"
+                : "Waiting for OpenClaw..."
               }
             </span>
           </div>
 
-          {/* Open Board Button */}
           <button
             onClick={handleOpenBoard} 
             disabled={boardOpening}
             style={{
               background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '10px',
               height: '48px',
-              color: 'rgba(242,242,242,0.7)',
+              color: '#fff',
               fontFamily: 'Inter, sans-serif',
               fontWeight: 600,
               fontSize: '15px',
               cursor: 'pointer',
               width: '100%',
-              marginTop: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
               transition: 'all 0.2s'
             }}
-            className="hover:border-neutral-700 hover:text-white"
+            className="hover:bg-white/5 active:bg-white/10"
           >
             {boardOpening ? (
               <div style={{
@@ -665,6 +650,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             ) : "OPEN GAME BOARD →"}
           </button>
         </div>
+
       </div>
     </div>
   );

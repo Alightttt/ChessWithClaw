@@ -64,11 +64,24 @@ module.exports = async function handler(req, res) {
       detail:error?.message})
   }
 
+  // Calculate dynamic chat_count
+  const calculatedChatCount = Array.isArray(game.chat_history)
+    ? game.chat_history.length
+    : 0;
+  game.chat_count = calculatedChatCount;
+
   const originalJson = res.json.bind(res);
   res.json = (body) => {
     if (body && typeof body === 'object') {
       body.agent_last_seen = game.agent_last_seen || null;
       body.agent_connected = game.agent_connected || false;
+      body.chat_count = calculatedChatCount;
+      body.board_theme = game.board_theme || 'green';
+      body.piece_style = game.piece_style || 'standard';
+      body.thought_language = game.thought_language || 'english';
+      body.agent_typing = Boolean(game.agent_typing);
+      body.draw_offer_pending = Boolean(game.draw_offer_pending);
+      body.companion_thought = game.companion_thought || '';
     }
     return originalJson(body);
   };
