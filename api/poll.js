@@ -4,8 +4,6 @@ function isValidUUID(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id||''))
 }
 
-// computeMaterial removed
-
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*')
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS')
@@ -36,72 +34,13 @@ module.exports = async function handler(req, res) {
       provided:gameId})
   }
 
-  const{data:game,error}=await supabase
-    .from('games').select('*').eq('id',gameId).single()
-
-  if (game && Boolean(req.headers['x-agent-token'])) {
-     const agentName = req.query.agent_name || req.headers['x-agent-name'] || null;
-     let needsUpdate = false;
-     const updateData = { agent_last_seen: new Date().toISOString() };
-     
-     if (!game.agent_connected) {
-        updateData.agent_connected = true;
-        needsUpdate = true;
-     }
-     if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
-        updateData.agent_name = agentName;
-        needsUpdate = true;
-     }
-     if (needsUpdate || Math.random() < 0.1) {
-        // Await the update FIRST before doing the heavy move computation
-        await supabase.from('games').update(updateData).eq('id', gameId);
-     }
-  }
+  const { data: game, error } = await supabase
+    .from('games').select('*').eq('id', gameId).single()
 
   if(error||!game){
     return res.status(404).json({
       error:'Game not found',code:'GAME_NOT_FOUND',
       detail:error?.message})
-  }
-
-  // Calculate dynamic human chat_count
-  const humanMessages = (game.chat_history || [])
-    .filter(m => m.role === 'human');
-  const humanChatCount = humanMessages.length;
-  game.chat_count = humanChatCount;
-
-  const originalJson = res.json.bind(res);
-  res.json = (body) => {
-    if (body && typeof body === 'object') {
-      body.agent_last_seen = game.agent_last_seen || null;
-      body.agent_connected = game.agent_connected || false;
-      body.chat_count = humanChatCount;
-      body.board_theme = game.board_theme || 'green';
-      body.piece_style = game.piece_style || 'standard';
-      body.thought_language = game.thought_language || 'english';
-      body.agent_typing = Boolean(game.agent_typing);
-      body.draw_offer_pending = Boolean(game.draw_offer_pending);
-      body.companion_thought = game.companion_thought || '';
-    }
-    return originalJson(body);
-  };
-
-  // Fetch move history
-  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
-  if (!movesError && movesData && movesData.length > 0) {
-    game.move_history = movesData.map(m => ({
-      ...m,
-      from: m.from_square || m.from,
-      to: m.to_square || m.to,
-      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
-    }));
-  }
-
-  // Check expiry
-  if(game.expires_at&&new Date(game.expires_at)<new Date()){
-    return res.status(404).json({
-      error:'Game expired',code:'GAME_EXPIRED',
-      detail:'Create a new game and send a fresh invite.'})
   }
 
   const agentName = req.query.agent_name || req.headers['x-agent-name'] || null;
@@ -122,110 +61,107 @@ module.exports = async function handler(req, res) {
         needsUpdate = true;
      }
 
-     if (needsUpdate || Math.random() < 0.1) { // periodically update last seen
-        // Fire and forget so we don't block the poll
-        supabase.from('games').update({ ...updateData }).eq('id', gameId).then(()=>{});
+     if (needsUpdate || Math.random() < 0.1) {
+        await supabase.from('games').update({ ...updateData }).eq('id', gameId);
+        // update local object so values match what's in DB
+        if (updateData.agent_connected) game.agent_connected = true;
+        if (updateData.agent_name) game.agent_name = agentName;
+        game.agent_last_seen = updateData.agent_last_seen;
      }
   }
 
-  const lastMoveTimestamp = game.move_history && game.move_history.length > 0 
-    ? game.move_history[game.move_history.length - 1].created_at 
-    : game.created_at;
+  // Fetch move history
+  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', gameId).order('move_number', { ascending: true });
+  let moveHistory = [];
+  if (!movesError && movesData && movesData.length > 0) {
+    moveHistory = movesData.map(m => ({
+      ...m,
+      from: m.from_square || m.from,
+      to: m.to_square || m.to,
+      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || '')
+    }));
+  }
 
-  const opponentConnected = game.player_last_seen 
-    ? (new Date() - new Date(game.player_last_seen)) < 15000 
-    : false;
+  // Check expiry
+  if(game.expires_at&&new Date(game.expires_at)<new Date()){
+    return res.status(404).json({
+      error:'Game expired',code:'GAME_EXPIRED',
+      detail:'Create a new game and send a fresh invite.'})
+  }
 
-  let computedLegalMoves = [];
-  let inCheck = false;
-  let isCheckmate = false;
-  let isStalemate = false;
-  let boardAscii = '';
+  // Compute legal moves on server-side
+  const { Chess } = require('chess.js');
+  let legalMovesUCI = [];
   try {
-    const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
-    inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
-    isCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
-    isStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
-    boardAscii = chess.ascii ? chess.ascii() : '';
-    const verboseMoves = chess.moves({ verbose: true });
-    computedLegalMoves = verboseMoves.map(m => m.from + m.to + (m.promotion || ''));
+    if (game.turn === 'b') {
+      legalMovesUCI = chess.moves({ verbose: true })
+        .map(m => m.from + m.to + (m.promotion || ''));
+    }
   } catch (e) {
     console.error("Chess.js error in poll:", e);
   }
 
-  let event = 'waiting';
+  // Fix chat_count
+  const chatHistory = game.chat_history || [];
+  const humanChatCount = chatHistory.filter(m => m.role === 'human').length;
+  const allChatCount = chatHistory.length;
 
+  // Fix event logic — your_turn must fire when turn==='b' AND status==='active':
+  let event = 'waiting';
+  
   if (game.status === 'finished' || game.status === 'abandoned') {
     event = 'game_ended';
   } else if (game.turn === 'b' && game.status === 'active') {
-    // It's Black's turn (agent's turn) — always return your_turn
-    // Do NOT check move_count. Do NOT check opponent_connected.
-    // If turn is b and status is active, agent must move.
-    event = 'your_turn';
-  } else if (game.turn === 'w' && game.status === 'active') {
-    event = 'waiting';
-  } else if (game.status === 'waiting') {
-    event = 'waiting';
+    event = 'your_turn'; // Always, no other conditions
+  } else {
+    // Check for new human chat
+    const lastSeenChat = parseInt(req.query.last_chat_count) || 0;
+    if (humanChatCount > lastSeenChat) {
+      event = 'human_chatted';
+    }
   }
 
-  // Check for new human chat — only if human sent a message
-  // Count messages from human role only
-  if (humanChatCount > (parseInt(lastChatCount) || 0)) {
-    event = 'human_chatted'; // Only fire if HUMAN sent new message
-  }
-
-  const baseResponse = {
-    event: event,
-    chat_count: humanChatCount, // only human messages
-    agent_chat_count: (game.chat_history || []).filter(m => m.role === 'agent').length,
+  // Build the complete standardized JSON structure
+  const responseData = {
+    event,
+    fen: game.fen,
+    turn: game.turn,
+    status: game.status,
+    move_count: game.move_count || 0,  // READ FROM DB - never hardcode 0
+    legal_moves: legalMovesUCI,
+    legal_moves_uci: legalMovesUCI,
+    in_check: Boolean(game.in_check),
+    last_move: game.last_move || null,
+    move_history: moveHistory,
+    chat_count: humanChatCount,
+    all_chat_count: allChatCount,
+    companion_thought: game.companion_thought || '',
+    thought_language: game.thought_language || 'english',
+    agent_connected: Boolean(game.agent_connected),
+    agent_last_seen: game.agent_last_seen || null,
     board_theme: game.board_theme || 'green',
     piece_style: game.piece_style || 'standard',
-    move_count: game.move_count || 0,
-    status: game.status,
-    turn: game.turn,
-    fen: game.fen,
-    last_move_timestamp: lastMoveTimestamp,
-    opponent_connected: opponentConnected,
+    material_balance: game.material_balance || null,
+    draw_offer_pending: Boolean(game.draw_offer_pending),
+    agent_typing: Boolean(game.agent_typing),
+    id: game.id,
+    game_id: game.id,
   };
 
+  // Add event-specific extras
   if (event === 'game_ended') {
-    return res.json({
-      ...baseResponse,
-      status: game.result_reason === 'resignation' ? 'resigned' : game.result === 'draw' ? 'drawn' : game.result_reason === 'checkmate' ? 'checkmate' : game.status,
-      result: game.result,
-      reason: game.result_reason,
-      move_number: game.move_number,
-      move_history: game.move_history
-    });
+    responseData.status = game.result_reason === 'resignation' ? 'resigned' : game.result === 'draw' ? 'drawn' : game.result_reason === 'checkmate' ? 'checkmate' : game.status;
+    responseData.result = game.result;
+    responseData.reason = game.result_reason || '';
+    responseData.move_number = game.move_number || 0;
+  } else if (event === 'your_turn') {
+    responseData.move_number = game.move_number || 0;
+  } else if (event === 'human_chatted') {
+    responseData.messages = chatHistory;
+  } else {
+    responseData.retry_after = 2;
   }
 
-  if (event === 'your_turn') {
-    return res.json({
-      ...baseResponse,
-      game_id: game.id,
-      turn: 'b',
-      move_number: game.move_number,
-      last_move: game.last_move,
-      legal_moves: computedLegalMoves,
-      legal_moves_uci: computedLegalMoves,
-      board_ascii: boardAscii || game.board_ascii || '',
-      in_check: inCheck || game.in_check || false,
-      is_checkmate: isCheckmate,
-      is_stalemate: isStalemate,
-      move_history: game.move_history
-    });
-  }
-
-  if (event === 'human_chatted') {
-    return res.json({
-      ...baseResponse,
-      messages: game.chat_history,
-    });
-  }
-
-  return res.json({
-    ...baseResponse,
-    retry_after: 2
-  });
-}
+  return res.json(responseData);
+};

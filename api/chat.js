@@ -40,11 +40,12 @@ module.exports = async function handler(req, res) {
   }
   
   let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking, action, messageId, emoji } = req.body || {};
-  let gameId = id || game_id || bodyGameId;
+  let gameId = game_id || bodyGameId || id;
+  const msgId = id || messageId || require('crypto').randomUUID();
   let text = bodyText || message;
   let sender = bodySender || role || 'human';
   
-  if (!gameId) return res.status(400).json({ error: 'Missing id in JSON body', code: 'MISSING_ID' });
+  if (!gameId) return res.status(400).json({ error: 'Missing game ID in JSON body', code: 'MISSING_GAME_ID' });
   gameId = gameId.trim();
 
   const agentToken = req.headers['x-agent-token'] || token || '';
@@ -171,9 +172,8 @@ module.exports = async function handler(req, res) {
     .single();
 
   const existing = Array.isArray(gameRow?.chat_history) ? gameRow.chat_history : [];
-  const generatedMessageId = require('crypto').randomUUID();
   const newMsg = {
-    id: generatedMessageId,
+    id: msgId,
     role: sender,
     text: text,
     timestamp: Date.now()

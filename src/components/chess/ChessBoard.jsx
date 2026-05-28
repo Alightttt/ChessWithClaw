@@ -144,8 +144,15 @@ export default function ChessBoard({
   // Check glow on king square
   if (inCheck && checkedKingSquare) {
     customSquareStyles[checkedKingSquare] = {
-      background: 'radial-gradient(ellipse at center, rgba(220,30,30,0.9) 0%, rgba(220,30,30,0.5) 40%, rgba(220,30,30,0.1) 70%, transparent 100%)',
-      zIndex: 5,
+      background: [
+        'radial-gradient(',
+        'ellipse at center,',
+        'rgba(220,30,30,0.95) 0%,',
+        'rgba(220,30,30,0.6) 35%,',
+        'rgba(220,30,30,0.2) 60%,',
+        'transparent 80%',
+        ')'
+      ].join(''),
     };
   }
 

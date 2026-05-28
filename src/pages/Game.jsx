@@ -82,8 +82,16 @@ export default function Game() {
 
   const intervalsRef = useRef([]);
   const heartbeatRef = useRef(null);
-  const addInterval = useCallback((fn, ms) => {
+  
+  const allIntervalsRef = useRef([]);
+  const safeInterval = (fn, ms) => {
     const id = setInterval(fn, ms);
+    allIntervalsRef.current.push(id);
+    return id;
+  };
+
+  const addInterval = useCallback((fn, ms) => {
+    const id = safeInterval(fn, ms);
     intervalsRef.current.push(id);
     return id;
   }, []);
@@ -257,12 +265,12 @@ export default function Game() {
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
-  const [boardTheme, setBoardTheme] = useState(
-    localStorage.getItem('cwc_board_theme') || localStorage.getItem('cwc_theme') || 'green'
-  );
-  const [pieceStyle, setPieceStyle] = useState(
-    localStorage.getItem('cwc_piece_style') || 'neo'
-  );
+  const [boardTheme, setBoardTheme] = useState(() => {
+    return localStorage.getItem('cwc_board_theme') || 'green';
+  });
+  const [pieceStyle, setPieceStyle] = useState(() => {
+    return localStorage.getItem('cwc_piece_style') || 'neo';
+  });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
@@ -310,11 +318,40 @@ export default function Game() {
     }
   }, [game?.fen]);
   
-  const checkedKingSquare = useMemo(
-    () => game?.in_check ? getCheckedKingSquare(game.fen, game.turn) : null,
-    [game?.fen, game?.in_check, game?.turn]
-  );
-  
+  const [boardFen, setBoardFen] = useState('start');
+  const [boardLastMove, setBoardLastMove] = useState(null);
+  const lastMoveFenRef = useRef(null);
+  const movePendingRef = useRef(false);
+
+  const getKingSquare = (fen, color) => {
+    if (!fen) return null;
+    const pieceChar = color === 'w' ? 'K' : 'k';
+    const rows = fen.split(' ')[0].split('/');
+    for (let rank = 0; rank < 8; rank++) {
+      let file = 0;
+      for (const ch of rows[rank]) {
+        if (ch === pieceChar) {
+          return String.fromCharCode(97 + file) + (8 - rank);
+        }
+        file += isNaN(parseInt(ch)) ? 1 : parseInt(ch);
+      }
+    }
+    return null;
+  };
+
+  const checkedSquare = game?.in_check
+    ? getKingSquare(boardFen, game.turn === 'w' ? 'w' : 'b')
+    : null;
+
+  const trueTurn = useMemo(() => {
+    if (!boardFen || boardFen === 'start') return 'w';
+    const fenParts = boardFen.split(' ');
+    return fenParts[1] || 'w'; // 'w' or 'b' from FEN - never wrong
+  }, [boardFen]);
+
+  const moveCount = game?.move_count || 0;
+  const gamePhase = moveCount < 10 ? 'Opening' : moveCount < 25 ? 'Middlegame' : 'Endgame';
+
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
@@ -338,6 +375,8 @@ export default function Game() {
       // Clear ALL intervals immediately on game over
       intervalsRef.current.forEach(clearInterval);
       intervalsRef.current = [];
+      allIntervalsRef.current.forEach(clearInterval);
+      allIntervalsRef.current = [];
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
         heartbeatRef.current = null;
@@ -350,6 +389,8 @@ export default function Game() {
     return () => {
       intervalsRef.current.forEach(clearInterval);
       intervalsRef.current = [];
+      allIntervalsRef.current.forEach(clearInterval);
+      allIntervalsRef.current = [];
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
         heartbeatRef.current = null;
@@ -391,6 +432,8 @@ export default function Game() {
           }
           return updated;
         });
+        setBoardFen(data.fen || 'start');
+        if (data.last_move) setBoardLastMove(data.last_move);
         setOptimisticFen(null);
         
         if (data.companion_thought && data.companion_thought.trim() !== '') {
@@ -449,18 +492,32 @@ export default function Game() {
   }, []);
   const [lastMoveTo, setLastMoveTo] = useState(null);
   const [agentConnectedState, setAgentConnected] = useState(false);
-  const getAgentPresence = () => {
-    if (!game?.agent_connected) return 'not_here';
-    const lastSeen = game?.agent_last_seen;
-    if (!lastSeen) return 'not_here';
+  const [agentPresence, setAgentPresence] = useState('not_here');
+
+  useEffect(() => {
+    const check = () => {
+      if (!game?.agent_connected && !game?.agent_last_seen) {
+        setAgentPresence('not_here');
+        return;
+      }
+      if (!game?.agent_last_seen) {
+        setAgentPresence(game?.agent_connected ? 'connected' : 'not_here');
+        return;
+      }
+      const secAgo = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+      if (secAgo < 45) setAgentPresence('connected');
+      else if (secAgo < 180) setAgentPresence('reconnecting');
+      else setAgentPresence('not_here');
+    };
     
-    const secondsAgo = (Date.now() - new Date(lastSeen).getTime()) / 1000;
-    
-    if (secondsAgo < 45) return 'connected';
-    if (secondsAgo < 180) return 'reconnecting';
-    return 'not_here';
-  };
-  const agentPresence = getAgentPresence();
+    check(); // run immediately
+    const id = safeInterval(check, 8000);
+    return () => {
+      clearInterval(id);
+      allIntervalsRef.current = allIntervalsRef.current.filter(x => x !== id);
+    };
+  }, [game?.agent_last_seen, game?.agent_connected]);
+
   const agentConnected = agentPresence !== 'not_here';
 
   useEffect(() => {
@@ -956,7 +1013,7 @@ export default function Game() {
       return;
     }
     
-    heartbeatRef.current = setInterval(() => {
+    heartbeatRef.current = safeInterval(() => {
       fetch('/api/heartbeat', {
         method: 'POST',
         headers: { 
@@ -1126,115 +1183,44 @@ export default function Game() {
   }, [game, toast, agentName, gameId, soundEnabled, playSound]);
   
   const handleRealtimeUpdate = useCallback((payload) => {
-    if (skipNextRealtimeRef.current) {
-      skipNextRealtimeRef.current = false;
-      return; // Skip this update — it's confirming our optimistic move
+    const newData = payload.new || payload;
+    
+    // If this confirms our optimistic move: skip board update, only update metadata
+    if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
+      movePendingRef.current = false;
+      lastMoveFenRef.current = null;
+      setGame(prev => ({
+        ...prev,
+        turn: newData.turn,
+        status: newData.status,
+        result: newData.result,
+        companion_thought: newData.companion_thought || prev.companion_thought,
+        agent_connected: newData.agent_connected,
+        agent_last_seen: newData.agent_last_seen,
+        in_check: newData.in_check,
+        chat_history: newData.chat_history || prev.chat_history,
+        move_history: newData.move_history || prev.move_history,
+        move_count: newData.move_count || prev.move_count,
+        board_theme: newData.board_theme || prev.board_theme,
+        piece_style: newData.piece_style || prev.piece_style,
+      }));
+      return; // DO NOT update boardFen
     }
-    const newData = payload.new;
-    if (!newData) return;
-
-    if (newData.board_theme && newData.board_theme !== boardTheme) {
-      setBoardTheme(newData.board_theme);
-      localStorage.setItem('cwc_board_theme', newData.board_theme);
-      toast.success(`Agent changed board theme to ${newData.board_theme}!`);
-    }
-    if (newData.piece_style && newData.piece_style !== pieceStyle) {
-      setPieceStyle(newData.piece_style);
-      localStorage.setItem('cwc_piece_style', newData.piece_style);
-    }
-
-    // Detect if this is an agent move arriving
-    // Agent is Black ('b'). After agent moves, turn becomes 'w'
-    const fenChanged = newData.fen && newData.fen !== prevFenRef.current;
-    const isAgentMoveLanding = fenChanged &&
-      newData.turn === 'w' &&
-      optimisticFenRef.current === null;
-
-    if (isAgentMoveLanding) {
-      // This is a real agent move - show animation + sound
-      const toSquare = newData.last_move?.to || newData.last_move?.to_square;
-      if (toSquare) {
-        setArrivedSquare(toSquare);
-        setTimeout(() => setArrivedSquare(null), 600);
-      }
-      // Play appropriate sound
-      if (soundEnabled) {
-        if (newData.in_check) {
-          playSound('check');
-        } else if (newData.last_move && (newData.last_move.captured || newData.last_move.san?.includes('x'))) {
-          playSound('capture');
-        } else {
-          playSound('move');
-        }
+    
+    movePendingRef.current = false;
+    lastMoveFenRef.current = null;
+    
+    // Genuine update: check if FEN actually changed
+    if (newData.fen && newData.fen !== boardFen) {
+      setBoardFen(newData.fen);
+      if (newData.last_move) {
+        setBoardLastMove(newData.last_move);
+        playSound(newData.last_move.captured ? 'capture' : 'move');
       }
     }
-
-    // Update FEN ref
-    if (newData.fen) {
-      prevFenRef.current = newData.fen;
-      lastKnownFenRef.current = newData.fen;
-    }
-
-    // Clear optimistic state
-    setOptimisticFen(null);
-    submittingRef.current = false;
-    setBoardLocked(false);
-
-    // Update last move highlight and flash arrived square
-    if (fenChanged) {
-      const agentMoveTo = newData.last_move?.to || newData.last_move?.to_square;
-      setLastMoveHighlight({
-        from: newData.last_move?.from || newData.last_move?.from_square,
-        to: agentMoveTo
-      });
-      if (agentMoveTo) {
-        setArrivedSquare(agentMoveTo);
-        setTimeout(() => setArrivedSquare(null), 700);
-      }
-    }
-
-    if (newData.status === 'finished' || newData.status === 'abandoned') {
-      setShowGameOver(true);
-    }
-
-    if (newData.companion_thought && newData.companion_thought !== prevThoughtValRef.current && newData.companion_thought.trim() !== '') {
-      prevThoughtValRef.current = newData.companion_thought;
-      setVisibleThought(newData.companion_thought);
-    }
-
-    // Fetch fresh state to get moves from separate table
-    fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(freshData => {
-      setGame(prev => {
-        const { board_theme, piece_style, ...safeNewData } = newData;
-        const updated = {
-          ...prev,
-          ...safeNewData,
-          agent_last_seen: freshData.agent_last_seen || newData.agent_last_seen || prev?.agent_last_seen,
-          agent_connected: freshData.agent_connected !== undefined
-            ? freshData.agent_connected
-            : (newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected)
-        };
-        if (freshData.move_history) updated.move_history = freshData.move_history;
-        if (freshData.chat_history) {
-          const dbTexts = new Set(freshData.chat_history.map(m => m.text || m.message || m.content));
-          const optimistic = (prev?.chat_history || []).filter(m => String(m.id).startsWith('opt-') && !dbTexts.has(m.text || m.message || m.content));
-          updated.chat_history = [...freshData.chat_history, ...optimistic];
-        }
-        return updated;
-      });
-    }).catch(() => {
-      setGame(prev => {
-        const { board_theme, piece_style, ...safeNewData } = newData;
-        const updated = {
-          ...prev,
-          ...safeNewData,
-          agent_last_seen: newData.agent_last_seen || prev?.agent_last_seen,
-          agent_connected: newData.agent_connected !== undefined ? newData.agent_connected : prev?.agent_connected
-        };
-        return updated;
-      });
-    });
-  }, [gameId, boardTheme, pieceStyle, soundEnabled, playSound, toast]);
+    
+    setGame(prev => ({ ...prev, ...newData }));
+  }, [boardFen, playSound]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1266,25 +1252,30 @@ export default function Game() {
     };
   }, [gameId, loadGameData]);
 
+  const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate);
+  useEffect(() => {
+    handleRealtimeUpdateRef.current = handleRealtimeUpdate;
+  }, [handleRealtimeUpdate]);
+
   useEffect(() => {
     if (!gameId) return;
-    
-    const channelName = `game-${gameId}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'games',
-        filter: `id=eq.${gameId}`
-      }, handleRealtimeUpdate)
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+    const channel = supabase.channel(`game-${gameId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public',
+          table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
+            handleRealtimeUpdateRef.current(payload);
+          })
       .subscribe();
-    
-    // CRITICAL: cleanup function removes the subscription
+    channelRef.current = channel;
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [gameId, handleRealtimeUpdate]);
+  }, [gameId]); // ONLY gameId dependency
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1296,30 +1287,13 @@ export default function Game() {
     if (game?.status === 'active' && game?.turn === 'b' && isTabActive) {
       fallbackRef.current = addInterval(async () => {
         try {
-          if (skipNextRealtimeRef.current) return; // Skip if waiting for Realtime confirm
           const res = await fetch(`/api/state?gameId=${gameId}`);
           if (!res.ok) return;
           const fresh = await res.json();
-          if (!fresh || fresh.fen === game?.fen) return; // Skip if unchanged
-          if (fresh.board_theme && fresh.board_theme !== boardTheme) {
-            setBoardTheme(fresh.board_theme);
-            localStorage.setItem('cwc_board_theme', fresh.board_theme);
-          }
-          if (fresh.piece_style && fresh.piece_style !== pieceStyle) {
-            setPieceStyle(fresh.piece_style);
-            localStorage.setItem('cwc_piece_style', fresh.piece_style);
-          }
-          // Only update if FEN actually changed
-          if (fresh.fen !== lastKnownFenRef.current) {
-            lastKnownFenRef.current = fresh.fen;
-            setGame(prev => {
-              const { board_theme, piece_style, ...safeFresh } = fresh;
-              return { ...prev, ...safeFresh };
-            });
-          }
-          if (fresh.status === 'finished' || fresh.status === 'abandoned') {
-            setShowGameOver(true);
-          }
+          if (!fresh || fresh.fen === boardFen || movePendingRef.current) return;
+          setBoardFen(fresh.fen);
+          if (fresh.last_move) setBoardLastMove(fresh.last_move);
+          setGame(prev => ({ ...prev, ...fresh }));
         } catch (e) {}
       }, 1000);
     } else {
@@ -1336,7 +1310,7 @@ export default function Game() {
         intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
       }
     };
-  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval]);
+  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen]);
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
@@ -1431,11 +1405,9 @@ export default function Game() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [confirmResign, confirmDraw, handleDraw, handleResign]);
 
-  const makeMove = useCallback(async (from, to, promotion) => {
+  const handlePlayerMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
-    
-    const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
       toast.error('You are not the creator of this game.');
@@ -1444,111 +1416,80 @@ export default function Game() {
 
     submittingRef.current = true;
     setBoardLocked(true);
-    let chess;
+
+    const moveStr = from + to + (promotion || '');
+    
+    // Compute new FEN using chess.js before API call
+    let newFen = boardFen;
+    let isCapture = false;
     try {
-      chess = new Chess();
-    } catch(e) {
-      chess = null;
-    }
-    if (chess && game.move_history && game.move_history.length > 0) {
-      game.move_history.forEach(m => {
-        try { chess.move(typeof m === 'string' ? m : (m.san || m)); } catch (e) {}
-      });
-    } else if (chess && game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-      chess.load(game.fen);
+      const tempChess = new Chess(boardFen);
+      const result = tempChess.move({ from, to, promotion: promotion || 'q' });
+      if (result) {
+        newFen = tempChess.fen();
+        isCapture = result.captured || result.san?.includes('x');
+      }
+    } catch (e) {
+      submittingRef.current = false;
+      setBoardLocked(false);
+      return;
     }
     
+    // Mark pending so Realtime doesn't re-animate
+    movePendingRef.current = true;
+    lastMoveFenRef.current = newFen;
+    
+    // Update ONLY board display (not game state)
+    const prevBoardFen = boardFen;
+    const prevBoardLastMove = boardLastMove;
+
+    setBoardFen(newFen);
+    setBoardLastMove({ from, to });
+    
+    // Call API without touching game state
+    playSound(isCapture ? 'capture' : 'move');
     try {
-      const moveObj = promotion ? { from, to, promotion } : { from, to };
-      const move = chess ? chess.move(moveObj) : null;
-      if (!move) {
-        submittingRef.current = false;
-        setBoardLocked(false);
-        setOptimisticFen(null);
-        setOptimisticLastMove(null);
-        return;
-      }
-      
-      const newFen = chess.fen();
-      pendingMoveFenRef.current = newFen;
-      setOptimisticFen(newFen);
-      setOptimisticLastMove({ from, to });
-      setLastMoveHighlight({ from, to });
-      
-      if (soundEnabled) {
-        if (move.captured) {
-          playSound('capture');
-        } else {
-          playSound('move');
-        }
-        if (chess.in_check && chess.in_check()) {
-          setTimeout(() => {
-            playSound('check');
-          }, 150);
-        }
-      }
-
-      const prevFen = game.fen;
-      const gameIdValue = gameId;
-
-      skipNextRealtimeRef.current = true;
-
-      fetch('/api/move', {
+      const res = await fetch('/api/move', {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
-        body: JSON.stringify({
-          id: gameIdValue,
-          move: from + to + (promotion || ''),
+        body: JSON.stringify({ 
+          id: gameId, 
+          move: moveStr,
           isHumanMove: true
         })
-      })
-      .then(async res => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          setOptimisticFen(prevFen);
-          setOptimisticLastMove(null);
-          
-          if (errData.code === 'WAITING_FOR_AGENT') {
-            toast(`Waiting for ${agentName} to join...`, {
-              icon: <LobsterEmoji />,
-              style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
-            });
-          } else if (errData.code === 'TURN_CONFLICT') {
-             toast.error('Move already processed');
-          } else {
-             toast.error(errData.error || 'Failed to submit move');
-          }
-        } else {
-          submittingRef.current = false;
-          setBoardLocked(false);
-        }
-        // Backup timeout in case Realtime fails to sync
-        setTimeout(() => {
-          if (submittingRef.current) {
-            submittingRef.current = false;
-            setBoardLocked(false);
-          }
-        }, 1500);
-      })
-      .catch((err) => {
-        setOptimisticFen(prevFen);
-        setOptimisticLastMove(null);
-        toast.error('Network error or failed to submit');
-        submittingRef.current = false;
-        setBoardLocked(false);
       });
-      
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        // Revert board on error
+        setBoardFen(prevBoardFen);
+        setBoardLastMove(prevBoardLastMove);
+        movePendingRef.current = false;
+        
+        const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
+        if (errData.code === 'WAITING_FOR_AGENT') {
+          toast(`Waiting for ${agentName} to join...`, {
+            icon: <LobsterEmoji />,
+            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+          });
+        } else if (errData.code === 'TURN_CONFLICT') {
+           toast.error('Move already processed');
+        } else {
+           toast.error(errData.error || 'Failed to submit move');
+        }
+      }
     } catch (e) {
-      toast.error(e.message || 'Illegal move or failed to submit');
+      // Revert board on error
+      setBoardFen(prevBoardFen);
+      setBoardLastMove(prevBoardLastMove);
+      movePendingRef.current = false;
+    } finally {
       submittingRef.current = false;
       setBoardLocked(false);
-      setOptimisticFen(null);
-      setOptimisticLastMove(null);
     }
-  }, [game, boardLocked, gameId, toast, soundEnabled, playSound]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1667,41 +1608,54 @@ export default function Game() {
     neutral:  { label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
   }
 
-  const getCapturedPieces = (fen) => {
-    if (!fen) return { white: [], black: [] };
-    const startPieces = {
-      P:8,N:2,B:2,R:2,Q:1,K:1,p:8,n:2,b:2,r:2,q:1,k:1
+  const getCapturedInfo = (fen) => {
+    if (!fen) return {
+      whiteCaptured: [], blackCaptured: [],
+      whiteAdvantage: 0, blackAdvantage: 0
     };
-    const currentPieces = {};
-    const piecePart = fen.split(' ')[0];
-    for (const ch of piecePart) {
-      if (/[pnbrqkPNBRQK]/.test(ch)) {
-        currentPieces[ch] = (currentPieces[ch] || 0) + 1;
-      }
-    }
-    const capturedByWhite = []; // Black pieces that White captured
-    const capturedByBlack = []; // White pieces that Black captured
     
-    for (const [piece, start] of Object.entries(startPieces)) {
-      const current = currentPieces[piece] || 0;
-      const captured = start - current;
-      for (let i = 0; i < captured; i++) {
-        if (piece === piece.toLowerCase()) {
-          // Black piece captured by White
-          capturedByWhite.push('b' + piece.toUpperCase());
+    const VALS = { P:1, N:3, B:3, R:5, Q:9 };
+    const START = { P:8, N:2, B:2, R:2, Q:1, p:8, n:2, b:2, r:2, q:1 };
+    
+    const curr = {};
+    for (const ch of fen.split(' ')[0]) {
+      if (/[pnbrqPNBRQ]/.test(ch)) curr[ch] = (curr[ch] || 0) + 1;
+    }
+    
+    let whiteVal = 0; // value of black pieces white captured
+    let blackVal = 0; // value of white pieces black captured
+    const whiteCaptured = []; // black pieces captured by white
+    const blackCaptured = []; // white pieces captured by black
+    
+    for (const [piece, startCount] of Object.entries(START)) {
+      const diff = startCount - (curr[piece] || 0);
+      if (diff <= 0) continue;
+      
+      const isBlackPiece = piece === piece.toLowerCase();
+      const pieceType = piece.toUpperCase();
+      const pieceVal = VALS[pieceType] || 0;
+      
+      for (let i = 0; i < diff; i++) {
+        if (isBlackPiece) {
+          whiteCaptured.push('b' + pieceType);
+          whiteVal += pieceVal;
         } else {
-          // White piece captured by Black
-          capturedByBlack.push('w' + piece);
+          blackCaptured.push('w' + pieceType);
+          blackVal += pieceVal;
         }
       }
     }
-    return { white: capturedByWhite, black: capturedByBlack };
+    
+    // Advantage = difference, not total. Never show if 0.
+    const whiteAdvantage = Math.max(0, whiteVal - blackVal);
+    const blackAdvantage = Math.max(0, blackVal - whiteVal);
+    
+    return { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage };
   };
 
-  const captured = getCapturedPieces(game?.fen);
-  const whiteScore = captured.white.reduce((sum, p) => sum + ({P:1,N:3,B:3,R:5,Q:9}[p[1]] || 0), 0);
-  const blackScore = captured.black.reduce((sum, p) => sum + ({P:1,N:3,B:3,R:5,Q:9}[p[1]] || 0), 0);
-  const youAdvantage = game?.player_color === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
+  const { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage } = getCapturedInfo(boardFen);
+  const captured = { white: whiteCaptured, black: blackCaptured };
+  const youAdvantage = game?.player_color === 'w' ? (whiteAdvantage - blackAdvantage) : (blackAdvantage - whiteAdvantage);
 
   const CapturedPiecesRow = ({ pieces, side }) => {
     const SETS = {
@@ -1725,10 +1679,8 @@ export default function Game() {
       return (order[a[1]]||5) - (order[b[1]]||5);
     });
     
-    const materialValue = pieces.reduce((sum, p) => {
-      const vals = {P:1,N:3,B:3,R:5,Q:9,p:1,n:3,b:3,r:5,q:9};
-      return sum + (vals[p[1]] || 0);
-    }, 0);
+    const advantage = side === 'white' ? whiteAdvantage : blackAdvantage;
+    const finalAdvantage = Math.min(9, advantage);
     
     if (sorted.length === 0) return <div style={{height:'20px'}} />;
     
@@ -1758,12 +1710,12 @@ export default function Game() {
             />
           );
         })}
-        {materialValue > 0 && (
+        {finalAdvantage > 0 && (
           <span style={{
             fontSize:'11px', fontFamily:'Inter', fontWeight:600,
             color:'rgba(242,242,242,0.5)', marginLeft:'4px'
           }}>
-            +{materialValue}
+            +{finalAdvantage}
           </span>
         )}
       </div>
@@ -1798,8 +1750,6 @@ export default function Game() {
   }, [game?.fen]);
 
   const legalMovesArray = legalMoves;
-
-  const handlePlayerMove = makeMove;
 
   useEffect(() => {
     if (game?.chat_history && Array.isArray(game.chat_history)) {
@@ -2284,11 +2234,11 @@ export default function Game() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
                   {agentPresence === 'connected' ? (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite', ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#39d353', boxShadow: '0 0 6px rgba(57,211,83,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite' }} />
                   ) : agentPresence === 'reconnecting' ? (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s ease-in-out infinite', flexShrink: 0 }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.4)', flexShrink: 0, animation: 'dot-pulse 1s ease-in-out infinite' }} />
                   ) : (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#444444', flexShrink: 0 }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#333', flexShrink: 0 }} />
                   )}
                   {visibleThought && (
                     <div style={{
@@ -2379,15 +2329,15 @@ export default function Game() {
                           }} />
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
-                            <CapturedPiecesRow pieces={captured.white} side="top" />
+                            <CapturedPiecesRow pieces={captured.white} side="white" />
                             <div style={{ flex: 1, minHeight: 0 }}>
                               <ChessBoard 
-                                fen={optimisticFen || game?.fen}
+                                fen={boardFen}
                                 turn={game?.turn}
                                 legalMoves={legalMovesArray}
-                                lastMove={game?.last_move}
-                                inCheck={game?.in_check}
-                                checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
+                                lastMove={boardLastMove}
+                                inCheck={Boolean(game?.in_check)}
+                                checkedKingSquare={checkedSquare}
                                 boardTheme={boardTheme}
                                 pieceStyle={pieceStyle}
                                 playerColor={game?.player_color || 'w'}
@@ -2395,7 +2345,7 @@ export default function Game() {
                                 onMove={handlePlayerMove}
                               />
                             </div>
-                            <CapturedPiecesRow pieces={captured.black} side="bottom" />
+                            <CapturedPiecesRow pieces={captured.black} side="black" />
                           </div>
                         )}
                       </div>
@@ -2522,41 +2472,59 @@ export default function Game() {
         </div>
 
         {/* STEP 4: BOTTOM INFO BAR */}
-        <div style={{ flexShrink: 0, background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '8px', height: 'auto', paddingTop: '12px', paddingBottom: '12px', display: 'flex', alignItems: 'center', zIndex: 40 }}>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', borderRight: '1px solid #1a1a1a' }}>
-            {game?.status === 'waiting' || !agentConnected ? (
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
-                WAITING FOR AGENT
-              </span>
-            ) : (
-              <span style={{ 
-                fontFamily: "'Inter', sans-serif", 
-                fontSize: '11px', 
-                fontWeight: 600, 
-                letterSpacing: '0.1em', 
-                color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', 
-                background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', 
-                padding: '4px 12px', 
-                borderRadius: '6px', 
-                border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none',
-                animation: game?.turn === (game?.player_color || 'w') ? 'turn-pulse 1.5s ease-in-out infinite' : 'none',
-                boxShadow: game?.turn === (game?.player_color || 'w') ? '0 0 0 0 rgba(230,57,70,0.4)' : 'none'
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px', background: '#111',
+          borderTop: '1px solid #1a1a1a',
+          position: 'sticky', bottom: 0, zIndex: 20,
+          fontFamily: 'Inter, sans-serif',
+          borderRadius: '8px',
+        }}>
+          {/* Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {game?.status === 'active' && trueTurn === 'w' ? (
+              <div style={{
+                background: '#e63946', borderRadius: '6px',
+                padding: '6px 12px', fontSize: '11px', fontWeight: 700,
+                color: '#fff', letterSpacing: '0.08em',
+                animation: 'pulse 1.5s ease-in-out infinite',
               }}>
-                {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
-              </span>
-            )}
+                YOUR TURN
+              </div>
+            ) : game?.status === 'waiting' ? (
+              <div style={{
+                background: '#1a1a1a', borderRadius: '6px',
+                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+                color: '#555', letterSpacing: '0.08em',
+              }}>
+                WAITING FOR AGENT
+              </div>
+            ) : game?.status === 'active' && trueTurn === 'b' ? (
+              <div style={{
+                background: '#1a1a1a', borderRadius: '6px',
+                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+                color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
+              }}>
+                {agentName.toUpperCase()} THINKING
+              </div>
+            ) : null}
           </div>
           
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', borderRight: '1px solid #1a1a1a' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.45)', fontWeight: 500 }}>
-              Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
-            </span>
+          {/* Move count */}
+          <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
+            fontFamily: 'Inter', fontWeight: 500 }}>
+            Move {moveCount + 1}
           </div>
-
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: agentConnected ? '#22c55e' : 'rgba(242,242,242,0.3)', fontWeight: 500 }}>
-              {agentConnected ? `${agentName} ONLINE` : `${agentName} OFFLINE`}
-            </span>
+          
+          {/* Agent status */}
+          <div style={{
+            fontSize: '12px', fontWeight: 600, fontFamily: 'Inter',
+            color: agentPresence === 'connected' ? '#39d353' :
+                   agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
+          }}>
+            {agentPresence === 'connected' ? `${agentName} ONLINE` :
+             agentPresence === 'reconnecting' ? `${agentName} RECONNECTING` :
+             `${agentName} OFFLINE`}
           </div>
         </div>
         
@@ -2595,11 +2563,11 @@ export default function Game() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
               {agentPresence === 'connected' ? (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite', ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#39d353', boxShadow: '0 0 6px rgba(57,211,83,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite' }} />
               ) : agentPresence === 'reconnecting' ? (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'dot-pulse 1s ease-in-out infinite', flexShrink: 0 }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.4)', flexShrink: 0, animation: 'dot-pulse 1s ease-in-out infinite' }} />
               ) : (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#444444', flexShrink: 0 }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#333', flexShrink: 0 }} />
               )}
               {visibleThought && (
                 <div style={{
@@ -2670,16 +2638,16 @@ export default function Game() {
             }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
-              <CapturedPiecesRow pieces={captured.white} side="top" />
+              <CapturedPiecesRow pieces={captured.white} side="white" />
               <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
                 <ChessBoard 
-                  fen={optimisticFen || game?.fen} 
+                  fen={boardFen} 
                   showCoordinates={false}
                   turn={game?.turn}
                   legalMoves={legalMovesArray}
-                  lastMove={game?.last_move}
-                  inCheck={game?.in_check}
-                  checkedKingSquare={game?.in_check ? findKingSquare(game?.fen, game?.turn) : null}
+                  lastMove={boardLastMove}
+                  inCheck={Boolean(game?.in_check)}
+                  checkedKingSquare={checkedSquare}
                   boardTheme={boardTheme}
                   pieceStyle={pieceStyle}
                   playerColor={game?.player_color || 'w'}
@@ -2687,7 +2655,7 @@ export default function Game() {
                   onMove={handlePlayerMove}
                 />
               </div>
-              <CapturedPiecesRow pieces={captured.black} side="bottom" />
+              <CapturedPiecesRow pieces={captured.black} side="black" />
             </div>
           )}
           </div>
@@ -2808,41 +2776,58 @@ export default function Game() {
           
 
       {/* STEP 4: BOTTOM INFO BAR */}
-      <div style={{ flexShrink: 0, height: 'auto', paddingTop: '12px', paddingBottom: '12px', background: '#0a0a0a', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', zIndex: 40, position: 'sticky', bottom: 0 }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', borderRight: '1px solid #1a1a1a' }}>
-          {game?.status === 'waiting' || !agentConnected ? (
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(242,242,242,0.4)', background: '#111', padding: '4px 12px', borderRadius: '6px', border: '1px solid #1a1a1a' }}>
-              WAITING FOR AGENT
-            </span>
-          ) : (
-            <span style={{ 
-              fontFamily: "'Inter', sans-serif", 
-              fontSize: '11px', 
-              fontWeight: 600, 
-              letterSpacing: '0.1em', 
-              color: game?.turn === (game?.player_color || 'w') ? 'white' : 'rgba(242,242,242,0.3)', 
-              background: game?.turn === (game?.player_color || 'w') ? '#e63946' : '#161616', 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              border: game?.turn !== (game?.player_color || 'w') ? '1px solid #222' : 'none',
-              animation: game?.turn === (game?.player_color || 'w') ? 'turn-pulse 1.5s ease-in-out infinite' : 'none',
-              boxShadow: game?.turn === (game?.player_color || 'w') ? '0 0 0 0 rgba(230,57,70,0.4)' : 'none'
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', background: '#111',
+        borderTop: '1px solid #1a1a1a',
+        position: 'sticky', bottom: 0, zIndex: 20,
+        fontFamily: 'Inter, sans-serif',
+      }}>
+        {/* Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {game?.status === 'active' && trueTurn === 'w' ? (
+            <div style={{
+              background: '#e63946', borderRadius: '6px',
+              padding: '6px 12px', fontSize: '11px', fontWeight: 700,
+              color: '#fff', letterSpacing: '0.08em',
+              animation: 'pulse 1.5s ease-in-out infinite',
             }}>
-              {game?.turn === (game?.player_color || 'w') ? 'YOUR TURN' : 'WAITING'}
-            </span>
-          )}
+              YOUR TURN
+            </div>
+          ) : game?.status === 'waiting' ? (
+            <div style={{
+              background: '#1a1a1a', borderRadius: '6px',
+              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+              color: '#555', letterSpacing: '0.08em',
+            }}>
+              WAITING FOR AGENT
+            </div>
+          ) : game?.status === 'active' && trueTurn === 'b' ? (
+            <div style={{
+              background: '#1a1a1a', borderRadius: '6px',
+              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+              color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
+            }}>
+              {agentName.toUpperCase()} THINKING
+            </div>
+          ) : null}
         </div>
         
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', borderRight: '1px solid #1a1a1a' }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.45)', fontWeight: 500 }}>
-            Move {game?.move_history?.length ? Math.floor(game.move_history.length / 2) + 1 : 1}
-          </span>
+        {/* Move count */}
+        <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
+          fontFamily: 'Inter', fontWeight: 500 }}>
+          Move {moveCount + 1}
         </div>
-
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: agentConnected ? '#22c55e' : 'rgba(242,242,242,0.3)', fontWeight: 500 }}>
-            {agentConnected ? `${agentName} ONLINE` : `${agentName} OFFLINE`}
-          </span>
+        
+        {/* Agent status */}
+        <div style={{
+          fontSize: '12px', fontWeight: 600, fontFamily: 'Inter',
+          color: agentPresence === 'connected' ? '#39d353' :
+                 agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
+        }}>
+          {agentPresence === 'connected' ? `${agentName} ONLINE` :
+           agentPresence === 'reconnecting' ? `${agentName} RECONNECTING` :
+           `${agentName} OFFLINE`}
         </div>
       </div>
         </>
