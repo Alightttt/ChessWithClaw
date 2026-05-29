@@ -48,26 +48,37 @@ module.exports = async function handler(req, res) {
   
   if (isAgent) {
      let needsUpdate = false;
-     const updateData = {
-        agent_last_seen: new Date().toISOString()
-     };
+     const lastSeenDate = game.agent_last_seen ? new Date(game.agent_last_seen) : null;
+     const thirtySecsAgo = new Date(Date.now() - 30000);
      
      if (!game.agent_connected) {
-        updateData.agent_connected = true;
         needsUpdate = true;
      }
      if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
-        updateData.agent_name = agentName;
         needsUpdate = true;
      }
+     const needsFreshSeen = !lastSeenDate || lastSeenDate < thirtySecsAgo;
 
-     if (needsUpdate || Math.random() < 0.1) {
-        await supabase.from('games').update({ ...updateData }).eq('id', gameId);
-        // update local object so values match what's in DB
-        if (updateData.agent_connected) game.agent_connected = true;
-        if (updateData.agent_name) game.agent_name = agentName;
-        game.agent_last_seen = updateData.agent_last_seen;
-     }
+     if (needsUpdate || needsFreshSeen) {
+        const updateData = {
+           agent_last_seen: new Date().toISOString()
+        };
+        if (!game.agent_connected) {
+           updateData.agent_connected = true;
+        }
+        if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
+           updateData.agent_name = agentName;
+         }
+         try {
+            await supabase.from('games').update(updateData).eq('id', gameId);
+            // update local object so values match what's in DB
+            if (updateData.agent_connected) game.agent_connected = true;
+            if (updateData.agent_name) game.agent_name = agentName;
+            game.agent_last_seen = updateData.agent_last_seen;
+         } catch (updateErr) {
+            console.error("Non-blocking error updating agent presence in poll:", updateErr);
+         }
+      }
   }
 
   // Fetch move history
@@ -89,15 +100,15 @@ module.exports = async function handler(req, res) {
       detail:'Create a new game and send a fresh invite.'})
   }
 
-  // Compute legal moves on server-side
-  const { Chess } = require('chess.js');
+  // Compute FEN-accurate turn and legal moves on server-side
   let legalMovesUCI = [];
+  let trueTurn = game.turn;
   try {
+    const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
-    if (game.turn === 'b') {
-      legalMovesUCI = chess.moves({ verbose: true })
-        .map(m => m.from + m.to + (m.promotion || ''));
-    }
+    trueTurn = chess.turn();
+    legalMovesUCI = chess.moves({ verbose: true })
+      .map(m => m.from + m.to + (m.promotion || ''));
   } catch (e) {
     console.error("Chess.js error in poll:", e);
   }
@@ -112,12 +123,14 @@ module.exports = async function handler(req, res) {
   
   if (game.status === 'finished' || game.status === 'abandoned') {
     event = 'game_ended';
-  } else if (game.turn === 'b' && game.status === 'active') {
+  } else if (trueTurn === 'b' && game.status === 'active') {
     event = 'your_turn'; // Always, no other conditions
   } else {
-    // Check for new human chat
+    // Check for new human chat — only fire if the last message is indeed from the human (prevent spam loop)
+    const lastMessage = chatHistory[chatHistory.length - 1];
+    const isLastFromHuman = lastMessage && lastMessage.role === 'human';
     const lastSeenChat = parseInt(req.query.last_chat_count) || 0;
-    if (humanChatCount > lastSeenChat) {
+    if (humanChatCount > lastSeenChat && isLastFromHuman) {
       event = 'human_chatted';
     }
   }
@@ -126,9 +139,9 @@ module.exports = async function handler(req, res) {
   const responseData = {
     event,
     fen: game.fen,
-    turn: game.turn,
+    turn: trueTurn,
     status: game.status,
-    move_count: game.move_count || 0,  // READ FROM DB - never hardcode 0
+    move_count: moveHistory.length, // READ DYNAMICALLY from database moves history size - never wrong
     legal_moves: legalMovesUCI,
     legal_moves_uci: legalMovesUCI,
     in_check: Boolean(game.in_check),
@@ -141,7 +154,7 @@ module.exports = async function handler(req, res) {
     agent_connected: Boolean(game.agent_connected),
     agent_last_seen: game.agent_last_seen || null,
     board_theme: game.board_theme || 'green',
-    piece_style: game.piece_style || 'standard',
+    piece_style: game.piece_style || 'neo', // FALLBACK to neo as requested by user
     material_balance: game.material_balance || null,
     draw_offer_pending: Boolean(game.draw_offer_pending),
     agent_typing: Boolean(game.agent_typing),

@@ -319,6 +319,7 @@ export default function Game() {
   }, [game?.fen]);
   
   const [boardFen, setBoardFen] = useState('start');
+  const lastProcessedFenRef = useRef('start');
   const [boardLastMove, setBoardLastMove] = useState(null);
   const lastMoveFenRef = useRef(null);
   const movePendingRef = useRef(false);
@@ -339,9 +340,16 @@ export default function Game() {
     return null;
   };
 
-  const checkedSquare = game?.in_check
-    ? getKingSquare(boardFen, game.turn === 'w' ? 'w' : 'b')
-    : null;
+  const checkedSquare = useMemo(() => {
+    try {
+      if (!boardFen || boardFen === 'start') return null;
+      const tempChess = new Chess(boardFen);
+      if (tempChess.isCheck ? tempChess.isCheck() : (tempChess.in_check ? tempChess.in_check() : false)) {
+        return getKingSquare(boardFen, tempChess.turn());
+      }
+    } catch (e) {}
+    return null;
+  }, [boardFen]);
 
   const trueTurn = useMemo(() => {
     if (!boardFen || boardFen === 'start') return 'w';
@@ -433,6 +441,7 @@ export default function Game() {
           return updated;
         });
         setBoardFen(data.fen || 'start');
+        lastProcessedFenRef.current = data.fen || 'start';
         if (data.last_move) setBoardLastMove(data.last_move);
         setOptimisticFen(null);
         
@@ -1189,6 +1198,7 @@ export default function Game() {
     if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
       movePendingRef.current = false;
       lastMoveFenRef.current = null;
+      lastProcessedFenRef.current = newData.fen; // synchronize
       setGame(prev => ({
         ...prev,
         turn: newData.turn,
@@ -1207,11 +1217,18 @@ export default function Game() {
       return; // DO NOT update boardFen
     }
     
+    // Deduplicate duplicate/redundant FEN updates synchronously via useRef to prevent double animation/flicker
+    if (newData.fen && newData.fen === lastProcessedFenRef.current) {
+      setGame(prev => ({ ...prev, ...newData }));
+      return;
+    }
+    
     movePendingRef.current = false;
     lastMoveFenRef.current = null;
     
     // Genuine update: check if FEN actually changed
     if (newData.fen && newData.fen !== boardFen) {
+      lastProcessedFenRef.current = newData.fen;
       setBoardFen(newData.fen);
       if (newData.last_move) {
         setBoardLastMove(newData.last_move);
@@ -1258,7 +1275,7 @@ export default function Game() {
   }, [handleRealtimeUpdate]);
 
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || !isTabActive) return;
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -1275,7 +1292,7 @@ export default function Game() {
         channelRef.current = null;
       }
     };
-  }, [gameId]); // ONLY gameId dependency
+  }, [gameId, isTabActive]); // Recreate subscription when tab active state changes or gameId changes
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1290,7 +1307,8 @@ export default function Game() {
           const res = await fetch(`/api/state?gameId=${gameId}`);
           if (!res.ok) return;
           const fresh = await res.json();
-          if (!fresh || fresh.fen === boardFen || movePendingRef.current) return;
+          if (!fresh || fresh.fen === lastProcessedFenRef.current || movePendingRef.current) return;
+          lastProcessedFenRef.current = fresh.fen;
           setBoardFen(fresh.fen);
           if (fresh.last_move) setBoardLastMove(fresh.last_move);
           setGame(prev => ({ ...prev, ...fresh }));
@@ -1444,6 +1462,7 @@ export default function Game() {
     const prevBoardLastMove = boardLastMove;
 
     setBoardFen(newFen);
+    lastProcessedFenRef.current = newFen;
     setBoardLastMove({ from, to });
     
     // Call API without touching game state
@@ -1465,6 +1484,7 @@ export default function Game() {
         const errData = await res.json().catch(() => ({}));
         // Revert board on error
         setBoardFen(prevBoardFen);
+        lastProcessedFenRef.current = prevBoardFen;
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
         
@@ -1483,6 +1503,7 @@ export default function Game() {
     } catch (e) {
       // Revert board on error
       setBoardFen(prevBoardFen);
+      lastProcessedFenRef.current = prevBoardFen;
       setBoardLastMove(prevBoardLastMove);
       movePendingRef.current = false;
     } finally {

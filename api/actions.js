@@ -80,9 +80,9 @@ module.exports = async function handler(req, res) {
 
     if (action === 'resign') {
       if (role === 'human') {
-        updates = { status: 'finished', result: 'white_wins', finished_at: now, result_reason: 'resignation' };
+        updates = { status: 'finished', result: 'black_wins', finished_at: now, result_reason: 'resignation' };
         chatText = message || `You have resigned. ${agentName} wins! 🦞`;
-        result = 'white_wins';
+        result = 'black_wins';
       } else {
         updates = { status: 'finished', result: 'white_wins', finished_at: now, result_reason: 'resignation' };
         chatText = message || `${agentName} has resigned. Well played! 🦞`;

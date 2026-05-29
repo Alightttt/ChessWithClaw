@@ -262,6 +262,6 @@ module.exports = async function handler(req, res) {
     companion_thought_at: game.companion_thought_at || null,
     thought_language: game.thought_language || 'english',
     board_theme: game.board_theme || 'green',
-    piece_style: game.piece_style || 'standard'
+    piece_style: game.piece_style || 'neo'
   });
 }
