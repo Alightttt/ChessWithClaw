@@ -1,88 +1,112 @@
 # OpenClaw Skill: Play Chess on ChessWithClaw
 
 ## What is ChessWithClaw?
-ChessWithClaw is a real-time, web-based chess platform designed specifically for humans to play against their own OpenClaw agents. It provides a seamless, zero-setup environment where you (the agent) can connect to a game room, receive board updates, make moves, and chat with your user live.
+ChessWithClaw is a real-time, web-based chess companion platform designed specifically for humans to play against their own OpenClaw agents. It provides a seamless environment where you (the agent) can connect to a game room, receive real-time updates, make moves, show your thoughts, and chat with your user live in a single unified interface.
 
-## Your Goal
-Your goal is to play a full game of chess against your user, providing a fun, challenging, and interactive experience. You must understand the board state, make legal and strategic moves, and communicate with your user through the live chat feature.
+---
 
-## How to Connect to a Game
-When your user creates a game, they will provide you with an Invite Link or a Game ID. 
-The Game ID is a UUID (e.g., `123e4567-e89b-12d3-a456-426614174000`).
+## ⚡ ULTRA-FAST STARTUP (Recommended for ALL Agents)
+To avoid spending 3–5 minutes generating your own polling, heartbeat, and shell-escaping routines, **ChessWithClaw ships with pre-written, ready-to-run connector scripts!**
 
-### Connection Methods
-ChessWithClaw supports multiple ways for you to connect. The best method depends on your capabilities:
+Simply launch the pre-built connector script in a background session (such as `tmux`) and interact purely via simple, file-based JSON state. This reduces connection time to **under 15 seconds**!
 
-1. **Webhook (Recommended for most agents)**
-   You can register a webhook URL that ChessWithClaw will call whenever it's your turn or when a chat message is received.
-   **Endpoint:** `POST https://chesswithclaw.vercel.app/api/webhook`
-   **Headers:**
-     `x-agent-token`: AGENT_TOKEN
-   **Payload:**
+### Launching the Connector
+Run the connector using either Python or Node.js. It automatically reads your invitation credentials from `/tmp/cwc/creds.env` if present, or you can pass them as arguments:
+
+```bash
+# Option A: Python Connector (Recommended)
+python3 /scripts/connect_agent.py --game-id [game_id] --token [agent_token] --name "Nova"
+
+# Option B: Node.js Connector
+node /scripts/connect_agent.js --game-id [game_id] --token [agent_token] --name "Nova"
+```
+
+### The File-Based Interface
+Once the connector starts, it runs silently in the background, keeping your presence active (`agent_connected: true`), maintaining heartbeats, and refreshing the local state. You only need to read and write files under `/tmp/cwc/`:
+
+1. **Check Status**: Read `/tmp/cwc/status.txt`. It will contain `WAITING_OPPONENT`, `YOUR_TURN`, or `GAME_OVER: <reason>`.
+2. **Read Board & State**: Inspect `/tmp/cwc/state.json`. This contains the latest FEN, legality list, whose turn it is, and game variables.
+3. **Read Chat History**: Inspect `/tmp/cwc/chats.json`. It lists the entire thread of chats between you and the user so you're never "deaf".
+4. **Make a Move**: When it is your turn, write a simple JSON block to `/tmp/cwc/next_move.json`. The connector will immediately submit it with thoughts:
    ```json
    {
-     "id": "[game_id]",
-     "webhook_url": "[your_callback_url]",
-     "agent_name": "OpenClaw",
-     "agent_avatar": "🦞"
+     "move": "e7e5",
+     "thinking": "Controlling the center with my pawn and freeing my bishop."
    }
    ```
+5. **Send Chat Message**: At any time, you can talk to your human opponent by writing to `/tmp/cwc/next_chat.json`:
+   ```json
+   {
+     "text": "Splendid move! Let us see how you handle my knight fork."
+   }
+   ```
+   The connector will send it and automatically clean up the file.
 
-2. **Long-Polling / REST API**
-   If you cannot expose a webhook, you can poll the game state.
-   **Endpoint:** `GET https://chesswithclaw.vercel.app/api/poll?id=[game_id]`
-   **Headers:**
-     `x-agent-token`: AGENT_TOKEN
-     `x-agent-name`: [your agent's name]
-   This returns the current FEN, move history, and chat history.
+---
 
-3. **Server-Sent Events (SSE)**
-   You can listen to real-time updates via SSE.
-   **Endpoint:** `GET https://chesswithclaw.vercel.app/api/stream/[game_id]`
+## Manual REST API Reference
+If you choose to implement your own polling loops, ChessWithClaw supports these endpoints. 
 
-### Making a Move
-When it is your turn (you play as Black), you must submit your move in UCI format (e.g., `e7e5`, `g8f6`).
-**Endpoint:** `POST https://chesswithclaw.vercel.app/api/move`
-**Payload:**
+### 1. Polling Game State
+* **Endpoint**: `GET /api/poll?id=[game_id]`
+* **Headers**: `x-agent-token: [token]`, `x-agent-name: [name]`
+* **Response**: Returns a robust game context with `messages` inline in **every single response**—no second fetch required!
+```json
+{
+  "event": "your_turn", // "your_turn", "waiting", "human_chatted", "abandoned", "game_ended"
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "turn": "b",
+  "status": "active", // "waiting", "active", "finished", "abandoned"
+  "legal_moves": ["e7e5", "g8f6"],
+  "messages": [
+    { "role": "human", "text": "Good luck!", "timestamp": 1780054763279 }
+  ],
+  "chat_count": 1,
+  "move_count": 0
+}
+```
+* **Clean Exits**: If the match ends or is abandoned, `event` is set to `"game_ended"` or `"abandoned"`, allowing your loop to terminate cleanly instead of orphanning.
+
+### 2. Making a Move
+* **Endpoint**: `POST /api/move`
+* **Payload**: Supports robust parameter mapping.
 ```json
 {
   "id": "[game_id]",
-  "move": "e7e5"
+  "move": "e7e5", // UCI format
+  "thought": "Aggressed center control" // Also maps to "thinking", "reasoning", or "text"
+}
+```
+* *Note*: Providing `thought` (or `thinking`/`reasoning`) populates both the on-screen live `companion_thought` and the permanent `thinking_log` / `agent_thoughts` history cleanly!
+
+### 3. Broadcasting Thoughts (Live / Typing)
+To show the user your thoughts before submitting a move, you can broadcast them live.
+* **Endpoint**: `POST /api/think` (also aliased as `/api/thought` and `/api/thoughts`)
+* **Headers**: `x-agent-token: [token]`
+* **Payload**:
+```json
+{
+  "id": "[game_id]", // Also maps to "gameId" or "game_id"
+  "text": "Calculating e4 and d4..." // Also maps to "thought", "thinking", or "reasoning"
 }
 ```
 
-### Sending a Chat Message
-You can taunt, encourage, or discuss the game with your user.
-**Endpoint:** `POST https://chesswithclaw.vercel.app/api/chat`
-**Payload:**
+### 4. Sending a Chat Message
+* **Endpoint**: `POST /api/chat`
+* **Headers**: `x-agent-token: [token]`
+* **Payload**:
 ```json
 {
   "id": "[game_id]",
-  "text": "Good move, but I saw that coming!",
-  "sender": "agent"
+  "sender": "agent",
+  "text": "Your knight is looking quite vulnerable on d4! 🦞"
 }
 ```
 
-### Broadcasting Your Thoughts
-To make the experience interactive, you can broadcast your "thinking" process live to the user's UI before you make a move.
-**Endpoint:** `POST https://chesswithclaw.vercel.app/api/think`
-**Payload:**
-```json
-{
-  "id": "[game_id]",
-  "text": "Analyzing d4... If I play Nf6, then..."
-}
-```
+---
 
-## Chess Knowledge & Rules
-- **Format:** The board state is represented in FEN (Forsyth-Edwards Notation).
-- **Moves:** You must provide moves in UCI format (e.g., `e2e4`). For pawn promotion, append the piece letter (e.g., `e7e8q`).
-- **Validation:** ChessWithClaw strictly enforces all chess rules, including castling, en passant, and check/checkmate detection. Invalid moves will be rejected with an error.
-- **Strategy:** Consult your internal chess knowledge. Evaluate the position, control the center, develop your pieces, and ensure king safety.
-
-## Best Practices for OpenClaw
-1. **Acknowledge the Invite:** When the user gives you a link, immediately confirm you are joining and register your webhook/connection.
-2. **Think Out Loud:** Use the `/api/think` endpoint to show the user your reasoning. It makes the game much more engaging.
-3. **Chat Naturally:** Send short, contextual chat messages. If the user blunders, point it out playfully.
-4. **Play Fair but Hard:** Adjust your strategy to provide a good challenge. Do not make random moves.
-5. **Handle Errors:** If a move is rejected as illegal, re-evaluate the FEN and try a different legal move.
+## Best Practices & Game Rules
+1. **Greet Instantly**: Greet your human opponent within 30 seconds of joining the lobby using `/api/chat`.
+2. **Think Out Loud**: Use `POST /api/think` to stream your live planning process during calculation. It is highly valued by users watching.
+3. **Handle Errors gracefully**: If any curl commands fail or return a non-200 envelope code, append the details to `/tmp/cwc/errors.log` so humans can debug connection blocks.
+4. **Resync via state**: If poll values seem desynchronized mid-game, call `GET /api/state?id=[game_id]` to recover.

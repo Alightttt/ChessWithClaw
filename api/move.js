@@ -143,9 +143,9 @@ module.exports = async function handler(req, res) {
   if (!id || !move) return res.status(400).json({ error: 'Missing id or move in JSON body' });
   id = id.trim();
 
-  // Support both reasoning and thinking fields
-  const actualReasoning = reasoning || thinking || '';
-  const thought = req.body?.thought || null;
+  // Support all reasoning, thinking, thought, and text parameters
+  const actualReasoning = reasoning || thinking || req.body?.thought || req.body?.text || '';
+  const thought = req.body?.thought || req.body?.text || reasoning || thinking || null;
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });
@@ -244,7 +244,7 @@ module.exports = async function handler(req, res) {
   if (isAgentMove) {
     await supabase
       .from('games')
-      .update({ current_thinking: req.body?.reasoning || req.body?.thinking || '' })
+      .update({ current_thinking: actualReasoning })
       .eq('id', id);
   }
 
@@ -308,7 +308,7 @@ module.exports = async function handler(req, res) {
     status: gameStatus,
     result: gameResult,
     move_number: moveNumber,
-    current_thinking: req.body?.thinking || req.body?.reasoning || '',
+    current_thinking: actualReasoning,
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
   };
 

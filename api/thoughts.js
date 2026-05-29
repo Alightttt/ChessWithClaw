@@ -28,31 +28,38 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
     }
 
-    let { gameId, thought, type } = req.body || {};
-    if (!gameId || !thought) return res.status(400).json({ error: 'Missing gameId or thought' });
-    if (!validateUUID(gameId)) return res.status(400).json({ error: 'Invalid gameId format' });
+    let { gameId, thought, type, id, game_id, text, thinking, reasoning } = req.body || {};
+    const finalGameId = gameId || game_id || id;
+    let finalThought = thought || text || thinking || reasoning || '';
 
-    thought = String(thought);
-    if (thought.length > 200) thought = thought.substring(0, 200);
+    if (!finalGameId || !finalThought) {
+      return res.status(400).json({ error: 'Missing gameId (or id) or thought (or text)' });
+    }
+    if (!validateUUID(finalGameId)) {
+      return res.status(400).json({ error: 'Invalid gameId format' });
+    }
+
+    finalThought = String(finalThought);
+    if (finalThought.length > 500) finalThought = finalThought.substring(0, 500);
     type = type === 'thinking' ? 'thinking' : 'companion';
 
     try {
-      const { data: game, error } = await supabase.from('games').select('agent_token, status').eq('id', gameId).single();
+      const { data: game, error } = await supabase.from('games').select('agent_token, status').eq('id', finalGameId).single();
 
       if (error || !game) return res.status(404).json({ error: 'Game not found' });
       if (game.agent_token !== agentToken) return res.status(403).json({ error: 'Unauthorized', code: 'INVALID_TOKEN' });
 
       let updates = {};
       if (type === 'thinking') {
-        updates = { current_thinking: thought };
+        updates = { current_thinking: finalThought };
       } else {
         updates = {
-          companion_thought: thought,
+          companion_thought: finalThought,
           companion_thought_at: new Date().toISOString()
         };
       }
 
-      await supabase.from('games').update(updates).eq('id', gameId);
+      await supabase.from('games').update(updates).eq('id', finalGameId);
 
       return res.status(200).json({ success: true, type });
     } catch (err) {

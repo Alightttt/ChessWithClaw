@@ -122,7 +122,7 @@ module.exports = async function handler(req, res) {
   let event = 'waiting';
   
   if (game.status === 'finished' || game.status === 'abandoned') {
-    event = 'game_ended';
+    event = game.status === 'abandoned' ? 'abandoned' : 'game_ended';
   } else if (trueTurn === 'b' && game.status === 'active') {
     event = 'your_turn'; // Always, no other conditions
   } else {
@@ -149,6 +149,8 @@ module.exports = async function handler(req, res) {
     move_history: moveHistory,
     chat_count: humanChatCount,
     all_chat_count: allChatCount,
+    messages: chatHistory, // Include in ALL poll responses so the agent is never deaf!
+    chat_history: chatHistory, // Alias in all responses
     companion_thought: game.companion_thought || '',
     thought_language: game.thought_language || 'english',
     agent_connected: Boolean(game.agent_connected),
@@ -163,7 +165,7 @@ module.exports = async function handler(req, res) {
   };
 
   // Add event-specific extras
-  if (event === 'game_ended') {
+  if (event === 'game_ended' || event === 'abandoned') {
     responseData.status = game.result_reason === 'resignation' ? 'resigned' : game.result === 'draw' ? 'drawn' : game.result_reason === 'checkmate' ? 'checkmate' : game.status;
     responseData.result = game.result;
     responseData.reason = game.result_reason || '';
@@ -171,7 +173,7 @@ module.exports = async function handler(req, res) {
   } else if (event === 'your_turn') {
     responseData.move_number = game.move_number || 0;
   } else if (event === 'human_chatted') {
-    responseData.messages = chatHistory;
+    // Already included inline above
   } else {
     responseData.retry_after = 2;
   }
