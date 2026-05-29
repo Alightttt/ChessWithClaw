@@ -13,6 +13,14 @@
       "destination": "/api/cron"
     },
     {
+      "source": "/api/think",
+      "destination": "/api/thoughts"
+    },
+    {
+      "source": "/api/thought",
+      "destination": "/api/thoughts"
+    },
+    {
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
