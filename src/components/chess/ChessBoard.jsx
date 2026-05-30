@@ -52,7 +52,7 @@ export default function ChessBoard({
   inCheck = false,
   checkedKingSquare = null,
   boardTheme = 'green',
-  pieceStyle = 'neo',
+  pieceStyle: pieceStyleProp,
   pieceTheme,
   playerColor = 'w',
   gameStatus = 'waiting',
@@ -63,9 +63,11 @@ export default function ChessBoard({
   const [optionSquares, setOptionSquares] = useState({});
   const lastAppliedMoveRef = useRef(null);
 
+  const [pieceStyle] = useState(localStorage.getItem('cwc_piece_style') || 'neo');
+
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
   const orientation = playerColor === 'b' ? 'black' : 'white';
-  const activePieceStyle = pieceTheme || pieceStyle || 'neo';
+  const activePieceStyle = pieceTheme || pieceStyleProp || pieceStyle || 'neo';
 
   // Build legal move map: from square → [to squares]
   const legalMoveMap = useMemo(() => {

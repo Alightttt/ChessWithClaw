@@ -95,6 +95,7 @@ export default function Game() {
 
   const intervalsRef = useRef([]);
   const heartbeatRef = useRef(null);
+  const lastSoundTimeRef = useRef(0);
   
   const allIntervalsRef = useRef([]);
   const safeInterval = (fn, ms) => {
@@ -144,20 +145,6 @@ export default function Game() {
   const [chatMessages, setChatMessages] = useState([]);
   const pendingMoveFenRef = useRef(null);
   const skipNextRealtimeRef = useRef(false);
-
-  const getMoodEmoji = useMemo(() => {
-    if (!game || game.status !== 'active') return '🦞';
-    
-    const adv = game.material_balance?.advantage;
-    const whiteMat = game.material_balance?.white || 0;
-    const blackMat = game.material_balance?.black || 0;
-    const diff = blackMat - whiteMat;
-    
-    if (game.in_check && game.turn === 'b') return '😤'; // agent in check
-    if (diff >= 5) return '😈';  // agent winning significantly
-    if (diff <= -5) return '😰'; // agent losing significantly
-    return '🦞'; // default — not 🤔
-  }, [game]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -257,7 +244,7 @@ export default function Game() {
     document.head.appendChild(style);
   }, []);
 
-  const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
+  const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
   const [loading, setLoading] = useState(() => {
     try {
       const cached = localStorage.getItem('cwc_active_game');
@@ -370,9 +357,20 @@ export default function Game() {
     return null;
   }, [boardFen]);
 
-  const trueTurn = (boardFen && boardFen !== 'start')
+  const trueTurn = (boardFen && boardFen.length > 10 && boardFen.includes(' '))
     ? (boardFen.split(' ')[1] === 'w' ? 'white' : 'black')
     : 'white';
+
+  const moodEmoji = useMemo(() => {
+    if (!game) return '🦞';
+    const isBlackInCheck = game.in_check && boardFen.split(' ')[1] === 'w';
+    if (isBlackInCheck) return '😤';
+    const balance = typeof game.material_balance === 'number' ? game.material_balance : 0;
+    if (balance <= -5) return '😈';
+    if (balance >= 5) return '😰';
+    if (balance <= -2) return '😏';
+    return '🦞';
+  }, [game, boardFen]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -410,6 +408,10 @@ export default function Game() {
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
   const [isTabActive, setIsTabActive] = useState(true);
+
+  const setMoveHistory = useCallback((history) => {
+    setGame(prev => prev ? { ...prev, move_history: history } : prev);
+  }, []);
 
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
@@ -473,6 +475,12 @@ export default function Game() {
           }
           return updated;
         });
+
+        const fetchedGame = data;
+        if (fetchedGame?.move_history && Array.isArray(fetchedGame.move_history)) {
+          setMoveHistory(fetchedGame.move_history);
+        }
+
         applyBoardFen(data.fen || 'start');
         lastProcessedFenRef.current = data.fen || 'start';
         if (data.last_move) setBoardLastMove(data.last_move);
@@ -522,7 +530,7 @@ export default function Game() {
       setIsLoaded(true);
     }
     setLoading(false);
-  }, [gameId, applyBoardFen]);
+  }, [gameId, applyBoardFen, setMoveHistory]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
@@ -811,6 +819,10 @@ export default function Game() {
 
   // Sound Effects
   const playSound = useCallback((type) => {
+    const now = Date.now();
+    if (now - lastSoundTimeRef.current < 300) return;
+    lastSoundTimeRef.current = now;
+
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       
@@ -949,58 +961,10 @@ export default function Game() {
   useEffect(() => {
     if (!game) return;
     const currentMoveCount = (game.move_history || []).length;
-    if (currentMoveCount > prevMoveCountRef.current) {
-      const runSoundLogic = () => {
-        let chess;
-        try {
-          chess = new Chess();
-        } catch(e) {
-          chess = null;
-        }
-        if (chess && game.move_history && game.move_history.length > 0) {
-          game.move_history.forEach(m => {
-            try { chess.move(m.san); } catch (e) {}
-          });
-        } else if (chess && game.fen && game.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-          chess.load(game.fen);
-        }
-        if (chess) {
-          const lastMove = game.move_history[currentMoveCount - 1];
-          const isAgent = lastMove?.color === 'b';
-          const isMate = chess.in_checkmate ? chess.in_checkmate() : chess.isCheckmate ? chess.isCheckmate() : false;
-          const isCh = chess.in_check ? chess.in_check() : chess.isCheck ? chess.isCheck() : false;
-          
-          if (isMate) {
-            playSound(isAgent ? 'agentCheckmate' : 'checkmate');
-          } else if (isCh) {
-            playSound(isAgent ? 'agentCheck' : 'check');
-          } else if (lastMove && lastMove.san && lastMove.san.includes('x')) {
-            playSound(isAgent ? 'agentCapture' : 'capture');
-          } else {
-            playSound(isAgent ? 'agentMove' : 'move');
-          }
-        }
-      };
-      runSoundLogic();
-    }
-    
-    if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
-      const isAgentWinner = game.result === (game?.player_color === 'b' ? 'white' : 'black');
-      playSound(isAgentWinner ? 'agentEnd' : 'end');
-    }
-    
-    if (game.status === 'active' && prevStatusRef.current === 'waiting') {
-      playSound('start');
-    }
-    
-    if (game.current_thinking && !prevStatusRef.current_thinking) {
-      playSound('agentThinking');
-    }
-    
     prevMoveCountRef.current = currentMoveCount;
     prevStatusRef.current = game.status;
     prevStatusRef.current_thinking = game.current_thinking;
-  }, [game, playSound]);
+  }, [game]);
 
   const chatHistoryInitializedRef = useRef(false);
   const prevChatHistoryRef = useRef([]);
@@ -1015,16 +979,8 @@ export default function Game() {
       return;
     }
 
-    const prevChat = prevChatHistoryRef.current;
-    const prevAgentMsgs = prevChat.filter(m => m.role === 'agent' || m.sender === 'agent' || (m.role !== 'human' && m.sender !== 'human'));
-    const currentAgentMsgs = currentChat.filter(m => m.role === 'agent' || m.sender === 'agent' || (m.role !== 'human' && m.sender !== 'human'));
-    
-    if (currentAgentMsgs.length > prevAgentMsgs.length) {
-      if (soundEnabled) playSound('chat');
-    }
-    
     prevChatHistoryRef.current = currentChat;
-  }, [game?.chat_history, soundEnabled, playSound]);
+  }, [game?.chat_history]);
 
   const agentTimeoutRef = useRef(null);
   useEffect(() => {
@@ -1150,7 +1106,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
+    const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
@@ -1160,36 +1116,7 @@ export default function Game() {
     }
   }, [game]);
 
-  // Auto-resignation timer
-  useEffect(() => {
-    if (!isTabActive) return;
-    if (!game || game.status !== 'active') return;
-    const interval = addInterval(async () => {
-      const isHumanTurn = game.turn === (game.player_color || 'w');
-      const maxTimeMs = 15 * 60 * 1000; // 15 minutes
-      const lastMoveTs = game.move_history?.length > 0 
-        ? new Date(game.move_history[game.move_history.length - 1].created_at).getTime()
-        : new Date(game.created_at).getTime();
-        
-      if (Date.now() - lastMoveTs > maxTimeMs) {
-        // Current turn exceeded auto-resign timer
-        if (!isHumanTurn) {
-           await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`))
-            .from('games')
-            .update({
-              status: 'abandoned',
-              result: game.player_color || 'w',
-              result_reason: 'abandoned'
-            })
-            .eq('id', gameId);
-        }
-      }
-    }, 10000);
-    return () => {
-      clearInterval(interval);
-      intervalsRef.current = intervalsRef.current.filter(x => x !== interval);
-    };
-  }, [game, gameId, isTabActive, addInterval]);
+
 
   useEffect(() => {
     if (game?.agent_connected) {
@@ -1205,7 +1132,6 @@ export default function Game() {
         toast.success(`${agentName} has arrived!`);
         sessionStorage.setItem(toastKey, '1');
       }
-      if (soundEnabled) playSound('connect');
       setJustConnected(true);
       setTimeout(() => setJustConnected(false), 1000);
       connectedToastShown.current = true;
@@ -1213,10 +1139,22 @@ export default function Game() {
     if (game) {
       prevAgentConnected.current = game.agent_connected;
     }
-  }, [game, toast, agentName, gameId, soundEnabled, playSound]);
+  }, [game, toast, agentName, gameId]);
   
   const handleRealtimeUpdate = useCallback((payload) => {
     const newData = payload.new || payload;
+
+    if (payload.new?.board_theme || newData?.board_theme) {
+      const newTheme = payload.new?.board_theme || newData?.board_theme;
+      if (newTheme !== boardTheme) {
+        setBoardTheme(newTheme);
+        localStorage.setItem('cwc_board_theme', newTheme);
+      }
+    }
+
+    if ((payload.new?.move_history || newData?.move_history) && Array.isArray(payload.new?.move_history || newData?.move_history)) {
+      setMoveHistory(payload.new?.move_history || newData?.move_history);
+    }
     
     // If this confirms our optimistic move: skip board update, only update metadata
     if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
@@ -1251,9 +1189,11 @@ export default function Game() {
     lastMoveFenRef.current = null;
     
     // Genuine update: check if FEN actually changed
-    if (newData.fen && newData.fen !== boardFen) {
-      lastProcessedFenRef.current = newData.fen;
-      if (payload.new.fen) applyBoardFen(payload.new.fen);
+    const fenChanged = payload.new?.fen && payload.new.fen !== boardFenRef.current;
+    if (payload.new?.fen) applyBoardFen(payload.new.fen);
+    
+    if (fenChanged) {
+      lastProcessedFenRef.current = payload.new.fen;
       if (newData.last_move) {
         setBoardLastMove(newData.last_move);
         playSound(newData.last_move.captured ? 'capture' : 'move');
@@ -1261,7 +1201,7 @@ export default function Game() {
     }
     
     setGame(prev => ({ ...prev, ...newData }));
-  }, [boardFen, playSound, applyBoardFen]);
+  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1309,6 +1249,27 @@ export default function Game() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && gameId) {
+        supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameId)
+          .single()
+          .then(({ data }) => {
+            if (!data) return;
+            if (data.fen) applyBoardFen(data.fen);
+            if (data.move_history) setMoveHistory(data.move_history);
+            if (data.board_theme) setBoardTheme(data.board_theme);
+            setGame(data);
+          });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [gameId, applyBoardFen, setMoveHistory, setBoardTheme, setGame]);
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1504,7 +1465,7 @@ export default function Game() {
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
         
-        const agentName = localStorage.getItem('cwc_agent_display_name') || game?.agent_name || 'Your OpenClaw';
+        const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
             icon: <LobsterEmoji />,
@@ -2275,7 +2236,7 @@ export default function Game() {
                   transition: 'all 0.5s ease',
                   fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
                 }}>
-                  {getMoodEmoji}
+                  {moodEmoji}
                 </span>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2524,22 +2485,22 @@ export default function Game() {
         }}>
           {/* Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {game?.status === 'active' && trueTurn === 'white' ? (
+            {game?.status === 'waiting' ? (
+              <div style={{
+                background: '#1a1a1a', borderRadius: '6px',
+                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+                color: '#555', letterSpacing: '0.08em',
+              }}>
+                {"Waiting for " + agentName + "..."}
+              </div>
+            ) : game?.status === 'active' && trueTurn === 'white' ? (
               <div style={{
                 background: '#e63946', borderRadius: '6px',
                 padding: '6px 12px', fontSize: '11px', fontWeight: 700,
                 color: '#fff', letterSpacing: '0.08em',
                 animation: 'pulse 1.5s ease-in-out infinite',
               }}>
-                YOUR TURN
-              </div>
-            ) : game?.status === 'waiting' ? (
-              <div style={{
-                background: '#1a1a1a', borderRadius: '6px',
-                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-                color: '#555', letterSpacing: '0.08em',
-              }}>
-                WAITING FOR AGENT
+                Your Turn
               </div>
             ) : game?.status === 'active' && trueTurn === 'black' ? (
               <div style={{
@@ -2547,7 +2508,7 @@ export default function Game() {
                 padding: '6px 12px', fontSize: '11px', fontWeight: 600,
                 color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
               }}>
-                {agentName.toUpperCase()} THINKING
+                {agentName + " Thinking..."}
               </div>
             ) : null}
           </div>
@@ -2596,7 +2557,7 @@ export default function Game() {
               transition: 'all 0.5s ease',
               fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
             }}>
-              {getMoodEmoji}
+              {moodEmoji}
             </span>
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2819,22 +2780,22 @@ export default function Game() {
       }}>
         {/* Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {game?.status === 'active' && trueTurn === 'white' ? (
+          {game?.status === 'waiting' ? (
+            <div style={{
+              background: '#1a1a1a', borderRadius: '6px',
+              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
+              color: '#555', letterSpacing: '0.08em',
+            }}>
+              {"Waiting for " + agentName + "..."}
+            </div>
+          ) : game?.status === 'active' && trueTurn === 'white' ? (
             <div style={{
               background: '#e63946', borderRadius: '6px',
               padding: '6px 12px', fontSize: '11px', fontWeight: 700,
               color: '#fff', letterSpacing: '0.08em',
               animation: 'pulse 1.5s ease-in-out infinite',
             }}>
-              YOUR TURN
-            </div>
-          ) : game?.status === 'waiting' ? (
-            <div style={{
-              background: '#1a1a1a', borderRadius: '6px',
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              color: '#555', letterSpacing: '0.08em',
-            }}>
-              WAITING FOR AGENT
+              Your Turn
             </div>
           ) : game?.status === 'active' && trueTurn === 'black' ? (
             <div style={{
@@ -2842,7 +2803,7 @@ export default function Game() {
               padding: '6px 12px', fontSize: '11px', fontWeight: 600,
               color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
             }}>
-              {agentName.toUpperCase()} THINKING
+              {agentName + " Thinking..."}
             </div>
           ) : null}
         </div>

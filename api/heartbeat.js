@@ -52,7 +52,7 @@ module.exports = async function handler(req, res) {
 
   const { data: game, error } = await supabase
     .from('games')
-    .select('id, agent_token, secret_token, status, turn')
+    .select('id, agent_token, secret_token, status, turn, agent_name')
     .eq('id', gameId)
     .single();
 
@@ -78,26 +78,35 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ alive: false, status: game.status });
   }
 
-  const updates = { updated_at: new Date().toISOString() };
-
   if (isAgentRequest) {
-    const NOW = new Date().toISOString();
-    updates.agent_last_seen = NOW;
-    updates.agent_connected = true;
-    updates.updated_at = NOW;
+    const agentName = req.headers['x-agent-name'] || null;
+    const updateData = {
+      agent_last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      agent_connected: true
+    };
+    if (agentName && (!game.agent_name || game.agent_name === 'Your OpenClaw')) {
+      updateData.agent_name = agentName;
+    }
+    const { error: updateError } = await supabase.from('games').update(updateData).eq('id', gameId);
+    if (updateError) {
+      console.error("Error updating heartbeat:", updateError);
+      return res.status(500).json({ error: 'Failed to record heartbeat' });
+    }
   } else {
-    updates.player_last_seen = new Date().toISOString();
-    updates.player_connected = true;
-  }
-
-  const { error: updateError } = await supabase
-    .from('games')
-    .update(updates)
-    .eq('id', gameId);
-
-  if (updateError) {
-    console.error("Error updating heartbeat:", updateError);
-    return res.status(500).json({ error: 'Failed to record heartbeat' });
+    const updates = {
+      player_last_seen: new Date().toISOString(),
+      player_connected: true,
+      updated_at: new Date().toISOString()
+    };
+    const { error: updateError } = await supabase
+      .from('games')
+      .update(updates)
+      .eq('id', gameId);
+    if (updateError) {
+      console.error("Error updating heartbeat:", updateError);
+      return res.status(500).json({ error: 'Failed to record heartbeat' });
+    }
   }
 
   return res.status(200).json({ 
