@@ -57,6 +57,19 @@ const getCheckedKingSquare = (fen, turn) => {
   return null;
 };
 
+function getKingSquare(fen, colorChar) {
+  const rows = fen.split(' ')[0].split('/');
+  const king = colorChar === 'w' ? 'K' : 'k';
+  for (let rank = 0; rank < 8; rank++) {
+    let file = 0;
+    for (const ch of rows[rank]) {
+      if (ch === king) return String.fromCharCode(97 + file) + (8 - rank);
+      file += isNaN(parseInt(ch)) ? 1 : parseInt(ch);
+    }
+  }
+  return null;
+}
+
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
@@ -85,15 +98,15 @@ export default function Game() {
   
   const allIntervalsRef = useRef([]);
   const safeInterval = (fn, ms) => {
-    const id = setInterval(fn, ms);
-    allIntervalsRef.current.push(id);
-    return id;
+    const _intId = setInterval(fn, ms);
+    intervalsRef.current.push(_intId);
+    allIntervalsRef.current.push(_intId);
+    return _intId;
   };
 
   const addInterval = useCallback((fn, ms) => {
-    const id = safeInterval(fn, ms);
-    intervalsRef.current.push(id);
-    return id;
+    const _intId = safeInterval(fn, ms);
+    return _intId;
   }, []);
 
   const agentToken = location.state?.agentToken;
@@ -268,9 +281,7 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(() => {
     return localStorage.getItem('cwc_board_theme') || 'green';
   });
-  const [pieceStyle, setPieceStyle] = useState(() => {
-    return localStorage.getItem('cwc_piece_style') || 'neo';
-  });
+  const [pieceStyle, setPieceStyle] = useState(localStorage.getItem('cwc_piece_style') || 'neo');
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
@@ -318,7 +329,15 @@ export default function Game() {
     }
   }, [game?.fen]);
   
-  const [boardFen, setBoardFen] = useState('start');
+  const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  const [boardFen, setBoardFen] = useState(boardFenRef.current);
+
+  const applyBoardFen = useCallback((fen) => {
+    if (!fen || fen === boardFenRef.current) return;
+    boardFenRef.current = fen;
+    setBoardFen(fen);
+  }, []);
+
   const lastProcessedFenRef = useRef('start');
   const [boardLastMove, setBoardLastMove] = useState(null);
   const lastMoveFenRef = useRef(null);
@@ -351,11 +370,25 @@ export default function Game() {
     return null;
   }, [boardFen]);
 
-  const trueTurn = useMemo(() => {
-    if (!boardFen || boardFen === 'start') return 'w';
-    const fenParts = boardFen.split(' ');
-    return fenParts[1] || 'w'; // 'w' or 'b' from FEN - never wrong
-  }, [boardFen]);
+  const trueTurn = (boardFen && boardFen !== 'start')
+    ? (boardFen.split(' ')[1] === 'w' ? 'white' : 'black')
+    : 'white';
+
+  // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
+  const getCustomSquareStylesForCheck = () => {
+    const customSquareStyles = {};
+    if (game?.in_check) {
+      const inCheckColor = trueTurn === 'black' ? 'b' : 'w';
+      const kingSquare = getKingSquare(boardFen, inCheckColor);
+      if (kingSquare) {
+        customSquareStyles[kingSquare] = {
+          background: 'radial-gradient(circle at center, rgba(230,57,70,0.95) 0%, rgba(230,57,70,0.5) 40%, transparent 70%)',
+          borderRadius: '0'
+        };
+      }
+    }
+    return customSquareStyles;
+  };
 
   const moveCount = game?.move_count || 0;
   const gamePhase = moveCount < 10 ? 'Opening' : moveCount < 25 ? 'Middlegame' : 'Endgame';
@@ -440,7 +473,7 @@ export default function Game() {
           }
           return updated;
         });
-        setBoardFen(data.fen || 'start');
+        applyBoardFen(data.fen || 'start');
         lastProcessedFenRef.current = data.fen || 'start';
         if (data.last_move) setBoardLastMove(data.last_move);
         setOptimisticFen(null);
@@ -489,7 +522,7 @@ export default function Game() {
       setIsLoaded(true);
     }
     setLoading(false);
-  }, [gameId]);
+  }, [gameId, applyBoardFen]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
@@ -500,32 +533,25 @@ export default function Game() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const [lastMoveTo, setLastMoveTo] = useState(null);
-  const [agentConnectedState, setAgentConnected] = useState(false);
-  const [agentPresence, setAgentPresence] = useState('not_here');
+  const agentPresence = useMemo(() => {
+    if (!game?.agent_last_seen) return 'not_here';
+    const secsAgo = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+    if (secsAgo < 45) return 'connected';
+    if (secsAgo < 180) return 'reconnecting';
+    return 'not_here';
+  }, [game?.agent_last_seen]);
 
-  useEffect(() => {
-    const check = () => {
-      if (!game?.agent_connected && !game?.agent_last_seen) {
-        setAgentPresence('not_here');
-        return;
-      }
-      if (!game?.agent_last_seen) {
-        setAgentPresence(game?.agent_connected ? 'connected' : 'not_here');
-        return;
-      }
-      const secAgo = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
-      if (secAgo < 45) setAgentPresence('connected');
-      else if (secAgo < 180) setAgentPresence('reconnecting');
-      else setAgentPresence('not_here');
-    };
-    
-    check(); // run immediately
-    const id = safeInterval(check, 8000);
-    return () => {
-      clearInterval(id);
-      allIntervalsRef.current = allIntervalsRef.current.filter(x => x !== id);
-    };
-  }, [game?.agent_last_seen, game?.agent_connected]);
+  const dotStyle = {
+    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' },
+    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px #f59e0b' },
+    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555555', boxShadow: 'none' }
+  }[agentPresence];
+
+  const statusLabel = {
+    connected: 'ONLINE',
+    reconnecting: 'RECONNECTING',
+    not_here: 'OFFLINE'
+  }[agentPresence];
 
   const agentConnected = agentPresence !== 'not_here';
 
@@ -653,7 +679,6 @@ export default function Game() {
     
     // Step 2: Clear all local component state
     setGame(null)
-    setAgentConnected(false)
     setVisibleThought('')
     setLastMoveHighlight(null)
     setArrivedSquare(null)
@@ -1168,7 +1193,6 @@ export default function Game() {
 
   useEffect(() => {
     if (game?.agent_connected) {
-      setAgentConnected(true);
       connectedToastShown.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1229,7 +1253,7 @@ export default function Game() {
     // Genuine update: check if FEN actually changed
     if (newData.fen && newData.fen !== boardFen) {
       lastProcessedFenRef.current = newData.fen;
-      setBoardFen(newData.fen);
+      if (payload.new.fen) applyBoardFen(payload.new.fen);
       if (newData.last_move) {
         setBoardLastMove(newData.last_move);
         playSound(newData.last_move.captured ? 'capture' : 'move');
@@ -1237,7 +1261,7 @@ export default function Game() {
     }
     
     setGame(prev => ({ ...prev, ...newData }));
-  }, [boardFen, playSound]);
+  }, [boardFen, playSound, applyBoardFen]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1269,30 +1293,22 @@ export default function Game() {
     };
   }, [gameId, loadGameData]);
 
-  const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate);
   useEffect(() => {
-    handleRealtimeUpdateRef.current = handleRealtimeUpdate;
-  }, [handleRealtimeUpdate]);
-
-  useEffect(() => {
-    if (!gameId || !isTabActive) return;
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-    const channel = supabase.channel(`game-${gameId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public',
-          table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
-            handleRealtimeUpdateRef.current(payload);
-          })
+    if (!gameId) return;
+    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    const channel = supabase
+      .channel('game-' + gameId)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'games', filter: 'id=eq.' + gameId
+      }, (payload) => handleRealtimeUpdate(payload.new || payload))
       .subscribe();
     channelRef.current = channel;
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      supabase.removeChannel(channel);
+      channelRef.current = null;
     };
-  }, [gameId, isTabActive]); // Recreate subscription when tab active state changes or gameId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId]);
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1309,7 +1325,7 @@ export default function Game() {
           const fresh = await res.json();
           if (!fresh || fresh.fen === lastProcessedFenRef.current || movePendingRef.current) return;
           lastProcessedFenRef.current = fresh.fen;
-          setBoardFen(fresh.fen);
+          applyBoardFen(fresh.fen);
           if (fresh.last_move) setBoardLastMove(fresh.last_move);
           setGame(prev => ({ ...prev, ...fresh }));
         } catch (e) {}
@@ -1328,7 +1344,7 @@ export default function Game() {
         intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
       }
     };
-  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen]);
+  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen, applyBoardFen]);
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
@@ -1461,7 +1477,7 @@ export default function Game() {
     const prevBoardFen = boardFen;
     const prevBoardLastMove = boardLastMove;
 
-    setBoardFen(newFen);
+    applyBoardFen(newFen);
     lastProcessedFenRef.current = newFen;
     setBoardLastMove({ from, to });
     
@@ -1483,7 +1499,7 @@ export default function Game() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         // Revert board on error
-        setBoardFen(prevBoardFen);
+        applyBoardFen(prevBoardFen);
         lastProcessedFenRef.current = prevBoardFen;
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
@@ -1502,7 +1518,7 @@ export default function Game() {
       }
     } catch (e) {
       // Revert board on error
-      setBoardFen(prevBoardFen);
+      applyBoardFen(prevBoardFen);
       lastProcessedFenRef.current = prevBoardFen;
       setBoardLastMove(prevBoardLastMove);
       movePendingRef.current = false;
@@ -1510,7 +1526,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1629,6 +1645,20 @@ export default function Game() {
     neutral:  { label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
   }
 
+  function getMaterialBalance(fen) {
+    const board = fen.split(' ')[0];
+    const values = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    let white = 0, black = 0;
+    for (const ch of board) {
+      const lower = ch.toLowerCase();
+      if (values[lower]) {
+        if (ch === ch.toUpperCase()) white += values[lower];
+        else black += values[lower];
+      }
+    }
+    return white - black;
+  }
+
   const getCapturedInfo = (fen) => {
     if (!fen) return {
       whiteCaptured: [], blackCaptured: [],
@@ -1643,8 +1673,6 @@ export default function Game() {
       if (/[pnbrqPNBRQ]/.test(ch)) curr[ch] = (curr[ch] || 0) + 1;
     }
     
-    let whiteVal = 0; // value of black pieces white captured
-    let blackVal = 0; // value of white pieces black captured
     const whiteCaptured = []; // black pieces captured by white
     const blackCaptured = []; // white pieces captured by black
     
@@ -1654,29 +1682,28 @@ export default function Game() {
       
       const isBlackPiece = piece === piece.toLowerCase();
       const pieceType = piece.toUpperCase();
-      const pieceVal = VALS[pieceType] || 0;
       
       for (let i = 0; i < diff; i++) {
         if (isBlackPiece) {
           whiteCaptured.push('b' + pieceType);
-          whiteVal += pieceVal;
         } else {
           blackCaptured.push('w' + pieceType);
-          blackVal += pieceVal;
         }
       }
     }
     
-    // Advantage = difference, not total. Never show if 0.
-    const whiteAdvantage = Math.max(0, whiteVal - blackVal);
-    const blackAdvantage = Math.max(0, blackVal - whiteVal);
+    const balVal = getMaterialBalance(fen);
+    const whiteAdvantage = balVal > 0 ? balVal : 0;
+    const blackAdvantage = balVal < 0 ? Math.abs(balVal) : 0;
     
     return { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage };
   };
 
   const { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage } = getCapturedInfo(boardFen);
+  const balance = getMaterialBalance(boardFen);
+  const displayBalance = balance > 0 ? '+' + balance : balance < 0 ? String(balance) : '=';
   const captured = { white: whiteCaptured, black: blackCaptured };
-  const youAdvantage = game?.player_color === 'w' ? (whiteAdvantage - blackAdvantage) : (blackAdvantage - whiteAdvantage);
+  const youAdvantage = game?.player_color === 'w' ? balance : -balance;
 
   const CapturedPiecesRow = ({ pieces, side }) => {
     const SETS = {
@@ -2254,13 +2281,7 @@ export default function Game() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-                  {agentPresence === 'connected' ? (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#39d353', boxShadow: '0 0 6px rgba(57,211,83,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite' }} />
-                  ) : agentPresence === 'reconnecting' ? (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.4)', flexShrink: 0, animation: 'dot-pulse 1s ease-in-out infinite' }} />
-                  ) : (
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#333', flexShrink: 0 }} />
-                  )}
+                  <div style={{ ...dotStyle, flexShrink: 0 }} />
                   {visibleThought && (
                     <div style={{
                       color: 'rgba(242,242,242,0.5)',
@@ -2503,7 +2524,7 @@ export default function Game() {
         }}>
           {/* Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {game?.status === 'active' && trueTurn === 'w' ? (
+            {game?.status === 'active' && trueTurn === 'white' ? (
               <div style={{
                 background: '#e63946', borderRadius: '6px',
                 padding: '6px 12px', fontSize: '11px', fontWeight: 700,
@@ -2520,7 +2541,7 @@ export default function Game() {
               }}>
                 WAITING FOR AGENT
               </div>
-            ) : game?.status === 'active' && trueTurn === 'b' ? (
+            ) : game?.status === 'active' && trueTurn === 'black' ? (
               <div style={{
                 background: '#1a1a1a', borderRadius: '6px',
                 padding: '6px 12px', fontSize: '11px', fontWeight: 600,
@@ -2543,9 +2564,7 @@ export default function Game() {
             color: agentPresence === 'connected' ? '#39d353' :
                    agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
           }}>
-            {agentPresence === 'connected' ? `${agentName} ONLINE` :
-             agentPresence === 'reconnecting' ? `${agentName} RECONNECTING` :
-             `${agentName} OFFLINE`}
+            {`${agentName} ${statusLabel}`}
           </div>
         </div>
         
@@ -2583,13 +2602,7 @@ export default function Game() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              {agentPresence === 'connected' ? (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#39d353', boxShadow: '0 0 6px rgba(57,211,83,0.4)', flexShrink: 0, animation: 'dot-pulse 2s ease-in-out infinite' }} />
-              ) : agentPresence === 'reconnecting' ? (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.4)', flexShrink: 0, animation: 'dot-pulse 1s ease-in-out infinite' }} />
-              ) : (
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#333', flexShrink: 0 }} />
-              )}
+              <div style={{ ...dotStyle, flexShrink: 0 }} />
               {visibleThought && (
                 <div style={{
                   color: 'rgba(242,242,242,0.5)',
@@ -2806,7 +2819,7 @@ export default function Game() {
       }}>
         {/* Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {game?.status === 'active' && trueTurn === 'w' ? (
+          {game?.status === 'active' && trueTurn === 'white' ? (
             <div style={{
               background: '#e63946', borderRadius: '6px',
               padding: '6px 12px', fontSize: '11px', fontWeight: 700,
@@ -2823,7 +2836,7 @@ export default function Game() {
             }}>
               WAITING FOR AGENT
             </div>
-          ) : game?.status === 'active' && trueTurn === 'b' ? (
+          ) : game?.status === 'active' && trueTurn === 'black' ? (
             <div style={{
               background: '#1a1a1a', borderRadius: '6px',
               padding: '6px 12px', fontSize: '11px', fontWeight: 600,
@@ -2846,9 +2859,7 @@ export default function Game() {
           color: agentPresence === 'connected' ? '#39d353' :
                  agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
         }}>
-          {agentPresence === 'connected' ? `${agentName} ONLINE` :
-           agentPresence === 'reconnecting' ? `${agentName} RECONNECTING` :
-           `${agentName} OFFLINE`}
+          {`${agentName} ${statusLabel}`}
         </div>
       </div>
         </>

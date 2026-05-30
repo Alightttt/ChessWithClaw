@@ -219,6 +219,7 @@ module.exports = async function handler(req, res) {
   let isDraw = false;
   let nextTurn = isHumanMove ? 'b' : 'w';
   let legalMoves = [];
+  let nextLegalMoves = [];
   try {
     const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
@@ -236,6 +237,8 @@ module.exports = async function handler(req, res) {
     isDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
     nextTurn = chess.turn();
     legalMoves = chess.moves();
+    nextLegalMoves = chess.moves({ verbose: true })
+      .map(m => m.from + m.to + (m.promotion || ''));
   } catch (e) {
     console.error("Chess.js invalid move:", e);
     return res.status(400).json({ "error": "Invalid move", "code": "INVALID_MOVE" });
@@ -309,7 +312,8 @@ module.exports = async function handler(req, res) {
     result: gameResult,
     move_number: moveNumber,
     current_thinking: actualReasoning,
-    last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`
+    last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
+    legal_moves: nextLegalMoves
   };
 
   if (isAgentMove) {

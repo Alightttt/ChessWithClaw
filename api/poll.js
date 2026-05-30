@@ -100,39 +100,33 @@ module.exports = async function handler(req, res) {
       detail:'Create a new game and send a fresh invite.'})
   }
 
-  // Compute FEN-accurate turn and legal moves on server-side
-  let legalMovesUCI = [];
-  let trueTurn = game.turn;
-  try {
-    const { Chess } = await import('chess.js');
-    const chess = new Chess(game.fen);
-    trueTurn = chess.turn();
-    legalMovesUCI = chess.moves({ verbose: true })
-      .map(m => m.from + m.to + (m.promotion || ''));
-  } catch (e) {
-    console.error("Chess.js error in poll:", e);
-  }
+  // FIX 1 — move_count
+  const move_history = Array.isArray(game.move_history) ? game.move_history : [];
+  const move_count = move_history.length;
 
-  // Fix chat_count
-  const chatHistory = game.chat_history || [];
-  const humanChatCount = chatHistory.filter(m => m.role === 'human').length;
-  const allChatCount = chatHistory.length;
+  // FIX 2 — chat_count and human_chatted
+  const chat_history = Array.isArray(game.chat_history) ? game.chat_history : [];
+  const human_messages = chat_history.filter(m => m.role === 'human');
+  const chat_count = human_messages.length;
+  const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || '0');
+  const human_chatted = chat_count > agentLastHumanChatCount;
 
-  // Fix event logic — your_turn must fire when turn==='b' AND status==='active':
+  // FIX 3 — legal_moves
+  const legal_moves_uci = Array.isArray(game.legal_moves) ? game.legal_moves : [];
+  const trueTurn = game.turn || 'w';
+
+  // FIX 4 — events array
+  const events = [];
+  if (game.turn === 'b' && game.status === 'active') events.push('your_turn');
+  if (human_chatted) events.push('human_chatted');
+
   let event = 'waiting';
-  
   if (game.status === 'finished' || game.status === 'abandoned') {
     event = game.status === 'abandoned' ? 'abandoned' : 'game_ended';
-  } else if (trueTurn === 'b' && game.status === 'active') {
-    event = 'your_turn'; // Always, no other conditions
-  } else {
-    // Check for new human chat — only fire if the last message is indeed from the human (prevent spam loop)
-    const lastMessage = chatHistory[chatHistory.length - 1];
-    const isLastFromHuman = lastMessage && lastMessage.role === 'human';
-    const lastSeenChat = parseInt(req.query.last_chat_count) || 0;
-    if (humanChatCount > lastSeenChat && isLastFromHuman) {
-      event = 'human_chatted';
-    }
+  } else if (events.includes('your_turn')) {
+    event = 'your_turn';
+  } else if (events.includes('human_chatted')) {
+    event = 'human_chatted';
   }
 
   // Build the complete standardized JSON structure
@@ -141,16 +135,16 @@ module.exports = async function handler(req, res) {
     fen: game.fen,
     turn: trueTurn,
     status: game.status,
-    move_count: moveHistory.length, // READ DYNAMICALLY from database moves history size - never wrong
-    legal_moves: legalMovesUCI,
-    legal_moves_uci: legalMovesUCI,
+    move_count: move_count,
+    legal_moves: legal_moves_uci,
+    legal_moves_uci: legal_moves_uci,
     in_check: Boolean(game.in_check),
     last_move: game.last_move || null,
     move_history: moveHistory,
-    chat_count: humanChatCount,
-    all_chat_count: allChatCount,
-    messages: chatHistory, // Include in ALL poll responses so the agent is never deaf!
-    chat_history: chatHistory, // Alias in all responses
+    chat_count: chat_count,
+    all_chat_count: chat_history.length,
+    messages: chat_history, // Include in ALL poll responses so the agent is never deaf!
+    chat_history: chat_history, // Alias in all responses
     companion_thought: game.companion_thought || '',
     thought_language: game.thought_language || 'english',
     agent_connected: Boolean(game.agent_connected),
