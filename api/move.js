@@ -220,6 +220,7 @@ module.exports = async function handler(req, res) {
   let nextTurn = isHumanMove ? 'b' : 'w';
   let legalMoves = [];
   let globalNextLegalMoves = [];
+  let material_balance = null;
   try {
     const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
@@ -233,6 +234,19 @@ module.exports = async function handler(req, res) {
     globalNextLegalMoves = nextLegalMoves;
     
     fen = chess.fen();
+
+    const boardStr = chess.fen().split(' ')[0];
+    const vals = { p:1, n:3, b:3, r:5, q:9 };
+    let wMat = 0, bMat = 0;
+    for (const ch of boardStr) {
+      const low = ch.toLowerCase();
+      if (vals[low]) {
+        if (ch === ch.toUpperCase()) wMat += vals[low];
+        else bMat += vals[low];
+      }
+    }
+    material_balance = wMat - bMat;
+
     moveObj.san = moveResult.san;
     inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
     isCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
@@ -317,7 +331,8 @@ module.exports = async function handler(req, res) {
     current_thinking: actualReasoning,
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
     legal_moves: nextLegalMoves,
-    agent_name: req.headers['x-agent-name'] || game.agent_name || null
+    agent_name: req.headers['x-agent-name'] || game.agent_name || null,
+    material_balance: material_balance
   };
 
   if (isAgentMove) {

@@ -63,7 +63,11 @@ export default function ChessBoard({
   const [optionSquares, setOptionSquares] = useState({});
   const lastAppliedMoveRef = useRef(null);
 
-  const [pieceStyle] = useState(localStorage.getItem('cwc_piece_style') || 'neo');
+  const [pieceStyle, setPieceStyle] = useState(() => {
+    const saved = localStorage.getItem('cwc_piece_style');
+    if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
+    return saved || 'neo';
+  });
 
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
   const orientation = playerColor === 'b' ? 'black' : 'white';

@@ -362,15 +362,27 @@ export default function Game() {
     : 'white';
 
   const moodEmoji = useMemo(() => {
-    if (!game) return '🦞';
-    const isBlackInCheck = game.in_check && boardFen.split(' ')[1] === 'w';
-    if (isBlackInCheck) return '😤';
-    const balance = typeof game.material_balance === 'number' ? game.material_balance : 0;
+    if (!boardFen || boardFen === 'start' || !boardFen.includes(' ')) return '🦞';
+    const fenParts = boardFen.split(' ');
+    const currentTurn = fenParts[1];
+    const board = fenParts[0];
+    const vals = { p:1, n:3, b:3, r:5, q:9 };
+    let wMat = 0, bMat = 0;
+    for (const ch of board) {
+      const low = ch.toLowerCase();
+      if (vals[low]) {
+        if (ch === ch.toUpperCase()) wMat += vals[low];
+        else bMat += vals[low];
+      }
+    }
+    const balance = wMat - bMat;
+    if (game?.in_check && currentTurn === 'b') return '😤';
     if (balance <= -5) return '😈';
     if (balance >= 5) return '😰';
     if (balance <= -2) return '😏';
+    if (balance >= 2) return '😅';
     return '🦞';
-  }, [game, boardFen]);
+  }, [boardFen, game?.in_check]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -1620,116 +1632,32 @@ export default function Game() {
     return white - black;
   }
 
-  const getCapturedInfo = (fen) => {
-    if (!fen) return {
-      whiteCaptured: [], blackCaptured: [],
-      whiteAdvantage: 0, blackAdvantage: 0
-    };
-    
-    const VALS = { P:1, N:3, B:3, R:5, Q:9 };
-    const START = { P:8, N:2, B:2, R:2, Q:1, p:8, n:2, b:2, r:2, q:1 };
-    
-    const curr = {};
-    for (const ch of fen.split(' ')[0]) {
-      if (/[pnbrqPNBRQ]/.test(ch)) curr[ch] = (curr[ch] || 0) + 1;
-    }
-    
-    const whiteCaptured = []; // black pieces captured by white
-    const blackCaptured = []; // white pieces captured by black
-    
-    for (const [piece, startCount] of Object.entries(START)) {
-      const diff = startCount - (curr[piece] || 0);
-      if (diff <= 0) continue;
-      
-      const isBlackPiece = piece === piece.toLowerCase();
-      const pieceType = piece.toUpperCase();
-      
-      for (let i = 0; i < diff; i++) {
-        if (isBlackPiece) {
-          whiteCaptured.push('b' + pieceType);
-        } else {
-          blackCaptured.push('w' + pieceType);
-        }
-      }
-    }
-    
-    const balVal = getMaterialBalance(fen);
-    const whiteAdvantage = balVal > 0 ? balVal : 0;
-    const blackAdvantage = balVal < 0 ? Math.abs(balVal) : 0;
-    
-    return { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage };
-  };
-
-  const { whiteCaptured, blackCaptured, whiteAdvantage, blackAdvantage } = getCapturedInfo(boardFen);
-  const balance = getMaterialBalance(boardFen);
-  const displayBalance = balance > 0 ? '+' + balance : balance < 0 ? String(balance) : '=';
-  const captured = { white: whiteCaptured, black: blackCaptured };
-  const youAdvantage = game?.player_color === 'w' ? balance : -balance;
-
-  const CapturedPiecesRow = ({ pieces, side }) => {
-    const SETS = {
-      neo: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150',
-      ocean: 'https://images.chesscomfiles.com/chess-themes/pieces/ocean/150',
-      tournament: 'https://images.chesscomfiles.com/chess-themes/pieces/tournament/150',
-      standard: 'https://lichess1.org/assets/piece/cburnett'
-    };
-    const EXTS = { neo:'png', ocean:'png', tournament:'png', standard:'svg' };
-    const FILES_CC = { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
-                       bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' };
-    const FILES_LI = { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
-                       bP:'bP',bN:'bN',bB:'bB',bR:'bR',bQ:'bQ',bK:'bK' };
-    
-    const base = SETS[pieceStyle] || SETS.neo;
-    const ext  = EXTS[pieceStyle] || 'png';
-    const files = pieceStyle === 'standard' ? FILES_LI : FILES_CC;
-    
-    const sorted = [...pieces].sort((a,b) => {
-      const order = {Q:0,R:1,B:2,N:3,P:4,q:0,r:1,b:2,n:3,p:4};
-      return (order[a[1]]||5) - (order[b[1]]||5);
+  function getCapturedPieces(fen) {
+    const start = { p:8, n:2, b:2, r:2, q:1 };
+    const board = (fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR').split(' ')[0];
+    const cur = {P:0,N:0,B:0,R:0,Q:0,p:0,n:0,b:0,r:0,q:0};
+    for (const ch of board) { if (cur[ch] !== undefined) cur[ch]++; }
+    const byCaptured = [];
+    const wCaptured = [];
+    ['p','n','b','r','q'].forEach(p => {
+      const gone = start[p] - cur[p];
+      for (let i = 0; i < gone; i++) byCaptured.push(p);
     });
-    
-    const advantage = side === 'white' ? whiteAdvantage : blackAdvantage;
-    const finalAdvantage = Math.min(9, advantage);
-    
-    if (sorted.length === 0) return <div style={{height:'20px'}} />;
-    
-    return (
-      <div style={{
-        display:'flex', alignItems:'center', gap:'2px',
-        flexWrap:'wrap', padding:'2px 0', minHeight:'22px'
-      }}>
-        {sorted.map((pieceKey, i) => {
-          const filename = files[pieceKey];
-          return (
-            <img
-              key={i}
-              src={`${base}/${filename}.${ext}`}
-              alt={pieceKey}
-              style={{
-                width:'18px', height:'18px',
-                objectFit:'contain',
-                marginLeft: i > 0 ? '-4px' : '0',
-                opacity: 0.85,
-              }}
-              onError={e => {
-                e.target.onerror = null;
-                e.target.src = `https://lichess1.org/assets/piece/cburnett/${
-                  pieceKey[0]==='w'?'w':'b'}${pieceKey[1]}.svg`;
-              }}
-            />
-          );
-        })}
-        {finalAdvantage > 0 && (
-          <span style={{
-            fontSize:'11px', fontFamily:'Inter', fontWeight:600,
-            color:'rgba(242,242,242,0.5)', marginLeft:'4px'
-          }}>
-            +{finalAdvantage}
-          </span>
-        )}
-      </div>
-    );
+    ['P','N','B','R','Q'].forEach(p => {
+      const gone = start[p.toLowerCase()] - cur[p];
+      for (let i = 0; i < gone; i++) wCaptured.push(p);
+    });
+    return { whiteCaptured: wCaptured, blackCaptured: byCaptured };
+  }
+
+  const { whiteCaptured, blackCaptured } = getCapturedPieces(boardFen);
+  const pieceImg = (code) => {
+    const style = pieceStyle || 'neo';
+    return `https://images.chesscomfiles.com/chess-themes/pieces/${style}/150/${code}.png`;
   };
+
+  const balance = getMaterialBalance(boardFen);
+  const youAdvantage = game?.player_color === 'w' ? balance : -balance;
 
   const mood = getAgentMood()
   const config = moodConfig[mood]
@@ -2332,7 +2260,11 @@ export default function Game() {
                           }} />
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
-                            <CapturedPiecesRow pieces={captured.white} side="white" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
+                              {whiteCaptured.map((p, i) => (
+                                <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                              ))}
+                            </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
                               <ChessBoard 
                                 fen={boardFen}
@@ -2348,7 +2280,11 @@ export default function Game() {
                                 onMove={handlePlayerMove}
                               />
                             </div>
-                            <CapturedPiecesRow pieces={captured.black} side="black" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
+                              {blackCaptured.map((p, i) => (
+                                <img key={i} src={pieceImg('b' + p)} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2633,7 +2569,11 @@ export default function Game() {
             }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
-              <CapturedPiecesRow pieces={captured.white} side="white" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
+                {whiteCaptured.map((p, i) => (
+                  <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                ))}
+              </div>
               <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
                 <ChessBoard 
                   fen={boardFen} 
@@ -2650,7 +2590,11 @@ export default function Game() {
                   onMove={handlePlayerMove}
                 />
               </div>
-              <CapturedPiecesRow pieces={captured.black} side="black" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
+                {blackCaptured.map((p, i) => (
+                  <img key={i} src={pieceImg('b' + p)} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                ))}
+              </div>
             </div>
           )}
           </div>
