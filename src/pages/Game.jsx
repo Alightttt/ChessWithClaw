@@ -293,6 +293,7 @@ export default function Game() {
   const [agentDisconnected, setAgentDisconnected] = useState(false);
 
   const [visibleThought, setVisibleThought] = useState('');
+  const [companionThought, setCompanionThought] = useState('');
   const prevThoughtValRef = useRef('');
   const thoughtTimerRef = useRef(null);
 
@@ -532,6 +533,9 @@ export default function Game() {
         const fetchedGame = data;
         if (Array.isArray(fetchedGame?.move_history) && fetchedGame.move_history.length > 0) {
           setMoveHistory(fetchedGame.move_history);
+        }
+        if (fetchedGame?.companion_thought) {
+          setCompanionThought(fetchedGame.companion_thought);
         }
 
         applyBoardFen(data.fen || 'start');
@@ -1265,6 +1269,10 @@ export default function Game() {
           else playSound('move');
         }, 50);
       }
+    }
+    
+    if (payload.new?.companion_thought && payload.new.companion_thought !== '') {
+      setCompanionThought(payload.new.companion_thought);
     }
     
     setGame(prev => ({ ...prev, ...newData }));
@@ -2255,6 +2263,11 @@ export default function Game() {
                     {visibleThought}
                   </div>
                 )}
+                {companionThought && (
+                  <p style={{fontStyle:'italic',color:'rgba(242,242,242,0.55)',fontSize:13,margin:'4px 0 0'}}>
+                    &ldquo;{companionThought}&rdquo;
+                  </p>
+                )}
               </div>
             </div>
                 
@@ -2560,6 +2573,11 @@ export default function Game() {
               }}>
                 {visibleThought}
               </div>
+            )}
+            {companionThought && (
+              <p style={{fontStyle:'italic',color:'rgba(242,242,242,0.55)',fontSize:13,margin:'4px 0 0'}}>
+                &ldquo;{companionThought}&rdquo;
+              </p>
             )}
           </div>
         </div>

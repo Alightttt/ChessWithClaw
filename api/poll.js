@@ -5,6 +5,24 @@ function isValidUUID(id) {
 }
 
 module.exports = async function handler(req, res) {
+  function fenToAscii(fen) {
+    const rows = fen.split(' ')[0].split('/');
+    const FILES = 'abcdefgh';
+    let result = '  a b c d e f g h\n';
+    for (let i = 0; i < 8; i++) {
+      result += (8 - i) + ' ';
+      let file = 0;
+      for (const ch of rows[i]) {
+        const num = parseInt(ch);
+        if (!isNaN(num)) { result += '. '.repeat(num); file += num; }
+        else { result += ch + ' '; file++; }
+      }
+      result += (8 - i) + '\n';
+    }
+    result += '  a b c d e f g h';
+    return result;
+  }
+
   res.setHeader('Access-Control-Allow-Origin','*')
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers',
@@ -109,6 +127,9 @@ module.exports = async function handler(req, res) {
   const human_messages = chat_history.filter(m => m.role === 'human');
   const chat_count = human_messages.length;
   const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || '0');
+  const new_chat_messages = human_messages
+    .slice(agentLastHumanChatCount)
+    .map(m => ({ role: m.role, message: m.message || m.text || '', id: m.id || '' }));
   const human_chatted = chat_count > agentLastHumanChatCount;
 
   // FIX 3 — legal_moves
@@ -129,10 +150,13 @@ module.exports = async function handler(req, res) {
     event = 'human_chatted';
   }
 
+  const board_ascii = game.fen ? fenToAscii(game.fen) : '';
+
   // Build the complete standardized JSON structure
   const responseData = {
     event,
     fen: game.fen,
+    board_ascii,
     turn: trueTurn,
     status: game.status,
     move_count: move_count,
@@ -142,6 +166,7 @@ module.exports = async function handler(req, res) {
     last_move: game.last_move || null,
     move_history: moveHistory,
     chat_count: chat_count,
+    new_chat_messages: new_chat_messages,
     all_chat_count: chat_history.length,
     messages: chat_history, // Include in ALL poll responses so the agent is never deaf!
     chat_history: chat_history, // Alias in all responses

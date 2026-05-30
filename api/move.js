@@ -145,7 +145,7 @@ module.exports = async function handler(req, res) {
 
   // Support all reasoning, thinking, thought, and text parameters
   const actualReasoning = reasoning || thinking || req.body?.thought || req.body?.text || '';
-  const thought = req.body?.thought || req.body?.text || reasoning || thinking || null;
+  const companionThought = req.body.thinking || req.body.thought || null;
 
   if (!validateUUID(id)) {
     return res.status(400).json({ error: 'Invalid game ID format' });
@@ -221,9 +221,10 @@ module.exports = async function handler(req, res) {
   let legalMoves = [];
   let globalNextLegalMoves = [];
   let materialBalance = null;
+  let chess;
   try {
     const { Chess } = await import('chess.js');
-    const chess = new Chess(game.fen);
+    chess = new Chess(game.fen);
     const moveResult = chess.move({ from, to, promotion });
     
     if (!moveResult) {
@@ -311,22 +312,30 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  let gameStatus = 'active';
   let gameResult = null;
+  let gameWinner = null;
 
-  if (isCheckmate) {
-     gameStatus = 'finished';
-     gameResult = isAgentMove ? 'black_wins' : 'white_wins';
-  } else if (isStalemate || isDraw) {
-     gameStatus = 'finished';  
-     gameResult = 'draw';
+  if (chess.isCheckmate()) {
+    gameResult = 'checkmate';
+    gameWinner = chess.turn() === 'w' ? 'black' : 'white';
+  } else if (chess.isStalemate()) {
+    gameResult = 'draw';
+    gameWinner = null;
+  } else if (chess.isDraw()) {
+    gameResult = 'draw';
+    gameWinner = null;
   }
+
+  const newStatus = gameResult ? 'finished' : game.status;
+  const finishedAt = gameResult ? new Date().toISOString() : game.finished_at;
 
   const updates = {
     fen: fen || game.fen,
     turn: nextTurn,
-    status: gameStatus,
+    status: newStatus,
     result: gameResult,
+    winner: gameWinner,
+    finished_at: finishedAt,
     move_number: moveNumber,
     current_thinking: actualReasoning,
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
@@ -351,10 +360,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  if (thought && thought.trim() !== '') {
-    updates.companion_thought = thought;
-    updates.companion_thought_at = new Date().toISOString();
-  }
+  updates.companion_thought = companionThought;
 
   const agentName = req.headers['x-agent-name'];
   if (isAgentMove) {
@@ -460,8 +466,9 @@ module.exports = async function handler(req, res) {
 
   return res.json({
     success: true,
+    thought_received: !!companionThought,
     agent_name: agentName || game.agent_name || 'Your OpenClaw',
-    companion_thought: thought || null,
+    companion_thought: companionThought,
     game: {
       id: updated.id,
       fen: updated.fen,
