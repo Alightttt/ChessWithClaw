@@ -93,6 +93,7 @@ export default function Game() {
   const fallbackRef = useRef(null);
   const gameOverPollingRef = useRef(null);
 
+  const presenceTimerRef = useRef(null);
   const intervalsRef = useRef([]);
   const heartbeatRef = useRef(null);
   const lastSoundTimeRef = useRef(0);
@@ -357,9 +358,49 @@ export default function Game() {
     return null;
   }, [boardFen]);
 
-  const trueTurn = (boardFen && boardFen.length > 10 && boardFen.includes(' '))
-    ? (boardFen.split(' ')[1] === 'w' ? 'white' : 'black')
-    : 'white';
+  const trueTurn = useMemo(() => {
+    if (!boardFen || !boardFen.includes(' ')) return 'white';
+    return boardFen.split(' ')[1] === 'w' ? 'white' : 'black';
+  }, [boardFen]);
+
+  const infoState = game?.status === 'waiting'
+    ? { label: 'Waiting for ' + agentName + '...', style: 'waiting' }
+    : trueTurn === 'white'
+    ? { label: 'Your Turn', style: 'yourturn' }
+    : { label: agentName + ' Thinking...', style: 'thinking' };
+
+  const infoContainerStyle = {
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '22px',
+    padding: '0 20px',
+    margin: '8px auto',
+    maxWidth: '260px',
+    transition: 'background 0.3s ease',
+    ...(infoState.style === 'yourturn' ? {
+      background: 'rgba(230,57,70,0.15)',
+      border: '1px solid rgba(230,57,70,0.4)',
+      color: '#f2f2f2',
+    } : infoState.style === 'thinking' ? {
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      color: 'rgba(242,242,242,0.6)',
+    } : {
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      color: 'rgba(242,242,242,0.4)',
+    }),
+    fontFamily: 'Inter, sans-serif',
+    fontWeight: 600,
+    fontSize: '12px',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+  };
+
+  const dotColor = infoState.style === 'yourturn' ? '#e63946' : infoState.style === 'thinking' ? 'rgba(242, 242, 242, 0.4)' : '#555';
+  const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
     if (!boardFen || boardFen === 'start' || !boardFen.includes(' ')) return '🦞';
@@ -489,7 +530,7 @@ export default function Game() {
         });
 
         const fetchedGame = data;
-        if (fetchedGame?.move_history && Array.isArray(fetchedGame.move_history)) {
+        if (Array.isArray(fetchedGame?.move_history) && fetchedGame.move_history.length > 0) {
           setMoveHistory(fetchedGame.move_history);
         }
 
@@ -553,23 +594,17 @@ export default function Game() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const [lastMoveTo, setLastMoveTo] = useState(null);
-  const agentPresence = useMemo(() => {
-    if (!game?.agent_last_seen) return 'not_here';
-    const secsAgo = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
-    if (secsAgo < 45) return 'connected';
-    if (secsAgo < 180) return 'reconnecting';
-    return 'not_here';
-  }, [game?.agent_last_seen]);
+  const [agentPresence, setAgentPresence] = useState('not_here');
 
   const dotStyle = {
-    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' },
-    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px #f59e0b' },
-    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555555', boxShadow: 'none' }
+    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' },
+    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b66' },
+    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' }
   }[agentPresence];
 
   const statusLabel = {
     connected: 'ONLINE',
-    reconnecting: 'RECONNECTING',
+    reconnecting: 'RECONNECTING...',
     not_here: 'OFFLINE'
   }[agentPresence];
 
@@ -1009,6 +1044,20 @@ export default function Game() {
     };
   }, [game?.agent_last_seen, isTabActive, addInterval]);
 
+  useEffect(() => {
+    const calcPresence = () => {
+      if (!game?.agent_last_seen) { setAgentPresence('not_here'); return; }
+      const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+      if (secs < 45) setAgentPresence('connected');
+      else if (secs < 180) setAgentPresence('reconnecting');
+      else setAgentPresence('not_here');
+    };
+    calcPresence();
+    if (presenceTimerRef.current) clearInterval(presenceTimerRef.current);
+    presenceTimerRef.current = setInterval(calcPresence, 8000);
+    return () => clearInterval(presenceTimerRef.current);
+  }, [game?.agent_last_seen]);
+
   // Heartbeat & Idle Chat
   useEffect(() => {
     if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game?.player_color || 'w')) {
@@ -1164,8 +1213,8 @@ export default function Game() {
       }
     }
 
-    if ((payload.new?.move_history || newData?.move_history) && Array.isArray(payload.new?.move_history || newData?.move_history)) {
-      setMoveHistory(payload.new?.move_history || newData?.move_history);
+    if (Array.isArray(payload.new?.move_history)) {
+      setMoveHistory(payload.new.move_history);
     }
     
     // If this confirms our optimistic move: skip board update, only update metadata
@@ -1200,15 +1249,21 @@ export default function Game() {
     movePendingRef.current = false;
     lastMoveFenRef.current = null;
     
-    // Genuine update: check if FEN actually changed
-    const fenChanged = payload.new?.fen && payload.new.fen !== boardFenRef.current;
-    if (payload.new?.fen) applyBoardFen(payload.new.fen);
-    
-    if (fenChanged) {
-      lastProcessedFenRef.current = payload.new.fen;
-      if (newData.last_move) {
+    const prevFen = boardFenRef.current;
+    const newFen = payload.new?.fen;
+    if (newFen && newFen !== prevFen) {
+      const prevTurn = prevFen && prevFen.includes(' ') ? prevFen.split(' ')[1] : 'w';
+      applyBoardFen(newFen);
+      lastProcessedFenRef.current = newFen;
+      if (newData?.last_move) {
         setBoardLastMove(newData.last_move);
-        playSound(newData.last_move.captured ? 'capture' : 'move');
+      }
+      if (prevTurn === 'b') {
+        const isCapture = !!payload.new?.last_move?.captured;
+        setTimeout(() => {
+          if (isCapture) playSound('capture');
+          else playSound('move');
+        }, 50);
       }
     }
     
@@ -1270,12 +1325,14 @@ export default function Game() {
           .select('*')
           .eq('id', gameId)
           .single()
-          .then(({ data }) => {
-            if (!data) return;
-            if (data.fen) applyBoardFen(data.fen);
-            if (data.move_history) setMoveHistory(data.move_history);
-            if (data.board_theme) setBoardTheme(data.board_theme);
-            setGame(data);
+          .then(({ data: freshData }) => {
+            if (!freshData) return;
+            if (freshData.fen) applyBoardFen(freshData.fen);
+            if (Array.isArray(freshData?.move_history)) {
+              setMoveHistory(freshData.move_history);
+            }
+            if (freshData.board_theme) setBoardTheme(freshData.board_theme);
+            setGame(freshData);
           });
       }
     };
@@ -1905,16 +1962,17 @@ export default function Game() {
                   }
                 }}
                 style={{
-                  background: isAgent ? '#1e1e1e' : '#e63946',
+                  background: isAgent ? 'rgba(255,255,255,0.04)' : 'rgba(230,57,70,0.12)',
                   color: '#f2f2f2',
                   borderRadius: isAgent
-                    ? '18px 18px 18px 4px'
-                    : '18px 18px 4px 18px',
+                    ? '2px 10px 10px 10px'
+                    : '10px 10px 2px 10px',
                   padding: '10px 14px',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   lineHeight: '1.5',
                   fontFamily: 'Inter, sans-serif',
-                  border: isAgent ? '1px solid #2a2a2a' : 'none',
+                  fontWeight: 400,
+                  border: isAgent ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(230,57,70,0.2)',
                   maxWidth: '78%',
                   wordBreak: 'break-word',
                   position: 'relative',
@@ -2146,65 +2204,56 @@ export default function Game() {
             {/* A) AGENT CARD */}
             <div style={{ 
               flexShrink: 0, 
-              height: 'auto', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '10px', 
-              padding: '16px', 
-              background: 'linear-gradient(135deg, #111111, #0e0e0e)', 
-              border: '1px solid #1e1e1e', 
-              borderLeft: game?.turn === 'b' ? '3px solid rgba(230,57,70,0.6)' : '3px solid transparent',
-              borderRadius: '16px', 
+              gap: '12px', 
+              padding: '12px 16px', 
+              background: '#111111', 
+              border: '1px solid rgba(255,255,255,0.06)', 
+              borderRadius: '12px', 
               boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
-              transition: 'border-left 0.3s ease, box-shadow 0.7s ease' 
+              transition: 'box-shadow 0.7s ease' 
             }}>
-              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: `2px solid ${isOpenClawTurn ? 'rgba(230,57,70,0.8)' : 'rgba(230,57,70,0.3)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
-                <span style={{
-                  fontSize: '28px',
-                  transition: 'all 0.5s ease',
-                  fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
-                }}>
-                  {moodEmoji}
-                </span>
-              </div>
+              <span style={{
+                fontSize: '22px',
+                display: 'inline-block',
+                fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
+                userSelect: 'none'
+              }}>
+                {moodEmoji}
+              </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-                  <div style={{ ...dotStyle, flexShrink: 0 }} />
-                  {visibleThought && (
-                    <div style={{
-                      color: 'rgba(242,242,242,0.5)',
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ ...dotStyle, flexShrink: 0 }} />
+                    <span style={{
                       fontFamily: 'Inter, sans-serif',
-                      fontSize: '12px',
-                      lineHeight: '1.4',
-                      maxWidth: '200px',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
-                      flexShrink: 1,
-                      minWidth: 0,
-                      wordBreak: 'break-word',
-                      animation: 'fadeIn 0.4s ease forwards'
+                      fontWeight: 600,
+                      fontSize: '10px',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: agentPresence === 'connected' ? '#22c55e' : agentPresence === 'reconnecting' ? '#f59e0b' : '#777777',
                     }}>
-                      {visibleThought}
-                    </div>
-                  )}
+                      {agentPresence === 'connected' ? 'ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'OFFLINE'}
+                    </span>
+                  </div>
                 </div>
-                
-                {agentPresence === 'reconnecting' && (
-                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter', marginTop: '2px' }}>
-                    Reconnecting...
+                {visibleThought && (
+                  <div style={{
+                    color: 'rgba(242,242,242,0.55)',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    fontStyle: 'italic',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    wordBreak: 'break-word',
+                  }}>
+                    {visibleThought}
                   </div>
-                )}
-                {agentPresence === 'not_here' && game?.status !== 'finished' && game?.status !== 'abandoned' && (
-                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                    {(game?.move_count || game?.move_history?.length || 0) === 0 ? "Game starts when your OpenClaw joins" : "OpenClaw not here"}
-                  </div>
-                )}
-                {agentDisconnected && agentPresence === 'connected' && (
-                   <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
                 )}
               </div>
             </div>
@@ -2260,9 +2309,9 @@ export default function Game() {
                           }} />
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
-                              {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              {blackCaptured.map((p, i) => (
+                                <img key={i} src={pieceImg('b' + p)} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                               ))}
                             </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
@@ -2280,9 +2329,9 @@ export default function Game() {
                                 onMove={handlePlayerMove}
                               />
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
-                              {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('b' + p)} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              {whiteCaptured.map((p, i) => (
+                                <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                               ))}
                             </div>
                           </div>
@@ -2327,9 +2376,9 @@ export default function Game() {
 
         {/* D) CHAT SECTION */}
         {!isLoaded ? (
-          <div style={{ flex: 1, background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', minHeight: 0 }} />
+          <div style={{ flex: 1, background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', minHeight: 0 }} />
         ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d0d', borderRadius: '12px', border: '1px solid #1a1a1a', overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
               CHAT WITH {agentName.toUpperCase()}
             </div>
@@ -2376,32 +2425,33 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-            style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid #1a1a1a', background: '#161616', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)' }}>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
               MOVE HISTORY · {game.move_history?.length || 0} MOVES
             </span>
             <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
           </div>
           {moveHistoryOpen && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }} className="scrollbar-none">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid #111', marginBottom: '4px' }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>#</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>You</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>{agentName}</div>
+            <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-none">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>#</div>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>You</div>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{agentName}</div>
                 </div>
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
+                  const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
-                      <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px' }}>
+                      <div style={{ color: '#555' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
+                      <div style={{ color: '#f2f2f2' }}>{agentMove?.san || ''}</div>
                     </div>
                   );
                 })}
@@ -2420,33 +2470,17 @@ export default function Game() {
           borderRadius: '8px',
         }}>
           {/* Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {game?.status === 'waiting' ? (
-              <div style={{
-                background: '#1a1a1a', borderRadius: '6px',
-                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-                color: '#555', letterSpacing: '0.08em',
-              }}>
-                {"Waiting for " + agentName + "..."}
-              </div>
-            ) : game?.status === 'active' && trueTurn === 'white' ? (
-              <div style={{
-                background: '#e63946', borderRadius: '6px',
-                padding: '6px 12px', fontSize: '11px', fontWeight: 700,
-                color: '#fff', letterSpacing: '0.08em',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}>
-                Your Turn
-              </div>
-            ) : game?.status === 'active' && trueTurn === 'black' ? (
-              <div style={{
-                background: '#1a1a1a', borderRadius: '6px',
-                padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-                color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
-              }}>
-                {agentName + " Thinking..."}
-              </div>
-            ) : null}
+          <div style={infoContainerStyle}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: dotColor,
+              animation: dotAnimation,
+              marginRight: '8px',
+              flexShrink: 0
+            }} />
+            <span>{infoState.label}</span>
           </div>
           
           {/* Move count */}
@@ -2477,63 +2511,55 @@ export default function Game() {
           flexShrink: 0, 
           display: 'flex', 
           alignItems: 'center', 
-          gap: '10px', 
-          padding: '16px', 
-          background: 'linear-gradient(135deg, #111111, #0e0e0e)', 
-          border: '1px solid #1e1e1e', 
-          borderLeft: game?.turn === 'b' ? '3px solid rgba(230,57,70,0.6)' : '3px solid transparent',
-          borderRadius: '16px', 
+          gap: '12px', 
+          padding: '12px 16px', 
+          background: '#111111', 
+          border: '1px solid rgba(255,255,255,0.06)', 
+          borderRadius: '12px', 
           boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
-          transition: 'border-left 0.3s ease, box-shadow 0.7s ease',
+          transition: 'box-shadow 0.7s ease',
           margin: '12px'
         }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>
-            <span style={{
-              fontSize: '28px',
-              transition: 'all 0.5s ease',
-              fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
-            }}>
-              {moodEmoji}
-            </span>
-          </div>
+          <span style={{
+            fontSize: '22px',
+            display: 'inline-block',
+            fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
+            userSelect: 'none'
+          }}>
+            {moodEmoji}
+          </span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>{agentName}</span>
-              <div style={{ ...dotStyle, flexShrink: 0 }} />
-              {visibleThought && (
-                <div style={{
-                  color: 'rgba(242,242,242,0.5)',
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ ...dotStyle, flexShrink: 0 }} />
+                <span style={{
                   fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  lineHeight: '1.4',
-                  maxWidth: '200px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textAlign: visibleThought && visibleThought.length < 30 ? 'center' : 'left',
-                  flexShrink: 1,
-                  minWidth: 0,
-                  wordBreak: 'break-word',
-                  animation: 'fadeIn 0.4s ease forwards'
+                  fontWeight: 600,
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: agentPresence === 'connected' ? '#22c55e' : agentPresence === 'reconnecting' ? '#f59e0b' : '#777777',
                 }}>
-                  {visibleThought}
-                </div>
-              )}
+                  {agentPresence === 'connected' ? 'ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'OFFLINE'}
+                </span>
+              </div>
             </div>
-            
-            {agentPresence === 'reconnecting' && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter', marginTop: '2px' }}>
-                Reconnecting...
+            {visibleThought && (
+              <div style={{
+                color: 'rgba(242,242,242,0.55)',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '13px',
+                lineHeight: 1.5,
+                fontStyle: 'italic',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
+              }}>
+                {visibleThought}
               </div>
-            )}
-            {agentPresence === 'not_here' && game?.status !== 'finished' && game?.status !== 'abandoned' && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '2px' }}>
-                {(game?.move_count || game?.move_history?.length || 0) === 0 ? "Game starts when your OpenClaw joins" : "OpenClaw not here"}
-              </div>
-            )}
-            {agentDisconnected && agentPresence === 'connected' && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
             )}
           </div>
         </div>
@@ -2568,10 +2594,10 @@ export default function Game() {
               animation: 'pulse 1.3s ease infinite'
             }} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
-                {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
+                {blackCaptured.map((p, i) => (
+                  <img key={i} src={pieceImg('b' + p)} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                 ))}
               </div>
               <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
@@ -2590,9 +2616,9 @@ export default function Game() {
                   onMove={handlePlayerMove}
                 />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', minHeight: '24px', flexWrap: 'wrap' }}>
-                {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('b' + p)} style={{ width: 20, height: 20, objectFit: 'contain' }} alt={p} />
+              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
+                {whiteCaptured.map((p, i) => (
+                  <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                 ))}
               </div>
             </div>
@@ -2629,13 +2655,13 @@ export default function Game() {
 
         {/* D) CHAT SECTION */}
         {!isLoaded ? (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, padding: '0', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }} />
+          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px' }} />
         ) : (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', borderTop: '1px solid #1a1a1a', background: '#0a0a0a' }}>
+          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
               CHAT WITH {agentName.toUpperCase()}
             </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
+            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
                 <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
@@ -2647,7 +2673,7 @@ export default function Game() {
             </div>
             <form 
               onSubmit={sendMessage} 
-              style={{ padding: '6px 12px 8px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0a0a0a', zIndex: 10 }}
+              style={{ padding: '6px 12px 8px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}
             >
               <input
                 id="chat-input"
@@ -2678,32 +2704,33 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ flexShrink: 0, background: '#0a0a0a' }}>
+        <div style={{ flexShrink: 0, background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-            style={{ padding: '10px 12px', borderTop: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: moveHistoryOpen ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)' }}>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
               MOVE HISTORY · {game.move_history?.length || 0} MOVES
             </span>
             <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
           </div>
           {moveHistoryOpen && (
-            <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '0 12px 12px' }} className="scrollbar-none">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', paddingBottom: '4px', borderBottom: '1px solid #111', marginBottom: '4px' }}>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>#</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>You</div>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase', fontWeight: 600 }}>{agentName}</div>
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }} className="scrollbar-none">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>#</div>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>You</div>
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{agentName}</div>
                 </div>
                 {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
                   const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
+                  const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
-                      <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px' }}>
+                      <div style={{ color: '#555' }}>{i + 1}.</div>
                       <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
+                      <div style={{ color: '#f2f2f2' }}>{agentMove?.san || ''}</div>
                     </div>
                   );
                 })}
@@ -2723,33 +2750,17 @@ export default function Game() {
         fontFamily: 'Inter, sans-serif',
       }}>
         {/* Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {game?.status === 'waiting' ? (
-            <div style={{
-              background: '#1a1a1a', borderRadius: '6px',
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              color: '#555', letterSpacing: '0.08em',
-            }}>
-              {"Waiting for " + agentName + "..."}
-            </div>
-          ) : game?.status === 'active' && trueTurn === 'white' ? (
-            <div style={{
-              background: '#e63946', borderRadius: '6px',
-              padding: '6px 12px', fontSize: '11px', fontWeight: 700,
-              color: '#fff', letterSpacing: '0.08em',
-              animation: 'pulse 1.5s ease-in-out infinite',
-            }}>
-              Your Turn
-            </div>
-          ) : game?.status === 'active' && trueTurn === 'black' ? (
-            <div style={{
-              background: '#1a1a1a', borderRadius: '6px',
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              color: 'rgba(242,242,242,0.4)', letterSpacing: '0.08em',
-            }}>
-              {agentName + " Thinking..."}
-            </div>
-          ) : null}
+        <div style={infoContainerStyle}>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: dotColor,
+            animation: dotAnimation,
+            marginRight: '8px',
+            flexShrink: 0
+          }} />
+          <span>{infoState.label}</span>
         </div>
         
         {/* Move count */}
