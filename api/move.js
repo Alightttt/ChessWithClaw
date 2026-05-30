@@ -220,7 +220,7 @@ module.exports = async function handler(req, res) {
   let nextTurn = isHumanMove ? 'b' : 'w';
   let legalMoves = [];
   let globalNextLegalMoves = [];
-  let material_balance = null;
+  let materialBalance = null;
   try {
     const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen);
@@ -245,7 +245,7 @@ module.exports = async function handler(req, res) {
         else bMat += vals[low];
       }
     }
-    material_balance = wMat - bMat;
+    materialBalance = wMat - bMat;
 
     moveObj.san = moveResult.san;
     inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
@@ -332,7 +332,7 @@ module.exports = async function handler(req, res) {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
     legal_moves: nextLegalMoves,
     agent_name: req.headers['x-agent-name'] || game.agent_name || null,
-    material_balance: material_balance
+    material_balance: materialBalance
   };
 
   if (isAgentMove) {
