@@ -315,13 +315,17 @@ module.exports = async function handler(req, res) {
   let gameResult = null;
   let gameWinner = null;
 
-  if (chess.isCheckmate()) {
+  const actualCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
+  const actualStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
+  const actualDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
+
+  if (actualCheckmate) {
     gameResult = 'checkmate';
     gameWinner = chess.turn() === 'w' ? 'black' : 'white';
-  } else if (chess.isStalemate()) {
+  } else if (actualStalemate) {
     gameResult = 'draw';
     gameWinner = null;
-  } else if (chess.isDraw()) {
+  } else if (actualDraw) {
     gameResult = 'draw';
     gameWinner = null;
   }
