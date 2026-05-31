@@ -397,13 +397,40 @@ module.exports = async function handler(req, res) {
     updates.result_reason = req.body?.result_reason;
   }
 
-  const { data: updated, error: updateError } = await supabase
+  let { data: updated, error: updateError } = await supabase
     .from('games')
     .update(updates)
     .eq('id', id)
     .eq('turn', game.turn)
     .select()
     .single();
+
+  // Self-heal/fallback: if the update failed because a column like 'winner' doesn't exist in the database,
+  // we dynamically strip it from the updates object and try the update again.
+  if (updateError && (updateError.message?.includes('column') || updateError.message?.includes('does not exist') || updateError.code === '42703')) {
+    console.warn("Database column error on games update, retrying with sanitized payload:", updateError.message);
+    let retryNeeded = false;
+    if (updateError.message.includes('winner') && 'winner' in updates) {
+      delete updates.winner;
+      retryNeeded = true;
+    }
+    if (updateError.message.includes('finished_at') && 'finished_at' in updates) {
+      delete updates.finished_at;
+      retryNeeded = true;
+    }
+    
+    if (retryNeeded) {
+      const retryResult = await supabase
+        .from('games')
+        .update(updates)
+        .eq('id', id)
+        .eq('turn', game.turn)
+        .select()
+        .single();
+      updated = retryResult.data;
+      updateError = retryResult.error;
+    }
+  }
 
   if (updateError && updateError.code !== 'PGRST116') {
     console.error("Update error:", updateError);
@@ -415,6 +442,13 @@ module.exports = async function handler(req, res) {
     }
     if (insertedThoughtId) {
       await supabase.from('agent_thoughts').delete().eq('id', insertedThoughtId);
+    }
+    if (updateError && updateError.code !== 'PGRST116') {
+      return res.status(500).json({
+        error: `Database update failed: ${updateError.message}`,
+        code: updateError.code,
+        details: updateError.details || null
+      });
     }
     return res.status(409).json({
       error: 'Move already processed',
