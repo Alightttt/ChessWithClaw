@@ -1537,7 +1537,7 @@ export default function Game() {
 
   const handlePlayerMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
-    if (!game?.agent_connected && game?.status === 'waiting') {
+    if (!game?.agent_connected) {
       toast('Waiting for agent to connect...');
       return;
     }
@@ -2390,6 +2390,7 @@ export default function Game() {
                                 playerColor={game?.player_color || 'w'}
                                 gameStatus={game?.status}
                                 onMove={handlePlayerMove}
+                                disabled={!game?.agent_connected}
                               />
                             </div>
                             <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -2744,6 +2745,7 @@ export default function Game() {
                   playerColor={game?.player_color || 'w'}
                   gameStatus={game?.status}
                   onMove={handlePlayerMove}
+                  disabled={!game?.agent_connected}
                 />
               </div>
               <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
