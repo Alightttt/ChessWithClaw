@@ -269,7 +269,11 @@ export default function Game() {
   const [boardTheme, setBoardTheme] = useState(() => {
     return localStorage.getItem('cwc_board_theme') || 'green';
   });
-  const [pieceStyle, setPieceStyle] = useState(localStorage.getItem('cwc_piece_style') || 'neo');
+  const [pieceStyle, setPieceStyle] = useState(() => {
+    const saved = localStorage.getItem('cwc_piece_style');
+    if (!saved) { localStorage.setItem('cwc_piece_style', 'neo'); return 'neo'; }
+    return saved;
+  });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
@@ -1318,8 +1322,7 @@ export default function Game() {
 
     // 3. Show companion thought (fixes thoughts never appearing)
     if (incoming.companion_thought && incoming.companion_thought.trim() !== '') {
-      showThought(incoming.companion_thought);
-      setCompanionThought(incoming.companion_thought);
+      showThought && showThought(incoming.companion_thought);
     }
 
     // 4. Apply board theme instantly (fixes theme needing refresh)
