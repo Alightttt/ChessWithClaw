@@ -65,8 +65,8 @@ export default function ChessBoard({
 
   const [pieceStyle, setPieceStyle] = useState(() => {
     const saved = localStorage.getItem('cwc_piece_style');
-    if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
-    return saved || 'neo';
+    if (!saved) { localStorage.setItem('cwc_piece_style', 'neo'); return 'neo'; }
+    return saved;
   });
 
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
@@ -98,7 +98,9 @@ export default function ChessBoard({
     const FILES_LI = { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
                        bP:'bP',bN:'bN',bB:'bB',bR:'bR',bQ:'bQ',bK:'bK' };
     
-    const base = SETS[activePieceStyle] || SETS.neo;
+    const base = activePieceStyle === 'standard'
+      ? 'https://lichess1.org/assets/piece/cburnett'
+      : `https://images.chesscomfiles.com/chess-themes/pieces/${activePieceStyle}/150`;
     const ext  = EXTS[activePieceStyle] || 'png';
     const files = (activePieceStyle === 'standard') ? FILES_LI : FILES_CC;
     

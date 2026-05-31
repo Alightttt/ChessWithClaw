@@ -129,8 +129,12 @@ module.exports = async function handler(req, res) {
   const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || '0');
   const new_chat_messages = human_messages
     .slice(agentLastHumanChatCount)
-    .map(m => ({ role: m.role, message: m.message || m.text || '', id: m.id || '' }));
-  const human_chatted = chat_count > agentLastHumanChatCount;
+    .map(m => ({
+      role: m.role,
+      message: m.message || m.text || '',
+      id: m.id || ''
+    }));
+  const human_chatted = human_messages.length > agentLastHumanChatCount;
 
   // FIX 3 — legal_moves
   const legal_moves_uci = Array.isArray(game.legal_moves) ? game.legal_moves : [];
@@ -167,6 +171,7 @@ module.exports = async function handler(req, res) {
     move_history: moveHistory,
     chat_count: chat_count,
     new_chat_messages: new_chat_messages,
+    human_chatted: human_chatted,
     all_chat_count: chat_history.length,
     messages: chat_history, // Include in ALL poll responses so the agent is never deaf!
     chat_history: chat_history, // Alias in all responses

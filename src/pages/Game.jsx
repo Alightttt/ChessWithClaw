@@ -292,10 +292,14 @@ export default function Game() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [agentDisconnected, setAgentDisconnected] = useState(false);
 
+  const [thoughtDisplay, setThoughtDisplay] = useState({ text: '', visible: false });
   const [visibleThought, setVisibleThought] = useState('');
   const [companionThought, setCompanionThought] = useState('');
   const prevThoughtValRef = useRef('');
   const thoughtTimerRef = useRef(null);
+  
+  const [isUserTyping, setIsUserTyping] = useState(false);
+  const userTypingTimerRef = useRef(null);
 
   useEffect(() => {
     const currentTimer = thoughtTimerRef.current;
@@ -303,6 +307,11 @@ export default function Game() {
       if (currentTimer) clearTimeout(currentTimer);
     };
   }, []);
+
+  useEffect(() => {
+    setThoughtDisplay({ text: '', visible: false });
+    if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+  }, [game?.thought_language]);
 
   useEffect(() => {
     const checkCheck = () => {
@@ -317,6 +326,15 @@ export default function Game() {
       checkCheck();
     }
   }, [game?.fen]);
+
+  const showThought = useCallback((text) => {
+    if (!text || text.trim() === '') return;
+    if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+    setThoughtDisplay({ text: text.trim(), visible: true });
+    thoughtTimerRef.current = setTimeout(() => {
+      setThoughtDisplay(prev => ({ ...prev, visible: false }));
+    }, 4000);
+  }, []);
   
   const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
@@ -537,6 +555,9 @@ export default function Game() {
         if (fetchedGame?.companion_thought) {
           setCompanionThought(fetchedGame.companion_thought);
         }
+        if (Array.isArray(fetchedGame?.chat_history)) {
+          setChatMessages(fetchedGame.chat_history);
+        }
 
         applyBoardFen(data.fen || 'start');
         lastProcessedFenRef.current = data.fen || 'start';
@@ -546,6 +567,7 @@ export default function Game() {
         if (data.companion_thought && data.companion_thought.trim() !== '') {
            prevThoughtValRef.current = data.companion_thought;
            setVisibleThought(data.companion_thought);
+           showThought(data.companion_thought);
         }
 
         // Restore chat messages
@@ -587,7 +609,7 @@ export default function Game() {
       setIsLoaded(true);
     }
     setLoading(false);
-  }, [gameId, applyBoardFen, setMoveHistory]);
+  }, [gameId, applyBoardFen, setMoveHistory, showThought]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
@@ -1276,7 +1298,40 @@ export default function Game() {
     }
     
     setGame(prev => ({ ...prev, ...newData }));
-  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory]);
+
+    const incoming = payload?.new || newData || {};
+
+    // 1. Update board position (fixes board not moving for agent moves)
+    if (incoming.fen && incoming.fen !== boardFenRef.current) {
+      const prevFen = boardFenRef.current;
+      applyBoardFen(incoming.fen);
+      // Play sound for agent move (agent just moved = prev turn was 'b')
+      if (prevFen && prevFen.split(' ')[1] === 'b') {
+        setTimeout(() => playSound && playSound('move'), 80);
+      }
+    }
+
+    // 2. Update move history
+    if (Array.isArray(incoming.move_history)) {
+      setMoveHistory(incoming.move_history);
+    }
+
+    // 3. Show companion thought (fixes thoughts never appearing)
+    if (incoming.companion_thought && incoming.companion_thought.trim() !== '') {
+      showThought(incoming.companion_thought);
+      setCompanionThought(incoming.companion_thought);
+    }
+
+    // 4. Apply board theme instantly (fixes theme needing refresh)
+    if (incoming.board_theme && incoming.board_theme !== boardTheme) {
+      setBoardTheme && setBoardTheme(incoming.board_theme);
+      localStorage.setItem('cwc_board_theme', incoming.board_theme);
+    }
+
+    if (Array.isArray(incoming.chat_history)) {
+      setChatMessages(incoming.chat_history);
+    }
+  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory, showThought]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1479,6 +1534,10 @@ export default function Game() {
 
   const handlePlayerMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
+    if (!game?.agent_connected && game?.status === 'waiting') {
+      toast('Waiting for agent to connect...');
+      return;
+    }
     if (boardLocked || submittingRef.current) return;
     
     if (!localStorage.getItem(`game_owner_${gameId}`)) {
@@ -1661,6 +1720,9 @@ export default function Game() {
 
   function handleChatInputChange(e) {
     setChatInput(e.target.value);
+    setIsUserTyping(true);
+    if (userTypingTimerRef.current) clearTimeout(userTypingTimerRef.current);
+    userTypingTimerRef.current = setTimeout(() => setIsUserTyping(false), 2000);
   }
 
   const getAgentMood = () => {
@@ -2059,41 +2121,12 @@ export default function Game() {
             </div>
           );
         })}
-        {game?.agent_typing && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 2px 8px',
-            marginTop: '2px'
-          }}>
-            <span style={{
-              fontSize: '11px',
-              color: 'rgba(242,242,242,0.35)',
-              fontFamily: 'Inter'
-            }}>
-              {agentName}
-            </span>
-            <div style={{
-              display: 'flex',
-              gap: '3px',
-              background: '#1e1e1e',
-              border: '1px solid #2a2a2a',
-              borderRadius: '12px',
-              padding: '8px 12px',
-              alignItems: 'center'
-            }}>
-              {[0,1,2].map(i => (
-                <span key={i} style={{
-                  width: '6px', height: '6px',
-                  borderRadius: '50%',
-                  background: 'rgba(242,242,242,0.5)',
-                  display: 'inline-block',
-                  animation: `typingBounce 1.2s ease-in-out infinite`,
-                  animationDelay: `${i * 0.2}s`
-                }} />
-              ))}
-            </div>
+        {(game?.agent_typing) && (
+          <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6}}>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0s'}}/>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.2s'}}/>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.4s'}}/>
+            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginLeft:4,fontFamily:'Inter'}}>typing...</span>
           </div>
         )}
       </div>
@@ -2120,8 +2153,8 @@ export default function Game() {
           50% { opacity: 0.4; transform: scale(0.9); }
         }
         @keyframes typingDot {
-          0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
-          30% { opacity: 1; transform: translateY(-4px); }
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-4px); opacity: 1; }
         }
         @keyframes clawPulse {
           0%, 100% { transform: scale(1); opacity: 1; }
@@ -2268,6 +2301,20 @@ export default function Game() {
                     &ldquo;{companionThought}&rdquo;
                   </p>
                 )}
+              </div>
+              <div style={{
+                opacity: thoughtDisplay.visible ? 1 : 0,
+                transition: 'opacity 0.4s ease-in-out',
+                fontStyle: 'italic',
+                fontSize: 13,
+                color: 'rgba(242,242,242,0.6)',
+                lineHeight: 1.5,
+                maxWidth: 180,
+                textAlign: 'right',
+                minHeight: 20,
+                padding: '4px 0',
+              }}>
+                {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
               </div>
             </div>
                 
@@ -2483,18 +2530,66 @@ export default function Game() {
           borderRadius: '8px',
         }}>
           {/* Status */}
-          <div style={infoContainerStyle}>
-            <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: dotColor,
-              animation: dotAnimation,
-              marginRight: '8px',
-              flexShrink: 0
-            }} />
-            <span>{infoState.label}</span>
-          </div>
+          {(() => {
+            const agentName = game?.agent_name || 'Your OpenClaw';
+            const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
+            const isYourTurn = trueTurnColor === 'w' && game?.status === 'active';
+            const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
+            const isThinking = trueTurnColor === 'b' && game?.status === 'active';
+
+            const dotColor = isYourTurn ? '#e63946' : isThinking ? 'rgba(242,242,242,0.3)' : '#333';
+            const bgColor = isYourTurn ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.03)';
+            const borderColor = isYourTurn ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.07)';
+            const textColor = isYourTurn ? '#f2f2f2' : 'rgba(242,242,242,0.5)';
+            const label = isWaiting
+              ? `Waiting for ${agentName}...`
+              : isYourTurn
+              ? 'Your Turn'
+              : `${agentName} Thinking...`;
+
+            return (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '0 16px',
+                height: 40,
+                borderRadius: 20,
+                background: bgColor,
+                border: `1px solid ${borderColor}`,
+                transition: 'all 0.3s ease',
+                maxWidth: 240,
+                margin: '0 auto',
+                userSelect: 'none',
+              }}>
+                <div style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: dotColor,
+                  flexShrink: 0,
+                  boxShadow: isYourTurn ? '0 0 6px #e63946' : 'none',
+                  transition: 'all 0.3s ease',
+                }}/>
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 11,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  color: textColor,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 180,
+                  transition: 'color 0.3s ease',
+                }}>
+                  {label}
+                </span>
+              </div>
+            );
+          })()}
           
           {/* Move count */}
           <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
@@ -2579,6 +2674,20 @@ export default function Game() {
                 &ldquo;{companionThought}&rdquo;
               </p>
             )}
+          </div>
+          <div style={{
+            opacity: thoughtDisplay.visible ? 1 : 0,
+            transition: 'opacity 0.4s ease-in-out',
+            fontStyle: 'italic',
+            fontSize: 13,
+            color: 'rgba(242,242,242,0.6)',
+            lineHeight: 1.5,
+            maxWidth: 180,
+            textAlign: 'right',
+            minHeight: 20,
+            padding: '4px 0',
+          }}>
+            {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
           </div>
         </div>
 
@@ -2768,18 +2877,66 @@ export default function Game() {
         fontFamily: 'Inter, sans-serif',
       }}>
         {/* Status */}
-        <div style={infoContainerStyle}>
-          <div style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: dotColor,
-            animation: dotAnimation,
-            marginRight: '8px',
-            flexShrink: 0
-          }} />
-          <span>{infoState.label}</span>
-        </div>
+        {(() => {
+          const agentName = game?.agent_name || 'Your OpenClaw';
+          const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
+          const isYourTurn = trueTurnColor === 'w' && game?.status === 'active';
+          const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
+          const isThinking = trueTurnColor === 'b' && game?.status === 'active';
+
+          const dotColor = isYourTurn ? '#e63946' : isThinking ? 'rgba(242,242,242,0.3)' : '#333';
+          const bgColor = isYourTurn ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.03)';
+          const borderColor = isYourTurn ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.07)';
+          const textColor = isYourTurn ? '#f2f2f2' : 'rgba(242,242,242,0.5)';
+          const label = isWaiting
+            ? `Waiting for ${agentName}...`
+            : isYourTurn
+            ? 'Your Turn'
+            : `${agentName} Thinking...`;
+
+          return (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '0 16px',
+              height: 40,
+              borderRadius: 20,
+              background: bgColor,
+              border: `1px solid ${borderColor}`,
+              transition: 'all 0.3s ease',
+              maxWidth: 240,
+              margin: '0 auto',
+              userSelect: 'none',
+            }}>
+              <div style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: dotColor,
+                flexShrink: 0,
+                boxShadow: isYourTurn ? '0 0 6px #e63946' : 'none',
+                transition: 'all 0.3s ease',
+              }}/>
+              <span style={{
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 600,
+                fontSize: 11,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: textColor,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 180,
+                transition: 'color 0.3s ease',
+              }}>
+                {label}
+              </span>
+            </div>
+          );
+        })()}
         
         {/* Move count */}
         <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
@@ -3098,6 +3255,8 @@ export default function Game() {
                   <button
                     key={lang.value}
                     onClick={async () => {
+                      setThoughtDisplay({ text: '', visible: false });
+                      if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
                       setThoughtLanguage(lang.value);
                       await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);
                     }}
