@@ -64,6 +64,7 @@ export default function ChessBoard({
   const lastAppliedMoveRef = useRef(null);
 
   const [pieceStyle, setPieceStyle] = useState(() => {
+    // Initial fetch from local storage with fallback
     const saved = localStorage.getItem('cwc_piece_style');
     if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
     return saved || 'neo';

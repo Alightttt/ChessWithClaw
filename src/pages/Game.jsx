@@ -426,6 +426,7 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
+    // Computed based on current board state, defaults to lobster
     if (!boardFen || boardFen === 'start' || !boardFen.includes(' ')) return '🦞';
     const fenParts = boardFen.split(' ');
     const currentTurn = fenParts[1];
