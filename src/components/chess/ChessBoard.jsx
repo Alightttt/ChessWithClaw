@@ -65,8 +65,8 @@ export default function ChessBoard({
 
   const [pieceStyle, setPieceStyle] = useState(() => {
     const saved = localStorage.getItem('cwc_piece_style');
-    if (!saved) { localStorage.setItem('cwc_piece_style', 'neo'); return 'neo'; }
-    return saved;
+    if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
+    return saved || 'neo';
   });
 
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
