@@ -49,6 +49,7 @@ export default function ChessBoard({
   turn,
   legalMoves = [],
   lastMove = null,
+  arrivedSquare = null,
   inCheck = false,
   checkedKingSquare = null,
   boardTheme = 'green',
@@ -85,6 +86,21 @@ export default function ChessBoard({
     });
     return map;
   }, [legalMoves]);
+
+  // Robust parsing of lastMove (string of 'e2e4', or object {from, to})
+  const parsedLastMove = useMemo(() => {
+    if (!lastMove) return null;
+    if (typeof lastMove === 'string') {
+      if (lastMove.length >= 4) {
+        return { from: lastMove.slice(0, 2), to: lastMove.slice(2, 4) };
+      }
+      return null;
+    }
+    const from = lastMove.from || lastMove.from_square;
+    const to = lastMove.to || lastMove.to_square;
+    if (from && to) return { from, to };
+    return null;
+  }, [lastMove]);
 
   const customPiecesMap = useMemo(() => {
     const SETS = {
@@ -129,11 +145,20 @@ export default function ChessBoard({
   // Custom square styles: last move, legal dots, check glow
   const customSquareStyles = {};
 
-  // Last move highlight
-  if (lastMove) {
+  // Last move highlight (re-written with parsedLastMove)
+  if (parsedLastMove) {
     const lastMoveStyle = { backgroundColor: 'rgba(255, 215, 0, 0.45)' };
-    if (lastMove.from) customSquareStyles[lastMove.from] = lastMoveStyle;
-    if (lastMove.to)   customSquareStyles[lastMove.to]   = lastMoveStyle;
+    customSquareStyles[parsedLastMove.from] = lastMoveStyle;
+    customSquareStyles[parsedLastMove.to] = lastMoveStyle;
+  }
+
+  // Flashing arrival square highlight
+  if (arrivedSquare) {
+    customSquareStyles[arrivedSquare] = {
+      backgroundColor: 'rgba(34, 197, 94, 0.85)',
+      boxShadow: 'inset 0 0 15px rgba(34, 197, 94, 0.9)',
+      animation: 'arriveFlash 0.6s ease-out'
+    };
   }
 
   // Legal move dots for selected square

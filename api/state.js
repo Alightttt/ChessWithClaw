@@ -252,6 +252,8 @@ module.exports = async function handler(req, res) {
     draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
     draw_offer_pending: Boolean(game.draw_offer_pending),
     agent_name: game.agent_name === 'Your Agent' ? 'Your OpenClaw' : (game.agent_name || 'Your OpenClaw'),
+    agent_avatar: game.agent_avatar || '🦞',
+    agent_tagline: game.agent_tagline || '',
     current_thinking: game.current_thinking,
     agent_connected: Boolean(game.agent_connected),
     agent_last_seen: game.agent_last_seen || null,
@@ -262,6 +264,6 @@ module.exports = async function handler(req, res) {
     companion_thought_at: game.companion_thought_at || null,
     thought_language: game.thought_language || 'english',
     board_theme: game.board_theme || 'green',
-    piece_style: game.piece_style || 'neo'
+    piece_style: (game.piece_style === 'standard' || !game.piece_style) ? 'neo' : game.piece_style
   });
 }

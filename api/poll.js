@@ -180,7 +180,7 @@ module.exports = async function handler(req, res) {
     agent_connected: Boolean(game.agent_connected),
     agent_last_seen: game.agent_last_seen || null,
     board_theme: game.board_theme || 'green',
-    piece_style: game.piece_style || 'neo', // FALLBACK to neo as requested by user
+    piece_style: (game.piece_style === 'standard' || !game.piece_style) ? 'neo' : game.piece_style, // FALLBACK to neo as requested by user
     material_balance: game.material_balance || null,
     draw_offer_pending: Boolean(game.draw_offer_pending),
     agent_typing: Boolean(game.agent_typing),

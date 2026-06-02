@@ -278,19 +278,6 @@ export default function Game() {
 
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
 
-  useEffect(() => {
-    if (game?.piece_style) {
-      if (prevDbPieceStyleRef.current === null) {
-        prevDbPieceStyleRef.current = game.piece_style;
-        setPieceStyle(game.piece_style);
-        localStorage.setItem('cwc_piece_style', game.piece_style);
-      } else if (game.piece_style !== prevDbPieceStyleRef.current) {
-        setPieceStyle(game.piece_style);
-        localStorage.setItem('cwc_piece_style', game.piece_style);
-        prevDbPieceStyleRef.current = game.piece_style;
-      }
-    }
-  }, [game?.piece_style]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -426,6 +413,7 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
+    if (game?.agent_avatar) return game.agent_avatar;
     // Computed based on current board state, defaults to lobster
     if (!boardFen || boardFen === 'start' || !boardFen.includes(' ')) return '🦞';
     const fenParts = boardFen.split(' ');
@@ -447,7 +435,7 @@ export default function Game() {
     if (balance <= -2) return '😏';
     if (balance >= 2) return '😅';
     return '🦞';
-  }, [boardFen, game?.in_check]);
+  }, [boardFen, game?.in_check, game?.agent_avatar]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -485,6 +473,17 @@ export default function Game() {
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
   const [isTabActive, setIsTabActive] = useState(true);
+
+  useEffect(() => {
+    if (boardLastMove) {
+      const dest = typeof boardLastMove === 'string' ? boardLastMove.substring(2, 4) : (boardLastMove.to || boardLastMove.to_square);
+      if (dest) {
+        setArrivedSquare(dest);
+        const timer = setTimeout(() => setArrivedSquare(null), 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [boardLastMove]);
 
   const setMoveHistory = useCallback((history) => {
     setGame(prev => prev ? { ...prev, move_history: history } : prev);
@@ -587,19 +586,6 @@ export default function Game() {
             to: data.last_move.to 
           });
         }
-
-        // Restore board theme from DB (agent may have changed it)
-        if (data.board_theme) {
-          setBoardTheme(data.board_theme);
-          localStorage.setItem('cwc_board_theme', data.board_theme);
-        }
-
-        // Restore piece style from DB
-        const savedStyle = data.piece_style || 
-                           localStorage.getItem('cwc_piece_style') || 
-                           'neo';
-          setPieceStyle(savedStyle);
-        localStorage.setItem('cwc_piece_style', savedStyle);
 
         // Mark as loaded LAST
         setIsLoaded(true);
@@ -861,7 +847,7 @@ export default function Game() {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [game?.chat_history]);
+  }, [normalizedMessages]);
 
 
 
@@ -1324,12 +1310,6 @@ export default function Game() {
     // 3. Show companion thought (fixes thoughts never appearing)
     if (incoming.companion_thought && incoming.companion_thought.trim() !== '') {
       showThought && showThought(incoming.companion_thought);
-    }
-
-    // 4. Apply board theme instantly (fixes theme needing refresh)
-    if (incoming.board_theme && incoming.board_theme !== boardTheme) {
-      setBoardTheme && setBoardTheme(incoming.board_theme);
-      localStorage.setItem('cwc_board_theme', incoming.board_theme);
     }
 
     if (Array.isArray(incoming.chat_history)) {
@@ -2284,6 +2264,11 @@ export default function Game() {
                     </span>
                   </div>
                 </div>
+                {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
+                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
+                    Waiting for your OpenClaw to join...
+                  </div>
+                )}
                 {visibleThought && (
                   <div style={{
                     color: 'rgba(242,242,242,0.55)',
@@ -2362,7 +2347,7 @@ export default function Game() {
                     )}
 
                     <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-                      <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 1 : 0.7, height: '100%', width: '100%' }}>
+                      <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
                           <div style={{
                             aspectRatio: '1/1', width: '100%', height: '100%',
@@ -2384,6 +2369,7 @@ export default function Game() {
                                 turn={game?.turn}
                                 legalMoves={legalMovesArray}
                                 lastMove={boardLastMove}
+                                arrivedSquare={arrivedSquare}
                                 inCheck={Boolean(game?.in_check)}
                                 checkedKingSquare={checkedSquare}
                                 boardTheme={boardTheme}
@@ -2528,11 +2514,11 @@ export default function Game() {
         {/* STEP 4: BOTTOM INFO BAR */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px', background: '#111',
-          borderTop: '1px solid #1a1a1a',
-          position: 'sticky', bottom: 0, zIndex: 20,
+          padding: '10px 16px', background: '#0e0e0e',
+          border: '1px solid rgba(255,255,255,0.05)',
           fontFamily: 'Inter, sans-serif',
-          borderRadius: '8px',
+          borderRadius: '10px',
+          flexShrink: 0,
         }}>
           {/* Status */}
           {(() => {
@@ -2658,6 +2644,11 @@ export default function Game() {
                 </span>
               </div>
             </div>
+            {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
+                Waiting for your OpenClaw to join...
+              </div>
+            )}
             {visibleThought && (
               <div style={{
                 color: 'rgba(242,242,242,0.55)',
@@ -2716,7 +2707,7 @@ export default function Game() {
             </div>
           )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <div style={{ pointerEvents: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 'auto' : 'none', opacity: (agentPresence === 'connected' || agentPresence === 'reconnecting' || game?.status === 'finished' || game?.status === 'abandoned' || game?.status === 'waiting' || game?.status === 'active') ? 1 : 0.7 }}>
+          <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
             <div style={{
               aspectRatio: '1/1', width: '100%',
@@ -2739,6 +2730,7 @@ export default function Game() {
                   turn={game?.turn}
                   legalMoves={legalMovesArray}
                   lastMove={boardLastMove}
+                  arrivedSquare={arrivedSquare}
                   inCheck={Boolean(game?.in_check)}
                   checkedKingSquare={checkedSquare}
                   boardTheme={boardTheme}

@@ -115,34 +115,6 @@ export default function Agent() {
   const prevDbBoardThemeRef = useRef(game?.board_theme || null);
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
 
-  // Sync themes dynamically ONLY when they change in database
-  useEffect(() => {
-    if (game?.board_theme) {
-      if (prevDbBoardThemeRef.current === null) {
-        prevDbBoardThemeRef.current = game.board_theme;
-        setBoardTheme(game.board_theme);
-        localStorage.setItem('cwc_theme', game.board_theme);
-      } else if (game.board_theme !== prevDbBoardThemeRef.current) {
-        setBoardTheme(game.board_theme);
-        localStorage.setItem('cwc_theme', game.board_theme);
-        prevDbBoardThemeRef.current = game.board_theme;
-      }
-    }
-  }, [game?.board_theme]);
-
-  useEffect(() => {
-    if (game?.piece_style) {
-      if (prevDbPieceStyleRef.current === null) {
-        prevDbPieceStyleRef.current = game.piece_style;
-        setPieceTheme(game.piece_style);
-        localStorage.setItem('cwc_pieces', game.piece_style);
-      } else if (game.piece_style !== prevDbPieceStyleRef.current) {
-        setPieceTheme(game.piece_style);
-        localStorage.setItem('cwc_pieces', game.piece_style);
-        prevDbPieceStyleRef.current = game.piece_style;
-      }
-    }
-  }, [game?.piece_style]);
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -181,6 +153,19 @@ export default function Agent() {
   const [showCommentary, setShowCommentary] = useState(false);
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
+
+  const currentLastMove = lastMoveHighlight || optimisticLastMove || (game?.move_history || [])[(game?.move_history || [])?.length - 1] || null;
+
+  useEffect(() => {
+    if (currentLastMove) {
+      const dest = typeof currentLastMove === 'string' ? currentLastMove.substring(2, 4) : (currentLastMove.to || currentLastMove.to_square);
+      if (dest) {
+        setArrivedSquare(dest);
+        const timer = setTimeout(() => setArrivedSquare(null), 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentLastMove]);
   
   const [optimisticFenState, setOptimisticFenState] = useState(null);
   const setOptimisticFen = (val) => {
@@ -432,7 +417,7 @@ export default function Agent() {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [game?.chat_history]);
+  }, [normalizedMessages]);
 
 
 
@@ -1500,7 +1485,7 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>{game?.agent_avatar || '🦞'}</div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
@@ -1699,7 +1684,7 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}><LobsterEmoji /></div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>{game?.agent_avatar || '🦞'}</div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>

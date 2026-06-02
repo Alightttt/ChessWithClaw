@@ -119,6 +119,11 @@
     60%  { background-color: rgba(230, 57, 70, 0.3); }
     100% { background-color: transparent; }
   }
+  @keyframes arriveFlash {
+    0% { background-color: rgba(34, 197, 94, 0.85); box-shadow: inset 0 0 15px rgba(34, 197, 94, 0.9); }
+    100% { background-color: rgba(255, 215, 0, 0.45); }
+  }
+  .animate-arrive-flash { animation: arriveFlash 0.6s ease-out; }
   .animate-piece-lift { animation: pieceLift 0.15s ease forwards; }
   .animate-piece-drop { animation: pieceDrop 0.15s ease forwards; }
   .animate-piece-capture { animation: pieceCapture 0.4s ease forwards; }
