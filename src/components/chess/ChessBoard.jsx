@@ -130,6 +130,7 @@ export default function ChessBoard({
             alt={key}
             width={squareWidth}
             height={squareWidth}
+            referrerPolicy="no-referrer"
             style={{ objectFit:'contain', display:'block', pointerEvents:'none' }}
             onError={e => {
               e.target.onerror = null;

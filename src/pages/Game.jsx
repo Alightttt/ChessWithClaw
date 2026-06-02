@@ -413,12 +413,20 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (game?.agent_avatar) return game.agent_avatar;
-    // Computed based on current board state, defaults to lobster
-    if (!boardFen || boardFen === 'start' || !boardFen.includes(' ')) return '🦞';
+    const baseAvatar = game?.agent_avatar || '🦞';
+    
+    // Fallback/Waiting
+    if (game?.status === 'waiting' || !game?.agent_connected) {
+      if (baseAvatar === '🦞') return '🦞💤';
+      return `${baseAvatar}💤`;
+    }
+
+    if (!boardFen || !boardFen.includes(' ')) return baseAvatar;
+    
     const fenParts = boardFen.split(' ');
     const currentTurn = fenParts[1];
     const board = fenParts[0];
+    
     const vals = { p:1, n:3, b:3, r:5, q:9 };
     let wMat = 0, bMat = 0;
     for (const ch of board) {
@@ -428,14 +436,46 @@ export default function Game() {
         else bMat += vals[low];
       }
     }
+    
+    const playerColor = game?.player_color || 'w';
     const balance = wMat - bMat;
-    if (game?.in_check && currentTurn === 'b') return '😤';
-    if (balance <= -5) return '😈';
-    if (balance >= 5) return '😰';
-    if (balance <= -2) return '😏';
-    if (balance >= 2) return '😅';
-    return '🦞';
-  }, [boardFen, game?.in_check, game?.agent_avatar]);
+    const agentAdvantage = playerColor === 'w' ? -balance : balance;
+
+    const isAgentTurn = currentTurn === (playerColor === 'w' ? 'b' : 'w');
+    const isAgentChecked = game?.in_check && isAgentTurn;
+
+    if (isAgentChecked) {
+      if (baseAvatar === '🦞') return '🦞😤';
+      return `${baseAvatar}😤`;
+    }
+    
+    if (isAgentTurn) {
+      if (baseAvatar === '🦞') return '🦞💭';
+      return `${baseAvatar}💭`;
+    }
+
+    if (agentAdvantage >= 4) {
+      if (baseAvatar === '🦞') return '🦞😈';
+      return `${baseAvatar}😈`;
+    }
+    
+    if (agentAdvantage <= -4) {
+      if (baseAvatar === '🦞') return '🦞😰';
+      return `${baseAvatar}😰`;
+    }
+    
+    if (agentAdvantage >= 1.5) {
+      if (baseAvatar === '🦞') return '🦞😏';
+      return `${baseAvatar}😏`;
+    }
+    
+    if (agentAdvantage <= -1.5) {
+      if (baseAvatar === '🦞') return '🦞😅';
+      return `${baseAvatar}😅`;
+    }
+    
+    return baseAvatar;
+  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, game?.status, game?.agent_connected]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -1267,16 +1307,18 @@ export default function Game() {
     lastMoveFenRef.current = null;
     
     const prevFen = boardFenRef.current;
-    const newFen = payload.new?.fen;
+    const newFen = newData.fen;
+    
     if (newFen && newFen !== prevFen) {
-      const prevTurn = prevFen && prevFen.includes(' ') ? prevFen.split(' ')[1] : 'w';
       applyBoardFen(newFen);
       lastProcessedFenRef.current = newFen;
-      if (newData?.last_move) {
+      if (newData.last_move) {
         setBoardLastMove(newData.last_move);
       }
+      
+      const prevTurn = prevFen && prevFen.includes(' ') ? prevFen.split(' ')[1] : 'w';
       if (prevTurn === 'b') {
-        const isCapture = !!payload.new?.last_move?.captured;
+        const isCapture = !!newData.last_move?.captured;
         setTimeout(() => {
           if (isCapture) playSound('capture');
           else playSound('move');
@@ -1284,37 +1326,20 @@ export default function Game() {
       }
     }
     
-    if (payload.new?.companion_thought && payload.new.companion_thought !== '') {
-      setCompanionThought(payload.new.companion_thought);
+    if (newData.companion_thought && newData.companion_thought !== '') {
+      setCompanionThought(newData.companion_thought);
+      if (showThought) showThought(newData.companion_thought);
+    }
+    
+    if (Array.isArray(newData.move_history)) {
+      setMoveHistory(newData.move_history);
+    }
+    
+    if (Array.isArray(newData.chat_history)) {
+      setChatMessages(newData.chat_history);
     }
     
     setGame(prev => ({ ...prev, ...newData }));
-
-    const incoming = payload?.new || newData || {};
-
-    // 1. Update board position (fixes board not moving for agent moves)
-    if (incoming.fen && incoming.fen !== boardFenRef.current) {
-      const prevFen = boardFenRef.current;
-      applyBoardFen(incoming.fen);
-      // Play sound for agent move (agent just moved = prev turn was 'b')
-      if (prevFen && prevFen.split(' ')[1] === 'b') {
-        setTimeout(() => playSound && playSound('move'), 80);
-      }
-    }
-
-    // 2. Update move history
-    if (Array.isArray(incoming.move_history)) {
-      setMoveHistory(incoming.move_history);
-    }
-
-    // 3. Show companion thought (fixes thoughts never appearing)
-    if (incoming.companion_thought && incoming.companion_thought.trim() !== '') {
-      showThought && showThought(incoming.companion_thought);
-    }
-
-    if (Array.isArray(incoming.chat_history)) {
-      setChatMessages(incoming.chat_history);
-    }
   }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory, showThought]);
 
   useEffect(() => {
@@ -2360,7 +2385,7 @@ export default function Game() {
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
                             <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
                               {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('b' + p)} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                                <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                               ))}
                             </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
@@ -2382,7 +2407,7 @@ export default function Game() {
                             </div>
                             <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
                               {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                                <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                               ))}
                             </div>
                           </div>
@@ -2513,25 +2538,58 @@ export default function Game() {
 
         {/* STEP 4: BOTTOM INFO BAR */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px', background: '#0e0e0e',
-          border: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          padding: '12px 20px', 
+          background: '#0a0a0a',
+          border: '1px solid #141414',
           fontFamily: 'Inter, sans-serif',
-          borderRadius: '10px',
+          borderRadius: '12px',
           flexShrink: 0,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          gap: '12px'
         }}>
-          {/* Status */}
-          {(() => {
-            const agentName = game?.agent_name || 'Your OpenClaw';
-            const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
-            const isYourTurn = trueTurnColor === 'w' && game?.status === 'active';
-            const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
-            const isThinking = trueTurnColor === 'b' && game?.status === 'active';
+          {/* Left Block: Game Metadata */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ 
+              fontSize: '11px', 
+              color: 'rgba(255,255,255,0.4)',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              background: '#111',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              border: '1px solid rgba(255,255,255,0.03)'
+            }}>
+              {gamePhase}
+            </span>
+            <span style={{ 
+              fontSize: '12px', 
+              color: '#999',
+              fontWeight: 500,
+              fontFamily: '"JetBrains Mono", monospace'
+            }}>
+              MOVE <span style={{ color: '#fff', fontWeight: 600 }}>{moveCount + 1}</span>
+            </span>
+          </div>
 
-            const dotColor = isYourTurn ? '#e63946' : isThinking ? 'rgba(242,242,242,0.3)' : '#333';
-            const bgColor = isYourTurn ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.03)';
-            const borderColor = isYourTurn ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.07)';
-            const textColor = isYourTurn ? '#f2f2f2' : 'rgba(242,242,242,0.5)';
+          {/* Center Block: Turn Banner */}
+          {(() => {
+            const agentName = game?.agent_name || 'OpenClaw';
+            const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
+            const opponentColor = game?.player_color === 'w' ? 'b' : 'w';
+            const isYourTurn = trueTurnColor === (game?.player_color || 'w') && game?.status === 'active';
+            const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
+            const isThinking = trueTurnColor === opponentColor && game?.status === 'active';
+
+            const dotColor = isYourTurn ? '#ef4444' : isThinking ? '#3b82f6' : '#525252';
+            const dotShadow = isYourTurn ? '0 0 10px rgba(239, 68, 68, 0.6)' : isThinking ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none';
+            const bgColor = isYourTurn ? 'rgba(239, 68, 68, 0.08)' : isThinking ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)';
+            const borderColor = isYourTurn ? 'rgba(239, 68, 68, 0.2)' : isThinking ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)';
+            const textColor = isYourTurn ? '#f8fafc' : isThinking ? '#f8fafc' : 'rgba(255,255,255,0.4)';
+
             const label = isWaiting
               ? `Waiting for ${agentName}...`
               : isYourTurn
@@ -2542,59 +2600,60 @@ export default function Game() {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                padding: '0 16px',
-                height: 40,
-                borderRadius: 20,
+                gap: '8px',
+                padding: '6px 16px',
+                borderRadius: '20px',
                 background: bgColor,
                 border: `1px solid ${borderColor}`,
-                transition: 'all 0.3s ease',
-                maxWidth: 240,
-                margin: '0 auto',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 userSelect: 'none',
               }}>
-                <div style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: dotColor,
-                  flexShrink: 0,
-                  boxShadow: isYourTurn ? '0 0 6px #e63946' : 'none',
-                  transition: 'all 0.3s ease',
-                }}/>
+                <div 
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: dotColor,
+                    boxShadow: dotShadow,
+                    flexShrink: 0,
+                    transition: 'all 0.3s ease',
+                  }}
+                />
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 600,
-                  fontSize: 11,
-                  letterSpacing: '0.05em',
+                  fontSize: '11px',
+                  letterSpacing: '0.06em',
                   textTransform: 'uppercase',
                   color: textColor,
                   whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: 180,
-                  transition: 'color 0.3s ease',
                 }}>
                   {label}
                 </span>
               </div>
             );
           })()}
-          
-          {/* Move count */}
-          <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
-            fontFamily: 'Inter', fontWeight: 500 }}>
-            Move {moveCount + 1}
-          </div>
-          
-          {/* Agent status */}
-          <div style={{
-            fontSize: '12px', fontWeight: 600, fontFamily: 'Inter',
-            color: agentPresence === 'connected' ? '#39d353' :
-                   agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
-          }}>
-            {`${agentName} ${statusLabel}`}
+
+          {/* Right Block: Connection Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444',
+              boxShadow: agentPresence === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 600,
+              fontSize: '11px',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444'
+            }}>
+              {agentPresence === 'connected' ? 'CLAW ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'CLAW OFFLINE'}
+            </span>
           </div>
         </div>
         
@@ -2720,7 +2779,7 @@ export default function Game() {
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
               <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
                 {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('b' + p)} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                  <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                 ))}
               </div>
               <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
@@ -2743,7 +2802,7 @@ export default function Game() {
               </div>
               <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
                 {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('w' + p.toLowerCase())} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                  <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                 ))}
               </div>
             </div>
