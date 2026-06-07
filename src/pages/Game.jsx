@@ -266,13 +266,17 @@ export default function Game() {
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
   const [boardSize, setBoardSize] = useState(320);
+  const [copiedResult, setCopiedResult] = useState(false);
   const [boardTheme, setBoardTheme] = useState(() => {
     return localStorage.getItem('cwc_board_theme') || 'green';
   });
   const [pieceStyle, setPieceStyle] = useState(() => {
     const saved = localStorage.getItem('cwc_piece_style');
-    if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
-    return saved || 'neo';
+    if (!saved || saved === 'standard') {
+      localStorage.setItem('cwc_piece_style', 'neo');
+      return 'neo';
+    }
+    return saved;
   });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
@@ -1497,8 +1501,10 @@ export default function Game() {
       setTimeout(() => setConfirmResign(false), 3000);
       return;
     }
+    const victimResult = game?.player_color === 'b' ? 'white' : 'black';
+    setGame(prev => ({ ...prev, status: 'finished', result: victimResult, result_reason: 'resignation' }));
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: game?.player_color === 'b' ? 'white' : 'black', result_reason: 'resignation'
+      status: 'finished', result: victimResult, result_reason: 'resignation'
     }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
@@ -1510,6 +1516,7 @@ export default function Game() {
       setTimeout(() => setConfirmDraw(false), 3000);
       return;
     }
+    setGame(prev => ({ ...prev, status: 'finished', result: 'draw', result_reason: 'agreement' }));
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
       status: 'finished', result: 'draw', result_reason: 'agreement'
     }).eq('id', gameId);
@@ -1654,23 +1661,23 @@ export default function Game() {
       chat_history: [...(prev?.chat_history || []).slice(-50), optimisticMsg]
     }));
 
-    // Remove setLocalMessages or similar if not needed, as the prompt specifies setGame.
-    // Wait, the prompt says: Fetch to /api/chat...
     fetch('/api/chat', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
       },
-      body: JSON.stringify({ id: gameId, text: msgText, sender: 'human', role: 'human' })
+      body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human' })
     }).catch(() => {});
   };
 
 
 
   async function acceptAgentResignation() {
+    const winnerResult = game?.player_color === 'b' ? 'black' : 'white';
+    setGame(prev => ({ ...prev, status: 'finished', result: winnerResult, result_reason: 'resignation' }));
     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: game?.player_color === 'b' ? 'black' : 'white', result_reason: 'resignation'
+      status: 'finished', result: winnerResult, result_reason: 'resignation'
     }).eq('id', gameId);
   }
 
@@ -1983,6 +1990,7 @@ export default function Game() {
                 {msg.text || msg.message || msg.content}
                 {game.status === 'active' && (
                   <button data-testid="accept-draw-button" onClick={async () => {
+                    setGame(prev => ({ ...prev, status: 'finished', result: 'draw', result_reason: 'agreement' }));
                     await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
                       status: 'finished', result: 'draw', result_reason: 'agreement'
                     }).eq('id', gameId);
@@ -2294,26 +2302,20 @@ export default function Game() {
                     Waiting for your OpenClaw to join...
                   </div>
                 )}
-                {visibleThought && (
-                  <div style={{
-                    color: 'rgba(242,242,242,0.55)',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '13px',
-                    lineHeight: 1.5,
-                    fontStyle: 'italic',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                  }}>
-                    {visibleThought}
-                  </div>
-                )}
                 {companionThought && (
-                  <p style={{fontStyle:'italic',color:'rgba(242,242,242,0.55)',fontSize:13,margin:'4px 0 0'}}>
+                  <div style={{
+                    color: 'rgba(242,242,242,0.45)',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '12px',
+                    fontStyle: 'italic',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    marginTop: '3px',
+                    maxWidth: '100%'
+                  }} title={companionThought}>
                     &ldquo;{companionThought}&rdquo;
-                  </p>
+                  </div>
                 )}
               </div>
               <div style={{
@@ -2708,26 +2710,20 @@ export default function Game() {
                 Waiting for your OpenClaw to join...
               </div>
             )}
-            {visibleThought && (
-              <div style={{
-                color: 'rgba(242,242,242,0.55)',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '13px',
-                lineHeight: 1.5,
-                fontStyle: 'italic',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                wordBreak: 'break-word',
-              }}>
-                {visibleThought}
-              </div>
-            )}
             {companionThought && (
-              <p style={{fontStyle:'italic',color:'rgba(242,242,242,0.55)',fontSize:13,margin:'4px 0 0'}}>
+              <div style={{
+                color: 'rgba(242,242,242,0.45)',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '12px',
+                fontStyle: 'italic',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                marginTop: '3px',
+                maxWidth: '100%'
+              }} title={companionThought}>
                 &ldquo;{companionThought}&rdquo;
-              </p>
+              </div>
             )}
           </div>
           <div style={{
@@ -3045,30 +3041,30 @@ export default function Game() {
             {/* Result icon */}
             <div style={{fontSize:'64px',lineHeight:1,marginBottom:'16px',
               animation:'resultBounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.15s both'}}>
-              {game.result==='white_wins' ? '♛' : game.result==='black_wins' ? '🦞' : '🤝'}
+              {(game.result==='white_wins' || game.result==='white') ? '♛' : (game.result==='black_wins' || game.result==='black') ? '🦞' : '🤝'}
             </div>
             
             {/* Accent line */}
             <div style={{
               width:'40px',height:'3px',borderRadius:'100px',
               margin:'0 auto 16px',
-              background: game.result==='white_wins' ? '#739552' :
-                          game.result==='black_wins' ? '#e63946' : '#555'
+              background: (game.result==='white_wins' || game.result==='white') ? '#739552' :
+                          (game.result==='black_wins' || game.result==='black') ? '#e63946' : '#555'
             }}/>
             
             {/* Headline */}
             <h2 style={{fontFamily:'Inter',fontWeight:800,fontSize:'26px',
               color:'#f2f2f2',margin:'0 0 8px',letterSpacing:'-0.025em'}}>
-              {game.result==='white_wins' ? 'You Won!' :
-               game.result==='black_wins' ? `${agentName} Wins` : 'Draw'}
+              {(game.result==='white_wins' || game.result==='white') ? 'You Won!' :
+               (game.result==='black_wins' || game.result==='black') ? `${agentName} Wins` : 'Draw'}
             </h2>
             
             {/* Subtext */}
             <p style={{fontFamily:'Inter',fontSize:'14px',lineHeight:1.5,
               color:'rgba(242,242,242,0.4)',margin:'0 0 24px'}}>
-              {game.result==='white_wins'
+              {(game.result==='white_wins' || game.result==='white')
                 ? `${agentName} put up a great fight.`
-                : game.result==='black_wins'
+                : (game.result==='black_wins' || game.result==='black')
                 ? `${agentName} outplayed you. Rematch?`
                 : 'Evenly matched. Good game.'}
             </p>
@@ -3090,10 +3086,10 @@ export default function Game() {
               </div>
               <div style={{flex:1,padding:'16px 8px',textAlign:'center'}}>
                 <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
-                  color: game.result==='white_wins'?'#739552':
-                         game.result==='black_wins'?'#e63946':'#888',lineHeight:1}}>
-                  {game.result==='white_wins'?'WIN':
-                   game.result==='black_wins'?'LOSS':'DRAW'}
+                  color: (game.result==='white_wins' || game.result==='white')?'#739552':
+                         (game.result==='black_wins' || game.result==='black')?'#e63946':'#888',lineHeight:1}}>
+                  {(game.result==='white_wins' || game.result==='white')?'WIN':
+                   (game.result==='black_wins' || game.result==='black')?'LOSS':'DRAW'}
                 </div>
                 <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
                   letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
@@ -3114,18 +3110,35 @@ export default function Game() {
             </button>
             
             {/* Share */}
-            <button onClick={()=>{
+            <button onClick={async ()=>{
+              const hasWon = game.result === 'white_wins' || game.result === 'white' || (game.result_reason === 'resignation' && game.player_color === 'w');
+              const hasLost = game.result === 'black_wins' || game.result === 'black' || (game.result_reason === 'resignation' && game.player_color === 'b');
               const t=`Played chess vs ${agentName} on ChessWithClaw — ${
-                game.result==='white_wins'?'I won':game.result==='black_wins'?`${agentName} won`:'drew'
+                hasWon ? 'I won' : hasLost ? `${agentName} won` : 'drew'
               } in ${(game.move_history||[]).length} moves. chesswithclaw.vercel.app 🦞`;
-              navigator.clipboard?.writeText(t);
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(t);
+                } else {
+                  const tempInput = document.createElement('textarea');
+                  tempInput.value = t;
+                  document.body.appendChild(tempInput);
+                  tempInput.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(tempInput);
+                }
+                setCopiedResult(true);
+                setTimeout(() => setCopiedResult(false), 2000);
+              } catch (err) {
+                console.error(err);
+              }
             }} style={{
               width:'100%',height:'44px',background:'transparent',
               border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',
-              color:'rgba(242,242,242,0.4)',fontFamily:'Inter',
-              fontWeight:500,fontSize:'14px',cursor:'pointer'
+              color: copiedResult ? '#22c55e' : 'rgba(242,242,242,0.4)',fontFamily:'Inter',
+              fontWeight:500,fontSize:'14px',cursor:'pointer', transition: 'all 0.2s ease'
             }}>
-              Share Result
+              {copiedResult ? 'Copied to Clipboard! ✓' : 'Share Result'}
             </button>
           </div>
         </div>

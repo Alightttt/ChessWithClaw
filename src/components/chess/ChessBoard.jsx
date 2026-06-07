@@ -67,8 +67,11 @@ export default function ChessBoard({
   const [pieceStyle, setPieceStyle] = useState(() => {
     // Initial fetch from local storage with fallback
     const saved = localStorage.getItem('cwc_piece_style');
-    if (!saved) localStorage.setItem('cwc_piece_style', 'neo');
-    return saved || 'neo';
+    if (!saved || saved === 'standard') {
+      localStorage.setItem('cwc_piece_style', 'neo');
+      return 'neo';
+    }
+    return saved;
   });
 
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
@@ -148,7 +151,7 @@ export default function ChessBoard({
 
   // Last move highlight (re-written with parsedLastMove)
   if (parsedLastMove) {
-    const lastMoveStyle = { backgroundColor: 'rgba(255, 215, 0, 0.45)' };
+    const lastMoveStyle = { backgroundColor: 'rgba(255, 215, 0, 0.35)' };
     customSquareStyles[parsedLastMove.from] = lastMoveStyle;
     customSquareStyles[parsedLastMove.to] = lastMoveStyle;
   }
@@ -156,8 +159,8 @@ export default function ChessBoard({
   // Flashing arrival square highlight
   if (arrivedSquare) {
     customSquareStyles[arrivedSquare] = {
-      backgroundColor: 'rgba(34, 197, 94, 0.85)',
-      boxShadow: 'inset 0 0 15px rgba(34, 197, 94, 0.9)',
+      backgroundColor: 'rgba(255, 215, 0, 0.55)',
+      boxShadow: 'inset 0 0 15px rgba(255, 215, 0, 0.6)',
       animation: 'arriveFlash 0.6s ease-out'
     };
   }

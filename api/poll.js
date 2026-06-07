@@ -178,6 +178,7 @@ module.exports = async function handler(req, res) {
     companion_thought: game.companion_thought || '',
     thought_language: game.thought_language || 'english',
     agent_connected: Boolean(game.agent_connected),
+    agent_avatar: (game.agent_avatar === '🤖' || !game.agent_avatar) ? '🦞' : game.agent_avatar,
     agent_last_seen: game.agent_last_seen || null,
     board_theme: game.board_theme || 'green',
     piece_style: (game.piece_style === 'standard' || !game.piece_style) ? 'neo' : game.piece_style, // FALLBACK to neo as requested by user
