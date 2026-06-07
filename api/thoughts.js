@@ -21,6 +21,49 @@ module.exports = async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  // --- GET Request: Trigger a thought event for the agent ---
+  if (req.method === 'GET') {
+    const { gameId, game_id, id, trigger } = req.query || {};
+    const finalGameId = gameId || game_id || id;
+    if (!finalGameId) {
+      return res.status(400).json({ error: 'Missing gameId' });
+    }
+    if (!validateUUID(finalGameId)) {
+      return res.status(400).json({ error: 'Invalid gameId format' });
+    }
+
+    try {
+      const { data: game, error } = await supabase.from('games').select('*').eq('id', finalGameId).single();
+      if (error || !game) return res.status(404).json({ error: 'Game not found' });
+
+      const triggerType = trigger || 'random_thought';
+      const promptLang = game.thought_language || 'english';
+      
+      const payload = {
+        event: "trigger_thought",
+        game_id: finalGameId,
+        trigger: triggerType,
+        thought_language: promptLang,
+        whose_turn: game.turn === (game.player_color || 'w') ? 'human' : 'agent',
+        move_number: Math.floor((game.move_history || []).length / 2) + 1,
+        instruction: triggerType === 'idle_chat'
+          ? `The user has been idle or is waiting for you to say something. Initiate a short, friendly chat message (in ${promptLang}) about the current game status, or a friendly observation. Reply in chat as yourself matching your personality using POST /api/chat. Do not write a strategy template.`
+          : `The user wants to see your internal companion thought. Write a friendly, natural, personalized private comment (in ${promptLang}) expressing what you are feeling, thinking, or noticing right now about the game or your friendship. Submit using POST /api/thoughts with type=companion. Make sure it occupies EXACTLY 1-2 short sentences and is personal, not strategical.`
+      };
+
+      const { notifyAgent } = require('../server-lib/notify.js');
+      const enrichedPayload = await notifyAgent(game, payload, supabase);
+      
+      const newPendingEvents = [...(game.pending_events || []), enrichedPayload];
+      await supabase.from('games').update({ pending_events: newPendingEvents }).eq('id', finalGameId);
+
+      return res.status(200).json({ success: true, trigger: triggerType, language: promptLang });
+    } catch (err) {
+      console.error('Error triggering thought:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
   // --- POST Request: Agent submits thought directly ---
   if (req.method === 'POST') {
     const agentToken = req.headers['x-agent-token'];
@@ -68,5 +111,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+  return res.status(405).json({ error: 'Method not allowed. Use GET or POST.' });
 };

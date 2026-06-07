@@ -417,10 +417,11 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    const baseAvatar = game?.agent_avatar || '🦞';
+    let baseAvatar = game?.agent_avatar || '🦞';
+    if (baseAvatar === '🤖') baseAvatar = '🦞';
     
     // Fallback/Waiting
-    if (game?.status === 'waiting' || !game?.agent_connected) {
+    if (game?.status === 'waiting' || !agentConnected) {
       if (baseAvatar === '🦞') return '🦞💤';
       return `${baseAvatar}💤`;
     }
@@ -479,7 +480,7 @@ export default function Game() {
     }
     
     return baseAvatar;
-  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, game?.status, game?.agent_connected]);
+  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, game?.status, agentConnected]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -1320,12 +1321,21 @@ export default function Game() {
         setBoardLastMove(newData.last_move);
       }
       
-      const prevTurn = prevFen && prevFen.includes(' ') ? prevFen.split(' ')[1] : 'w';
-      if (prevTurn === 'b') {
-        const isCapture = !!newData.last_move?.captured;
+      const playerColor = game?.player_color || 'w';
+      const isAgentMove = !!newData.last_move && (newData.turn === playerColor);
+      if (isAgentMove) {
+        const isCapture = !!newData.last_move?.captured || 
+                          (newData.last_move?.san && newData.last_move.san.includes('x')) || 
+                          (typeof newData.last_move === 'string' && newData.last_move.includes('x'));
+        const isCheck = Boolean(newData.in_check);
         setTimeout(() => {
-          if (isCapture) playSound('capture');
-          else playSound('move');
+          if (isCheck) {
+            playSound('check');
+          } else if (isCapture) {
+            playSound('capture');
+          } else {
+            playSound('move');
+          }
         }, 50);
       }
     }
@@ -1344,7 +1354,7 @@ export default function Game() {
     }
     
     setGame(prev => ({ ...prev, ...newData }));
-  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory, showThought]);
+  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory, showThought, game?.player_color]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1423,7 +1433,7 @@ export default function Game() {
       intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
     }
 
-    if (game?.status === 'active' && game?.turn === 'b' && isTabActive) {
+    if (game?.status === 'active' && game?.turn !== (game?.player_color || 'w') && isTabActive) {
       fallbackRef.current = addInterval(async () => {
         try {
           const res = await fetch(`/api/state?gameId=${gameId}`);
@@ -1450,7 +1460,7 @@ export default function Game() {
         intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
       }
     };
-  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen, applyBoardFen]);
+  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen, applyBoardFen, game?.player_color]);
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
@@ -1550,7 +1560,7 @@ export default function Game() {
 
   const handlePlayerMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
-    if (!game?.agent_connected) {
+    if (!agentConnected) {
       toast('Waiting for agent to connect...');
       return;
     }
@@ -1639,7 +1649,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1651,15 +1661,14 @@ export default function Game() {
     const optimisticMsg = {
       id: `opt-${Date.now()}`,
       role: 'human',
+      sender: 'human',
       message: msgText,
+      text: msgText,
       timestamp: new Date().toISOString(),
       reactions: {}
     };
     
-    setGame(prev => ({
-      ...prev,
-      chat_history: [...(prev?.chat_history || []).slice(-50), optimisticMsg]
-    }));
+    setLocalMessages(prev => [...prev, optimisticMsg]);
 
     fetch('/api/chat', {
       method: 'POST',
@@ -1743,13 +1752,14 @@ export default function Game() {
 
   const getAgentMood = () => {
     if (!game || game.status === 'waiting') return 'idle'
-    if (game.turn === 'b') return 'thinking'
+    const agentColor = game?.player_color === 'w' ? 'b' : 'w';
+    if (game.turn === agentColor) return 'thinking'
     
     // Compare material balance
     const mat = game.material_balance || computeMaterial(game.fen)
     if (!mat) return 'neutral'
-    if (mat.advantage === 'black') return 'winning'
-    if (mat.advantage === 'white') return 'losing'
+    if (mat.advantage === agentColor) return 'winning'
+    if (mat.advantage === (game?.player_color || 'w')) return 'losing'
     return 'neutral'
   }
 
@@ -1834,6 +1844,8 @@ export default function Game() {
   useEffect(() => {
     if (game?.chat_history && Array.isArray(game.chat_history)) {
       setChatMessages(game.chat_history.slice(-50));
+      const serverTexts = new Set(game.chat_history.map(m => m.text || m.message || m.content));
+      setLocalMessages(prev => prev.filter(m => !serverTexts.has(m.text || m.message || m.content)));
     }
   }, [game?.chat_history]);
 
@@ -1852,7 +1864,7 @@ export default function Game() {
     }));
   }, [game?.move_history]);
 
-  const isOpenClawTurn = game?.turn === 'b' && game?.status === 'active';
+  const isOpenClawTurn = game?.turn !== (game?.player_color || 'w') && game?.status === 'active';
 
   useEffect(() => {
     if (game?.status === 'active') {
@@ -2143,7 +2155,15 @@ export default function Game() {
             <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0s'}}/>
             <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.2s'}}/>
             <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.4s'}}/>
-            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginLeft:4,fontFamily:'Inter'}}>typing...</span>
+            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginLeft:4,fontFamily:'Inter'}}>{agentName} is typing...</span>
+          </div>
+        )}
+        {(isUserTyping) && (
+          <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6,justifyContent:'flex-end'}}>
+            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginRight:4,fontFamily:'Inter'}}>You are typing...</span>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0s'}}/>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0.2s'}}/>
+            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0.4s'}}/>
           </div>
         )}
       </div>
@@ -2302,21 +2322,7 @@ export default function Game() {
                     Waiting for your OpenClaw to join...
                   </div>
                 )}
-                {companionThought && (
-                  <div style={{
-                    color: 'rgba(242,242,242,0.45)',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '12px',
-                    fontStyle: 'italic',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    marginTop: '3px',
-                    maxWidth: '100%'
-                  }} title={companionThought}>
-                    &ldquo;{companionThought}&rdquo;
-                  </div>
-                )}
+
               </div>
               <div style={{
                 opacity: thoughtDisplay.visible ? 1 : 0,
@@ -2357,7 +2363,7 @@ export default function Game() {
                   {/* Chessboard container */}
                   <div style={{ flex: 1, height: '100%', position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
                     
-                    {game?.turn === 'b' && game?.status === 'active' && (
+                    {isOpenClawTurn && (
                       <div style={{
                         position: 'absolute',
                         inset: 0,
@@ -2404,7 +2410,7 @@ export default function Game() {
                                 playerColor={game?.player_color || 'w'}
                                 gameStatus={game?.status}
                                 onMove={handlePlayerMove}
-                                disabled={!game?.agent_connected}
+                                disabled={!agentConnected || game?.status === 'waiting'}
                               />
                             </div>
                             <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -2710,21 +2716,7 @@ export default function Game() {
                 Waiting for your OpenClaw to join...
               </div>
             )}
-            {companionThought && (
-              <div style={{
-                color: 'rgba(242,242,242,0.45)',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '12px',
-                fontStyle: 'italic',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                marginTop: '3px',
-                maxWidth: '100%'
-              }} title={companionThought}>
-                &ldquo;{companionThought}&rdquo;
-              </div>
-            )}
+
           </div>
           <div style={{
             opacity: thoughtDisplay.visible ? 1 : 0,
@@ -2745,7 +2737,7 @@ export default function Game() {
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
           <div style={{ height: '8px' }} />
-          {game?.turn === 'b' && game?.status === 'active' && (
+          {isOpenClawTurn && (
             <div style={{
               position: 'absolute',
               inset: 0,
@@ -2793,7 +2785,7 @@ export default function Game() {
                   playerColor={game?.player_color || 'w'}
                   gameStatus={game?.status}
                   onMove={handlePlayerMove}
-                  disabled={!game?.agent_connected}
+                  disabled={!agentConnected || game?.status === 'waiting'}
                 />
               </div>
               <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
@@ -3013,7 +3005,7 @@ export default function Game() {
       {/* STATUS BAR */}
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="turn-indicator">
-        {game.turn === 'b' ? 'Your Turn' : 'Waiting for White'}
+        {game.turn === (game.player_color || 'w') ? 'Your Turn' : 'Waiting'}
       </div>
       <input 
         type="text" 

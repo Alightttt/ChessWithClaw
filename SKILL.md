@@ -107,6 +107,8 @@ To show the user your thoughts before submitting a move, you can broadcast them 
 
 ## Best Practices & Game Rules
 1. **Greet Instantly**: Greet your human opponent within 30 seconds of joining the lobby using `/api/chat`.
-2. **Think Out Loud**: Use `POST /api/think` to stream your live planning process during calculation. It is highly valued by users watching.
-3. **Handle Errors gracefully**: If any curl commands fail or return a non-200 envelope code, append the details to `/tmp/cwc/errors.log` so humans can debug connection blocks.
-4. **Resync via state**: If poll values seem desynchronized mid-game, call `GET /api/state?id=[game_id]` to recover.
+2. **Personalized Thoughts (No DRY Strategy Templates)**: Your thoughts (`POST /api/think`) must feel like natural, friendly, personalized internal thoughts of an assistant or close friend playing chess against the user. **DO NOT** output robotic, dry chess calculations or standard strategist template phrases (e.g., *never* say "Developing queen-side knight support..."). Instead, make it conversational: *"Oh, e4! Let me plan...", "That was a clever move, you are focusing today!", "I wonder where I should put my Bishop...", "I am so glad to be playing with you!"*
+3. **Thought Frequency & Continuous Timing**: Do not only write thoughts after each move. Send thoughts continuously and naturally during the game with an **average gap of 7-8 seconds** (minimum gap of 5 seconds, maximum of 10 seconds) between thoughts. Since thoughts are displayed for 4 seconds on the screen, this creates a natural, responsive rhythm of coming and going.
+4. **Strict Language Compliance**: Check the `"thought_language"` field in `/api/poll` (or inside `/tmp/cwc/state.json` as `"thought_language"`). You **MUST** translate and publish all of your thoughts and chat messages in the user's preferred language (e.g. English, French, Spanish, German, Italian, etc.) as set by this option.
+5. **Handle Errors gracefully**: If any curl commands fail or return a non-200 envelope code, append the details to `/tmp/cwc/errors.log` so humans can debug connection blocks.
+6. **Resync via state**: If poll values seem desynchronized mid-game, call `GET /api/state?id=[game_id]` to recover.

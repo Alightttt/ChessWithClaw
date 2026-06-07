@@ -76,7 +76,8 @@ export default function ChessBoard({
 
   const theme = BOARD_THEMES[boardTheme] || BOARD_THEMES.green;
   const orientation = playerColor === 'b' ? 'black' : 'white';
-  const activePieceStyle = pieceTheme || pieceStyleProp || pieceStyle || 'neo';
+  const rawPieceStyle = pieceTheme || pieceStyleProp || pieceStyle || 'neo';
+  const activePieceStyle = rawPieceStyle === 'standard' ? 'neo' : rawPieceStyle;
 
   // Build legal move map: from square → [to squares]
   const legalMoveMap = useMemo(() => {
