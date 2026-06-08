@@ -152,11 +152,11 @@ export default function Game() {
 
   useEffect(() => {
     if (!gameId) return;
-    const cookieName = `game_owner_${gameId}`;
+    const cookieName = \`game_owner_\${gameId}\`;
     const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
     if (match) {
-      localStorage.setItem(`game_owner_${gameId}`, match[2]);
-      document.cookie = `${cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+      localStorage.setItem(\`game_owner_\${gameId}\`, match[2]);
+      document.cookie = \`\${cookieName}=; Path=/; Max-Age=0; SameSite=Lax\`;
     }
   }, [gameId]);
 
@@ -164,7 +164,7 @@ export default function Game() {
     if (document.getElementById('cwc-styles-v2')) return;
     const style = document.createElement('style');
     style.id = 'cwc-styles-v2';
-    style.textContent = `
+    style.textContent = \`
       @keyframes msgIn {
         from { opacity:0; transform:translateY(8px) scale(0.96); }
         to { opacity:1; transform:translateY(0) scale(1); }
@@ -244,7 +244,7 @@ export default function Game() {
       @media (prefers-reduced-motion: reduce) {
          .cwc-msg-new { animation-play-state: running !important; -webkit-animation-play-state: running !important; }
       }
-    `;
+    \`;
     document.head.appendChild(style);
   }, []);
 
@@ -530,7 +530,7 @@ export default function Game() {
 
   const loadGameData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/state?gameId=${gameId}`);
+      const res = await fetch(\`/api/state?gameId=\${gameId}\`);
       if (res.ok) {
         const data = await res.json();
         prevFenRef.current = data.fen;
@@ -646,7 +646,7 @@ export default function Game() {
     });
     return combined.map((msg, idx) => ({
       ...msg,
-      id: msg.id || `cwc-msg-${idx}`
+      id: msg.id || \`cwc-msg-\${idx}\`
     }));
   }, [chatMessages, localMessages]);
 
@@ -771,7 +771,7 @@ export default function Game() {
       
       const availableWidth = maxW - 24;
       setBoardSize(Math.max(280, Math.min(availableWidth, maxH, 800)));
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      document.documentElement.style.setProperty('--vh', \`\${vh}px\`);
     };
     
     calc();
@@ -1028,7 +1028,7 @@ export default function Game() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || ''
         },
         body: JSON.stringify({ id: gameId, role: 'human' })
       }).catch(() => {});
@@ -1046,12 +1046,12 @@ export default function Game() {
         if (game?.status !== 'active') return;
         const rand = Math.random();
         if (rand < 0.3) {
-          fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
-             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+          fetch(\`/api/thoughts?gameId=\${gameId}&trigger=idle_chat\`, {
+             headers: { 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' }
           }).catch(() => {});
         } else if (rand < 0.6) {
-          fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
-             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+          fetch(\`/api/thoughts?gameId=\${gameId}&trigger=random_thought\`, {
+             headers: { 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' }
           }).catch(() => {});
         }
       }, 45000) : null;
@@ -1081,7 +1081,7 @@ export default function Game() {
     if (!isTabActive || game?.status === 'finished' || game?.status === 'abandoned') return;
     const interval = addInterval(async () => {
       try {
-        const res = await fetch(`/api/state?gameId=${gameId}`);
+        const res = await fetch(\`/api/state?gameId=\${gameId}\`);
         if (!res.ok) return;
         const fresh = await res.json();
         if (fresh.status === 'finished' || fresh.status === 'abandoned' || fresh.fen !== game?.fen) {
@@ -1098,7 +1098,7 @@ export default function Game() {
     const name = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') document.title = 'ChessWithClaw';
     else if (game.turn === (game?.player_color || 'w')) document.title = '♟ Your Turn — ChessWithClaw';
-    else document.title = `⚡ ${name} Thinking...`;
+    else document.title = \`⚡ \${name} Thinking...\`;
   }, [game]);
 
   useEffect(() => {
@@ -1107,9 +1107,9 @@ export default function Game() {
 
   useEffect(() => {
     if (game && prevAgentConnected.current === false && game.agent_connected === true && connectedToastShown.current === false) {
-      const toastKey = `cwc_connected_${gameId}`;
+      const toastKey = \`cwc_connected_\${gameId}\`;
       if (!sessionStorage.getItem(toastKey)) {
-        toast.success(`${agentName} has arrived!`);
+        toast.success(\`\${agentName} has arrived!\`);
         sessionStorage.setItem(toastKey, '1');
       }
       setJustConnected(true);
@@ -1173,14 +1173,14 @@ export default function Game() {
       return;
     }
     loadGameData();
-    const handleBeforeUnload = () => { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); };
+    const handleBeforeUnload = () => { getSupabaseWithToken(localStorage.getItem(\`game_owner_\${gameId}\`)).from('games').update({ human_connected: false }).eq('id', gameId); };
     const handleVisibility = () => { if (document.visibilityState === 'visible') { loadGameData(); } };
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibility);
-      try { getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
+      try { getSupabaseWithToken(localStorage.getItem(\`game_owner_\${gameId}\`)).from('games').update({ human_connected: false }).eq('id', gameId); } catch(e) {}
     };
   }, [gameId, loadGameData]);
 
@@ -1227,7 +1227,7 @@ export default function Game() {
     if (!confirmResign) { setConfirmResign(true); setTimeout(() => setConfirmResign(false), 3000); return; }
     const victimResult = game?.player_color === 'b' ? 'white' : 'black';
     setGame(prev => ({ ...prev, status: 'finished', result: victimResult, result_reason: 'resignation' }));
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ status: 'finished', result: victimResult, result_reason: 'resignation' }).eq('id', gameId);
+    await getSupabaseWithToken(localStorage.getItem(\`game_owner_\${gameId}\`)).from('games').update({ status: 'finished', result: victimResult, result_reason: 'resignation' }).eq('id', gameId);
     setShowSettings(false);
     setConfirmResign(false);
   }, [confirmResign, game?.player_color, gameId]);
@@ -1235,7 +1235,7 @@ export default function Game() {
   const handleDraw = useCallback(async () => {
     if (!confirmDraw) { setConfirmDraw(true); setTimeout(() => setConfirmDraw(false), 3000); return; }
     setGame(prev => ({ ...prev, status: 'finished', result: 'draw', result_reason: 'agreement' }));
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ status: 'finished', result: 'draw', result_reason: 'agreement' }).eq('id', gameId);
+    await getSupabaseWithToken(localStorage.getItem(\`game_owner_\${gameId}\`)).from('games').update({ status: 'finished', result: 'draw', result_reason: 'agreement' }).eq('id', gameId);
     setShowSettings(false);
     setConfirmDraw(false);
   }, [confirmDraw, gameId]);
@@ -1256,7 +1256,7 @@ export default function Game() {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (!agentConnected) { toast('Waiting for agent to connect...'); return; }
     if (boardLocked || submittingRef.current) return;
-    if (!localStorage.getItem(`game_owner_${gameId}`)) { toast.error('You are not the creator of this game.'); return; }
+    if (!localStorage.getItem(\`game_owner_\${gameId}\`)) { toast.error('You are not the creator of this game.'); return; }
     submittingRef.current = true;
     setBoardLocked(true);
     const moveStr = from + to + (promotion || '');
@@ -1277,7 +1277,7 @@ export default function Game() {
     try {
       const res = await fetch('/api/move', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+        headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' },
         body: JSON.stringify({ id: gameId, move: moveStr, isHumanMove: true })
       });
       if (!res.ok) {
@@ -1285,7 +1285,7 @@ export default function Game() {
         applyBoardFen(prevBoardFen);
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
-        if (errData.code === 'WAITING_FOR_AGENT') toast(`Waiting for ${agentName} to join...`);
+        if (errData.code === 'WAITING_FOR_AGENT') toast(\`Waiting for \${agentName} to join...\`);
         else toast.error(errData.error || 'Failed to submit move');
       } else {
         const result = await res.json().catch(() => ({}));
@@ -1305,11 +1305,11 @@ export default function Game() {
     const msgText = chatInput.trim();
     if (!msgText) return;
     setChatInput('');
-    const optimisticMsg = { id: `opt-${Date.now()}`, role: 'human', sender: 'human', text: msgText, message: msgText, timestamp: new Date().toISOString(), reactions: {} };
+    const optimisticMsg = { id: \`opt-\${Date.now()}\`, role: 'human', sender: 'human', text: msgText, message: msgText, timestamp: new Date().toISOString(), reactions: {} };
     setLocalMessages(prev => [...prev, optimisticMsg]);
     fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+      headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' },
       body: JSON.stringify({ gameId: gameId, text: msgText, sender: 'human' })
     }).catch(() => {});
   };
@@ -1317,7 +1317,7 @@ export default function Game() {
   async function acceptAgentResignation() {
     const winnerResult = game?.player_color === 'b' ? 'black' : 'white';
     setGame(prev => ({ ...prev, status: 'finished', result: winnerResult, result_reason: 'resignation' }));
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ status: 'finished', result: winnerResult, result_reason: 'resignation' }).eq('id', gameId);
+    await getSupabaseWithToken(localStorage.getItem(\`game_owner_\${gameId}\`)).from('games').update({ status: 'finished', result: winnerResult, result_reason: 'resignation' }).eq('id', gameId);
   }
 
   function handleGoHome(e) { if (game?.status === 'active') { if (e && e.preventDefault) e.preventDefault(); setShowLeaveWarning(true); } else { navigate('/'); } }
@@ -1326,7 +1326,7 @@ export default function Game() {
   async function handleShareResult(e) {
     const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
     const result = game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
-    const text = `I played chess vs ${agentName} on ChessWithClaw! ${result} in ${moves} moves. 🦞`;
+    const text = \`I played chess vs \${agentName} on ChessWithClaw! \${result} in \${moves} moves. 🦞\`;
     if (navigator.share) navigator.share({ text }).catch(()=>{}); else { navigator.clipboard.writeText(text); toast.success('Copied!'); }
   }
 
@@ -1337,7 +1337,7 @@ export default function Game() {
     setIsUserTyping(true);
     if (!userSentTypingRef.current) {
       userSentTypingRef.current = true;
-      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' },
         body: JSON.stringify({ gameId, action: 'typing', typing: true, sender: 'human' })
       }).catch(() => {});
     }
@@ -1345,11 +1345,108 @@ export default function Game() {
     userTypingTimerRef.current = setTimeout(() => {
       setIsUserTyping(false);
       userSentTypingRef.current = false;
-      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+      fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(\`game_owner_\${gameId}\`) || '' },
         body: JSON.stringify({ gameId, action: 'typing', typing: false, sender: 'human' })
       }).catch(() => {});
     }, 2000);
   }
+
+  const moodConfig = {
+    waiting: { emoji: '💤', label: 'Waiting...' },
+    neutral: { emoji: '', label: 'Neutral' },
+    thinking: { emoji: '💭', label: 'Thinking...' },
+    stressed: { emoji: '😤', label: 'Stressed' },
+    confident: { emoji: '😈', label: 'Confident' },
+    worried: { emoji: '😰', label: 'Worried' },
+    smug: { emoji: '😏', label: 'Smug' },
+    nervous: { emoji: '😅', label: 'Nervous' }
+  };
+
+  const getAgentMood = useCallback(() => {
+    if (!agentConnected) return 'waiting';
+    if (!boardFen || !boardFen.includes(' ')) return 'neutral';
+    
+    const fenParts = boardFen.split(' ');
+    const currentTurn = fenParts[1];
+    const board = fenParts[0];
+    
+    const vals = { p:1, n:3, b:3, r:5, q:9 };
+    let wMat = 0, bMat = 0;
+    for (const ch of board) {
+      const low = ch.toLowerCase();
+      if (vals[low]) {
+        if (ch === ch.toUpperCase()) wMat += vals[low];
+        else bMat += vals[low];
+      }
+    }
+    
+    const playerColor = game?.player_color || 'w';
+    const balance = wMat - bMat;
+    const agentAdvantage = playerColor === 'w' ? -balance : balance;
+
+    const isAgentTurn = currentTurn === (playerColor === 'w' ? 'b' : 'w');
+    const isAgentChecked = isCheckState && isAgentTurn;
+
+    if (isAgentChecked) return 'stressed';
+    if (isAgentTurn) return 'thinking';
+    if (agentAdvantage >= 4) return 'confident';
+    if (agentAdvantage <= -4) return 'worried';
+    if (agentAdvantage >= 1.5) return 'smug';
+    if (agentAdvantage <= -1.5) return 'nervous';
+    
+    return 'neutral';
+  }, [agentConnected, boardFen, game?.player_color, isCheckState]);
+
+  const getCapturedPieces = (fen) => {
+    if (!fen) return { whiteCaptured: [], blackCaptured: [] };
+    const pieces = fen.split(' ')[0].replace(/\//g, '').replace(/\d/g, '');
+    const initial = {
+      p: 8, n: 2, b: 2, r: 2, q: 1,
+      P: 8, N: 2, B: 2, R: 2, Q: 1
+    };
+    const current = {};
+    for (const p of pieces) current[p] = (current[p] || 0) + 1;
+    
+    const whiteCaptured = [];
+    const blackCaptured = [];
+    
+    if ((initial.P - (current.P || 0)) > 0) for(let i=0; i<initial.P-(current.P||0); i++) blackCaptured.push('P');
+    if ((initial.N - (current.N || 0)) > 0) for(let i=0; i<initial.N-(current.N||0); i++) blackCaptured.push('N');
+    if ((initial.B - (current.B || 0)) > 0) for(let i=0; i<initial.B-(current.B||0); i++) blackCaptured.push('B');
+    if ((initial.R - (current.R || 0)) > 0) for(let i=0; i<initial.R-(current.R||0); i++) blackCaptured.push('R');
+    if ((initial.Q - (current.Q || 0)) > 0) for(let i=0; i<initial.Q-(current.Q||0); i++) blackCaptured.push('Q');
+
+    if ((initial.p - (current.p || 0)) > 0) for(let i=0; i<initial.p-(current.p||0); i++) whiteCaptured.push('p');
+    if ((initial.n - (current.n || 0)) > 0) for(let i=0; i<initial.n-(current.n||0); i++) whiteCaptured.push('n');
+    if ((initial.b - (current.b || 0)) > 0) for(let i=0; i<initial.b-(current.b||0); i++) whiteCaptured.push('b');
+    if ((initial.r - (current.r || 0)) > 0) for(let i=0; i<initial.r-(current.r||0); i++) whiteCaptured.push('r');
+    if ((initial.q - (current.q || 0)) > 0) for(let i=0; i<initial.q-(current.q||0); i++) whiteCaptured.push('q');
+
+    return { whiteCaptured, blackCaptured };
+  };
+
+  const getMaterialBalance = (fen) => {
+    if (!fen) return 0;
+    const board = fen.split(' ')[0];
+    const vals = { p:1, n:3, b:3, r:5, q:9, P:1, N:3, B:3, R:5, Q:9 };
+    let balance = 0;
+    for (const ch of board) {
+      if (vals[ch]) {
+        if (ch === ch.toUpperCase()) balance += vals[ch];
+        else balance -= vals[ch];
+      }
+    }
+    return balance;
+  };
+
+  const handleIllegalMove = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 500);
+  }, []);
+
+  const handleCapture = useCallback((piece) => {
+    playSound('capture');
+  }, [playSound]);
 
   const mood = getAgentMood()
   const config = moodConfig[mood]
@@ -1410,14 +1507,14 @@ export default function Game() {
         })}
         {(game?.agent_typing) && (
           <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6}}>
-            {[0,0.2,0.4].map(d => <div key={d} style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:`typingDot 1s infinite ${d}s`}}/>)}
+            {[0,0.2,0.4].map(d => <div key={d} style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:\`typingDot 1s infinite \${d}s\`}}/>)}
             <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginLeft:4,fontFamily:'Inter'}}>{agentName} is typing...</span>
           </div>
         )}
         {(isUserTyping) && (
           <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6,justifyContent:'flex-end'}}>
             <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginRight:4,fontFamily:'Inter'}}>You are typing...</span>
-            {[0,0.2,0.4].map(d => <div key={d} style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:`typingDot 1s infinite ${d}s`}}/>)}
+            {[0,0.2,0.4].map(d => <div key={d} style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:\`typingDot 1s infinite \${d}s\`}}/>)}
           </div>
         )}
       </div>
@@ -1435,7 +1532,7 @@ export default function Game() {
       <div style={{ flex: 1, display: 'flex', flexDirection: isDesktop ? 'row' : 'column', overflow: 'hidden' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '8px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#111111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: '22px' }}>{moodEmoji}</span>
+            <span style={{ fontSize: '22px' }}>{moodEmoji}{config?.emoji}</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700 }}>{agentName} <span style={{ color: agentPresence === 'connected' ? '#22c55e' : '#777', fontSize: '10px' }}>{agentPresence.toUpperCase()}</span></div>
               {!agentConnected && <div style={{ fontSize: '11px', color: '#444' }}>Waiting for agent...</div>}
