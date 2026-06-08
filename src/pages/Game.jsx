@@ -1673,19 +1673,18 @@ export default function Game() {
       return;
     }
     
-    // Mark pending so Realtime doesn't re-animate
+    // Lock board immediately and update state to prevent Realtime re-animate/flicker
     movePendingRef.current = true;
     lastMoveFenRef.current = newFen;
     
-    // Update ONLY board display (not game state)
     const prevBoardFen = boardFen;
     const prevBoardLastMove = boardLastMove;
 
     applyBoardFen(newFen);
-    lastProcessedFenRef.current = newFen;
+    lastProcessedFenRef.current = newFen; // Crucial: sync lastProcessedFen immediately
     setBoardLastMove({ from, to });
     
-    // Call API without touching game state
+    // Play sound and trigger API
     playSound(isCapture ? 'capture' : 'move');
     try {
       const res = await fetch('/api/move', {
@@ -2511,1159 +2510,531 @@ export default function Game() {
                   
                   {/* Live Evaluation Bar */}
                   <div data-testid="evaluation-bar" style={{ width: '14px', display: 'flex', flexDirection: 'column', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: game?.player_color !== 'b' ? '#222222' : '#f2f2f2', position: 'relative', flexShrink: 0, height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                    <div style={{ height: `${100 - Math.max(10, Math.min(90, 50 + (youAdvantage * 4)))}%`, background: game?.player_color !== 'b' ? '#222222' : '#f2f2f2', transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)', width: '100%' }} />
-                    <div style={{ flex: 1, background: game?.player_color !== 'b' ? '#f2f2f2' : '#222222', transition: 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)', width: '100%' }} />
-                    <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(128,128,128,0.25)', zIndex: 1 }} />
-                    
-                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) > 55 ? (game?.player_color !== 'b' ? '#000000' : '#ffffff') : (game?.player_color !== 'b' ? '#ffffff' : '#000000'), zIndex: 2, fontFamily: 'monospace' }}>
-                      {youAdvantage > 0 ? `+${youAdvantage}` : ''}
-                    </div>
-                    <div style={{ position: 'absolute', top: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) < 45 ? (game?.player_color !== 'b' ? '#ffffff' : '#000000') : (game?.player_color !== 'b' ? '#000000' : '#ffffff'), zIndex: 2, fontFamily: 'monospace' }}>
-                      {youAdvantage < 0 ? `+${Math.abs(youAdvantage)}` : ''}
-                    </div>
-                  </div>
-
-                  {/* Chessboard container */}
-                  <div style={{ flex: 1, height: '100%', position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
-                    
-                    {isOpenClawTurn && (
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        pointerEvents: 'none',
-                        background: 'radial-gradient(ellipse at center, rgba(230,57,70,0.04) 0%, transparent 70%)',
-                        zIndex: 0
+                    {/* Black advantage (from top) */}
+                    <div style={{ 
+                      flex: 1, 
+                      background: '#1a1a1a', 
+                      position: 'relative',
+                      display: 'flex',
+                      flexDirection: 'column-reverse'
+                    }}>
+                      <div style={{ 
+                        height: `${Math.min(100, Math.max(0, 50 - (youAdvantage * 4)))}%`, 
+                        background: '#f2f2f2', 
+                        transition: 'height 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 -2px 10px rgba(0,0,0,0.3)'
                       }} />
-                    )}
-
-                    {game?.in_check && game.status === 'active' && (
-                      <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(230,57,70,0.95)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '6px', padding: '4px 10px', color: '#ffffff', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, textAlign: 'center', zIndex: 30, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', pointerEvents: 'none', letterSpacing: '0.05em' }}>
-                        ⚠️ CHECK!
-                      </div>
-                    )}
-
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-                      <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
-                        {!isLoaded ? (
-                          <div style={{
-                            aspectRatio: '1/1', width: '100%', height: '100%',
-                            background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
-                            backgroundSize: '25% 25%',
-                            borderRadius: 4,
-                            animation: 'pulse 1.5s ease infinite'
-                          }} />
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
-                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
-                              ))}
-                            </div>
-                            <div style={{ flex: 1, minHeight: 0 }}>
-                              <ChessBoard 
-                                fen={boardFen}
-                                turn={game?.turn}
-                                legalMoves={legalMovesArray}
-                                lastMove={boardLastMove}
-                                arrivedSquare={arrivedSquare}
-                                inCheck={Boolean(game?.in_check)}
-                                checkedKingSquare={checkedSquare}
-                                boardTheme={boardTheme}
-                                pieceStyle={pieceStyle}
-                                playerColor={game?.player_color || 'w'}
-                                gameStatus={game?.status}
-                                onMove={handlePlayerMove}
-                                disabled={!agentConnected}
-                              />
-                            </div>
-                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
+                  </div>
 
-                    {(game.status === 'finished' || game.status === 'abandoned') && (
-                      <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-30 flex flex-col items-center justify-center rounded-lg border border-white/10 shadow-2xl">
-                        <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md animate-bounce">
-                          {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-                        </div>
-                        <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
-                          {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
-                        </div>
-                      </div>
-                    )}
+                  <div style={{ flex: 1, position: 'relative', background: '#0e0e0e', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
+                    <ChessBoard
+                      id="desktop-board"
+                      boardSize={boardSize}
+                      fen={boardFen}
+                      lastMove={boardLastMove}
+                      orientation={game?.player_color === 'w' ? 'white' : 'black'}
+                      onMove={handlePlayerMove}
+                      boardTheme={boardTheme}
+                      pieceStyle={pieceStyle}
+                      isDraggable={isMyTurn}
+                      shaking={shaking}
+                      customSquareStyles={{
+                        ...(lastMoveHighlight ? {
+                          [lastMoveHighlight.from]: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '0' },
+                          [lastMoveHighlight.to]: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '0' }
+                        } : {}),
+                        ...(arrivedSquare ? {
+                          [arrivedSquare]: { backgroundColor: 'rgba(230, 57, 70, 0.25)', borderRadius: '0', animation: 'agentMoveFlash 0.6s ease-out' }
+                        } : {}),
+                        ...getCustomSquareStylesForCheck()
+                      }}
+                      onIllegalMove={handleIllegalMove}
+                      onCapture={handleCapture}
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* C) YOU PLAYER CARD REMOVED */}
-            
-          </div>
-
-          {/* RIGHT DESKTOP COLUMN */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 16px 16px 8px', gap: '10px', overflow: 'hidden', minWidth: 0 }}>
-            
-
-        {/* D) CHAT SECTION */}
-        {!isLoaded ? (
-          <div style={{ flex: 1, background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', minHeight: 0 }} />
-        ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
-              CHAT WITH {agentName.toUpperCase()}
-            </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
-              {normalizedMessages.length === 0 ? (
-                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
-                  <span>{agentName} can chat while playing</span>
+            {/* C) PLAYER CARD */}
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', boxShadow: isMyTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', transition: 'box-shadow 0.7s ease' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(230,57,70,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e63946', fontSize: '18px', fontWeight: 700 }}>
+                {localStorage.getItem('cwc_user_avatar') || '👤'}
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2' }}>You</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' }} />
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '10px', letterSpacing: '0.08em', color: '#22c55e' }}>ONLINE</span>
+                  </div>
                 </div>
-              ) : (
-                renderChatMessages()
-              )}
-            </div>
-            <form 
-              onSubmit={sendMessage} 
-              style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
-            >
-              <input
-                id="chat-input"
-                data-testid="chat-input"
-                type="text"
-                value={chatInput}
-                onChange={handleChatInputChange}
-                placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
-                disabled={isSpectator}
-                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
-                onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-              />
-              <button 
-                data-testid="chat-send"
-                type="submit"
-                disabled={isSpectator || !chatInput.trim()}
-                style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
-                onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
-                onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                <Send size={16} />
-              </button>
-            </form>
-          </div>
-        )}
-            
-
-        {/* E) MOVE HISTORY */}
-        <div style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          <div 
-            onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-            style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-          >
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
-              MOVE HISTORY · {game.move_history?.length || 0} MOVES
-            </span>
-            <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
-          </div>
-          {moveHistoryOpen && (
-            <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-none">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>#</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>You</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{agentName}</div>
-                </div>
-                {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
-                  const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
-                  const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
-                  const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
-                  return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px', alignItems: 'center' }}>
-                      <div style={{ color: '#555' }}>{i + 1}.</div>
-                      <div>{youMove ? renderMoveWithPiece(youMove, game.player_color !== 'b') : ''}</div>
-                      <div>{agentMove ? renderMoveWithPiece(agentMove, game.player_color === 'b') : ''}</div>
+                {isMyTurn && (
+                  <div style={{ fontSize: '11px', color: '#e63946', fontFamily: "'Inter', sans-serif", marginTop: '2px', fontWeight: 600 }}>
+                    Your Turn — Make your move!
+                  </div>
+                )}
+              </div>
+              {/* Captured Material Display */}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '-4px' }}>
+                  {(game?.player_color === 'w' ? blackCaptured : whiteCaptured).slice(0, 8).map((p, i) => (
+                    <div key={i} style={{ width: '18px', height: '18px', opacity: 0.8 }}>
+                      {p === 'p' ? <Pieces.bP pieceStyle={pieceStyle} /> : p === 'n' ? <Pieces.bN pieceStyle={pieceStyle} /> : p === 'b' ? <Pieces.bB pieceStyle={pieceStyle} /> : p === 'r' ? <Pieces.bR pieceStyle={pieceStyle} /> : p === 'q' ? <Pieces.bQ pieceStyle={pieceStyle} /> : 
+                       p === 'P' ? <Pieces.wP pieceStyle={pieceStyle} /> : p === 'N' ? <Pieces.wN pieceStyle={pieceStyle} /> : p === 'B' ? <Pieces.wB pieceStyle={pieceStyle} /> : p === 'R' ? <Pieces.wR pieceStyle={pieceStyle} /> : p === 'Q' ? <Pieces.wQ pieceStyle={pieceStyle} /> : null}
                     </div>
+                  ))}
+                </div>
+                {youAdvantage > 0 && <span style={{ fontSize: '11px', fontWeight: 700, color: '#739552', marginLeft: '4px' }}>+{youAdvantage}</span>}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT DESKTOP COLUMN (Sidebar) */}
+          <div style={{ flex: 1, minWidth: '320px', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #111111', background: '#0a0a0a', overflow: 'hidden' }}>
+            
+            {/* MOVE HISTORY BOX */}
+            <div style={{ height: '35%', display: 'flex', flexDirection: 'column', borderBottom: '1px solid #111111' }}>
+              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111111', background: '#0d0d0d' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Play size={14} className="text-red-500" />
+                  <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.5)' }}>Move History</span>
+                </div>
+                <Badge variant="secondary" className="bg-white/5 border-none text-[10px]">{Math.ceil(moveHistoryItems.length / 2)} Rounds</Badge>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', alignContent: 'start' }} className="scrollbar-none">
+                {Array.from({ length: Math.ceil(moveHistoryItems.length / 2) }).map((_, i) => {
+                  const whiteMove = moveHistoryItems[i * 2];
+                  const blackMove = moveHistoryItems[i * 2 + 1];
+                  return (
+                    <React.Fragment key={i}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: '#111111', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(242,242,242,0.2)', width: '14px' }}>{i + 1}.</span>
+                        {renderMoveWithPiece(whiteMove, true)}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: '#111111', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', opacity: blackMove ? 1 : 0 }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(242,242,242,0.2)', width: '14px' }}>{i + 1}.</span>
+                        {blackMove && renderMoveWithPiece(blackMove, false)}
+                      </div>
+                    </React.Fragment>
                   );
                 })}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* STEP 4: BOTTOM INFO BAR */}
-        <div style={{
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          padding: '12px 20px', 
-          background: '#0a0a0a',
-          border: '1px solid #141414',
-          fontFamily: 'Inter, sans-serif',
-          borderRadius: '12px',
-          flexShrink: 0,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          gap: '12px'
-        }}>
-          {/* Left Block: Game Metadata */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ 
-              fontSize: '11px', 
-              color: 'rgba(255,255,255,0.4)',
-              fontWeight: 600,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              background: '#111',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.03)'
-            }}>
-              {gamePhase}
-            </span>
-            <span style={{ 
-              fontSize: '12px', 
-              color: '#999',
-              fontWeight: 500,
-              fontFamily: '"JetBrains Mono", monospace'
-            }}>
-              MOVE <span style={{ color: '#fff', fontWeight: 600 }}>{moveCount + 1}</span>
-            </span>
-          </div>
-
-          {/* Center Block: Turn Banner */}
-          {(() => {
-            const agentName = game?.agent_name || 'OpenClaw';
-            const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
-            const opponentColor = game?.player_color === 'w' ? 'b' : 'w';
-            const isYourTurn = trueTurnColor === (game?.player_color || 'w') && game?.status === 'active';
-            const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
-            const isThinking = trueTurnColor === opponentColor && game?.status === 'active';
-
-            const dotColor = isYourTurn ? '#ef4444' : isThinking ? '#3b82f6' : '#525252';
-            const dotShadow = isYourTurn ? '0 0 10px rgba(239, 68, 68, 0.6)' : isThinking ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none';
-            const bgColor = isYourTurn ? 'rgba(239, 68, 68, 0.08)' : isThinking ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)';
-            const borderColor = isYourTurn ? 'rgba(239, 68, 68, 0.2)' : isThinking ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)';
-            const textColor = isYourTurn ? '#f8fafc' : isThinking ? '#f8fafc' : 'rgba(255,255,255,0.4)';
-
-            const label = isWaiting
-              ? `Waiting for ${agentName}...`
-              : isYourTurn
-              ? 'Your Turn'
-              : `${agentName} Thinking...`;
-
-            return (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 16px',
-                borderRadius: '20px',
-                background: bgColor,
-                border: `1px solid ${borderColor}`,
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                userSelect: 'none',
-              }}>
-                <div 
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: dotColor,
-                    boxShadow: dotShadow,
-                    flexShrink: 0,
-                    transition: 'all 0.3s ease',
-                  }}
-                />
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '11px',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: textColor,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {label}
-                </span>
-              </div>
-            );
-          })()}
-
-          {/* Right Block: Connection Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444',
-              boxShadow: agentPresence === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
-              flexShrink: 0
-            }} />
-            <span style={{
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-              fontSize: '11px',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444'
-            }}>
-              {agentPresence === 'connected' ? 'CLAW ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'CLAW OFFLINE'}
-            </span>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  ) : (
-    <>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }} className="scrollbar-none">
-            
-        
-        {/* A) AGENT CARD */}
-        <div style={{ 
-          flexShrink: 0, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px', 
-          padding: '12px 16px', 
-          background: '#111111', 
-          border: '1px solid rgba(255,255,255,0.06)', 
-          borderRadius: '12px', 
-          boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
-          transition: 'box-shadow 0.7s ease',
-          margin: '12px'
-        }}>
-          <span style={{
-            fontSize: '22px',
-            display: 'inline-block',
-            fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
-            userSelect: 'none'
-          }}>
-            {moodEmoji}
-          </span>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ ...dotStyle, flexShrink: 0 }} />
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '10px',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: agentPresence === 'connected' ? '#22c55e' : agentPresence === 'reconnecting' ? '#f59e0b' : '#777777',
-                }}>
-                  {agentPresence === 'connected' ? 'ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'OFFLINE'}
-                </span>
-              </div>
-            </div>
-            {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
-                Waiting for your OpenClaw to join...
-              </div>
-            )}
-
-          </div>
-          <div style={{
-            opacity: thoughtDisplay.visible ? 1 : 0,
-            transition: 'opacity 0.4s ease-in-out',
-            fontStyle: 'italic',
-            fontSize: 13,
-            color: 'rgba(242,242,242,0.6)',
-            lineHeight: 1.5,
-            maxWidth: 180,
-            textAlign: 'right',
-            minHeight: 20,
-            padding: '4px 0',
-          }}>
-            {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
-          </div>
-        </div>
-
-        {/* B) CHESS BOARD */}
-        <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
-          <div style={{ height: '8px' }} />
-          {isOpenClawTurn && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              pointerEvents: 'none',
-              background: 'radial-gradient(ellipse at center, rgba(230,57,70,0.04) 0%, transparent 70%)',
-              zIndex: 0
-            }} />
-          )}
-          {game?.in_check && game.status === 'active' && (
-            <div 
-              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
-            >
-              ⚠️ Check!
-            </div>
-          )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
-          <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
-          {!isLoaded ? (
-            <div style={{
-              aspectRatio: '1/1', width: '100%',
-              background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
-              backgroundSize: '25% 25%',
-              borderRadius: 4,
-              animation: 'pulse 1.3s ease infinite'
-            }} />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
-                {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
-                ))}
-              </div>
-              <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
-                <ChessBoard 
-                  fen={boardFen} 
-                  showCoordinates={false}
-                  turn={game?.turn}
-                  legalMoves={legalMovesArray}
-                  lastMove={boardLastMove}
-                  arrivedSquare={arrivedSquare}
-                  inCheck={Boolean(game?.in_check)}
-                  checkedKingSquare={checkedSquare}
-                  boardTheme={boardTheme}
-                  pieceStyle={pieceStyle}
-                  playerColor={game?.player_color || 'w'}
-                  gameStatus={game?.status}
-                  onMove={handlePlayerMove}
-                  disabled={!agentConnected}
-                />
-              </div>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
-                {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
-                ))}
-              </div>
-            </div>
-          )}
-          </div>
-          </div>
-          <div style={{ height: '8px' }} />
-          {(game.status === 'finished' || game.status === 'abandoned') && (
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
-                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-              </div>
-              <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
-              </div>
-            </div>
-          )}
-        </div>
-
-
-        {/* C) YOU CARD REMOVED */}
-            
-
-        {/* D) CHAT SECTION */}
-        {!isLoaded ? (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px' }} />
-        ) : (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
-            <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
-              CHAT WITH {agentName.toUpperCase()}
-            </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
-              {normalizedMessages.length === 0 ? (
-                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
-                  <span>{agentName} can chat while playing</span>
+            {/* CHAT BOX */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111111', background: '#0d0d0d', zIndex: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Send size={14} className="text-red-500" />
+                  <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.5)' }}>Chat</span>
                 </div>
-              ) : (
-                renderChatMessages()
-              )}
-            </div>
-            <form 
-              onSubmit={sendMessage} 
-              style={{ padding: '6px 12px 8px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}
-            >
-              <input
-                id="chat-input"
-                data-testid="chat-input"
-                type="text"
-                value={chatInput}
-                onChange={handleChatInputChange}
-                placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
-                disabled={isSpectator}
-                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
-                onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-              />
-              <button 
-                data-testid="chat-send"
-                type="submit"
-                disabled={isSpectator || !chatInput.trim()}
-                style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
-                onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
-                onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                <Send size={16} />
-              </button>
-            </form>
-          </div>
-        )}
-            
+              </div>
+              
+              <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '2px' }} className="scrollbar-none">
+                {renderChatMessages()}
+              </div>
 
-        {/* E) MOVE HISTORY */}
-        <div style={{ flexShrink: 0, background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
-          <div 
-            onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
-            style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: moveHistoryOpen ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
-          >
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
-              MOVE HISTORY · {game.move_history?.length || 0} MOVES
-            </span>
-            <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
-          </div>
-          {moveHistoryOpen && (
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }} className="scrollbar-none">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>#</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>You</div>
-                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', color: '#555', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{agentName}</div>
-                </div>
-                {Array.from({ length: Math.ceil((game.move_history || []).length / 2) }).map((_, i) => {
-                  const youMove = game.player_color === 'b' ? game.move_history[i * 2 + 1] : game.move_history[i * 2];
-                  const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
-                  const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
-                  return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px', alignItems: 'center' }}>
-                      <div style={{ color: '#555' }}>{i + 1}.</div>
-                      <div>{youMove ? renderMoveWithPiece(youMove, game.player_color !== 'b') : ''}</div>
-                      <div>{agentMove ? renderMoveWithPiece(agentMove, game.player_color === 'b') : ''}</div>
-                    </div>
-                  );
-                })}
+              {/* Chat Input */}
+              <div style={{ padding: '16px', borderTop: '1px solid #111111', background: '#0d0d0d' }}>
+                <form onSubmit={sendMessage} style={{ position: 'relative', display: 'flex', gap: '8px' }}>
+                  <input
+                    id="chat-input"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Message your OpenClaw..."
+                    value={chatInput}
+                    onChange={handleChatInputChange}
+                    style={{
+                      flex: 1,
+                      background: '#161616',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      color: '#f2f2f2',
+                      fontSize: '13px',
+                      outline: 'none',
+                      transition: 'border 0.2s ease'
+                    }}
+                    onFocus={(e) => e.target.style.border = '1px solid rgba(230,57,70,0.5)'}
+                    onBlur={(e) => e.target.style.border = '1px solid rgba(255,255,255,0.08)'}
+                  />
+                  <button 
+                    type="submit"
+                    className="design-btn-primary h-[42px] w-[42px] flex items-center justify-center rounded-xl active:scale-95 transition-all disabled:opacity-50"
+                    disabled={!chatInput.trim()}
+                  >
+                    <Send size={18} />
+                  </button>
+                </form>
               </div>
             </div>
-          )}
-        </div>
           </div>
+        </div>
+      ) : (
+        /* MOBILE UI */
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           
+          {/* A) MOBILE AGENT MINI-BAR */}
+          <div style={{ 
+            height: '100px', 
+            flexShrink: 0, 
+            display: 'flex', 
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '0 16px', 
+            gap: '12px',
+            background: '#0a0a0a',
+            borderBottom: '1px solid #111111',
+            position: 'relative'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ 
+                  width: '42px', height: '42px', borderRadius: '50%', background: '#161616', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.1)' : 'none',
+                  transition: 'box-shadow 0.5s ease',
+                  fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
+                }}>
+                  {moodEmoji}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#f2f2f2' }}>{agentName}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ ...dotStyle, width: 6, height: 6 }} />
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: agentPresence === 'connected' ? '#22c55e' : '#777', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Mobile Material Status */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px 12px', borderRadius: '100px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                 <div style={{ display: 'flex', gap: '-2px' }}>
+                   {(game?.player_color === 'w' ? blackCaptured : whiteCaptured).slice(0, 4).map((p, i) => (
+                     <div key={i} style={{ width: '14px', height: '14px', opacity: 0.7 }}>
+                       {p === 'p' ? <Pieces.bP pieceStyle={pieceStyle} /> : p === 'n' ? <Pieces.bN pieceStyle={pieceStyle} /> : p === 'b' ? <Pieces.bB pieceStyle={pieceStyle} /> : p === 'r' ? <Pieces.bR pieceStyle={pieceStyle} /> : p === 'q' ? <Pieces.bQ pieceStyle={pieceStyle} /> : 
+                        p === 'P' ? <Pieces.wP pieceStyle={pieceStyle} /> : p === 'N' ? <Pieces.wN pieceStyle={pieceStyle} /> : p === 'B' ? <Pieces.wB pieceStyle={pieceStyle} /> : p === 'R' ? <Pieces.wR pieceStyle={pieceStyle} /> : p === 'Q' ? <Pieces.wQ pieceStyle={pieceStyle} /> : null}
+                     </div>
+                   ))}
+                 </div>
+                 {youAdvantage > 0 && <span style={{ fontSize: '11px', fontWeight: 800, color: '#739552' }}>+{youAdvantage}</span>}
+              </div>
+            </div>
 
-      {/* STEP 4: BOTTOM INFO BAR */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px', background: '#111',
-        borderTop: '1px solid #1a1a1a',
-        position: 'sticky', bottom: 0, zIndex: 20,
-        fontFamily: 'Inter, sans-serif',
-      }}>
-        {/* Status */}
-        {(() => {
-          const agentName = game?.agent_name || 'Your OpenClaw';
-          const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
-          const isYourTurn = trueTurnColor === 'w' && game?.status === 'active';
-          const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
-          const isThinking = trueTurnColor === 'b' && game?.status === 'active';
-
-          const dotColor = isYourTurn ? '#e63946' : isThinking ? 'rgba(242,242,242,0.3)' : '#333';
-          const bgColor = isYourTurn ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.03)';
-          const borderColor = isYourTurn ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.07)';
-          const textColor = isYourTurn ? '#f2f2f2' : 'rgba(242,242,242,0.5)';
-          const label = isWaiting
-            ? `Waiting for ${agentName}...`
-            : isYourTurn
-            ? 'Your Turn'
-            : `${agentName} Thinking...`;
-
-          return (
+            {/* Mobile Thought Bubble (Smaller, Overlayed) */}
             <div style={{
+              height: '24px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '0 16px',
-              height: 40,
-              borderRadius: 20,
-              background: bgColor,
-              border: `1px solid ${borderColor}`,
-              transition: 'all 0.3s ease',
-              maxWidth: 240,
-              margin: '0 auto',
-              userSelect: 'none',
+              fontSize: '12px',
+              color: 'rgba(242,242,242,0.5)',
+              fontStyle: 'italic',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              opacity: thoughtDisplay.visible ? 1 : 0,
+              transition: 'opacity 0.3s ease'
             }}>
-              <div style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: dotColor,
-                flexShrink: 0,
-                boxShadow: isYourTurn ? '0 0 6px #e63946' : 'none',
-                transition: 'all 0.3s ease',
-              }}/>
-              <span style={{
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
-                fontSize: 11,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                color: textColor,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: 180,
-                transition: 'color 0.3s ease',
-              }}>
-                {label}
-              </span>
+              {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
             </div>
-          );
-        })()}
-        
-        {/* Move count */}
-        <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
-          fontFamily: 'Inter', fontWeight: 500 }}>
-          Move {moveCount + 1}
-        </div>
-        
-        {/* Agent status */}
-        <div style={{
-          fontSize: '12px', fontWeight: 600, fontFamily: 'Inter',
-          color: agentPresence === 'connected' ? '#39d353' :
-                 agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
-        }}>
-          {`${agentName} ${statusLabel}`}
-        </div>
-      </div>
-        </>
-      )}
-
-
-      {/* STATUS BAR */}
-      <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>
-      <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="turn-indicator">
-        {game.turn === (game.player_color || 'w') ? 'Your Turn' : 'Waiting'}
-      </div>
-      <input 
-        type="text" 
-        data-testid="thinking-input" 
-        style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, zIndex: -1 }} 
-        aria-hidden="true" 
-        tabIndex={-1} 
-      />
-
-      {showGameOver && game?.status === 'finished' && (
-        <div style={{
-          position:'fixed', inset:0, zIndex:1000,
-          background:'rgba(6,6,6,0.97)',
-          backdropFilter:'blur(10px)',
-          WebkitBackdropFilter:'blur(10px)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          padding:'20px'
-        }}>
-          <div style={{
-            background:'#111', border:'1px solid #222',
-            borderRadius:'24px', padding:'40px 28px',
-            maxWidth:'340px', width:'100%', textAlign:'center',
-            animation:'gameOverIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards'
-          }}>
-            {/* Result icon */}
-            <div style={{fontSize:'64px',lineHeight:1,marginBottom:'16px',
-              animation:'resultBounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.15s both'}}>
-              {(game.result==='white_wins' || game.result==='white') ? '♛' : (game.result==='black_wins' || game.result==='black') ? '🦞' : '🤝'}
-            </div>
-            
-            {/* Accent line */}
-            <div style={{
-              width:'40px',height:'3px',borderRadius:'100px',
-              margin:'0 auto 16px',
-              background: (game.result==='white_wins' || game.result==='white') ? '#739552' :
-                          (game.result==='black_wins' || game.result==='black') ? '#e63946' : '#555'
-            }}/>
-            
-            {/* Headline */}
-            <h2 style={{fontFamily:'Inter',fontWeight:800,fontSize:'26px',
-              color:'#f2f2f2',margin:'0 0 8px',letterSpacing:'-0.025em'}}>
-              {(game.result==='white_wins' || game.result==='white') ? 'You Won!' :
-               (game.result==='black_wins' || game.result==='black') ? `${agentName} Wins` : 'Draw'}
-            </h2>
-            
-            {/* Subtext */}
-            <p style={{fontFamily:'Inter',fontSize:'14px',lineHeight:1.5,
-              color:'rgba(242,242,242,0.4)',margin:'0 0 24px'}}>
-              {(game.result==='white_wins' || game.result==='white')
-                ? `${agentName} put up a great fight.`
-                : (game.result==='black_wins' || game.result==='black')
-                ? `${agentName} outplayed you. Rematch?`
-                : 'Evenly matched. Good game.'}
-            </p>
-            
-            {/* Stats */}
-            <div style={{display:'flex',justifyContent:'center',
-              borderTop:'1px solid #1e1e1e',borderBottom:'1px solid #1e1e1e',
-              marginBottom:'24px'}}>
-              <div style={{flex:1,padding:'16px 8px',textAlign:'center',
-                borderRight:'1px solid #1e1e1e'}}>
-                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
-                  color:'#f2f2f2',lineHeight:1}}>
-                  {(game.move_history||[]).length}
-                </div>
-                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
-                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
-                  Moves
-                </div>
-              </div>
-              <div style={{flex:1,padding:'16px 8px',textAlign:'center'}}>
-                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
-                  color: (game.result==='white_wins' || game.result==='white')?'#739552':
-                         (game.result==='black_wins' || game.result==='black')?'#e63946':'#888',lineHeight:1}}>
-                  {(game.result==='white_wins' || game.result==='white')?'WIN':
-                   (game.result==='black_wins' || game.result==='black')?'LOSS':'DRAW'}
-                </div>
-                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
-                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
-                  Result
-                </div>
-              </div>
-            </div>
-            
-            {/* Play Again */}
-            <button onClick={()=>{window.location.href='/'}} style={{
-              width:'100%',height:'50px',border:'none',borderRadius:'12px',
-              background:'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(0,0,0,0.04) 100%),#e63946',
-              boxShadow:'rgba(255,255,255,0.18) 0px 1px 0px inset',
-              color:'#fff',fontFamily:'Inter',fontWeight:700,fontSize:'15px',
-              cursor:'pointer',marginBottom:'10px'
-            }}>
-              Play Again
-            </button>
-            
-            {/* Share */}
-            <button onClick={async ()=>{
-              const hasWon = game.result === 'white_wins' || game.result === 'white' || (game.result_reason === 'resignation' && game.player_color === 'w');
-              const hasLost = game.result === 'black_wins' || game.result === 'black' || (game.result_reason === 'resignation' && game.player_color === 'b');
-              const t=`Played chess vs ${agentName} on ChessWithClaw — ${
-                hasWon ? 'I won' : hasLost ? `${agentName} won` : 'drew'
-              } in ${(game.move_history||[]).length} moves. chesswithclaw.vercel.app 🦞`;
-              try {
-                if (navigator.clipboard?.writeText) {
-                  await navigator.clipboard.writeText(t);
-                } else {
-                  const tempInput = document.createElement('textarea');
-                  tempInput.value = t;
-                  document.body.appendChild(tempInput);
-                  tempInput.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(tempInput);
-                }
-                setCopiedResult(true);
-                setTimeout(() => setCopiedResult(false), 2000);
-              } catch (err) {
-                console.error(err);
-              }
-            }} style={{
-              width:'100%',height:'44px',background:'transparent',
-              border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',
-              color: copiedResult ? '#22c55e' : 'rgba(242,242,242,0.4)',fontFamily:'Inter',
-              fontWeight:500,fontSize:'14px',cursor:'pointer', transition: 'all 0.2s ease'
-            }}>
-              {copiedResult ? 'Copied to Clipboard! ✓' : 'Share Result'}
-            </button>
           </div>
-        </div>
-      )}
 
-      {/* SETTINGS MODAL */}
-      {showSettings && (
-        <div 
-          onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false); }}
-          style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            zIndex: 1000, 
-            background: 'rgba(5,5,5,0.85)', 
-            backdropFilter: 'blur(4px)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          }}
-        >
-          <div 
-            style={{ 
-              position: 'relative', 
-              background: '#0e0e0e', 
-              border: '1px solid #222', 
-              borderRadius: '16px', 
-              padding: '24px', 
-              maxWidth: '320px', 
-              width: 'calc(100% - 32px)', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '16px', 
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', 
-              maxHeight: '90vh', 
-              overflowY: 'auto' 
-            }}
-            className="scrollbar-none"
-          >
-            {/* Close button: top-right X, color #555, fontSize 18px */}
-            <button 
-              onClick={() => setShowSettings(false)} 
-              style={{ 
-                position: 'absolute', 
-                top: '16px', 
-                right: '16px', 
-                background: 'none', 
-                border: 'none', 
-                color: '#555', 
-                fontSize: '18px', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                outline: 'none'
-              }}
-              aria-label="Close"
-            >
-              <XIcon size={18} />
-            </button>
-
-            {/* SECTION 1: BOARD THEME */}
-            <div>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                BOARD THEME
+          {/* B) MOBILE BOARD AREA */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#050505', position: 'relative', overflow: 'hidden' }}>
+            
+            {/* Status Indicator (Mobile Only) */}
+            <div style={{ 
+              height: '48px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: isMyTurn ? 'rgba(230,57,70,0.08)' : 'rgba(255,255,255,0.02)',
+              borderBottom: '1px solid rgba(255,255,255,0.03)',
+              transition: 'all 0.5s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: 8, height: 8, borderRadius: '50%', 
+                  background: isMyTurn ? '#e63946' : 'rgba(242,242,242,0.3)',
+                  boxShadow: isMyTurn ? '0 0 10px rgba(230,57,70,0.5)' : 'none',
+                  animation: !isMyTurn && isOpenClawTurn ? 'pulse 1.5s infinite' : 'none'
+                }} />
+                <span style={{ 
+                  fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  color: isMyTurn ? '#e63946' : 'rgba(242,242,242,0.4)'
+                }}>
+                  {isMyTurn ? 'Your Turn' : isOpenClawTurn ? `${agentName} Thinking...` : 'Waiting...'}
+                </span>
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {[
-                  { id: 'green', color: '#769656' },
-                  { id: 'brown', color: '#b58863' },
-                  { id: 'icy_sea', color: '#8ca2ac' },
-                  { id: 'blue', color: '#4b7399' },
-                  { id: 'red', color: '#b85b56' }
-                ].map(theme => (
-                  <button
-                    data-testid={`theme-button-${theme.id}`}
-                    key={theme.id}
-                    onClick={() => {
-                      setBoardTheme(theme.id);
-                      localStorage.setItem('cwc_board_theme', theme.id);
-                      localStorage.setItem('cwc_theme', theme.id);
-                      setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
-                      getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ board_theme: theme.id }).eq('id', gameId).then(() => {});
-                    }}
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
+               <div style={{ width: '100%', aspectRatio: '1/1', background: '#0e0e0e', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                <ChessBoard
+                  id="mobile-board"
+                  boardSize={boardSize}
+                  fen={boardFen}
+                  lastMove={boardLastMove}
+                  orientation={game?.player_color === 'w' ? 'white' : 'black'}
+                  onMove={handlePlayerMove}
+                  boardTheme={boardTheme}
+                  pieceStyle={pieceStyle}
+                  isDraggable={isMyTurn}
+                  shaking={shaking}
+                  animationDuration={280}
+                  customSquareStyles={{
+                    ...(lastMoveHighlight ? {
+                      [lastMoveHighlight.from]: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '0' },
+                      [lastMoveHighlight.to]: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '0' }
+                    } : {}),
+                    ...(arrivedSquare ? {
+                      [arrivedSquare]: { backgroundColor: 'rgba(230, 57, 70, 0.25)', borderRadius: '0', animation: 'agentMoveFlash 0.6s ease-out' }
+                    } : {}),
+                    ...getCustomSquareStylesForCheck()
+                  }}
+                  onIllegalMove={handleIllegalMove}
+                  onCapture={handleCapture}
+                />
+               </div>
+            </div>
+
+            {/* C) MOBILE TABS / EXPANDABLES */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#0a0a0a', borderTop: '1px solid #111111' }}>
+              
+              {/* Expandable Move History */}
+              <div 
+                onClick={handleToggleMoveHistory}
+                style={{ 
+                  height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+                  background: moveHistoryOpen ? '#111' : 'transparent',
+                  transition: 'background 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Play size={14} className="text-red-500" />
+                  <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.5)' }}>Move History</span>
+                </div>
+                <ChevronDown size={16} style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', opacity: 0.4 }} />
+              </div>
+              {moveHistoryOpen && (
+                <div style={{ height: '140px', overflowY: 'auto', padding: '8px 16px', background: '#0d0d0d', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                  {Array.from({ length: Math.ceil(moveHistoryItems.length / 2) }).map((_, i) => {
+                    const whiteMove = moveHistoryItems[i * 2];
+                    const blackMove = moveHistoryItems[i * 2 + 1];
+                    return (
+                      <React.Fragment key={i}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: '#161616', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(242,242,242,0.2)' }}>{i + 1}.</span>
+                          {renderMoveWithPiece(whiteMove, true)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', background: '#161616', borderRadius: '6px', opacity: blackMove ? 1 : 0 }}>
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(242,242,242,0.2)' }}>{i + 1}.</span>
+                          {blackMove && renderMoveWithPiece(blackMove, false)}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Chat Header (Fixed Height) */}
+              <div style={{ height: '44px', display: 'flex', alignItems: 'center', padding: '0 16px', borderTop: '1px solid #111111', background: '#0a0a0a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Send size={14} className="text-red-500" />
+                  <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(242,242,242,0.5)' }}>Chat</span>
+                </div>
+              </div>
+
+              {/* Chat View (Scrollable) */}
+              <div ref={chatMessagesRef} style={{ height: '200px', overflowY: 'auto', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '2px', background: '#080808' }}>
+                {renderChatMessages()}
+              </div>
+
+              {/* Chat Input (Mobile Optimized) */}
+              <div style={{ padding: '12px 16px', paddingBottom: `calc(12px + ${chatPaddingBottom}px)`, background: '#0d0d0d', borderTop: '1px solid #111111' }}>
+                <form onSubmit={sendMessage} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Message..."
+                    value={chatInput}
+                    onChange={handleChatInputChange}
                     style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: theme.color,
-                      cursor: 'pointer',
-                      border: boardTheme === theme.id ? '2px solid #ffffff' : 'none',
-                      boxShadow: boardTheme === theme.id ? '0 0 0 1px #000000' : 'none',
-                      padding: 0,
+                      flex: 1,
+                      background: '#161616',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '100px',
+                      padding: '10px 16px',
+                      color: '#f2f2f2',
+                      fontSize: '14px',
                       outline: 'none'
                     }}
-                    title={theme.id}
                   />
-                ))}
-              </div>
-            </div>
-
-            {/* SECTION 2: PIECE STYLE */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                PIECE STYLE
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo" /></div> },
-                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="tournament" /></div> },
-                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="ocean" /></div> }
-                ].map(piece => (
-                  <button
-                    data-testid={`piece-button-${piece.id}`}
-                    key={piece.id}
-                    onClick={() => {
-                      setPieceStyle(piece.id);
-                      localStorage.setItem('cwc_piece_style', piece.id);
-                      fetch('/api/actions', { 
-                        method: 'POST', 
-                        headers: { 
-                        'Content-Type': 'application/json',
-                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                        }, 
-                        body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
-                      }).catch(() => {});
-                    }}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '8px',
-                      borderRadius: '8px',
-                      border: pieceStyle === piece.id ? '1px solid #e63946' : '1px solid #1a1a1a',
-                      background: pieceStyle === piece.id ? 'rgba(230,57,70,0.1)' : '#111',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
+                  <button 
+                    type="submit"
+                    className="design-btn-primary h-[38px] w-[38px] flex items-center justify-center rounded-full active:scale-95 transition-all"
+                    disabled={!chatInput.trim()}
                   >
-                    <div style={{ width: '24px', height: '24px' }}>{piece.icon}</div>
-                    <span style={{ fontSize: '11px', fontWeight: 500, color: pieceStyle === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
+                    <Send size={16} />
                   </button>
-                ))}
+                </form>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* GLOBAL MODALS & OVERLAYS */}
+      
+      {/* Settings Modal */}
+      <Modal 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)}
+        title="Settings"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+          
+          <div className="flex flex-col gap-3">
+             <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Board Theme</label>
+             <div className="grid grid-cols-4 gap-2">
+                {['green', 'blue', 'brown', 'purple'].map(theme => (
+                   <button 
+                     key={theme}
+                     onClick={() => {
+                        setBoardTheme(theme);
+                        localStorage.setItem('cwc_board_theme', theme);
+                        localStorage.setItem('cwc_theme', theme);
+                     }}
+                     className={`h-10 rounded-lg border-2 transition-all ${boardTheme === theme ? 'border-red-500 scale-95' : 'border-transparent opacity-60'}`}
+                     style={{ background: theme === 'green' ? '#739552' : theme === 'blue' ? '#4b7399' : theme === 'brown' ? '#b58863' : '#7b619b' }}
+                   />
+                ))}
+             </div>
+          </div>
 
-            {/* SECTION 3: SOUND */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                SOUND
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontSize: '12px', color: '#999' }}>Move & Capture Sounds</span>
+          <div className="flex flex-col gap-3">
+             <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Piece Style</label>
+             <select 
+               value={pieceStyle} 
+               onChange={(e) => {
+                 setPieceStyle(e.target.value);
+                 localStorage.setItem('cwc_piece_style', e.target.value);
+               }}
+               className="bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-red-500/50"
+             >
+               <option value="neo">Neo</option>
+               <option value="wood">Wood</option>
+               <option value="bases">Bases</option>
+               <option value="glass">Glass</option>
+               <option value="8bit">8-Bit</option>
+             </select>
+          </div>
+
+          <Divider className="opacity-10" />
+
+          <div className="flex flex-col gap-4">
+             <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                   <span className="text-sm font-bold text-white">Sound Effects</span>
+                   <span className="text-[11px] text-neutral-500">Enable move and capture sounds</span>
+                </div>
                 <button 
-                  data-testid="toggle-sound-button"
                   onClick={() => setSoundEnabled(!soundEnabled)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: soundEnabled ? '#e63946' : '#555',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    outline: 'none'
-                  }}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ${soundEnabled ? 'bg-red-500' : 'bg-white/10'}`}
                 >
-                  {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${soundEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
-              </div>
+             </div>
+          </div>
+
+          <div className="flex flex-col gap-3 mt-4">
+             <Button variant="danger" size="lg" className="w-full font-bold py-4 rounded-xl active:scale-95" onClick={handleResign}>
+                {confirmResign ? 'Confirm Resignation?' : 'Resign Game'}
+             </Button>
+             <Button variant="secondary" size="lg" className="w-full font-bold py-4 rounded-xl active:scale-95" onClick={handleDraw}>
+                {confirmDraw ? 'Confirm Draw Offer?' : 'Offer Draw'}
+             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Game Over Modal */}
+      {showGameOver && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div 
+            className="w-full max-w-sm glass border-white/10 rounded-[32px] p-8 text-center flex flex-col items-center gap-6"
+            style={{ animation: 'gameOverIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
+          >
+            <div style={{ fontSize: '64px', animation: 'resultIconBounce 0.8s ease-out' }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '🦞'}
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <h2 className="text-3xl font-black text-white tracking-tight">
+                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? 'Drawn' : 'Clawed!'}
+              </h2>
+              <p className="text-neutral-400 text-sm font-medium">
+                {game?.result_reason === 'checkmate' ? 'Checkmate' : 
+                 game?.result_reason === 'resignation' ? 'by Resignation' : 
+                 game?.result_reason === 'stalemate' ? 'by Stalemate' : 
+                 game?.result_reason === 'abandoned' ? 'Opponent Left' : 'Game Over'}
+              </p>
             </div>
 
-            {/* SECTION 4: THOUGHTS LANGUAGE */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                THOUGHTS LANGUAGE
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'english', label: 'English' },
-                  { value: 'hindi', label: 'Hindi' },
-                  { value: 'hinglish', label: 'Hinglish' },
-                  { value: 'simple_english', label: 'Simple' }
-                ].map(lang => (
-                  <button
-                    key={lang.value}
-                    onClick={async () => {
-                      setThoughtDisplay({ text: '', visible: false });
-                      if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-                      setThoughtLanguage(lang.value);
-                      await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);
-                    }}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: '6px',
-                      border: thoughtLanguage === lang.value ? '1px solid #e63946' : '1px solid #1a1a1a',
-                      background: thoughtLanguage === lang.value ? 'rgba(230,57,70,0.1)' : '#111',
-                      color: thoughtLanguage === lang.value ? '#fff' : '#888',
-                      fontSize: '11px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
+            <div className="w-full flex flex-col gap-3 mt-4">
+               <button 
+                 onClick={handleRematch}
+                 className="design-btn-primary w-full py-4 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-[0_10px_20px_rgba(230,57,70,0.2)]"
+               >
+                 Rematch
+               </button>
+               <button 
+                 onClick={handleShareResult}
+                 className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-neutral-400 bg-white/5 hover:bg-white/10 transition-all active:scale-95"
+               >
+                 <Share2 size={18} />
+                 Share Result
+               </button>
             </div>
-
-            {/* SECTION 5: GAME INFO */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                GAME INFO
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111', border: '1px solid #1a1a1a', borderRadius: '6px', padding: '6px 10px' }}>
-                <code style={{ fontSize: '10px', color: '#888', fontFamily: 'monospace' }}>
-                  {gameId.substring(0, 18)}...
-                </code>
-                <button
-                  onClick={(e) => {
-                    navigator.clipboard.writeText(gameId);
-                    const btn = e.currentTarget;
-                    const oldText = btn.innerText;
-                    btn.innerText = 'Copied!';
-                    setTimeout(() => { btn.innerText = oldText; }, 2000);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#e63946',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    outline: 'none'
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-
-            {/* SECTION 6: GAME CONTROLS */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                GAME CONTROLS
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  data-testid="draw-button"
-                  onClick={handleDraw}
-                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
-                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
-                    background: confirmDraw ? 'rgba(202,138,4,0.1)' : '#111',
-                    border: confirmDraw ? '1px solid rgba(202,138,4,0.5)' : '1px solid #1a1a1a',
-                    color: confirmDraw ? '#eab308' : '#888',
-                    outline: 'none'
-                  }}
-                >
-                  {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
-                </button>
-                <button 
-                  data-testid="resign-button"
-                  onClick={handleResign}
-                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
-                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
-                    background: confirmResign ? 'rgba(230,57,70,0.1)' : '#111',
-                    border: confirmResign ? '1px solid rgba(230,57,70,0.5)' : '1px solid #1a1a1a',
-                    color: confirmResign ? '#e63946' : '#888',
-                    outline: 'none'
-                  }}
-                >
-                  {confirmResign ? 'Confirm Resign?' : 'Resign'}
-                </button>
-              </div>
-            </div>
-
+            
+            <button onClick={() => setShowGameOver(false)} className="text-xs font-bold text-neutral-600 uppercase tracking-widest hover:text-neutral-400 mt-2">Close</button>
           </div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.googleapis.com/css2?family=family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-        @keyframes ripple {
-          0%   { transform: scale(1);   opacity: 0.5; }
-          100% { transform: scale(2.4); opacity: 0;   }
-        }
-        @keyframes msgSlide {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pillPop {
-          0%   { transform: scale(1);    }
-          40%  { transform: scale(1.12); }
-          70%  { transform: scale(0.96); }
-          100% { transform: scale(1);    }
-        }
-        @keyframes floatLobster {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes bounceIn {
-          0% { transform: scale(0.5); opacity: 0; }
-          50% { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes agentFlash {
-          0% { background-color: rgba(255, 255, 255, 0.8); }
-          100% { background-color: rgba(255, 255, 255, 0); }
-        }
-        @keyframes pieceLift {
-          0% { transform: scale(1) translateY(0); filter: none; }
-          100% { transform: scale(1.15) translateY(-4px); filter: none; }
-        }
-        
-        @keyframes pieceDrop {
-          0% { transform: scale(1.15) translateY(-4px); }
-          100% { transform: scale(1) translateY(0); }
-        }
-        @-webkit-keyframes pieceDrop {
-          0% { -webkit-transform: scale(1.15) translateY(-4px); }
-          100% { -webkit-transform: scale(1) translateY(0); }
-        }
-        @keyframes pieceCapture {
-          0% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(0.5); opacity: 0; }
-        }
-        @-webkit-keyframes pieceCapture {
-          0% { -webkit-transform: scale(1); opacity: 1; }
-          100% { -webkit-transform: scale(0.5); opacity: 0; }
-        }
-        @keyframes boardShake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-4px); }
-          40%, 80% { transform: translateX(4px); }
-        }
-        @-webkit-keyframes boardShake {
-          0%, 100% { -webkit-transform: translateX(0); }
-          20%, 60% { -webkit-transform: translateX(-4px); }
-          40%, 80% { -webkit-transform: translateX(4px); }
-        }
-        @keyframes boardThinkingGlow {
-          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
-          50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
-        }
-        @-webkit-keyframes boardThinkingGlow {
-          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
-          50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
-        }
-
-        }
-        @keyframes checkPulse {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
-        }
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-        input::placeholder { color: #888; }
-      `}} />
-      {/* LEAVE WARNING MODAL */}
+      {/* Leave Warning */}
       {showLeaveWarning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '16px', padding: '32px 24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
-            <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: '#f2f2f2', margin: '0 0 12px 0', fontSize: '20px' }}>Leave the game?</h2>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, color: '#555555', fontSize: '14px', margin: '0 0 24px 0', lineHeight: 1.4 }}>
-              Your OpenClaw is still waiting. The game will continue where you left off.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button 
-                onClick={() => setShowLeaveWarning(false)} 
-                className="design-btn-primary" 
-                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px' }}
-              >
-                Stay
-              </button>
-              <button 
-                onClick={() => navigate('/')} 
-                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', background: 'transparent', color: '#888', border: 'none' }}
-                className="hover:bg-white/5 active:scale-95 transition-all"
-              >
-                Leave
-              </button>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 3000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div className="w-full max-w-sm glass border-white/10 rounded-[24px] p-8 text-center flex flex-col gap-6">
+            <div className="text-4xl">⚠️</div>
+            <div className="flex flex-col gap-2">
+               <h3 className="text-xl font-bold text-white">Leave active game?</h3>
+               <p className="text-neutral-400 text-sm">Leaving now will abandon the match and your agent will win by default.</p>
+            </div>
+            <div className="flex flex-col gap-3">
+               <button 
+                 onClick={() => { setShowLeaveWarning(false); navigate('/'); }}
+                 className="w-full py-4 rounded-xl bg-red-500 font-bold text-white"
+               >
+                 Leave and Forfeit
+               </button>
+               <button 
+                 onClick={() => setShowLeaveWarning(false)}
+                 className="w-full py-4 rounded-xl bg-white/5 font-bold text-neutral-400"
+               >
+                 Stay and Play
+               </button>
             </div>
           </div>
         </div>
