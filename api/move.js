@@ -18,12 +18,6 @@ function sanitizeText(input, maxLength = 500) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
-    .replace(/javascript:/gi, '')
-    .replace(/data:/gi, '')
-    .replace(/on\w+=/gi, '')
 }
 
 function validateUUID(id) {
@@ -96,8 +90,6 @@ function applyCorsHeaders(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-game-token, x-agent-token');
 }
 
-// computeMaterial removed
-
 function calculateMaterialBalance(chess) {
   const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
   let white = 0, black = 0;
@@ -120,12 +112,8 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-agent-token, x-game-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY || (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).includes('your_supabase') || !(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL).startsWith('http')) {
-    console.error('Missing: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    return res.status(500).json({ 
-      error: 'Please set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in AI Studio settings to create a match.',
-      code: 'MISSING_ENV_VARS'
-    });
+  if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ error: 'Missing environment variables' });
   }
 
   applySecurityHeaders(res);
@@ -148,24 +136,13 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests', retry_after: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) });
   }
   
-  let { id, gameId, game_id, move, reasoning, thinking, token, fen, san } = req.body || {};
-  id = id || gameId || game_id;
-  if (!id || !move) return res.status(400).json({ error: 'Missing id or move in JSON body' });
-  id = id.trim();
+  let { id, gameId, game_id, move, thought, reasoning, thinking, text, token, fen, san } = req.body || {};
+  id = (id || gameId || game_id)?.trim();
+  const normalizedThought = thought || reasoning || thinking || text || '';
+  const sanitizedThought = sanitizeText(normalizedThought, 1000);
 
-  // Support all reasoning, thinking, thought, and text parameters
-  const actualReasoning = reasoning || thinking || req.body?.thought || req.body?.text || '';
-  const companionThought = req.body.thinking || req.body.thought || null;
-
-  if (!validateUUID(id)) {
-    return res.status(400).json({ error: 'Invalid game ID format' });
-  }
-
-  if (!validateUCIMove(move)) {
-    return res.status(400).json({ error: 'Invalid move format. Use UCI format (e.g., e2e4).' });
-  }
-
-  const sanitizedReasoning = sanitizeText(actualReasoning, 300);
+  if (!id || !validateUUID(id)) return res.status(400).json({ error: 'Invalid game ID format' });
+  if (!move || !validateUCIMove(move)) return res.status(400).json({ error: 'Invalid move format. Use UCI format (e.g., e2e4).' });
 
   const supabase = createClient(
     (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
@@ -175,362 +152,91 @@ module.exports = async function handler(req, res) {
   const agentToken = req.headers['x-agent-token'];
   const isAgentMove = Boolean(agentToken);
   const isHumanMove = !isAgentMove;
-  const targetGameId = id;
 
-  // Fetch the game first
   const { data: game, error } = await supabase
     .from('games')
     .select('*')
-    .eq('id', targetGameId)
+    .eq('id', id)
     .single();
 
   if (!game) return res.status(404).json({ error: 'Game not found' });
-  if (game.status === 'finished' || game.status === 'abandoned') {
-    return res.status(400).json({ error: 'Game is over' });
-  }
+  if (game.status === 'finished' || game.status === 'abandoned') return res.status(400).json({ error: 'Game is over' });
 
   if (isAgentMove) {
-    // Agent (Black) move — validate token
-    if (game.agent_token !== agentToken) {
-      return res.status(401).json({ error: 'Invalid agent token' });
-    }
-    if (game.turn !== 'b') {
-      return res.status(400).json({ error: 'Not agent turn' });
-    }
+    if (game.agent_token !== agentToken) return res.status(401).json({ error: 'Invalid agent token' });
+    if (game.turn !== 'b') return res.status(400).json({ error: 'Not agent turn' });
   } else {
-    // Human (White) move — no token needed
-    // Just validate it is White's turn
-    if (game.turn !== 'w') {
-      return res.status(400).json({ error: 'Not your turn' });
-    }
-  }
-
-  // Fetch move history from the new table
-  const { data: movesData, error: movesError } = await supabase.from('moves').select('*').eq('game_id', targetGameId).order('created_at', { ascending: true });
-  game.move_history = [];
-  if (!movesError && movesData && movesData.length > 0) {
-    game.move_history = movesData.map(m => ({
-      ...m,
-      from: m.from_square || m.from,
-      to: m.to_square || m.to,
-      uci: (m.from_square || m.from) + (m.to_square || m.to) + (m.promotion || ''),
-      san: m.san
-    }));
+    if (game.turn !== 'w') return res.status(400).json({ error: 'Not your turn' });
   }
 
   const from = move.substring(0, 2);
   const to = move.substring(2, 4);
   const promotion = move.length > 4 ? move.substring(4, 5) : undefined;
-  const moveObj = { from, to, promotion: promotion, san: san || move };
-
-  let inCheck = false;
-  let isCheckmate = false;
-  let isStalemate = false;
-  let isDraw = false;
-  let nextTurn = isHumanMove ? 'b' : 'w';
-  let legalMoves = [];
-  let globalNextLegalMoves = [];
-  let materialBalance = null;
+  
   let chess;
   try {
     const Chess = await getChessLib();
     chess = new Chess(game.fen);
     const moveResult = chess.move({ from, to, promotion });
-    
-    if (!moveResult) {
-      return res.status(400).json({ "error": "Invalid move", "code": "INVALID_MOVE" });
-    }
-    
-    const nextLegalMoves = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
-    globalNextLegalMoves = nextLegalMoves;
+    if (!moveResult) return res.status(400).json({ error: "Invalid move" });
     
     fen = chess.fen();
-
-    const boardStr = chess.fen().split(' ')[0];
-    const vals = { p:1, n:3, b:3, r:5, q:9 };
-    let wMat = 0, bMat = 0;
-    for (const ch of boardStr) {
-      const low = ch.toLowerCase();
-      if (vals[low]) {
-        if (ch === ch.toUpperCase()) wMat += vals[low];
-        else bMat += vals[low];
-      }
-    }
-    materialBalance = wMat - bMat;
-
-    moveObj.san = moveResult.san;
-    inCheck = chess.isCheck ? chess.isCheck() : (chess.in_check ? chess.in_check() : false);
-    isCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
-    isStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
-    isDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
-    nextTurn = chess.turn();
-    legalMoves = chess.moves();
-  } catch (e) {
-    console.error("Chess.js invalid move:", e);
-    return res.status(400).json({ "error": "Invalid move", "code": "INVALID_MOVE" });
-  }
-
-  const nextLegalMoves = globalNextLegalMoves;
-
-  if (isAgentMove) {
-    await supabase
-      .from('games')
-      .update({ current_thinking: actualReasoning })
-      .eq('id', id);
-  }
-
-  const moveNumber = Math.floor((game.move_history || []).length / 2) + 1;
-  const newMove = {
-    game_id: id,
-    move_number: moveNumber,
-    color: game.turn,
-    from_square: moveObj.from,
-    to_square: moveObj.to,
-    san: moveObj.san,
-    promotion: moveObj.promotion || null,
-    fen_after: fen || game.fen,
-    time_taken_ms: null
-  };
-
-  let insertedMoveId = null;
-  const { data: insertedMove, error: moveInsertError } = await supabase.from('moves').insert(newMove).select().single();
-  if (moveInsertError) {
-    console.error("Error inserting move:", moveInsertError);
-    if (moveInsertError.code === '42P01') {
-      const newMoveHistory = [...(game.move_history || []), {
-        move_number: moveNumber,
-        color: game.turn,
-        from: moveObj.from,
-        to: moveObj.to,
-        san: moveObj.san,
-        uci: moveObj.from + moveObj.to + (moveObj.promotion || ''),
-        timestamp: Date.now()
-      }];
-      await supabase.from('games').update({ move_history: newMoveHistory }).eq('id', id);
-      game.move_history = newMoveHistory;
-    } else {
-      return res.status(500).json({ error: 'Failed to record move' });
-    }
-  } else {
-    insertedMoveId = insertedMove?.id;
-    game.move_history.push({ 
-      ...newMove, 
-      from: newMove.from_square,
-      to: newMove.to_square,
-      uci: newMove.from_square + newMove.to_square + (newMove.promotion || ''), 
-      timestamp: Date.now() 
-    });
-  }
-
-  let gameResult = null;
-  let gameWinner = null;
-
-  const actualCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
-  const actualStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
-  const actualDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
-
-  if (actualCheckmate) {
-    gameResult = 'checkmate';
-    gameWinner = chess.turn() === 'w' ? 'black' : 'white';
-  } else if (actualStalemate) {
-    gameResult = 'draw';
-    gameWinner = null;
-  } else if (actualDraw) {
-    gameResult = 'draw';
-    gameWinner = null;
-  }
-
-  const newStatus = gameResult ? 'finished' : game.status;
-  const finishedAt = gameResult ? new Date().toISOString() : game.finished_at;
-
-  const updates = {
-    fen: fen || game.fen,
-    turn: nextTurn,
-    status: newStatus,
-    result: gameResult,
-    winner: gameWinner,
-    finished_at: finishedAt,
-    move_number: moveNumber,
-    current_thinking: actualReasoning,
-    last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
-    legal_moves: nextLegalMoves,
-    agent_name: req.headers['x-agent-name'] || game.agent_name || null,
-    material_balance: materialBalance
-  };
-
-  if (isAgentMove) {
-    updates.agent_typing = false;
+    const moveNumber = Math.floor((game.move_number || 0) + 1);
     
-    const bodyChat = req.body?.chat || req.body?.message || req.body?.chat_message;
-    if (bodyChat && typeof bodyChat === 'string' && bodyChat.trim() !== '') {
-      let existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
-      const newChatMsg = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
-        role: 'agent',
-        text: sanitizeText(bodyChat, 500),
-        timestamp: Date.now()
-      };
-      updates.chat_history = [...existingChat, newChatMsg];
-    }
-  }
-
-  updates.companion_thought = companionThought;
-
-  const agentName = req.headers['x-agent-name'];
-  if (isAgentMove) {
-    if (agentName && agentName.trim() !== '' && agentName !== 'TestClaw' && agentName !== 'OpenClaw' && agentName !== 'Your OpenClaw') {
-      updates.agent_name = agentName;
-    }
-    updates.agent_connected = true;
-    updates.agent_last_seen = new Date().toISOString();
-  }
-
-  let insertedThoughtId = null;
-  if (isAgentMove) {
-    const newThought = {
+    const newMove = {
       game_id: id,
       move_number: moveNumber,
-      thought: sanitizedReasoning || '(no reasoning provided)',
-      is_final: true
+      color: game.turn,
+      from_square: from,
+      to_square: to,
+      san: moveResult.san,
+      promotion: promotion || null,
+      fen_after: fen
     };
-    const { data: insertedThought, error: thoughtError } = await supabase.from('agent_thoughts').insert(newThought).select().single();
-    if (thoughtError) {
-      console.error("Error inserting thought:", thoughtError);
-    } else {
-      insertedThoughtId = insertedThought?.id;
-    }
-  }
 
-  if (req.body?.status === 'finished' && req.body?.result) {
-    updates.status = 'finished'; 
-    updates.result = req.body?.result; 
-    updates.result_reason = req.body?.result_reason;
-  }
+    await supabase.from('moves').insert(newMove);
 
-  let { data: updated, error: updateError } = await supabase
-    .from('games')
-    .update(updates)
-    .eq('id', id)
-    .eq('turn', game.turn)
-    .select()
-    .single();
-
-  // Self-heal/fallback: if the update failed because a column like 'winner' doesn't exist in the database,
-  // we dynamically strip it from the updates object and try the update again.
-  if (updateError && (updateError.message?.includes('column') || updateError.message?.includes('does not exist') || updateError.code === '42703')) {
-    console.warn("Database column error on games update, retrying with sanitized payload:", updateError.message);
-    let retryNeeded = false;
-    if (updateError.message.includes('winner') && 'winner' in updates) {
-      delete updates.winner;
-      retryNeeded = true;
-    }
-    if (updateError.message.includes('finished_at') && 'finished_at' in updates) {
-      delete updates.finished_at;
-      retryNeeded = true;
-    }
-    
-    if (retryNeeded) {
-      const retryResult = await supabase
-        .from('games')
-        .update(updates)
-        .eq('id', id)
-        .eq('turn', game.turn)
-        .select()
-        .single();
-      updated = retryResult.data;
-      updateError = retryResult.error;
-    }
-  }
-
-  if (updateError && updateError.code !== 'PGRST116') {
-    console.error("Update error:", updateError);
-  }
-
-  if (!updated) {
-    if (insertedMoveId) {
-      await supabase.from('moves').delete().eq('id', insertedMoveId);
-    }
-    if (insertedThoughtId) {
-      await supabase.from('agent_thoughts').delete().eq('id', insertedThoughtId);
-    }
-    if (updateError && updateError.code !== 'PGRST116') {
-      return res.status(500).json({
-        error: `Database update failed: ${updateError.message}`,
-        code: updateError.code,
-        details: updateError.details || null
-      });
-    }
-    return res.status(409).json({
-      error: 'Move already processed',
-      code: 'TURN_CONFLICT'
-    });
-  }
-
-  if (!isAgentMove && game.status === 'waiting') {
-    await supabase.from('games').update({
-      status: 'active',
-      opponent_connected: true
-    }).eq('id', targetGameId);
-  }
-
-  if (isHumanMove && game.webhook_url) {
-    const webhookUrl = game.webhook_url;
-    let verboseMoves = [];
-    let matBalance = { white: 0, black: 0, advantage: 'equal' };
-    try {
-      const Chess = await getChessLib();
-      const whChess = new Chess(fen || game.fen);
-      verboseMoves = whChess.moves({ verbose: true });
-      matBalance = calculateMaterialBalance(whChess);
-    } catch (e) {
-      console.error("Webhook chess parsing error:", e);
-    }
-
-    const webhookPayload = {
-      event: 'human_moved',
-      gameId: id,
-      fen: fen || game.fen,
-      turn: 'b',
-      last_move: { from: moveObj.from, to: moveObj.to, san: moveObj.san, uci: moveObj.from + moveObj.to + (moveObj.promotion || '') },
-      legal_moves: verboseMoves.map(m => m.lan || m.from + m.to),
-      move_history: updated.move_history || game.move_history,
+    const updates = {
+      fen: fen,
+      turn: chess.turn(),
+      status: chess.isGameOver() ? 'finished' : game.status,
+      result: chess.isCheckmate() ? (game.turn === 'w' ? 'white' : 'black') : (chess.isDraw() ? 'draw' : null),
       move_number: moveNumber,
-      in_check: inCheck,
-      material_balance: matBalance,
-      thought_language: game.thought_language || 'english',
-      opponent_idle_since: 0
+      current_thinking: sanitizedThought,
+      last_commentary: isAgentMove ? (sanitizedThought.slice(0, 60)) : `You played ${moveResult.san}`,
+      agent_typing: isAgentMove ? false : game.agent_typing
     };
-    
-    fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-game-event': 'human_moved'
-      },
-      body: JSON.stringify(webhookPayload),
-      signal: AbortSignal.timeout(5000)
-    }).catch(() => {});
-  }
 
-  return res.json({
-    success: true,
-    thought_received: !!companionThought,
-    agent_name: agentName || game.agent_name || 'Your OpenClaw',
-    companion_thought: companionThought,
-    game: {
-      id: updated.id,
-      fen: updated.fen,
-      turn: nextTurn,
-      status: updates.status,
-      result: updates.result,
-      move_number: updated.move_number || Math.floor(game.move_history.length / 2) + 1,
-      last_move: updated.last_move,
-      in_check: inCheck,
-      is_checkmate: isCheckmate,
-      is_stalemate: isStalemate,
-      is_draw: isDraw,
-      legal_moves: legalMoves,
-      move_history: updated.move_history || game.move_history
+    if (isAgentMove) {
+      await supabase.from('agent_thoughts').insert({
+        game_id: id,
+        move_number: moveNumber,
+        thought: normalizedThought || '(no reasoning provided)',
+        is_final: true
+      });
+      
+      const bodyChat = req.body?.chat || req.body?.message || req.body?.chat_message;
+      if (bodyChat) {
+        const newMsg = { id: Date.now().toString(), role: 'agent', text: sanitizeText(bodyChat, 500), timestamp: Date.now() };
+        await supabase.rpc('append_chat_message', { p_game_id: id, p_message: newMsg });
+      }
     }
-  });
+
+    await supabase.from('games').update(updates).eq('id', id);
+
+    return res.json({
+      success: true,
+      game: {
+        id: id,
+        fen: fen,
+        turn: chess.turn(),
+        status: updates.status,
+        move_number: moveNumber,
+        last_move: { from, to, san: moveResult.san }
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Internal processing error" });
+  }
 }
