@@ -57,6 +57,24 @@ const getCheckedKingSquare = (fen, turn) => {
   return null;
 };
 
+function getKingSquare(fen, colorChar) {
+  const parts = (fen || '').split(' ');
+  if (!parts[0]) return null;
+  const rows = parts[0].split('/');
+  const king = colorChar === 'w' ? 'K' : 'k';
+  for (let rank = 0; rank < 8; rank++) {
+    let file = 0;
+    if (!rows[rank]) continue;
+    for (const ch of rows[rank]) {
+      if (ch === king) return String.fromCharCode(97 + file) + (8 - rank);
+      const val = parseInt(ch);
+      if (isNaN(val)) file++;
+      else file += val;
+    }
+  }
+  return null;
+}
+
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
@@ -363,22 +381,6 @@ export default function Game() {
   const [boardLastMove, setBoardLastMove] = useState(null);
   const lastMoveFenRef = useRef(null);
   const movePendingRef = useRef(false);
-
-  const getKingSquare = (fen, color) => {
-    if (!fen) return null;
-    const pieceChar = color === 'w' ? 'K' : 'k';
-    const rows = fen.split(' ')[0].split('/');
-    for (let rank = 0; rank < 8; rank++) {
-      let file = 0;
-      for (const ch of rows[rank]) {
-        if (ch === pieceChar) {
-          return String.fromCharCode(97 + file) + (8 - rank);
-        }
-        file += isNaN(parseInt(ch)) ? 1 : parseInt(ch);
-      }
-    }
-    return null;
-  };
 
   const trueTurn = useMemo(() => {
     if (!boardFen || !boardFen.includes(' ')) return 'white';
