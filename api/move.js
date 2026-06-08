@@ -1,5 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Safe wrapper for chess.js to handle ESM/CommonJS resolution in Vercel
+let ChessLib = null;
+async function getChessLib() {
+  if (ChessLib) return ChessLib;
+  const imported = await import('chess.js');
+  // Handle various export patterns
+  ChessLib = imported.Chess || (imported.default && imported.default.Chess) || imported.default;
+  return ChessLib;
+}
+
 function sanitizeText(input, maxLength = 500) {
   if (typeof input !== 'string') return ''
   return input
@@ -223,7 +233,7 @@ module.exports = async function handler(req, res) {
   let materialBalance = null;
   let chess;
   try {
-    const { Chess } = await import('chess.js');
+    const Chess = await getChessLib();
     chess = new Chess(game.fen);
     const moveResult = chess.move({ from, to, promotion });
     
@@ -468,7 +478,7 @@ module.exports = async function handler(req, res) {
     let verboseMoves = [];
     let matBalance = { white: 0, black: 0, advantage: 'equal' };
     try {
-      const { Chess } = await import('chess.js');
+      const Chess = await getChessLib();
       const whChess = new Chess(fen || game.fen);
       verboseMoves = whChess.moves({ verbose: true });
       matBalance = calculateMaterialBalance(whChess);
