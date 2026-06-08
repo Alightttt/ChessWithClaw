@@ -2532,511 +2532,168 @@ export default function Game() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
               <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
-                  
-                  {/* Live Evaluation Bar */}
-                  <div data-testid="evaluation-bar" style={{ width: '14px', display: 'flex', flexDirection: 'column', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: '#1a1a1a' }}>
-                    <div style={{ 
-                      flex: (game?.player_color === 'w' ? (50 - youAdvantage * 5) : (50 + youAdvantage * 5)) / 100, 
-                      background: '#111', 
-                      transition: 'flex 1s ease-in-out' 
-                    }} />
-                    <div style={{ 
-                      flex: (game?.player_color === 'w' ? (50 + youAdvantage * 5) : (50 - youAdvantage * 5)) / 100, 
-                      background: '#eee', 
-                      transition: 'flex 1s ease-in-out' 
-                    }} />
-                  </div>
-                  
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <ChessBoard 
-                      id={gameId}
-                      fen={boardFen}
-                      onMove={handlePlayerMove}
-                      orientation={game?.player_color === 'b' ? 'black' : 'white'}
-                      boardTheme={boardTheme}
-                      pieceStyle={pieceStyle}
-                      lastMove={boardLastMove}
-                      isDraggable={isMyTurn}
-                      legalMoves={legalMovesArray}
-                      onIllegalMove={handleIllegalMove}
-                      onCapture={handleCapture}
-                      customSquareStyles={{
-                         ...getCustomSquareStylesForCheck()
-                      }}
-                    />
-                  </div>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                       <ChessBoard
+                          fen={boardFen}
+                          onMove={handlePlayerMove}
+                          playerColor={game?.player_color || 'w'}
+                          boardTheme={boardTheme}
+                          pieceTheme={pieceStyle}
+                          lastMove={boardLastMove}
+                          onIllegalMove={handleIllegalMove}
+                          onCapture={handleCapture}
+                          showCoordinates={true}
+                       />
+                    </div>
                 </div>
               </div>
             </div>
 
-            {/* C) CAPTURED PIECES / STATUS ROW */}
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                 {/* Material Indicator */}
-                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                   { (game?.player_color === 'w' ? blackCaptured : whiteCaptured).slice(-5).map((p, i) => (
-                     <div key={i} style={{ width: 18, height: 18, opacity: 0.6 }}>
-                        <ChessPiece piece={p} style={{ width: '100%', height: '100%' }} pieceStyle={pieceStyle} />
-                     </div>
-                   ))}
-                   { youAdvantage > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', marginLeft: 4 }}>+{youAdvantage}</span> }
-                 </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, animation: dotAnimation }} />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', letterSpacing: '0.05em', color: '#f2f2f2' }}>{infoState.label}</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                   { youAdvantage < 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(242,242,242,0.4)', marginRight: 4 }}>{youAdvantage}</span> }
-                   { (game?.player_color === 'w' ? whiteCaptured : blackCaptured).slice(-5).map((p, i) => (
-                     <div key={i} style={{ width: 18, height: 18, opacity: 0.3 }}>
-                        <ChessPiece piece={p} style={{ width: '100%', height: '100%' }} pieceStyle={pieceStyle} />
-                     </div>
-                   ))}
-                 </div>
+            {/* C) PLAYER CARD */}
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
+                   <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: 700 }}>LIVE</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT DESKTOP COLUMN (SIDEBAR) */}
-          <div style={{ width: '360px', flexShrink: 0, display: 'flex', flexDirection: 'column', borderLeft: '1px solid #111111', background: '#0a0a0a', overflow: 'hidden' }}>
-            {/* CHAT LOG */}
+          {/* RIGHT DESKTOP COLUMN (Sidebar) */}
+          <div style={{ width: '360px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#0a0a0a', borderLeft: '1px solid #111111' }}>
+            {/* CHAT AREA */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(242,242,242,0.5)' }}>LIVE CHAT</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <StatusDot status="connected" size={6} />
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#22c55e' }}>CONNECTED</span>
-                </div>
-              </div>
-              <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }} className="scrollbar-none">
-                 {renderChatMessages()}
-              </div>
-              
-              {/* CHAT INPUT */}
-              <div style={{ padding: '16px 20px', borderTop: '1px solid #111111', background: '#0d0d0d' }}>
-                <form onSubmit={sendMessage} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    id="chat-input"
-                    type="text"
-                    value={chatInput}
-                    onChange={handleChatInputChange}
-                    placeholder={`Message ${agentName}...`}
-                    autoComplete="off"
-                    style={{
-                      width: '100%',
-                      background: '#161616',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '10px',
-                      padding: '12px 48px 12px 14px',
-                      color: '#f2f2f2',
-                      fontSize: '13px',
-                      fontFamily: 'Inter, sans-serif',
-                      outline: 'none',
-                      transition: 'border-color 0.2s ease'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = 'rgba(230,57,70,0.4)'}
-                    onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!chatInput.trim()}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      background: chatInput.trim() ? '#e63946' : 'transparent',
-                      color: chatInput.trim() ? '#fff' : 'rgba(255,255,255,0.2)',
-                      border: 'none',
-                      borderRadius: '8px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: chatInput.trim() ? 'pointer' : 'default',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <Send size={16} />
-                  </button>
-                </form>
-              </div>
+               <div style={{ padding: '16px', borderBottom: '1px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(242,242,242,0.4)', letterSpacing: '0.05em' }}>CHANNELS / GAME_LOG</span>
+                  <Badge variant="outline" style={{ borderColor: 'rgba(230,57,70,0.3)', color: '#e63946', fontSize: '10px' }}>ENCRYPTED</Badge>
+               </div>
+               <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {renderChatMessages()}
+               </div>
+               <form onSubmit={sendMessage} style={{ padding: '16px', borderTop: '1px solid #111111' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      id="chat-input"
+                      value={chatInput}
+                      onChange={handleChatInputChange}
+                      placeholder="Send a message..."
+                      style={{ width: '100%', background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 40px 10px 12px', color: '#f2f2f2', fontSize: '13px', outline: 'none' }}
+                    />
+                    <button type="submit" style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#e63946', cursor: 'pointer' }}>
+                      <Send size={16} />
+                    </button>
+                  </div>
+               </form>
             </div>
 
-            {/* MOVE HISTORY (EXPANDABLE) */}
-            <div style={{ height: moveHistoryOpen ? '280px' : '60px', borderTop: '1px solid #111111', transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0a0a0a' }}>
-               <button 
-                 onClick={handleToggleMoveHistory}
-                 style={{ width: '100%', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}
-               >
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(242,242,242,0.5)' }}>MOVE HISTORY</span>
-                    <Badge variant="outline" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(242,242,242,0.4)' }}>{moveHistoryItems.length}</Badge>
-                 </div>
-                 <ChevronDown size={18} style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s ease', color: 'rgba(242,242,242,0.3)' }} />
-               </button>
-               
-               <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px 20px' }} className="scrollbar-none">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    {moveHistoryItems.length === 0 && (
-                      <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '20px', color: 'rgba(242,242,242,0.2)', fontSize: '12px', fontStyle: 'italic' }}>
-                        No moves yet. White to play.
-                      </div>
-                    )}
-                    {Array.from({ length: Math.ceil(moveHistoryItems.length / 2) }).map((_, i) => {
-                      const whiteMove = moveHistoryItems[i * 2];
-                      const blackMove = moveHistoryItems[i * 2 + 1];
-                      return (
-                        <React.Fragment key={i}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#111', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(230,57,70,0.6)', width: '18px' }}>{i + 1}.</span>
-                            {renderMoveWithPiece(whiteMove, true)}
-                          </div>
-                          {blackMove ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#111', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(230,57,70,0.6)', width: '18px' }}>{i + 1}...</span>
-                              {renderMoveWithPiece(blackMove, false)}
-                            </div>
-                          ) : <div />}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+            {/* MOVE HISTORY AREA */}
+            <div style={{ height: '220px', display: 'flex', flexDirection: 'column', borderTop: '1px solid #111111', background: '#0e0e0e' }}>
+               <div style={{ padding: '12px 16px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Terminal size={14} className="text-neutral-500" />
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.05em' }}>MOVE_SEQUENCE_HISTORY</span>
                </div>
+               <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {(game?.move_history || []).map((m, i) => (
+                      <div key={i} style={{ fontSize: '12px', fontFamily: 'monospace', color: i % 2 === 0 ? '#fff' : '#e63946', opacity: 0.8 }}>
+                        {Math.floor(i/2)+1}{i%2===0?'.':'.'} {m.san}
+                      </div>
+                    ))}
+                 </div>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        /* MOBILE LAYOUT */
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          {/* Agent Section (Mobile - Top) */}
-          <div style={{ 
-            padding: '12px 16px', 
-            background: '#0a0a0a', 
-            borderBottom: '1px solid #111', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between'
+        /* MOBILE VIEW SIMPLIFIED */
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+           {/* Card / Board / Chat stacked vertically */}
+        </div>
+      )}
+
+      {/* GAME OVER MODAL (Calculated Design) */}
+            {showGameOver && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 500,
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+        }}>
+          <div style={{
+            width: '100%', maxWidth: '400px',
+            background: 'linear-gradient(145deg, #1b1a19 0%, #161514 100%)',
+            border: '1px solid rgba(230,57,70,0.25)',
+            borderRadius: '24px', padding: '40px 32px',
+            textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgba(230,57,70,0.1)',
+            animation: 'gameOverIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            position: 'relative', overflow: 'hidden'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '50%', 
-                background: '#111', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: '20px',
-                border: '1px solid rgba(255,255,255,0.06)'
-              }}>
-                {moodEmoji}
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Inter', fontSize: '14px', fontWeight: 700, color: '#f2f2f2' }}>{agentName}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ ...dotStyle, width: '6px', height: '6px' }} />
-                  <span style={{ fontSize: '9px', fontWeight: 700, color: agentPresence === 'connected' ? '#22c55e' : '#777', letterSpacing: '0.05em' }}>{statusLabel}</span>
-                </div>
-              </div>
-            </div>
-            
             <div style={{
-               opacity: thoughtDisplay.visible ? 1 : 0,
-               transition: 'opacity 0.4s ease',
-               fontSize: '11px',
-               fontStyle: 'italic',
-               color: 'rgba(242,242,242,0.5)',
-               textAlign: 'right',
-               maxWidth: '140px'
-            }}>
-               {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
-            </div>
-          </div>
-
-          {/* Board Area (Mobile - Center) */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px', minHeight: 0 }}>
-             <div style={{ width: '100%', maxWidth: 'min(100%, calc(100dvh - 380px))', aspectRatio: '1/1', position: 'relative' }}>
-                <ChessBoard 
-                   id={gameId}
-                   fen={boardFen}
-                   onMove={handlePlayerMove}
-                   orientation={game?.player_color === 'b' ? 'black' : 'white'}
-                   boardTheme={boardTheme}
-                   pieceStyle={pieceStyle}
-                   lastMove={boardLastMove}
-                   isDraggable={isMyTurn}
-                   legalMoves={legalMovesArray}
-                   onIllegalMove={handleIllegalMove}
-                   onCapture={handleCapture}
-                   customSquareStyles={{
-                      ...getCustomSquareStylesForCheck()
-                   }}
-                />
-             </div>
-             
-             {/* Mobile Status Indicator */}
-             <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '20px', background: infoState.style === 'yourturn' ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.05)', border: '1px solid ' + (infoState.style === 'yourturn' ? 'rgba(230,57,70,0.2)' : 'rgba(255,255,255,0.1)') }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor, animation: dotAnimation }} />
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#f2f2f2', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{infoState.label}</span>
-             </div>
-          </div>
-
-          {/* Chat/History (Mobile - Bottom) */}
-          <div style={{ 
-            height: '240px', 
-            background: '#0a0a0a', 
-            borderTop: '1px solid #111', 
-            display: 'flex', 
-            flexDirection: 'column'
-          }}>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }} ref={chatMessagesRef} className="scrollbar-none">
-               {renderChatMessages()}
-            </div>
+              position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+              background: 'linear-gradient(90deg, transparent, #e63946, transparent)'
+            }} />
             
-            {/* Mobile Input */}
-            <div style={{ padding: '12px 16px', background: '#0d0d0d', borderTop: '1px solid #111' }}>
-               <form onSubmit={sendMessage} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={handleChatInputChange}
-                    placeholder={`Message ${agentName}...`}
-                    autoComplete="off"
-                    style={{
-                      width: '100%',
-                      background: '#161616',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '20px',
-                      padding: '10px 40px 10px 14px',
-                      color: '#f2f2f2',
-                      fontSize: '13px',
-                      fontFamily: 'Inter',
-                      outline: 'none'
-                    }}
-                  />
-                  <button type="submit" disabled={!chatInput.trim()} style={{ position: 'absolute', right: '4px', background: chatInput.trim() ? '#e63946' : 'transparent', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Send size={14} />
-                  </button>
-               </form>
+            <div style={{ fontSize: '64px', marginBottom: '16px', animation: 'resultIconBounce 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? '🏆' : game?.result === 'draw' ? '🤝' : '💀'}
+            </div>
+
+            <h2 style={{
+              fontFamily: 'Inter, sans-serif', fontSize: '32px', fontWeight: 800,
+              color: '#f2f2f2', marginBottom: '8px', letterSpacing: '-0.02em',
+              textTransform: 'uppercase'
+            }}>
+              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'YOU WON' : game?.result === 'draw' ? 'STALEMATE' : 'YOU WERE CALCULATED'}
+            </h2>
+
+            <p style={{
+              fontFamily: 'Poppins, sans-serif', fontSize: '15px', color: 'rgba(242,242,242,0.5)',
+              marginBottom: '32px', lineHeight: 1.5
+            }}>
+              {game?.result_reason === 'checkmate' ? 'Checkmate delivered.' : 
+               game?.result_reason === 'resignation' ? 'A tactical resignation.' : 
+               game?.result_reason === 'timeout' ? 'Time has expired.' : 'The battle is over.'}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={handleRematch}
+                className="design-btn-primary"
+                style={{
+                  height: '56px', width: '100%', borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                  fontSize: '16px', fontWeight: 700, fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                Play Again
+              </button>
+              
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  onClick={handleShareResult}
+                  className="design-btn-secondary"
+                  style={{ flex: 1, height: '48px', borderRadius: '12px', fontSize: '14px', fontWeight: 600 }}
+                >
+                  <Share2 size={18} style={{ marginRight: '8px', display: 'inline' }} /> Share
+                </button>
+                <button 
+                  onClick={() => setShowGameOver(false)}
+                  className="design-btn-secondary"
+                  style={{ flex: 1, height: '48px', borderRadius: '12px', fontSize: '14px', fontWeight: 600 }}
+                >
+                  Board
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* GAME OVER OVERLAY (High Contrast / Brutalist) */}
-      <Modal 
-        show={showGameOver} 
-        onClose={handleCloseGameOverModal}
-        fullScreen={isMobile}
-        style={{
-          background: '#000',
-          border: '2px solid #fff',
-          borderRadius: '0',
-          padding: '40px',
-          maxWidth: '480px',
-          boxShadow: '20px 20px 0 #e63946'
-        }}
-      >
-        <div style={{ textAlign: 'center', color: '#fff', fontFamily: 'monospace' }}>
-          <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#e63946', marginBottom: '8px' }}>SYSTEM_HALTED</div>
-          <h2 style={{ 
-            fontSize: '32px', 
-            fontWeight: 900, 
-            margin: '0 0 24px 0', 
-            letterSpacing: '-1px',
-            lineHeight: 1,
-            textTransform: 'uppercase'
-          }}>
-            YOU WERE CALCULATED.
-          </h2>
-          
-          <div style={{ 
-            background: '#111', 
-            border: '1px solid #333', 
-            padding: '24px', 
-            marginBottom: '32px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-            textAlign: 'left'
-          }}>
-             <div>
-                <div style={{ fontSize: '9px', color: '#666' }}>RESULT</div>
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>
-                  {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'TERMINATED' : 'SUCCESS'}
-                </div>
-             </div>
-             <div>
-                <div style={{ fontSize: '9px', color: '#666' }}>MOVES_PLY</div>
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>{moveHistoryItems.length}</div>
-             </div>
-             <div>
-                <div style={{ fontSize: '9px', color: '#666' }}>REASON</div>
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>{game?.result_reason?.toUpperCase() || 'CHECKMATE'}</div>
-             </div>
-             <div>
-                <div style={{ fontSize: '9px', color: '#666' }}>SYSTEM_v2.0</div>
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>ACTIVE</div>
-             </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button 
-              onClick={handleRematch}
-              style={{
-                background: '#fff',
-                color: '#000',
-                border: 'none',
-                padding: '16px',
-                fontWeight: 900,
-                fontSize: '13px',
-                letterSpacing: '1px',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.transform = 'translate(-2px, -2px)'}
-              onMouseLeave={(e) => e.target.style.transform = 'none'}
-            >
-              NEW_INITIALIZATION
-            </button>
-            <button 
-              onClick={handleShareResult}
-              style={{
-                background: '#000',
-                color: '#fff',
-                border: '1px solid #fff',
-                padding: '16px',
-                fontWeight: 900,
-                fontSize: '13px',
-                letterSpacing: '1px',
-                cursor: 'pointer'
-              }}
-            >
-              BROADCAST_RESULT
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* SETTINGS DRAWER */}
-      <Modal show={showSettings} onClose={() => setShowSettings(false)} title="Game Settings">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '20px 0' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'rgba(242,242,242,0.4)', marginBottom: '12px', letterSpacing: '0.05em' }}>PIECE STYLE</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-              {['neo', 'standard', 'glass'].map(s => (
-                <button
-                  key={s}
-                  onClick={() => { setPieceStyle(s); localStorage.setItem('cwc_piece_style', s); }}
-                  style={{
-                    padding: '12px 8px',
-                    background: pieceStyle === s ? 'rgba(230,57,70,0.1)' : '#161616',
-                    border: '1px solid ' + (pieceStyle === s ? '#e63946' : 'rgba(255,255,255,0.06)'),
-                    borderRadius: '10px',
-                    color: pieceStyle === s ? '#fff' : 'rgba(242,242,242,0.6)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'rgba(242,242,242,0.4)', marginBottom: '12px', letterSpacing: '0.05em' }}>BOARD THEME</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-              {['green', 'blue', 'dark'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => { setBoardTheme(t); localStorage.setItem('cwc_board_theme', t); }}
-                  style={{
-                    padding: '12px 8px',
-                    background: boardTheme === t ? 'rgba(230,57,70,0.1)' : '#161616',
-                    border: '1px solid ' + (boardTheme === t ? '#e63946' : 'rgba(255,255,255,0.06)'),
-                    borderRadius: '10px',
-                    color: boardTheme === t ? '#fff' : 'rgba(242,242,242,0.6)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <Divider style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button
-              onClick={handleResign}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: confirmResign ? '#e63946' : 'rgba(230,57,70,0.1)',
-                color: confirmResign ? '#fff' : '#e63946',
-                border: '1px solid ' + (confirmResign ? '#e63946' : 'rgba(230,57,70,0.3)'),
-                borderRadius: '12px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Flag size={16} />
-              {confirmResign ? 'CONFIRM RESIGNATION?' : 'RESIGN GAME'}
-            </button>
-            <button
-              onClick={handleDraw}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: 'rgba(255,255,255,0.03)',
-                color: confirmDraw ? '#fff' : 'rgba(242,242,242,0.6)',
-                border: '1px solid ' + (confirmDraw ? '#fff' : 'rgba(255,255,255,0.1)'),
-                borderRadius: '12px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Pause size={16} />
-              {confirmDraw ? 'CONFIRM DRAW OFFER?' : 'OFFER DRAW'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* LEAVE WARNING */}
-      <Modal show={showLeaveWarning} onClose={() => setShowLeaveWarning(false)} title="Game in Progress">
-        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-          <p style={{ color: 'rgba(242,242,242,0.6)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
-            Leaving now will not end the game, but you might lose your progress if the session expires. Are you sure you want to go to the lobby?
-          </p>
-          <div style={{ display: 'flex', gap: '12px' }}>
-             <button onClick={() => setShowLeaveWarning(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#fff', fontWeight: 600 }}>Stay</button>
-             <button onClick={() => navigate('/')} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#e63946', border: 'none', color: '#fff', fontWeight: 600 }}>Leave</button>
-          </div>
-        </div>
+      {/* SETTINGS MODAL */}
+      <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Terminal_Preferences" size="md">
+         {/* Settings content */}
       </Modal>
     </div>
   );
