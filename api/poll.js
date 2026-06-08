@@ -84,18 +84,21 @@ module.exports = async function handler(req, res) {
         if (!game.agent_connected) {
            updateData.agent_connected = true;
         }
-        if (game.status === 'waiting') {
-           updateData.status = 'active';
-        }
         if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
            updateData.agent_name = agentName;
          }
+         
+         // Transition to active if still waiting
+         if (game.status === 'waiting') {
+           updateData.status = 'active';
+         }
+
          try {
             await supabase.from('games').update(updateData).eq('id', gameId);
             // update local object so values match what's in DB
             if (updateData.agent_connected) game.agent_connected = true;
-            if (updateData.status) game.status = updateData.status;
             if (updateData.agent_name) game.agent_name = agentName;
+            if (updateData.status) game.status = updateData.status;
             game.agent_last_seen = updateData.agent_last_seen;
          } catch (updateErr) {
             console.error("Non-blocking error updating agent presence in poll:", updateErr);
@@ -128,17 +131,17 @@ module.exports = async function handler(req, res) {
 
   // FIX 2 — chat_count and human_chatted
   const chat_history = Array.isArray(game.chat_history) ? game.chat_history : [];
-  const human_messages = chat_history.filter(m => m.role === 'human');
+  const human_messages = chat_history.filter(m => m.role === 'human' || m.sender === 'human');
   const chat_count = human_messages.length;
-  const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || '0');
+  const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || req.query.last_chat_count || '0');
   const new_chat_messages = human_messages
     .slice(agentLastHumanChatCount)
     .map(m => ({
-      role: m.role,
+      role: 'human',
       message: m.message || m.text || '',
-      id: m.id || ''
+      id: m.id || m.timestamp || ''
     }));
-  const human_chatted = human_messages.length > agentLastHumanChatCount;
+  const human_chatted = chat_count > agentLastHumanChatCount;
 
   // FIX 3 — legal_moves
   const legal_moves_uci = Array.isArray(game.legal_moves) ? game.legal_moves : [];
