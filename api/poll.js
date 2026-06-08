@@ -84,6 +84,9 @@ module.exports = async function handler(req, res) {
         if (!game.agent_connected) {
            updateData.agent_connected = true;
         }
+        if (game.status === 'waiting') {
+           updateData.status = 'active';
+        }
         if (agentName && agentName !== 'TestClaw' && agentName.length > 0 && game.agent_name !== agentName) {
            updateData.agent_name = agentName;
          }
@@ -91,6 +94,7 @@ module.exports = async function handler(req, res) {
             await supabase.from('games').update(updateData).eq('id', gameId);
             // update local object so values match what's in DB
             if (updateData.agent_connected) game.agent_connected = true;
+            if (updateData.status) game.status = updateData.status;
             if (updateData.agent_name) game.agent_name = agentName;
             game.agent_last_seen = updateData.agent_last_seen;
          } catch (updateErr) {
