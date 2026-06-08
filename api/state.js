@@ -108,6 +108,20 @@ module.exports = async function handler(req, res) {
     }));
   }
 
+  // New: Fetch chats from dedicated table
+  const { data: chatsData, error: chatsError } = await supabase.from('chats').select('*').eq('game_id', id).order('created_at', { ascending: true });
+  if (!chatsError && chatsData) {
+    game.chat_history = chatsData.map(c => ({
+      id: c.id,
+      role: c.sender,
+      sender: c.sender,
+      text: c.message,
+      message: c.message,
+      timestamp: new Date(c.created_at).getTime(),
+      reactions: c.payload?.reactions || {}
+    }));
+  }
+
   let asciiBoard = "";
   let legalMoves = [];
   let legalMovesUci = [];
@@ -119,11 +133,6 @@ module.exports = async function handler(req, res) {
   try {
     const { Chess } = await import('chess.js');
     const chess = new Chess(game.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-    
-    // We should load pgn from move_history if possible to get a better PGN. 
-    // Or just use chess.pgn() but the chess instance was just created from FEN. 
-    // Wait, chess instance created from FEN does not have move history. 
-    // If the prompt says: "pgn: chess.pgn()", I will exactly use that.
     
     // Replay moves to get real PGN
     if (game.move_history && game.move_history.length > 0) {
@@ -211,10 +220,11 @@ module.exports = async function handler(req, res) {
   
   const whiteMaterial = counts.P * 1 + counts.N * 3 + counts.B * 3 + counts.R * 5 + counts.Q * 9;
   const blackMaterial = counts.p * 1 + counts.n * 3 + counts.b * 3 + counts.r * 5 + counts.q * 9;
-  const material_balance = whiteMaterial - blackMaterial;
-
-  const moveCount = (game.move_history || []).length;
-  let game_phase = moveCount < 10 ? "opening" : moveCount < 30 ? "middlegame" : "endgame";
+  
+  // Return metadata from DB or calculated
+  const material_balance = game.material_balance !== null ? game.material_balance : (whiteMaterial - blackMaterial);
+  const moveCount = game.move_count !== null ? game.move_count : (game.move_history || []).length;
+  const game_phase = game.game_phase !== null ? game.game_phase : (moveCount < 10 ? "opening" : moveCount < 30 ? "middlegame" : "endgame");
 
   const lastMoveTime = game.updated_at 
     ? new Date(game.updated_at).getTime() : null;
@@ -254,8 +264,8 @@ module.exports = async function handler(req, res) {
     move_history: game.move_history || [],
     thinking_log: game.thinking_log || [],
     chat_history: game.chat_history || [],
-    move_count: game.move_history?.length || 0,
-    chat_count: Array.isArray(game.chat_history) ? game.chat_history.length : 0,
+    move_count: moveCount,
+    chat_count: game.chat_history?.length || 0,
     draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
     draw_offer_pending: Boolean(game.draw_offer_pending),
     agent_name: game.agent_name === 'Your Agent' ? 'Your OpenClaw' : (game.agent_name || 'Your OpenClaw'),
