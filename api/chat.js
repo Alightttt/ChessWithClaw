@@ -38,24 +38,29 @@ module.exports = async function handler(req, res) {
 
   const supabase = createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const agentToken = req.headers['x-agent-token'] || token || '';
-  const agentTypingHeader = req.headers['x-agent-typing'];
 
   // Handle Action: react or typing
   if (action === 'react' || action === 'typing') {
-    const { data: gameRow, error: fetchErr } = await supabase.from('games').select('chat_history, agent_token').eq('id', gameId).single();
+    const { data: gameRow, error: fetchErr } = await supabase.from('games').select('agent_token').eq('id', gameId).single();
     if (fetchErr || !gameRow) return res.status(404).json({ error: 'Game not found' });
     if (sender === 'agent' && agentToken !== gameRow.agent_token) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'react') {
-      const history = gameRow.chat_history || [];
-      const updated = history.map(msg => {
-        if (msg.id !== messageId && String(msg.timestamp) !== String(messageId)) return msg;
-        const reactions = msg.reactions || {};
-        const existing = reactions[emoji] || [];
-        const alreadyReacted = existing.includes(sender);
-        return { ...msg, reactions: { ...reactions, [emoji]: alreadyReacted ? existing.filter(r => r !== sender) : [...existing, sender] } };
-      });
-      await supabase.from('games').update({ chat_history: updated }).eq('id', gameId);
+      // NEW: Reactions now target a specific row in the 'chats' table
+      const { data: chatMsg, error: chatErr } = await supabase.from('chats').select('payload').eq('id', messageId).single();
+      if (chatErr || !chatMsg) return res.status(404).json({ error: 'Message not found' });
+      
+      const payload = chatMsg.payload || {};
+      const reactions = payload.reactions || {};
+      const existing = reactions[emoji] || [];
+      const alreadyReacted = existing.includes(sender);
+      
+      const updatedReactions = { 
+        ...reactions, 
+        [emoji]: alreadyReacted ? existing.filter(r => r !== sender) : [...existing, sender] 
+      };
+      
+      await supabase.from('chats').update({ payload: { ...payload, reactions: updatedReactions } }).eq('id', messageId);
       return res.status(200).json({ success: true, action: 'react' });
     }
 
@@ -78,8 +83,29 @@ module.exports = async function handler(req, res) {
   if (sender === 'human' && game.status === 'finished') return res.status(403).json({ error: 'Game is finished' });
   if (sender === 'agent' && agentToken !== game.agent_token) return res.status(403).json({ error: 'Invalid token' });
 
-  const newMsg = { id: msgId, role: sender, text: text, timestamp: Date.now() };
-  let enrichedPayload = null;
+  // NEW: Insert into 'chats' table instead of RPC to games
+  const { error: insertError } = await supabase.from('chats').insert({
+    id: msgId,
+    game_id: gameId,
+    sender: sender,
+    message: sanitizedText,
+    payload: { reasoning: sanitizedReasoning }
+  });
+
+  if (insertError) {
+    console.error('Insert Error:', insertError);
+    return res.status(500).json({ error: 'Failed to append message' });
+  }
+
+  // Still update games for agent status/thinking tracking
+  if (sender === 'agent') {
+    await supabase.from('games').update({
+      current_thinking: sanitizedReasoning,
+      agent_typing: false,
+      agent_connected: true,
+      agent_last_seen: new Date().toISOString()
+    }).eq('id', gameId);
+  }
 
   if (sender === 'human') {
     const payload = {
@@ -90,22 +116,8 @@ module.exports = async function handler(req, res) {
       whose_turn: game.turn === (game.player_color || 'w') ? 'human' : 'agent',
       instruction: `Your user messaged you. Reply in 1-2 sentences in ${game.thought_language || 'english'}.`
     };
-    enrichedPayload = await notifyAgent(game, payload, supabase);
+    await notifyAgent(game, payload, supabase);
   }
 
-  const rpcArgs = {
-    p_game_id: gameId,
-    p_message: newMsg,
-    p_pending_event: enrichedPayload,
-    p_agent_thinking: sender === 'agent' ? sanitizedReasoning : null,
-    p_agent_typing: (sender === 'agent' && agentTypingHeader === 'false') ? false : null
-  };
-
-  const { error: rpcError } = await supabase.rpc('append_chat_message', rpcArgs);
-  if (rpcError) {
-    console.error('RPC Error:', rpcError);
-    return res.status(500).json({ error: 'Failed to append message' });
-  }
-
-  return res.status(200).json({ success: true, message: newMsg });
+  return res.status(200).json({ success: true, message: { id: msgId, role: sender, text: text, timestamp: Date.now() } });
 }
