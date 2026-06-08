@@ -221,8 +221,12 @@ module.exports = async function handler(req, res) {
       
       const bodyChat = req.body?.chat || req.body?.message || req.body?.chat_message;
       if (bodyChat) {
-        const newMsg = { id: Date.now().toString(), role: 'agent', text: sanitizeText(bodyChat, 500), timestamp: Date.now() };
-        await supabase.rpc('append_chat_message', { p_game_id: id, p_message: newMsg });
+        // NEW: Insert into 'chats' table instead of RPC to games
+        await supabase.from('chats').insert({
+          game_id: id,
+          sender: 'agent',
+          message: sanitizeText(bodyChat, 500)
+        });
       }
     }
 
