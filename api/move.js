@@ -196,12 +196,16 @@ module.exports = async function handler(req, res) {
 
     await supabase.from('moves').insert(newMove);
 
+    const material = calculateMaterialBalance(chess);
     const updates = {
       fen: fen,
       turn: chess.turn(),
       status: chess.isGameOver() ? 'finished' : game.status,
       result: chess.isCheckmate() ? (game.turn === 'w' ? 'white' : 'black') : (chess.isDraw() ? 'draw' : null),
       move_number: moveNumber,
+      move_count: moveNumber,
+      game_phase: moveNumber < 10 ? 'Opening' : moveNumber < 25 ? 'Middlegame' : 'Endgame',
+      material_balance: material.white - material.black,
       current_thinking: sanitizedThought,
       last_commentary: isAgentMove ? (sanitizedThought.slice(0, 60)) : `You played ${moveResult.san}`,
       agent_typing: isAgentMove ? false : game.agent_typing
