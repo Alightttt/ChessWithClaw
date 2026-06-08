@@ -68,12 +68,19 @@ module.exports = async function handler(req, res) {
   const isAuthorizedAgent = agentToken && agentToken === game.agent_token;
 
   if (isAuthorizedAgent) {
+    const updateData = { 
+      agent_connected: true, 
+      agent_last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Transition to active if still waiting
+    if (game.status === 'waiting') {
+      updateData.status = 'active';
+    }
+
     await supabase.from('games')
-      .update({ 
-        agent_connected: true, 
-        agent_last_seen: new Date().toISOString(),
-        updated_at: new Date().toISOString() 
-      })
+      .update(updateData)
       .eq('id', id);
   } else if (agentToken && agentToken !== game.agent_token) {
     return res.status(403).json({ error: 'Forbidden: Invalid token provided.', code: 'INVALID_AGENT_TOKEN' });
