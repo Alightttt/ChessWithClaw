@@ -16,6 +16,7 @@ ALTER TABLE public.games ADD COLUMN IF NOT EXISTS thought_language TEXT DEFAULT 
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS companion_thought TEXT DEFAULT '';
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS companion_thought_at timestamptz;
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS agent_typing BOOLEAN DEFAULT false;
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS human_typing BOOLEAN DEFAULT false;
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS finished_at timestamptz;
 ALTER TABLE public.games ADD COLUMN IF NOT EXISTS last_commentary TEXT;
 

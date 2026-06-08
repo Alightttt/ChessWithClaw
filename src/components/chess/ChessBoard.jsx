@@ -3,12 +3,17 @@ import { Chessboard } from 'react-chessboard';
 import { PIECE_COMPONENTS } from './ChessPieces';
 
 const BOARD_THEMES = {
-  green:  { light: '#EEEED2', dark: '#769656' },
-  brown:  { light: '#F0D9B5', dark: '#B58863' },
-  slate:  { light: '#DEE3E6', dark: '#4C7B9B' },
-  navy:   { light: '#C8D8E8', dark: '#5B84A8' },
-  red:    { light: '#EDD5B3', dark: '#C45A41' },
-  forest: { light: '#F5F5F0', dark: '#2E6B34' },
+  green:      { light: '#EEEED2', dark: '#769656' },
+  brown:      { light: '#F0D9B5', dark: '#B58863' },
+  slate:      { light: '#DEE3E6', dark: '#4C7B9B' },
+  navy:       { light: '#C8D8E8', dark: '#5B84A8' },
+  red:        { light: '#EDD5B3', dark: '#C45A41' },
+  forest:     { light: '#F5F5F0', dark: '#2E6B34' },
+  icy_sea:    { light: '#ECECD7', dark: '#8CA2AC' },
+  blue:       { light: '#ECECD7', dark: '#4B7399' },
+  tournament: { light: '#ECECD7', dark: '#4B7399' },
+  dark_green: { light: '#EEEED2', dark: '#2E6B34' },
+  'dark green': { light: '#EEEED2', dark: '#2E6B34' },
 };
 
 const PIECE_SETS = {

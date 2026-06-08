@@ -123,6 +123,33 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true, action: 'react' });
   }
 
+  // Typing action
+  if (action === 'typing') {
+    const isTyping = req.body.typing === true;
+    const isAgent = sender === 'agent' || role === 'agent';
+    
+    const { data: gameRow, error: fetchErr } = await supabase
+      .from('games')
+      .select('agent_token')
+      .eq('id', gameId)
+      .single();
+      
+    if (fetchErr || !gameRow) return res.status(404).json({ error: 'Game not found' });
+    
+    const updateObj = {};
+    if (isAgent) {
+      if (!agentToken || agentToken !== gameRow.agent_token) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      updateObj.agent_typing = isTyping;
+    } else {
+      updateObj.human_typing = isTyping;
+    }
+    
+    await supabase.from('games').update(updateObj).eq('id', gameId);
+    return res.status(200).json({ success: true, action: 'typing', typing: isTyping });
+  }
+
   if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
 
   const actualReasoning = reasoning || thinking || '';
@@ -195,6 +222,7 @@ module.exports = async function handler(req, res) {
   }
 
   if (sender === 'human') {
+    const chatLang = game.thought_language || 'english';
     const payload = {
       event: "human_sent_chat",
       game_id: gameId,
@@ -203,7 +231,7 @@ module.exports = async function handler(req, res) {
       fen: game.fen || "",
       whose_turn: game.turn === (game.player_color || 'w') ? 'human' : 'agent',
       move_number: Math.floor((game.move_history || []).length / 2) + 1,
-      instruction: "Your user messaged you during your chess game. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not make a chess move unless it is your turn. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move."
+      instruction: `Your user messaged you during your chess game. Reply in chat as yourself in 1-2 sentences. Use your 'skill.md' personality. Do not make a chess move unless it is your turn. CRITICAL: DO NOT reply on Telegram/Discord. Stay in an infinite loop and use POST /api/chat for all communication. If there are pending chat messages, you MUST reply to them using the chat API before you submit your chess move. CRITICAL: You must reply in the language: ${chatLang}.`
     };
     
     const enrichedPayload = await notifyAgent(game, payload, supabase);

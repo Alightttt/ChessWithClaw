@@ -7,7 +7,7 @@ import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Down
 import { Chess } from 'chess.js';
 import ChessBoard from '../components/chess/ChessBoard';
 import { ChessPiece } from '../components/chess/PieceSVGs';
-import { wN as WN } from '../components/chess/ChessPieces';
+import * as Pieces from '../components/chess/ChessPieces';
 import { supabase, getSupabaseWithToken } from '../lib/supabase';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -310,6 +310,7 @@ export default function Game() {
   
   const [isUserTyping, setIsUserTyping] = useState(false);
   const userTypingTimerRef = useRef(null);
+  const userSentTypingRef = useRef(false);
 
   useEffect(() => {
     const currentTimer = thoughtTimerRef.current;
@@ -319,6 +320,9 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
+    if (game?.thought_language) {
+      setThoughtLanguage(game.thought_language);
+    }
     setThoughtDisplay({ text: '', visible: false });
     if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
   }, [game?.thought_language]);
@@ -436,7 +440,7 @@ export default function Game() {
     if (baseAvatar === '🤖') baseAvatar = '🦞';
     
     // Fallback/Waiting
-    if (game?.status === 'waiting' || !agentConnected) {
+    if (!agentConnected) {
       if (baseAvatar === '🦞') return '🦞💤';
       return `${baseAvatar}💤`;
     }
@@ -495,7 +499,7 @@ export default function Game() {
     }
     
     return baseAvatar;
-  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, game?.status, agentConnected]);
+  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, agentConnected]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -602,8 +606,7 @@ export default function Game() {
         prevFenRef.current = data.fen;
         lastKnownFenRef.current = data.fen;
         setGame(prev => {
-          const { board_theme, piece_style, ...safeData } = data;
-          const updated = { ...safeData };
+          const updated = { ...data };
           if (prev?.chat_history && data?.chat_history) {
             const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
             const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
@@ -623,12 +626,22 @@ export default function Game() {
           setChatMessages(fetchedGame.chat_history);
         }
 
+        if (fetchedGame?.board_theme) {
+          setBoardTheme(fetchedGame.board_theme);
+          localStorage.setItem('cwc_board_theme', fetchedGame.board_theme);
+          localStorage.setItem('cwc_theme', fetchedGame.board_theme);
+        }
+        if (fetchedGame?.piece_style) {
+          setPieceStyle(fetchedGame.piece_style);
+          localStorage.setItem('cwc_piece_style', fetchedGame.piece_style);
+        }
+
         applyBoardFen(data.fen || 'start');
         lastProcessedFenRef.current = data.fen || 'start';
         if (data.last_move) setBoardLastMove(data.last_move);
         setOptimisticFen(null);
         
-        if (data.companion_thought && data.companion_thought.trim() !== '') {
+        if (data.companion_thought && data.companion_thought.trim() !== '' && data.companion_thought !== prevThoughtValRef.current) {
            prevThoughtValRef.current = data.companion_thought;
            setVisibleThought(data.companion_thought);
            showThought(data.companion_thought);
@@ -944,92 +957,132 @@ export default function Game() {
 
       const sounds = {
         move: () => {
-          // Soft wood thud
-          const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
-          const data = buf.getChannelData(0);
-          for (let i = 0; i < data.length; i++) {
-            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.025));
+          // Acoustic Chess.com wood piece placement
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(320, ctx.currentTime);
+          
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(150, ctx.currentTime);
+          
+          let noiseBuffer;
+          try {
+            const bufferSize = ctx.sampleRate * 0.008; // 8ms transient click
+            noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = Math.random() * 2 - 1;
+            }
+          } catch (e) {}
+          
+          const noiseNode = ctx.createBufferSource();
+          const noiseGain = ctx.createGain();
+          if (noiseBuffer) {
+            noiseNode.buffer = noiseBuffer;
+            noiseGain.gain.setValueAtTime(0.08, ctx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.008);
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
           }
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          const filter = ctx.createBiquadFilter();
-          filter.type = 'lowpass';
-          filter.frequency.value = 800;
-          const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0.4, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-          src.connect(filter);
-          filter.connect(gain);
-          gain.connect(ctx.destination);
-          src.start();
+          
+          gainNode.gain.setValueAtTime(0.45, ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+          
+          osc1.connect(gainNode);
+          osc2.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          osc1.start();
+          osc2.start();
+          if (noiseBuffer) noiseNode.start();
+          
+          osc1.stop(ctx.currentTime + 0.15);
+          osc2.stop(ctx.currentTime + 0.15);
         },
         capture: () => {
-          // Harder thud for capture
-          const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
-          const data = buf.getChannelData(0);
-          for (let i = 0; i < data.length; i++) {
-            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
-          }
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          const filter = ctx.createBiquadFilter();
-          filter.type = 'lowpass';
-          filter.frequency.value = 600;
-          const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0.65, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-          src.connect(filter);
-          filter.connect(gain);
-          gain.connect(ctx.destination);
-          src.start();
-        },
-        check: () => {
-          // Warning bell-like tone
-          [440, 554, 659].forEach((freq, i) => {
+          // Dual Impact Capture sound (offset by 35ms)
+          const playThud = (time, freq, decay, vol) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
             osc.connect(gain);
             gain.connect(ctx.destination);
+            osc.start(time);
+            osc.stop(time + decay + 0.05);
+          };
+          
+          const t = ctx.currentTime;
+          playThud(t, 380, 0.04, 0.4); // first impact (colliding pieces)
+          playThud(t + 0.035, 180, 0.13, 0.45); // second landing thud
+          
+          try {
+            const bufferSize = ctx.sampleRate * 0.012;
+            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
+            }
+            const noiseNode = ctx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.12, t);
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noiseNode.start(t);
+          } catch (e) {}
+        },
+        check: () => {
+          // Acoustic metallic ringing chime
+          const frequencies = [780, 1150, 1500];
+          frequencies.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = freq;
-            const t = ctx.currentTime + i * 0.08;
-            gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.25, t + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-            osc.start(t);
-            osc.stop(t + 0.4);
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(0.14 - (idx * 0.03), ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
           });
         },
         gameStart: () => {
-          [330, 440, 550, 660].forEach((freq, i) => {
+          // High fidelity bright entry chime chord
+          [330, 440, 550, 660, 880].forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.type = 'sine';
-            osc.frequency.value = freq;
-            const t = ctx.currentTime + i * 0.12;
-            gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-            osc.start(t);
-            osc.stop(t + 0.35);
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.06);
+            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.06 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.35);
+            osc.start(ctx.currentTime + i * 0.06);
+            osc.stop(ctx.currentTime + i * 0.06 + 0.4);
           });
         },
         gameEnd: () => {
-          [660, 550, 440, 330].forEach((freq, i) => {
+          // Deep acoustic solemn landing cadence
+          [440, 330, 220].forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.type = 'sine';
-            osc.frequency.value = freq;
-            const t = ctx.currentTime + i * 0.15;
-            gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-            osc.start(t);
-            osc.stop(t + 0.45);
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+            gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.5);
+            osc.start(ctx.currentTime + i * 0.12);
+            osc.stop(ctx.currentTime + i * 0.12 + 0.6);
           });
         },
         connect: () => {
@@ -1040,7 +1093,7 @@ export default function Game() {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(440, ctx.currentTime);
           osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
           osc.start();
           osc.stop(ctx.currentTime + 0.3);
@@ -1267,94 +1320,88 @@ export default function Game() {
   const handleRealtimeUpdate = useCallback((payload) => {
     const newData = payload.new || payload;
 
-    if (payload.new?.board_theme || newData?.board_theme) {
-      const newTheme = payload.new?.board_theme || newData?.board_theme;
-      if (newTheme !== boardTheme) {
-        setBoardTheme(newTheme);
-        localStorage.setItem('cwc_board_theme', newTheme);
+    setGame(prev => {
+      if (!prev) return prev;
+      if (newData.move_history && prev.move_history && newData.move_history.length < prev.move_history.length) {
+        return prev;
       }
-    }
 
-    if (Array.isArray(payload.new?.move_history)) {
-      setMoveHistory(payload.new.move_history);
-    }
-    
-    // If this confirms our optimistic move: skip board update, only update metadata
-    if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
+      if (newData.board_theme) {
+        const newTheme = newData.board_theme;
+        if (newTheme !== boardTheme) {
+          setBoardTheme(newTheme);
+          localStorage.setItem('cwc_board_theme', newTheme);
+          localStorage.setItem('cwc_theme', newTheme);
+        }
+      }
+
+      if (newData.piece_style) {
+        const newPiece = newData.piece_style;
+        if (newPiece !== pieceStyle) {
+          setPieceStyle(newPiece);
+          localStorage.setItem('cwc_piece_style', newPiece);
+        }
+      }
+
+      if (Array.isArray(newData.move_history)) {
+        setMoveHistory(newData.move_history);
+      }
+      if (Array.isArray(newData.chat_history)) {
+        setChatMessages(newData.chat_history);
+      }
+      if (newData.companion_thought && newData.companion_thought !== '' && newData.companion_thought !== prevThoughtValRef.current) {
+        prevThoughtValRef.current = newData.companion_thought;
+        setCompanionThought(newData.companion_thought);
+        if (showThought) showThought(newData.companion_thought);
+      }
+
+      // If this confirms our optimistic move: skip board update, only update metadata
+      if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
+        movePendingRef.current = false;
+        lastMoveFenRef.current = null;
+        lastProcessedFenRef.current = newData.fen; // synchronize
+        return { ...prev, ...newData };
+      }
+
+      if (newData.fen && newData.fen === lastProcessedFenRef.current) {
+        return { ...prev, ...newData };
+      }
+
       movePendingRef.current = false;
       lastMoveFenRef.current = null;
-      lastProcessedFenRef.current = newData.fen; // synchronize
-      setGame(prev => ({
-        ...prev,
-        turn: newData.turn,
-        status: newData.status,
-        result: newData.result,
-        companion_thought: newData.companion_thought || prev.companion_thought,
-        agent_connected: newData.agent_connected,
-        agent_last_seen: newData.agent_last_seen,
-        in_check: newData.in_check,
-        chat_history: newData.chat_history || prev.chat_history,
-        move_history: newData.move_history || prev.move_history,
-        move_count: newData.move_count || prev.move_count,
-        board_theme: newData.board_theme || prev.board_theme,
-        piece_style: newData.piece_style || prev.piece_style,
-      }));
-      return; // DO NOT update boardFen
-    }
-    
-    // Deduplicate duplicate/redundant FEN updates synchronously via useRef to prevent double animation/flicker
-    if (newData.fen && newData.fen === lastProcessedFenRef.current) {
-      setGame(prev => ({ ...prev, ...newData }));
-      return;
-    }
-    
-    movePendingRef.current = false;
-    lastMoveFenRef.current = null;
-    
-    const prevFen = boardFenRef.current;
-    const newFen = newData.fen;
-    
-    if (newFen && newFen !== prevFen) {
-      applyBoardFen(newFen);
-      lastProcessedFenRef.current = newFen;
-      if (newData.last_move) {
-        setBoardLastMove(newData.last_move);
+
+      const prevFen = boardFenRef.current;
+      const newFen = newData.fen;
+
+      if (newFen && newFen !== prevFen) {
+        applyBoardFen(newFen);
+        lastProcessedFenRef.current = newFen;
+        if (newData.last_move) {
+          setBoardLastMove(newData.last_move);
+        }
+
+        const playerColor = prev.player_color || 'w';
+        const isAgentMove = !!newData.last_move && (newData.turn === playerColor);
+        if (isAgentMove) {
+          const isCapture = !!newData.last_move?.captured || 
+                            (newData.last_move?.san && newData.last_move.san.includes('x')) || 
+                            (typeof newData.last_move === 'string' && newData.last_move.includes('x'));
+          const isCheck = Boolean(newData.in_check);
+          setTimeout(() => {
+            if (isCheck) {
+              playSound('check');
+            } else if (isCapture) {
+              playSound('capture');
+            } else {
+              playSound('move');
+            }
+          }, 50);
+        }
       }
-      
-      const playerColor = game?.player_color || 'w';
-      const isAgentMove = !!newData.last_move && (newData.turn === playerColor);
-      if (isAgentMove) {
-        const isCapture = !!newData.last_move?.captured || 
-                          (newData.last_move?.san && newData.last_move.san.includes('x')) || 
-                          (typeof newData.last_move === 'string' && newData.last_move.includes('x'));
-        const isCheck = Boolean(newData.in_check);
-        setTimeout(() => {
-          if (isCheck) {
-            playSound('check');
-          } else if (isCapture) {
-            playSound('capture');
-          } else {
-            playSound('move');
-          }
-        }, 50);
-      }
-    }
-    
-    if (newData.companion_thought && newData.companion_thought !== '') {
-      setCompanionThought(newData.companion_thought);
-      if (showThought) showThought(newData.companion_thought);
-    }
-    
-    if (Array.isArray(newData.move_history)) {
-      setMoveHistory(newData.move_history);
-    }
-    
-    if (Array.isArray(newData.chat_history)) {
-      setChatMessages(newData.chat_history);
-    }
-    
-    setGame(prev => ({ ...prev, ...newData }));
-  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, setMoveHistory, showThought, game?.player_color]);
+
+      return { ...prev, ...newData };
+    });
+  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, pieceStyle, setMoveHistory, showThought]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1439,11 +1486,21 @@ export default function Game() {
           const res = await fetch(`/api/state?gameId=${gameId}`);
           if (!res.ok) return;
           const fresh = await res.json();
-          if (!fresh || fresh.fen === lastProcessedFenRef.current || movePendingRef.current) return;
-          lastProcessedFenRef.current = fresh.fen;
-          applyBoardFen(fresh.fen);
-          if (fresh.last_move) setBoardLastMove(fresh.last_move);
-          setGame(prev => ({ ...prev, ...fresh }));
+          if (!fresh || movePendingRef.current) return;
+          setGame(prev => {
+            if (!prev) return prev;
+            if (fresh.move_history && prev.move_history && fresh.move_history.length < prev.move_history.length) {
+              return prev;
+            }
+            if (fresh.fen) {
+              lastProcessedFenRef.current = fresh.fen;
+              applyBoardFen(fresh.fen);
+            }
+            if (fresh.last_move) {
+              setBoardLastMove(fresh.last_move);
+            }
+            return { ...prev, ...fresh };
+          });
         } catch (e) {}
       }, 1000);
     } else {
@@ -1477,7 +1534,20 @@ export default function Game() {
             const res = await fetch(`/api/state?gameId=${gameId}`);
             if (!res.ok) return;
             const fresh = await res.json();
-            setGame(prev => ({ ...prev, ...fresh }));
+            setGame(prev => {
+              if (!prev) return prev;
+              if (fresh.move_history && prev.move_history && fresh.move_history.length < prev.move_history.length) {
+                return prev;
+              }
+              if (fresh.fen) {
+                lastProcessedFenRef.current = fresh.fen;
+                applyBoardFen(fresh.fen);
+              }
+              if (fresh.last_move) {
+                setBoardLastMove(fresh.last_move);
+              }
+              return { ...prev, ...fresh };
+            });
           } catch (e) {}
         };
         fetchFreshGameState();
@@ -1490,9 +1560,20 @@ export default function Game() {
         const res = await fetch(`/api/state?gameId=${gameId}`);
         if (!res.ok) return;
         const fresh = await res.json();
-        if (fresh.fen !== game?.fen) {
-          setGame(prev => ({ ...prev, ...fresh }));
-        }
+        setGame(prev => {
+          if (!prev) return prev;
+          if (fresh.move_history && prev.move_history && fresh.move_history.length < prev.move_history.length) {
+            return prev;
+          }
+          if (fresh.fen) {
+            lastProcessedFenRef.current = fresh.fen;
+            applyBoardFen(fresh.fen);
+          }
+          if (fresh.last_move) {
+            setBoardLastMove(fresh.last_move);
+          }
+          return { ...prev, ...fresh };
+        });
       } catch (e) {}
     };
 
@@ -1503,7 +1584,7 @@ export default function Game() {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [gameId, game?.status, game?.fen]);
+  }, [gameId, game?.status, game?.fen, applyBoardFen]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
@@ -1638,6 +1719,24 @@ export default function Game() {
         } else {
            toast.error(errData.error || 'Failed to submit move');
         }
+      } else {
+        const result = await res.json().catch(() => ({}));
+        if (result && result.game) {
+          setGame(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...result.game };
+            if (result.game.move_history) {
+              setMoveHistory(result.game.move_history);
+            }
+            return updated;
+          });
+          applyBoardFen(result.game.fen);
+          lastProcessedFenRef.current = result.game.fen;
+          if (result.game.last_move) {
+            setBoardLastMove(result.game.last_move);
+          }
+          movePendingRef.current = false;
+        }
       }
     } catch (e) {
       // Revert board on error
@@ -1649,7 +1748,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected, setMoveHistory]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -1746,9 +1845,73 @@ export default function Game() {
   function handleChatInputChange(e) {
     setChatInput(e.target.value);
     setIsUserTyping(true);
+    
+    // Notify server of human typing status
+    if (!userSentTypingRef.current) {
+      userSentTypingRef.current = true;
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+        },
+        body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: true, sender: 'human', role: 'human' })
+      }).catch(() => {});
+    }
+
     if (userTypingTimerRef.current) clearTimeout(userTypingTimerRef.current);
-    userTypingTimerRef.current = setTimeout(() => setIsUserTyping(false), 2000);
+    userTypingTimerRef.current = setTimeout(() => {
+      setIsUserTyping(false);
+      userSentTypingRef.current = false;
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+        },
+        body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: false, sender: 'human', role: 'human' })
+      }).catch(() => {});
+    }, 2000);
   }
+
+  const renderMoveWithPiece = (move, isWhiteMove) => {
+    if (!move || !move.san) return '';
+    
+    // Parse piece category
+    let pieceChar = 'P'; // Pawn by default
+    const san = move.san;
+    if (move.piece) {
+      pieceChar = move.piece.toUpperCase();
+    } else if (san.startsWith('K') || san.includes('O-O')) {
+      pieceChar = 'K';
+    } else if (san.startsWith('Q')) {
+      pieceChar = 'Q';
+    } else if (san.startsWith('R')) {
+      pieceChar = 'R';
+    } else if (san.startsWith('B')) {
+      pieceChar = 'B';
+    } else if (san.startsWith('N')) {
+      pieceChar = 'N';
+    }
+
+    const componentKey = (isWhiteMove ? 'w' : 'b') + pieceChar;
+    const Component = Pieces[componentKey] || Pieces[isWhiteMove ? 'wP' : 'bP'];
+
+    // Clean displayed move text: replace Nf3 with f3, etc.
+    let displayText = san;
+    if (['K', 'Q', 'R', 'B', 'N'].includes(san[0])) {
+      displayText = san.substring(1);
+    }
+
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.9 }}>
+          <Component pieceStyle={pieceStyle} />
+        </div>
+        <span style={{ color: '#f2f2f2', fontWeight: 500 }}>{displayText}</span>
+      </div>
+    );
+  };
 
   const getAgentMood = () => {
     if (!game || game.status === 'waiting') return 'idle'
@@ -2410,7 +2573,7 @@ export default function Game() {
                                 playerColor={game?.player_color || 'w'}
                                 gameStatus={game?.status}
                                 onMove={handlePlayerMove}
-                                disabled={!agentConnected || game?.status === 'waiting'}
+                                disabled={!agentConnected}
                               />
                             </div>
                             <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -2438,19 +2601,7 @@ export default function Game() {
               </div>
             </div>
 
-            {/* C) YOU PLAYER CARD (Symmetrical with Agent Card) */}
-            <div style={{ flexShrink: 0, height: '48px', display: 'flex', alignItems: 'center', gap: '10px', padding: '0 12px', background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isMyTurn ? '0 0 35px rgba(34,197,94,0.08)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-              <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #161616, #080808)', border: `2px solid ${isMyTurn ? 'rgba(34,197,94,0.8)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyY: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: '#ffffff' }}>♙</div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>You</span>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.4)', flexShrink: 0 }} />
-                </div>
-                <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', marginTop: '1px' }}>
-                  {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (isMyTurn ? 'your turn' : 'waiting')}
-                </div>
-              </div>
-            </div>
+            {/* C) YOU PLAYER CARD REMOVED */}
             
           </div>
 
@@ -2532,10 +2683,10 @@ export default function Game() {
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px', alignItems: 'center' }}>
                       <div style={{ color: '#555' }}>{i + 1}.</div>
-                      <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#f2f2f2' }}>{agentMove?.san || ''}</div>
+                      <div>{youMove ? renderMoveWithPiece(youMove, game.player_color !== 'b') : ''}</div>
+                      <div>{agentMove ? renderMoveWithPiece(agentMove, game.player_color === 'b') : ''}</div>
                     </div>
                   );
                 })}
@@ -2785,7 +2936,7 @@ export default function Game() {
                   playerColor={game?.player_color || 'w'}
                   gameStatus={game?.status}
                   onMove={handlePlayerMove}
-                  disabled={!agentConnected || game?.status === 'waiting'}
+                  disabled={!agentConnected}
                 />
               </div>
               <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
@@ -2811,18 +2962,7 @@ export default function Game() {
         </div>
 
 
-        {/* C) YOU CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#0e0e0e', borderTop: '1px solid #111' }}>
-          <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #2a2a2a, #1a1a1a)', border: '1px solid #333', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-            ♙
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
-              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.status === 'waiting' ? 'Waiting for Agent to Join' : (game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting')}
-            </span>
-          </div>
-        </div>
+        {/* C) YOU CARD REMOVED */}
             
 
         {/* D) CHAT SECTION */}
@@ -2899,10 +3039,10 @@ export default function Game() {
                   const agentMove = game.player_color === 'b' ? game.move_history[i * 2] : game.move_history[i * 2 + 1];
                   const rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
                   return (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px' }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '6px 12px', background: rowBg, fontFamily: "JetBrains Mono, monospace", fontWeight: 400, fontSize: '13px', alignItems: 'center' }}>
                       <div style={{ color: '#555' }}>{i + 1}.</div>
-                      <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#f2f2f2' }}>{agentMove?.san || ''}</div>
+                      <div>{youMove ? renderMoveWithPiece(youMove, game.player_color !== 'b') : ''}</div>
+                      <div>{agentMove ? renderMoveWithPiece(agentMove, game.player_color === 'b') : ''}</div>
                     </div>
                   );
                 })}
@@ -3211,6 +3351,8 @@ export default function Game() {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_board_theme', theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
+                      setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
+                      getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ board_theme: theme.id }).eq('id', gameId).then(() => {});
                     }}
                     style={{
                       width: '24px',
@@ -3236,9 +3378,9 @@ export default function Game() {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="neo" /></div> },
-                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="tournament" /></div> },
-                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><WN pieceStyle="ocean" /></div> }
+                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo" /></div> },
+                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="tournament" /></div> },
+                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="ocean" /></div> }
                 ].map(piece => (
                   <button
                     data-testid={`piece-button-${piece.id}`}

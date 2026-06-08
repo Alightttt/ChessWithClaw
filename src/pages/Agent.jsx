@@ -1387,6 +1387,45 @@ export default function Agent() {
             </div>
           </div>
         )}
+        {game?.human_typing && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 2px 8px',
+            marginTop: '2px',
+            justifyContent: 'flex-end',
+            width: '100%'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '3px',
+              background: '#241416',
+              border: '1px solid #3d1b1d',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              alignItems: 'center'
+            }}>
+              {[0,1,2].map(i => (
+                <span key={i} style={{
+                  width: '6px', height: '6px',
+                  borderRadius: '50%',
+                  background: '#e63946',
+                  display: 'inline-block',
+                  animation: `typingBounce 1.2s ease-in-out infinite`,
+                  animationDelay: `${i * 0.2}s`
+                }} />
+              ))}
+            </div>
+            <span style={{
+              fontSize: '11px',
+              color: 'rgba(230,57,70,0.65)',
+              fontFamily: 'Inter'
+            }}>
+              Human (You) is typing...
+            </span>
+          </div>
+        )}
       </div>
     );
   };
