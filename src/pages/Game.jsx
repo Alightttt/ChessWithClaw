@@ -159,7 +159,7 @@ export default function Game() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [chatMessages, setChatMessages] = useState(() => game?.chat_history || []);
+  const [chatMessages, setChatMessages] = useState(() => Array.isArray(game?.chat_history) ? game.chat_history.slice() : []);
   const pendingMoveFenRef = useRef(null);
   const skipNextRealtimeRef = useRef(false);
 
@@ -1488,7 +1488,7 @@ export default function Game() {
               <div style={{ height: '40px', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #111111' }}> <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(242,242,242,0.3)', textTransform: 'uppercase' }}>Move History</span> </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
-                  {moveHistoryItems.map((move, i) => (
+                  {(Array.isArray(moveHistoryItems) ? moveHistoryItems.slice() : []).map((move, i) => (
                     <div key={i} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', background: '#111111', padding: '4px 8px', borderRadius: '4px' }}>
                       <span style={{ color: 'rgba(242,242,242,0.3)', width: '18px' }}>{Math.floor(i/2) + 1}{i%2 === 0 ? '.' : '...'}</span>
                       {renderMoveWithPiece(move, i % 2 === 0)}
@@ -1512,7 +1512,7 @@ export default function Game() {
             </div>
           </div>
           <div style={{ height: '80px', overflowX: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px', background: '#0a0a0a', borderBottom: '1px solid #111111' }}>
-            {moveHistoryItems.map((move, i) => (
+            {(Array.isArray(moveHistoryItems) ? moveHistoryItems.slice() : []).map((move, i) => (
               <div key={i} style={{ flexShrink: 0, background: '#111111', border: '1px solid #222', borderRadius: '6px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '10px', color: 'rgba(242,242,242,0.3)' }}>{Math.floor(i/2) + 1}{i%2 === 0 ? '.' : '...'}</span>
                 {renderMoveWithPiece(move, i % 2 === 0)}
