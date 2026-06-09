@@ -639,7 +639,7 @@ export default function Game() {
           setCompanionThought(fetchedGame.companion_thought);
         }
         if (Array.isArray(fetchedGame?.chat_history)) {
-          setChatMessages(fetchedGame.chat_history);
+          setChatMessages((fetchedGame?.chat_history || []).slice(-50));
         }
 
         if (fetchedGame?.board_theme) {
@@ -1157,7 +1157,7 @@ export default function Game() {
         if (newPiece !== pieceStyle) { setPieceStyle(newPiece); localStorage.setItem('cwc_piece_style', newPiece); }
       }
       if (Array.isArray(newData.move_history)) { setMoveHistory(newData.move_history); }
-      if (Array.isArray(newData.chat_history)) { setChatMessages(newData.chat_history); }
+      if (Array.isArray(newData.chat_history)) { setChatMessages((newData?.chat_history || []).slice(-50)); }
       if (newData.companion_thought && newData.companion_thought !== '' && newData.companion_thought !== prevThoughtValRef.current) {
         prevThoughtValRef.current = newData.companion_thought; setCompanionThought(newData.companion_thought); showThought(newData.companion_thought);
       }
