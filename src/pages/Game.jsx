@@ -2450,7 +2450,7 @@ export default function Game() {
           {/* LEFT DESKTOP COLUMN */}
           <div style={{ width: 'min(58%, calc(100dvh - 52px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '8px', overflow: 'hidden' }}>
             
-            {/* A) AGENT CARD */}
+            {/* A AGENT CARD */}
             <div style={{ 
               flexShrink: 0, 
               display: 'flex', 
@@ -2512,7 +2512,7 @@ export default function Game() {
             </div>
                 
             
-            {/* B) CHESS BOARD AND EVALUATION ROW */}
+            {/* B CHESS BOARD AND EVALUATION ROW */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
               <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
@@ -2536,7 +2536,7 @@ export default function Game() {
               </div>
             </div>
             
-            {/* C) STATUS BAR */}
+            {/* C STATUS BAR */}
             <div style={{ 
               flexShrink: 0, 
               display: 'flex', 
