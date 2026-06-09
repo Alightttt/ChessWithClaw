@@ -111,6 +111,7 @@ export default function Game() {
   const presenceTimerRef = useRef(null);
   const intervalsRef = useRef([]);
   const heartbeatRef = useRef(null);
+  const unifiedSyncRef = useRef(null);
   const lastSoundTimeRef = useRef(0);
   
   const allIntervalsRef = useRef([]);
@@ -127,8 +128,7 @@ export default function Game() {
   }, []);
 
   const agentToken = location.state?.agentToken;
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
-  const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
+  
   
   const [game, setGame] = useState(() => {
     try {
@@ -159,7 +159,7 @@ export default function Game() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState(() => game?.chat_history || []);
   const pendingMoveFenRef = useRef(null);
   const skipNextRealtimeRef = useRef(false);
 
@@ -492,8 +492,8 @@ export default function Game() {
     }
     
     if (isAgentTurn) {
-      if (baseAvatar === '🦞') return '🦞💭';
-      return `${baseAvatar}💭`;
+      if (baseAvatar === '🦞') return '🦞';
+      return baseAvatar;
     }
 
     if (agentAdvantage >= 4) {
@@ -624,8 +624,8 @@ export default function Game() {
         setGame(prev => {
           const updated = { ...data };
           if (prev?.chat_history && data?.chat_history) {
-            const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
-            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
+            const dbIds = new Set(data.chat_history.map(m => String(m.id)));
+            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbIds.has(String(m.id)));
             updated.chat_history = [...data.chat_history, ...optimistic];
           }
           return updated;
@@ -638,9 +638,7 @@ export default function Game() {
         if (fetchedGame?.companion_thought) {
           setCompanionThought(fetchedGame.companion_thought);
         }
-        if (Array.isArray(fetchedGame?.chat_history)) {
-          setChatMessages(fetchedGame.chat_history);
-        }
+        
 
         if (fetchedGame?.board_theme) {
           setBoardTheme(fetchedGame.board_theme);
@@ -690,12 +688,20 @@ export default function Game() {
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
-  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
+    const [viewState, setViewState] = useState({ isMobile: false, isDesktop: false });
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 900);
+    const handleResize = () => {
+      setViewState({
+        isMobile: window.innerWidth <= 600,
+        isDesktop: window.innerWidth >= 900
+      });
+    };
+    handleResize(); // Initialize correctly on mount
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  const { isMobile, isDesktop } = viewState;
+  const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
   const [lastMoveTo, setLastMoveTo] = useState(null);
 
   useEffect(() => {
@@ -951,7 +957,7 @@ export default function Game() {
           };
           const t = ctx.currentTime; playThud(t, 380, 0.04, 0.4); playThud(t + 0.035, 180, 0.13, 0.45);
           try {
-            const bufferSize = ctx.sampleRate * 0.012; const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const bufferSize = ctx.sampleRate * 0.012; const noiseBuffer = ctx.createBuffer(1, bufferRate, ctx.sampleRate);
             const data = noiseBuffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) { data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005)); }
             const noiseNode = ctx.createBufferSource(); noiseNode.buffer = noiseBuffer;
@@ -1048,39 +1054,7 @@ export default function Game() {
     return () => clearInterval(presenceTimerRef.current);
   }, [game?.agent_last_seen]);
 
-  useEffect(() => {
-    if (!game || game.status === 'finished' || game.status === 'abandoned' || game.turn === (game?.player_color || 'w')) {
-      return;
-    }
-    heartbeatRef.current = safeInterval(() => {
-      fetch('/api/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
-        body: JSON.stringify({ id: gameId, role: 'human' })
-      }).catch(() => {});
-      if (isTabActive && game?.turn !== (game?.player_color || 'w') && game?.status === 'active') {
-        supabase.from('games').select('turn, move_history').eq('id', gameId).single().then(({ data }) => {
-          if (data && data.turn === (game?.player_color || 'w')) { loadGameData(); }
-        });
-      }
-    }, 15000);
-    let idleChatInterval = null;
-    if (isTabActive) {
-      idleChatInterval = addInterval(() => {
-        if (game?.status !== 'active') return;
-        const rand = Math.random();
-        if (rand < 0.3) {
-          fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, { headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' } }).catch(() => {});
-        } else if (rand < 0.6) {
-          fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, { headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' } }).catch(() => {});
-        }
-      }, 45000);
-    }
-    return () => {
-      if (heartbeatRef.current) { clearInterval(heartbeatRef.current); heartbeatRef.current = null; }
-      if (idleChatInterval) { clearInterval(idleChatInterval); intervalsRef.current = intervalsRef.current.filter(x => x !== idleChatInterval); }
-    };
-  }, [game, gameId, isTabActive, loadGameData, addInterval]);
+  
 
   useEffect(() => {
     if (game?.status === 'finished' || game?.status === 'abandoned') {
@@ -1202,24 +1176,56 @@ export default function Game() {
     return () => { supabase.removeChannel(channel); channelRef.current = null; };
   }, [gameId, handleRealtimeUpdate]);
 
+  
+
+  
+  const runUnifiedSync = useCallback(async () => {
+    if (!gameId || !isTabActive) return;
+    try {
+      const res = await fetch(`/api/state?gameId=${gameId}`);
+      if (!res.ok) return;
+      const fresh = await res.json();
+      if (!fresh || movePendingRef.current) return;
+      
+      setGame(prev => {
+        if (!prev) return prev;
+        if (fresh.status !== prev.status || fresh.turn !== prev.turn || fresh.fen !== prev.fen) {
+           if (fresh.fen && fresh.fen !== lastProcessedFenRef.current) {
+             lastProcessedFenRef.current = fresh.fen;
+             applyBoardFen(fresh.fen);
+           }
+           if (fresh.last_move) setBoardLastMove(fresh.last_move);
+           return { ...prev, ...fresh };
+        }
+        return prev;
+      });
+    } catch (e) {}
+  }, [gameId, isTabActive, applyBoardFen]);
+
+  
   useEffect(() => {
-    if (fallbackRef.current) { clearInterval(fallbackRef.current); }
-    if (game?.status === 'active' && game?.turn !== (game?.player_color || 'w') && isTabActive) {
-      fallbackRef.current = addInterval(async () => {
-        try {
-          const res = await fetch(`/api/state?gameId=${gameId}`); if (!res.ok) return;
-          const fresh = await res.json(); if (!fresh || movePendingRef.current) return;
-          setGame(prev => {
-            if (!prev) return prev; if (fresh.move_history && prev.move_history && fresh.move_history.length < prev.move_history.length) { return prev; }
-            if (fresh.fen) { lastProcessedFenRef.current = fresh.fen; applyBoardFen(fresh.fen); }
-            if (fresh.last_move) { setBoardLastMove(fresh.last_move); }
-            return { ...prev, ...fresh };
-          });
-        } catch (e) {}
-      }, 1000);
-    } else { if (fallbackRef.current) { clearInterval(fallbackRef.current); fallbackRef.current = null; } }
-    return () => { if (fallbackRef.current) { clearInterval(fallbackRef.current); } };
-  }, [game?.turn, game?.status, gameId, isTabActive, addInterval, applyBoardFen, game?.player_color]);
+    if (!gameId || !isTabActive) return;
+    if (unifiedSyncRef.current) clearInterval(unifiedSyncRef.current);
+
+    const isWaitingForOpponent = game?.turn !== (game?.player_color || 'w') && (game?.status === 'active' || game?.status === 'waiting');
+    const intervalMs = isWaitingForOpponent ? 2000 : 5000;
+
+    unifiedSyncRef.current = setInterval(() => {
+      runUnifiedSync();
+      fetch('/api/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' },
+        body: JSON.stringify({ id: gameId, role: 'human' })
+      }).catch(() => {});
+    }, intervalMs);
+
+    return () => {
+      if (unifiedSyncRef.current) {
+        clearInterval(unifiedSyncRef.current);
+        unifiedSyncRef.current = null;
+      }
+    };
+  }, [gameId, isTabActive, game?.turn, game?.status, game?.player_color, runUnifiedSync]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) { setConfirmResign(true); setTimeout(() => setConfirmResign(false), 3000); return; }
@@ -1354,14 +1360,7 @@ export default function Game() {
           const isAgent = msg.role === 'agent' || msg.sender === 'agent' || (msg.role !== 'human' && msg.sender !== 'human');
           const isNew = index >= seenMsgCountRef.current;
           const prevMsg = msgs[index - 1]; const isFirstInGroup = !prevMsg || prevMsg.role !== msg.role;
-          if (msg.type === 'thought') {
-            return (
-              <div key={msg.id} style={{ alignSelf: 'center', margin: '8px 0', padding: '6px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', maxWidth: '90%' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: '10px', color: '#666', marginBottom: '2px', textAlign: 'center' }}>SYSTEM_THOUGHT_CAPTURE</div>
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontStyle: 'italic', textAlign: 'center', lineHeight: 1.4 }}>{msg.text}</div>
-              </div>
-            );
-          }
+          if (msg.type === 'thought') { return null; }
           if (msg.type === 'resign_request') {
             return (
               <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
