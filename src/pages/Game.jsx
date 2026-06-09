@@ -397,23 +397,6 @@ export default function Game() {
     return boardFen.split(' ')[1] === 'w' ? 'white' : 'black';
   }, [boardFen]);
 
-  const isOpenClawTurn = useMemo(() => {
-    if (!game || !boardFen || !boardFen.includes(' ')) return false;
-    const turn = boardFen.split(' ')[1];
-    const agentColor = game.player_color === 'w' ? 'b' : 'w';
-    return turn === agentColor;
-  }, [game, boardFen]);
-
-  const legalMovesArray = useMemo(() => {
-    try {
-      if (!boardFen || !boardFen.includes(' ')) return [];
-      const chess = new Chess(boardFen);
-      return chess.moves({ verbose: true });
-    } catch (e) {
-      return [];
-    }
-  }, [boardFen]);
-
   const infoState = game?.status === 'waiting'
     ? { label: 'Waiting for ' + agentName + '...', style: 'waiting' }
     : trueTurn === 'white'
@@ -2534,23 +2517,7 @@ export default function Game() {
               <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
                   
-                  {/* Live Evaluation Bar */}
-                  <div data-testid="evaluation-bar" style={{ width: '14px', display: 'flex', flexDirection: 'column', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', background: game?.player_color !== 'b' ? '#222222' : '#f2f2f2', position: 'relative', flexShrink: 0, height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                    {/* Black advantage (from top) */}
-                    <div style={{ 
-                      flex: 1, 
-                      background: '#1a1a1a', 
-                      position: 'relative',
-                      display: 'flex',
-                      flexDirection: 'column-reverse'
-                    }}>
-                      <div style={{ 
-                        height: `${Math.min(100, Math.max(0, 50 - (youAdvantage * 4)))}%`, 
-                        background: '#f2f2f2', 
-                        transition: 'height 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: '0 -2px 10px rgba(0,0,0,0.4)'
-                      }} />
-                    </div>
+                  
                   </div>
 
                   {/* BOARD */}
@@ -2678,14 +2645,7 @@ export default function Game() {
 
           {/* MOBILE BOARD AREA */}
           <div style={{ display: 'flex', gap: '8px' }}>
-            {/* Eval Bar */}
-            <div style={{ width: '8px', background: '#222', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-               <div style={{ 
-                 position: 'absolute', bottom: 0, width: '100%', 
-                 height: `${Math.min(100, Math.max(0, 50 - (youAdvantage * 4)))}%`, 
-                 background: '#f2f2f2', transition: 'height 0.5s ease' 
-               }} />
-            </div>
+            
             {/* Board */}
             <div style={{ flex: 1, aspectRatio: '1/1', position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
               <ChessBoard 
@@ -2709,6 +2669,22 @@ export default function Game() {
                <div style={{ width: 8, height: 8, borderRadius: '50%', background: isMyTurn ? '#e63946' : '#333' }} />
                <span style={{ fontSize: '12px', fontWeight: 700 }}>{isMyTurn ? 'YOUR TURN' : 'WAITING'}</span>
             </div>
+          {/* MOBILE MOVE HISTORY */}
+          <div style={{ height: '120px', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '8px 16px', background: '#161616', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between' }}>
+               <span style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Chronology</span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }} className="scrollbar-none">
+               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  {moveHistoryItems.map((m, i) => (
+                    <div key={i} style={{ fontSize: '12px', fontFamily: 'monospace', color: i % 2 === 0 ? '#fff' : '#e63946', opacity: 0.8 }}>
+                      {Math.floor(i/2)+1}{i%2===0?'.':'.'} {m.san}
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+
             <div style={{ fontSize: '11px', color: '#555', fontFamily: 'monospace' }}>MOVE_{moveCount}</div>
             <button onClick={handleResign} style={{ fontSize: '11px', fontWeight: 700, color: '#e63946', background: 'none', border: 'none' }}>RESIGN</button>
           </div>
@@ -2812,7 +2788,105 @@ export default function Game() {
 
       {/* SETTINGS MODAL */}
       <Modal open={showSettings} onClose={() => setShowSettings(false)} title="Terminal_Preferences" size="md">
-         {/* Settings content */}
+         
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+          {/* Theme Selection */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Board Theme</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {['green', 'blue', 'dark', 'wood', 'glass', 'terminal'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setBoardTheme(t);
+                    localStorage.setItem('cwc_board_theme', t);
+                  }}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '8px',
+                    background: boardTheme === t ? 'rgba(230,57,70,0.15)' : '#111',
+                    border: `1px solid ${boardTheme === t ? '#e63946' : 'rgba(255,255,255,0.05)'}`,
+                    color: boardTheme === t ? '#f2f2f2' : 'rgba(242,242,242,0.6)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    textTransform: 'capitalize',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Piece Style Selection */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Piece Style</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {['neo', 'classic', 'modern', 'wood', 'glass', 'alpha'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setPieceStyle(s);
+                    localStorage.setItem('cwc_piece_style', s);
+                  }}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '8px',
+                    background: pieceStyle === s ? 'rgba(230,57,70,0.15)' : '#111',
+                    border: `1px solid ${pieceStyle === s ? '#e63946' : 'rgba(255,255,255,0.05)'}`,
+                    color: pieceStyle === s ? '#f2f2f2' : 'rgba(242,242,242,0.6)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    textTransform: 'capitalize',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Divider />
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button 
+              onClick={handleResign}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '10px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                color: '#e63946',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              RESIGN GAME
+            </button>
+            <button 
+              onClick={() => setShowSettings(false)}
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '10px',
+                background: '#1a1a1a',
+                border: '1px solid rgba(255,255,255,0.05)',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+
       </Modal>
     </div>
   );
