@@ -397,6 +397,23 @@ export default function Game() {
     return boardFen.split(' ')[1] === 'w' ? 'white' : 'black';
   }, [boardFen]);
 
+  const isOpenClawTurn = useMemo(() => {
+    if (!game || !boardFen || !boardFen.includes(' ')) return false;
+    const turn = boardFen.split(' ')[1];
+    const agentColor = game.player_color === 'w' ? 'b' : 'w';
+    return turn === agentColor;
+  }, [game, boardFen]);
+
+  const legalMovesArray = useMemo(() => {
+    try {
+      if (!boardFen || !boardFen.includes(' ')) return [];
+      const chess = new Chess(boardFen);
+      return chess.moves({ verbose: true });
+    } catch (e) {
+      return [];
+    }
+  }, [boardFen]);
+
   const infoState = game?.status === 'waiting'
     ? { label: 'Waiting for ' + agentName + '...', style: 'waiting' }
     : trueTurn === 'white'
