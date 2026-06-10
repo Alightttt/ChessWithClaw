@@ -336,7 +336,7 @@ module.exports = async function handler(req, res) {
   const updates = {
     fen: fen || game.fen,
     turn: nextTurn,
-    status: newStatus,
+    status: 'active',
     result: gameResult,
     winner: gameWinner,
     finished_at: finishedAt,

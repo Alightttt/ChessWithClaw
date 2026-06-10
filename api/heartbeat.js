@@ -79,14 +79,14 @@ module.exports = async function handler(req, res) {
   }
 
   if (isAgentRequest) {
-    const agentName = req.headers['x-agent-name'] || null;
     const updateData = {
       agent_last_seen: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       agent_connected: true
     };
-    if (agentName && (!game.agent_name || game.agent_name === 'Your OpenClaw')) {
-      updateData.agent_name = agentName;
+    const incomingName = req.headers['x-agent-name'];
+    if (incomingName && (!game.agent_name || game.agent_name === 'Your OpenClaw')) {
+      updateData.agent_name = incomingName;
     }
     const { error: updateError } = await supabase.from('games').update(updateData).eq('id', gameId);
     if (updateError) {

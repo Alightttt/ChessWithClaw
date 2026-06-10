@@ -302,11 +302,10 @@ export default function Game() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [agentDisconnected, setAgentDisconnected] = useState(false);
 
-  const [thoughtDisplay, setThoughtDisplay] = useState({ text: '', visible: false });
-  const [visibleThought, setVisibleThought] = useState('');
-  const [companionThought, setCompanionThought] = useState('');
-  const prevThoughtValRef = useRef('');
+  const [thoughtText, setThoughtText] = useState('');
+  const [thoughtVisible, setThoughtVisible] = useState(false);
   const thoughtTimerRef = useRef(null);
+  const prevGameFenRef = useRef('');
   
   const [isUserTyping, setIsUserTyping] = useState(false);
   const userTypingTimerRef = useRef(null);
@@ -323,8 +322,6 @@ export default function Game() {
     if (game?.thought_language) {
       setThoughtLanguage(game.thought_language);
     }
-    setThoughtDisplay({ text: '', visible: false });
-    if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
   }, [game?.thought_language]);
 
   useEffect(() => {
@@ -341,14 +338,36 @@ export default function Game() {
     }
   }, [game?.fen]);
 
+  useEffect(() => {
+    if (!game?.fen || game.fen === boardFen) return;
+    applyBoardFen(game.fen);
+  }, [game?.fen, applyBoardFen, boardFen]);
+
+  useEffect(() => {
+    if (!game?.fen || !game?.turn) return;
+    if (prevGameFenRef.current && game.fen !== prevGameFenRef.current && game.turn === 'w') {
+      setTimeout(() => { try { playSound('move'); } catch(e) {} }, 100);
+    }
+    prevGameFenRef.current = game.fen;
+  }, [game?.fen, game?.turn, playSound]);
+
   const showThought = useCallback((text) => {
-    if (!text || text.trim() === '') return;
+    if (!text || !text.trim()) return;
     if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-    setThoughtDisplay({ text: text.trim(), visible: true });
-    thoughtTimerRef.current = setTimeout(() => {
-      setThoughtDisplay(prev => ({ ...prev, visible: false }));
-    }, 4000);
+    setThoughtText(text.trim());
+    setThoughtVisible(true);
+    thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
   }, []);
+
+  useEffect(() => {
+    if (game?.companion_thought) showThought(game.companion_thought);
+  }, [game?.companion_thought, showThought]);
+
+  useEffect(() => {
+    setThoughtVisible(false);
+    setThoughtText('');
+    if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+  }, [game?.thought_language]);
   
   const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
@@ -436,21 +455,10 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    let baseAvatar = game?.agent_avatar || '🦞';
-    if (baseAvatar === '🤖') baseAvatar = '🦞';
-    
-    // Fallback/Waiting
-    if (!agentConnected) {
-      if (baseAvatar === '🦞') return '🦞💤';
-      return `${baseAvatar}💤`;
-    }
-
-    if (!boardFen || !boardFen.includes(' ')) return baseAvatar;
-    
+    if (!boardFen || !boardFen.includes(' ')) return '🦞';
     const fenParts = boardFen.split(' ');
-    const currentTurn = fenParts[1];
     const board = fenParts[0];
-    
+    const currentTurn = fenParts[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
     let wMat = 0, bMat = 0;
     for (const ch of board) {
@@ -460,46 +468,13 @@ export default function Game() {
         else bMat += vals[low];
       }
     }
-    
-    const playerColor = game?.player_color || 'w';
     const balance = wMat - bMat;
-    const agentAdvantage = playerColor === 'w' ? -balance : balance;
-
-    const isAgentTurn = currentTurn === (playerColor === 'w' ? 'b' : 'w');
-    const isAgentChecked = game?.in_check && isAgentTurn;
-
-    if (isAgentChecked) {
-      if (baseAvatar === '🦞') return '🦞😤';
-      return `${baseAvatar}😤`;
-    }
-    
-    if (isAgentTurn) {
-      if (baseAvatar === '🦞') return '🦞💭';
-      return `${baseAvatar}💭`;
-    }
-
-    if (agentAdvantage >= 4) {
-      if (baseAvatar === '🦞') return '🦞😈';
-      return `${baseAvatar}😈`;
-    }
-    
-    if (agentAdvantage <= -4) {
-      if (baseAvatar === '🦞') return '🦞😰';
-      return `${baseAvatar}😰`;
-    }
-    
-    if (agentAdvantage >= 1.5) {
-      if (baseAvatar === '🦞') return '🦞😏';
-      return `${baseAvatar}😏`;
-    }
-    
-    if (agentAdvantage <= -1.5) {
-      if (baseAvatar === '🦞') return '🦞😅';
-      return `${baseAvatar}😅`;
-    }
-    
-    return baseAvatar;
-  }, [boardFen, game?.in_check, game?.agent_avatar, game?.player_color, agentConnected]);
+    if (game?.in_check && currentTurn === 'b') return '😤';
+    if (balance <= -5) return '😈';
+    if (balance >= 5) return '😰';
+    if (balance <= -2) return '😏';
+    return '🦞';
+  }, [boardFen, game?.in_check]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -619,9 +594,6 @@ export default function Game() {
         if (Array.isArray(fetchedGame?.move_history) && fetchedGame.move_history.length > 0) {
           setMoveHistory(fetchedGame.move_history);
         }
-        if (fetchedGame?.companion_thought) {
-          setCompanionThought(fetchedGame.companion_thought);
-        }
         if (Array.isArray(fetchedGame?.chat_history)) {
           setChatMessages(fetchedGame.chat_history);
         }
@@ -641,12 +613,6 @@ export default function Game() {
         if (data.last_move) setBoardLastMove(data.last_move);
         setOptimisticFen(null);
         
-        if (data.companion_thought && data.companion_thought.trim() !== '' && data.companion_thought !== prevThoughtValRef.current) {
-           prevThoughtValRef.current = data.companion_thought;
-           setVisibleThought(data.companion_thought);
-           showThought(data.companion_thought);
-        }
-
         // Restore chat messages
         if (data.chat_history && Array.isArray(data.chat_history)) {
           setChatMessages(data.chat_history.slice(-50));
@@ -673,7 +639,7 @@ export default function Game() {
       setIsLoaded(true);
     }
     setLoading(false);
-  }, [gameId, applyBoardFen, setMoveHistory, showThought]);
+  }, [gameId, applyBoardFen, setMoveHistory]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
@@ -809,7 +775,8 @@ export default function Game() {
     
     // Step 2: Clear all local component state
     setGame(null)
-    setVisibleThought('')
+    setThoughtText('')
+    setThoughtVisible(false)
     setLastMoveHighlight(null)
     setArrivedSquare(null)
     setLastMoveTo(null)
@@ -1349,11 +1316,6 @@ export default function Game() {
       if (Array.isArray(newData.chat_history)) {
         setChatMessages(newData.chat_history);
       }
-      if (newData.companion_thought && newData.companion_thought !== '' && newData.companion_thought !== prevThoughtValRef.current) {
-        prevThoughtValRef.current = newData.companion_thought;
-        setCompanionThought(newData.companion_thought);
-        if (showThought) showThought(newData.companion_thought);
-      }
 
       // If this confirms our optimistic move: skip board update, only update metadata
       if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
@@ -1401,7 +1363,7 @@ export default function Game() {
 
       return { ...prev, ...newData };
     });
-  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, pieceStyle, setMoveHistory, showThought]);
+  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, pieceStyle, setMoveHistory]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1449,6 +1411,12 @@ export default function Game() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
+
+  useEffect(() => {
+    if (Array.isArray(game?.chat_history) && game.chat_history.length > 0) {
+      setChatMessages(game.chat_history);
+    }
+  }, [game?.chat_history]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -1894,8 +1862,9 @@ export default function Game() {
       pieceChar = 'N';
     }
 
-    const componentKey = (isWhiteMove ? 'w' : 'b') + pieceChar;
-    const Component = Pieces[componentKey] || Pieces[isWhiteMove ? 'wP' : 'bP'];
+    const colorChar = isWhiteMove ? 'w' : 'b';
+    const code = `${colorChar}${pieceChar.toLowerCase()}`;
+    const moveHistoryPieceUrl = (code) => `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle || 'neo'}/150/${code}.png`;
 
     // Clean displayed move text: replace Nf3 with f3, etc.
     let displayText = san;
@@ -1906,7 +1875,7 @@ export default function Game() {
     return (
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
         <div style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.9 }}>
-          <Component pieceStyle={pieceStyle} />
+          <img src={moveHistoryPieceUrl(code)} referrerPolicy="no-referrer" alt={code} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         <span style={{ color: '#f2f2f2', fontWeight: 500 }}>{displayText}</span>
       </div>
@@ -2488,18 +2457,17 @@ export default function Game() {
 
               </div>
               <div style={{
-                opacity: thoughtDisplay.visible ? 1 : 0,
-                transition: 'opacity 0.4s ease-in-out',
+                opacity: thoughtVisible ? 1 : 0,
+                transition: 'opacity 0.4s ease',
                 fontStyle: 'italic',
                 fontSize: 13,
                 color: 'rgba(242,242,242,0.6)',
                 lineHeight: 1.5,
-                maxWidth: 180,
-                textAlign: 'right',
+                marginTop: 4,
                 minHeight: 20,
-                padding: '4px 0',
+                textAlign: 'right',
               }}>
-                {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
+                {thoughtText ? `"${thoughtText}"` : ''}
               </div>
             </div>
                 
@@ -2870,18 +2838,17 @@ export default function Game() {
 
           </div>
           <div style={{
-            opacity: thoughtDisplay.visible ? 1 : 0,
-            transition: 'opacity 0.4s ease-in-out',
+            opacity: thoughtVisible ? 1 : 0,
+            transition: 'opacity 0.4s ease',
             fontStyle: 'italic',
             fontSize: 13,
             color: 'rgba(242,242,242,0.6)',
             lineHeight: 1.5,
-            maxWidth: 180,
-            textAlign: 'right',
+            marginTop: 4,
             minHeight: 20,
-            padding: '4px 0',
+            textAlign: 'right',
           }}>
-            {thoughtDisplay.text ? `"${thoughtDisplay.text}"` : ''}
+            {thoughtText ? `"${thoughtText}"` : ''}
           </div>
         </div>
 
@@ -3459,7 +3426,8 @@ export default function Game() {
                   <button
                     key={lang.value}
                     onClick={async () => {
-                      setThoughtDisplay({ text: '', visible: false });
+                      setThoughtVisible(false);
+                      setThoughtText('');
                       if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
                       setThoughtLanguage(lang.value);
                       await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);

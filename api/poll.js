@@ -119,22 +119,21 @@ module.exports = async function handler(req, res) {
   }
 
   // FIX 1 — move_count
-  const move_history = Array.isArray(game.move_history) ? game.move_history : [];
-  const move_count = move_history.length;
+  const moveHistoryArr = Array.isArray(game.move_history) ? game.move_history : [];
+  const move_count = moveHistoryArr.length;
 
   // FIX 2 — chat_count and human_chatted
-  const chat_history = Array.isArray(game.chat_history) ? game.chat_history : [];
-  const human_messages = chat_history.filter(m => m.role === 'human');
-  const chat_count = human_messages.length;
+  const chatHistoryArr = Array.isArray(game.chat_history) ? game.chat_history : [];
+  const chat_history = chatHistoryArr;
+  const humanMessages = chatHistoryArr.filter(m => m.role === 'human');
   const agentLastHumanChatCount = parseInt(req.query.last_human_chat_count || '0');
-  const new_chat_messages = human_messages
-    .slice(agentLastHumanChatCount)
-    .map(m => ({
-      role: m.role,
-      message: m.message || m.text || '',
-      id: m.id || ''
-    }));
-  const human_chatted = human_messages.length > agentLastHumanChatCount;
+  const new_chat_messages = humanMessages.slice(agentLastHumanChatCount).map(m => ({
+    role: m.role,
+    message: m.message || m.text || '',
+    id: m.id || ''
+  }));
+  const human_chatted = new_chat_messages.length > 0;
+  const chat_count = humanMessages.length;
 
   // FIX 3 — legal_moves
   const legal_moves_uci = Array.isArray(game.legal_moves) ? game.legal_moves : [];
@@ -142,7 +141,7 @@ module.exports = async function handler(req, res) {
 
   // FIX 4 — events array
   const events = [];
-  if (game.turn === 'b' && game.status === 'active') events.push('your_turn');
+  if (game.turn === 'b') events.push('your_turn');
   if (human_chatted) events.push('human_chatted');
 
   let event = 'waiting';
