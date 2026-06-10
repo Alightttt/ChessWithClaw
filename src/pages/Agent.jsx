@@ -154,6 +154,10 @@ export default function Agent() {
   const [lastMoveHighlight, setLastMoveHighlight] = useState(null);
   const [arrivedSquare, setArrivedSquare] = useState(null);
 
+  const [optimisticLastMove, setOptimisticLastMove] = useState(null);
+  const optimisticFenRef = useRef(null);
+  const connectedToastShown = useRef(false);
+
   const currentLastMove = lastMoveHighlight || optimisticLastMove || (game?.move_history || [])[(game?.move_history || [])?.length - 1] || null;
 
   useEffect(() => {
@@ -174,7 +178,7 @@ export default function Agent() {
   };
   const optimisticFen = optimisticFenState;
 
-  const [optimisticLastMove, setOptimisticLastMove] = useState(null);
+
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
   useEffect(() => {
@@ -342,14 +346,14 @@ export default function Agent() {
   const prevMoveCountRef = useRef(0);
   const prevStatusRef = useRef('waiting');
   const prevAgentConnected = useRef(false);
-  const connectedToastShown = useRef(false);
+
   const boardRef = useRef(null);
   const chatMessagesRef = useRef(null);
 
   const channelRef = useRef(null);
   const containerRef = useRef(null);
   const prevFenRef = useRef(null);
-  const optimisticFenRef = useRef(null);
+
 
 
 

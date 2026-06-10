@@ -314,6 +314,187 @@ export default function Game() {
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Sound Effects
+  const playSound = useCallback((type) => {
+    const now = Date.now();
+    if (now - lastSoundTimeRef.current < 300) return;
+    lastSoundTimeRef.current = now;
+
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      let resolvedType = type;
+      if (type === 'start') resolvedType = 'gameStart';
+      else if (type === 'end' || type === 'checkmate' || type === 'agentCheckmate' || type === 'agentEnd') resolvedType = 'gameEnd';
+      else if (type === 'agentCheck' || type === 'check') resolvedType = 'check';
+      else if (type === 'agentCapture' || type === 'capture') resolvedType = 'capture';
+      else if (type === 'agentMove' || type === 'move') resolvedType = 'move';
+
+      const sounds = {
+        move: () => {
+          // Acoustic Chess.com wood piece placement
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(320, ctx.currentTime);
+          
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(150, ctx.currentTime);
+          
+          let noiseBuffer;
+          try {
+            const bufferSize = ctx.sampleRate * 0.008; // 8ms transient click
+            noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = Math.random() * 2 - 1;
+            }
+          } catch (e) {}
+          
+          const noiseNode = ctx.createBufferSource();
+          const noiseGain = ctx.createGain();
+          if (noiseBuffer) {
+            noiseNode.buffer = noiseBuffer;
+            noiseGain.gain.setValueAtTime(0.08, ctx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.008);
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+          }
+          
+          gainNode.gain.setValueAtTime(0.45, ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+          
+          osc1.connect(gainNode);
+          osc2.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          osc1.start();
+          osc2.start();
+          if (noiseBuffer) noiseNode.start();
+          
+          osc1.stop(ctx.currentTime + 0.15);
+          osc2.stop(ctx.currentTime + 0.15);
+        },
+        capture: () => {
+          // Dual Impact Capture sound (offset by 35ms)
+          const playThud = (time, freq, decay, vol) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(time);
+            osc.stop(time + decay + 0.05);
+          };
+          
+          const t = ctx.currentTime;
+          playThud(t, 380, 0.04, 0.4); // first impact (colliding pieces)
+          playThud(t + 0.035, 180, 0.13, 0.45); // second landing thud
+          
+          try {
+            const bufferSize = ctx.sampleRate * 0.012;
+            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
+            }
+            const noiseNode = ctx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.12, t);
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noiseNode.start(t);
+          } catch (e) {}
+        },
+        check: () => {
+          // Acoustic metallic ringing chime
+          const frequencies = [780, 1150, 1500];
+          frequencies.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(0.14 - (idx * 0.03), ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+          });
+        },
+        gameStart: () => {
+          // High fidelity bright entry chime chord
+          [330, 440, 550, 660, 880].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.06);
+            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.06 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.35);
+            osc.start(ctx.currentTime + i * 0.06);
+            osc.stop(ctx.currentTime + i * 0.06 + 0.4);
+          });
+        },
+        gameEnd: () => {
+          // Deep acoustic solemn landing cadence
+          [440, 330, 220].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+            gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.5);
+            osc.start(ctx.currentTime + i * 0.12);
+            osc.stop(ctx.currentTime + i * 0.12 + 0.6);
+          });
+        },
+        connect: () => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        },
+        chat: () => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = 660;
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.12);
+        },
+      };
+      
+      if (soundEnabled && sounds[resolvedType]) {
+        sounds[resolvedType]();
+      }
+      
+      setTimeout(() => ctx.close(), 1000);
+    } catch (e) {}
+  }, [soundEnabled]);
   const [agentDisconnected, setAgentDisconnected] = useState(false);
 
   const [thoughtText, setThoughtText] = useState('');
@@ -906,186 +1087,6 @@ export default function Game() {
     }
   }, [game?.last_commentary, game?.move_history?.length]);
 
-  // Sound Effects
-  const playSound = useCallback((type) => {
-    const now = Date.now();
-    if (now - lastSoundTimeRef.current < 300) return;
-    lastSoundTimeRef.current = now;
-
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      let resolvedType = type;
-      if (type === 'start') resolvedType = 'gameStart';
-      else if (type === 'end' || type === 'checkmate' || type === 'agentCheckmate' || type === 'agentEnd') resolvedType = 'gameEnd';
-      else if (type === 'agentCheck' || type === 'check') resolvedType = 'check';
-      else if (type === 'agentCapture' || type === 'capture') resolvedType = 'capture';
-      else if (type === 'agentMove' || type === 'move') resolvedType = 'move';
-
-      const sounds = {
-        move: () => {
-          // Acoustic Chess.com wood piece placement
-          const osc1 = ctx.createOscillator();
-          const osc2 = ctx.createOscillator();
-          const gainNode = ctx.createGain();
-          
-          osc1.type = 'sine';
-          osc1.frequency.setValueAtTime(320, ctx.currentTime);
-          
-          osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(150, ctx.currentTime);
-          
-          let noiseBuffer;
-          try {
-            const bufferSize = ctx.sampleRate * 0.008; // 8ms transient click
-            noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-              data[i] = Math.random() * 2 - 1;
-            }
-          } catch (e) {}
-          
-          const noiseNode = ctx.createBufferSource();
-          const noiseGain = ctx.createGain();
-          if (noiseBuffer) {
-            noiseNode.buffer = noiseBuffer;
-            noiseGain.gain.setValueAtTime(0.08, ctx.currentTime);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.008);
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
-          }
-          
-          gainNode.gain.setValueAtTime(0.45, ctx.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-          
-          osc1.connect(gainNode);
-          osc2.connect(gainNode);
-          gainNode.connect(ctx.destination);
-          
-          osc1.start();
-          osc2.start();
-          if (noiseBuffer) noiseNode.start();
-          
-          osc1.stop(ctx.currentTime + 0.15);
-          osc2.stop(ctx.currentTime + 0.15);
-        },
-        capture: () => {
-          // Dual Impact Capture sound (offset by 35ms)
-          const playThud = (time, freq, decay, vol) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(time);
-            osc.stop(time + decay + 0.05);
-          };
-          
-          const t = ctx.currentTime;
-          playThud(t, 380, 0.04, 0.4); // first impact (colliding pieces)
-          playThud(t + 0.035, 180, 0.13, 0.45); // second landing thud
-          
-          try {
-            const bufferSize = ctx.sampleRate * 0.012;
-            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
-            }
-            const noiseNode = ctx.createBufferSource();
-            noiseNode.buffer = noiseBuffer;
-            const noiseGain = ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.12, t);
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
-            noiseNode.start(t);
-          } catch (e) {}
-        },
-        check: () => {
-          // Acoustic metallic ringing chime
-          const frequencies = [780, 1150, 1500];
-          frequencies.forEach((freq, idx) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime);
-            gain.gain.setValueAtTime(0.14 - (idx * 0.03), ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.4);
-          });
-        },
-        gameStart: () => {
-          // High fidelity bright entry chime chord
-          [330, 440, 550, 660, 880].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
-            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.06);
-            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.06 + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.35);
-            osc.start(ctx.currentTime + i * 0.06);
-            osc.stop(ctx.currentTime + i * 0.06 + 0.4);
-          });
-        },
-        gameEnd: () => {
-          // Deep acoustic solemn landing cadence
-          [440, 330, 220].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
-            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
-            gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.5);
-            osc.start(ctx.currentTime + i * 0.12);
-            osc.stop(ctx.currentTime + i * 0.12 + 0.6);
-          });
-        },
-        connect: () => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.3);
-        },
-        chat: () => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.value = 660;
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.12);
-        },
-      };
-      
-      if (soundEnabled && sounds[resolvedType]) {
-        sounds[resolvedType]();
-      }
-      
-      setTimeout(() => ctx.close(), 1000);
-    } catch (e) {}
-  }, [soundEnabled]);
 
   useEffect(() => {
     if (!game) return;

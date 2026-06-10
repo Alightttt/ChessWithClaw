@@ -1,0 +1,7 @@
+
+/app/applet/src/pages/Game.jsx
+  363:32  error  'playSound' was used before it was defined  no-use-before-define
+  366:30  error  'playSound' was used before it was defined  no-use-before-define
+
+✖ 2 problems (2 errors, 0 warnings)
+
