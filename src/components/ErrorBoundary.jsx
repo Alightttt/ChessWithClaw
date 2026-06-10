@@ -27,9 +27,12 @@ export default class ErrorBoundary extends React.Component {
             <AlertCircle size={32} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
-          <p className="text-neutral-400 text-sm max-w-sm mx-auto mb-8 line-clamp-3">
+          <p className="text-neutral-400 text-sm max-w-sm mx-auto mb-8">
             {this.state.error?.message || 'An unexpected error occurred in the application layer.'}
           </p>
+          <pre className="text-left text-xs bg-black/50 p-4 rounded overflow-auto max-w-2xl max-h-64 mb-8 text-red-300 whitespace-pre-wrap">
+            {this.state.error?.stack}
+          </pre>
           <button
             onClick={() => window.location.reload()}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-500 transition-colors active:scale-95"
