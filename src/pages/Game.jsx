@@ -295,6 +295,20 @@ export default function Game() {
   });
   const [thoughtLanguage, setThoughtLanguage] = useState('english');
 
+  const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  const [boardFen, setBoardFen] = useState(boardFenRef.current);
+
+  const applyBoardFen = useCallback((fen) => {
+    if (!fen || fen === boardFenRef.current) return;
+    boardFenRef.current = fen;
+    setBoardFen(fen);
+  }, []);
+
+  const lastProcessedFenRef = useRef('start');
+  const [boardLastMove, setBoardLastMove] = useState(null);
+  const lastMoveFenRef = useRef(null);
+  const movePendingRef = useRef(false);
+
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
 
   const [agentTyping, setAgentTyping] = useState(false);
@@ -369,20 +383,6 @@ export default function Game() {
     if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
   }, [game?.thought_language]);
   
-  const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-  const [boardFen, setBoardFen] = useState(boardFenRef.current);
-
-  const applyBoardFen = useCallback((fen) => {
-    if (!fen || fen === boardFenRef.current) return;
-    boardFenRef.current = fen;
-    setBoardFen(fen);
-  }, []);
-
-  const lastProcessedFenRef = useRef('start');
-  const [boardLastMove, setBoardLastMove] = useState(null);
-  const lastMoveFenRef = useRef(null);
-  const movePendingRef = useRef(false);
-
   const getKingSquare = (fen, color) => {
     if (!fen) return null;
     const pieceChar = color === 'w' ? 'K' : 'k';

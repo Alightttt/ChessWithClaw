@@ -1,0 +1,44 @@
+|T.constructor.name||"Object";return te}}function rt(T){try{return $e(T),!1}catch{return!0}}function $
+e(T){return""+T}function Vt(T){if(rt(T))return Me("The provided key is an unsupported 
+totype;return!!(ue&&ue.isReactComponent)}function rt(M,ue,R){if(M==null)return"";if(typeof M=="functio
+$typeof){case m:return Ye(M.render);case x:return rt(M.type,ue,R);case S:{var Y=M,he=Y._payload,ve=Y._
+init;try{return rt(ve(he),ue,R)}catch{}}}return""}var $e=Object.prot
+rrentFrame;function Rt(M){if(M){var ue=M._owner,R=rt(M.type,M._source,ue?ue.type:null);Ft.setExtraStac
+rrentFrame;function kn(M){if(M){var ue=M._owner,R=rt(M.type,M._source,ue?ue.type:null);Xt.setExtraStac
+ack=null}function vt(){return g}var Ye=!1,gt=null,rt=-1,$e=i,Vt=-1;function Ft(){var Ee=n.unstable_now
+ xt(Ee){gt=Ee,Ye||(Ye=!0,Yt())}function Kt(Ee,Fe){rt=Me(function(){Ee(n.unstable_now())},Fe)}function 
+Nn(){Ue(rt),rt=-1}var Yn=Rt,Kn=null;n.unstable_IdlePriority=E,n.
+ame||"Object";return s}}function gt(t){try{return rt(t),!1}catch{return!0}}function rt(t){return""+t}f
+o a string before before using it here.",r,Ye(t)),rt(t)}function Vt(t){if(gt(t))return c("The provided
+ to a string before before using it here.",Ye(t)),rt(t)}function Ft(t,r){if(gt(t))return c("The provid
+o a string before before using it here.",r,Ye(t)),rt(t)}function Rt(t,r){if(gt(t))return c("The provid
+o a string before before using it here.",r,Ye(t)),rt(t)}function ln(t){if(gt(t))return c("The provided
+ to a string before before using it here.",Ye(t)),rt(t)}function fn(t){if(gt(t))return c("Form field v
+ to a string before before using it here.",Ye(t)),rt(t)}var Yt=0,En=1,Mt=2,xt=3,Kt=4,Nn=5,Yn=6,Kn=":A-
+,_O=["dd","dt","li","option","optgroup","p","rp","rt"],Rw={current:null,formTag:null,aTagInScope:null,
+="h3"&&r!=="h4"&&r!=="h5"&&r!=="h6";case"rp":case"rt":return _O.indexOf(r)===-1;case"body":case"captio
+rototype;return!!(Y&&Y.isReactComponent)}function rt(R,Y,he){if(R==null)return"";if(typeof R=="functio
+$typeof){case m:return Ye(R.render);case x:return rt(R.type,Y,he);case S:{var ve=R,Ie=ve._payload,Ce=v
+e._init;try{return rt(Ce(Ie),Y,he)}catch{}}}return""}var $e=Object.prot
+rrentFrame;function Rt(R){if(R){var Y=R._owner,he=rt(R.type,R._source,Y?Y.type:null);Ft.setExtraStackF
+rrentFrame;function Xt(R){if(R){var Y=R._owner,he=rt(R.type,R._source,Y?Y.type:null);Zt.setExtraStackF
+tC(K)),[Ye,gt]=N.useState({removed:{},added:{}}),[rt,$e]=N.useState(void 0),[Vt,Ft]=N.useState(Re&&!o)
+t);else if(Ee)vt(ue),qt(!1),l&&Hn(Y);else{eC(ue)&&rt!==void 0?$e(Y):eC(ue)?$e(void 0):$e("b"),gt(R),qt
+(Bt,$t,M,ue){if(Bt===$t)return;if(Xt(),l&&Pt||l&&(rt===M[0]||xt.current.filter(Y=>Y.piece[0]===M[0]).l
+Piece:pe,isWaitingForAnimation:Pt,lastPieceColour:rt,lastSquareDraggedOver:Sn,newArrow:Zt,onArrowDrawE
+r!==se)){if(gt.type===Ja&&(vt===!0||vt===Ja)){var rt=Ye+Ky[se][0];if(e[rt]==null){W(e,K,Ye,rt,It.NORMA
+L);var rt=Ye+Ky[se][1];Z[se]===wo(Ye)&&e[rt]==null&&W(e,K,Ye,rt,It.BIG_PAWN)}for($e=2;$e<4;$e
+++){var rt=Ye+Ky[se][$e];rt&136||(e[rt]!=null&&e[rt].color===me?W(e,K,Ye,rt,It.CAPTURE):rt===o&&W(e,K
+ype].length;$e<Vt;$e++)for(var Ft=zT[gt.type][$e],rt=Ye;rt+=Ft,!(rt&136);){if(e[rt]==null)W(e,K,Ye,rt,
+It.NORMAL);else{if(e[rt].color===se)break;W(e,K,Ye,rt,It.CAPTURE);break}i
+(var vt=jz(K),Ye=ie({legal:!0,piece:Re||vt}),gt=0,rt=Ye.length;gt<rt;gt++)switch(se){case Tz:{if(K===$
+Ft.length,se.push(" "),$e++}return Ye()&&$e--,$e},rt=0,Z=0;Z<Qe.length;Z++){if(rt+Qe[Z].length>K&&Qe[Z
+].includes("{")){rt=gt(rt,Qe[Z]);continue}rt+Qe[Z].length>K&&Z!==0?(se[se.length-1]===" "&&se.
+pop(),se.push(W),rt=0):Z!==0&&(se.push(" "),rt++),se.push(Qe[Z]),rt+=Qe[Z].length}return se.join
+eURIComponent("%"+Mt.match(/.{1,2}/g).join("%"))},rt=function(Mt){return Mt=Mt.replace(new RegExp(se(Z
+)}]*)`,"g"),function(Mt,xt,Kt){return xt!==void 0?rt(xt):" "+rt(`{${Kt.slice(1)}}`)}).replace(new RegE
+Qe,Ve]=N.useState(!1),[vt,Ye]=N.useState(320),[gt,rt]=N.useState(!1),[$e,Vt]=N.useState(()=>localStora
+execCommand("copy"),document.body.removeChild(xe)}rt(!0),setTimeout(()=>rt(!1),2e3)}catch(xe){console.
+1),[Ve,vt]=N.useState(""),[Ye,gt]=N.useState([]),[rt,$e]=N.useState(!1),[Vt,Ft]=N.useState(!1),[Rt,ln]
+|"w")||o.status!=="active"&&o.status!=="waiting"||rt||tt.current)return;const Ae=(o==null?void 0:o.age
+mit"),tt.current=!1,$e(!1),Jt(null),kn(null)}},[o,rt,e,l,et,i]),is=async B=>{if(B==null||B.preventDefa
