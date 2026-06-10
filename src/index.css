@@ -18,14 +18,6 @@
     --text-secondary: rgba(255, 255, 255, 0.6);
     --text-muted: rgba(255, 255, 255, 0.4);
     
-    /* Mapping for Modal.jsx and other UI components */
-    --color-bg-surface: var(--surface);
-    --color-bg-elevated: var(--elevated);
-    --color-bg-hover: rgba(255, 255, 255, 0.05);
-    --color-border-subtle: var(--border);
-    --color-text-muted: var(--text-muted);
-    --color-red-primary: var(--red);
-
     --green-light: #739552;
     --green-dark: #577047;
 
@@ -210,3 +202,6 @@ button:active:not(:disabled) {
   80%{transform:scale(0.95)}
   100%{transform:scale(1)}
 }
+
+
+

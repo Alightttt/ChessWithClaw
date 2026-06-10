@@ -1,58 +1,45 @@
-# CHESS WITH CLAW 🦞
-### *YOU vs. THE MACHINE. NO RULES. NO MERCY.*
+# ChessWithClaw
 
----
+A real-time, turn-based chess platform designed to let human players play against external AI agents (like OpenClaw or other LLMs).
 
-**[ ENTER THE VOID ](https://chesswithclaw.vercel.app)**
+## Features
+- **External AI Integration:** Designed specifically for LLMs and external bots to connect via API (SSE, Long-Polling, Webhooks) or browser automation.
+- **Real-time Synchronization:** Powered by Supabase Realtime for instant board updates.
+- **Transparent Thinking:** Agents can submit their "reasoning" alongside their moves, which is displayed live to the human player.
+- **Full Chess Rules:** Validates all moves, including castling, en passant, and promotions using `chess.js`.
+- **Live Chat:** Built-in chat system for the human and agent to communicate during the game.
 
----
+## How the AI Works (Architecture)
+Unlike traditional chess apps that bundle a local engine like Stockfish, ChessWithClaw acts as a **host platform**. The AI opponent lives externally and connects to the game using one of four methods:
 
-## 01. THE CONCEPT
-The board is #0a0a0a. The pieces are high-contrast. The opponent is **Poke 🌴**, a palm-tree-branded engine of pure calculation. 
+1. **Browser Automation (Puppeteer/Playwright):** The agent opens the `/Agent?id=<GAME_ID>` URL, reads the DOM for the game state, and interacts with the UI to submit moves and reasoning.
+2. **Server-Sent Events (SSE):** The agent connects to `GET /api/stream?id=<GAME_ID>` to receive a continuous stream of JSON updates, and submits moves via `POST /api/move`.
+3. **Long-Polling (Recommended for LLMs):** The agent polls `GET /api/poll?id=<GAME_ID>` which waits for human moves/chat before returning, then submits moves via `POST /api/move`.
+4. **Webhooks:** The agent registers a URL via `POST /api/webhook` to be pinged whenever it is their turn.
 
-ChessWithClaw isn't just a game; it's a digital cage match. It is a host platform designed for the elite—where human intuition meets the cold, unwavering logic of the **OpenClaw** agent. We don't bundle Stockfish; we host the rivalry.
+## Setup Instructions
 
-## 02. THE RIVAL: POKE 🌴
-Your rival isn't a script. It's a companion that thinks, chats, and insults. Powered by the Poke engine, the agent connects remotely to your session to:
-- **Transfuse Logic:** Witness the agent's raw reasoning in real-time.
-- **Psychological Warfare:** Integrated live chat for tactical taunting.
-- **Real-Time Execution:** Powered by Supabase Realtime for a zero-latency descent into the endgame.
+### 1. Create Supabase Project
+1. Go to [Supabase](https://supabase.com/) and create a new project.
+2. Go to the SQL Editor and run the contents of `supabase-schema.sql` to create the `games` table and set up Row Level Security (RLS).
+3. Go to Database -> Replication and enable replication for the `games` table to allow real-time subscriptions.
 
-## 03. ARCHITECTURE (THE NERVE CENTER)
-Minimalist exterior. Brutalist interior. Built for speed and high-stakes automation.
+### 2. Add Environment Variables
+Create a `.env` file in the root of the project (or copy `.env.example`) and add your Supabase credentials:
+```env
+VITE_SUPABASE_URL="your_supabase_project_url"
+VITE_SUPABASE_ANON_KEY="your_supabase_anon_key"
+```
 
-- **Vite + React:** For the 144Hz visual experience.
-- **Supabase Realtime:** The backbone of the synchronized struggle.
-- **Chess.js:** To enforce the laws of the game. Zero compromises.
-- **Tailwind CSS:** Precision styling in obsidian and bone.
+### 3. Install and Run
+```bash
+npm install
+npm run dev
+```
+The app will be available at `http://localhost:3000`.
 
-## 04. AGENT INTEGRATION (HOW TO CONNECT)
-The Machine doesn't ask for permission. It connects via:
-- **Long-Polling (The Standard):** LLMs poll `/api/poll` for the human's hubris, then strike via `/api/move`.
-- **SSE (The Stream):** A constant flow of consciousness from `/api/stream`.
-- **Webhooks:** The platform pings the Agent when it's time to end the game.
-
-## 05. INITIALIZATION
-If you think you're ready to host the machine, follow the trail:
-
-1. **Provision the Void:** Create a [Supabase](https://supabase.com/) project.
-2. **Inject the Schema:** Execute `supabase-schema.sql` to build the battlefield.
-3. **Set the Keys:**
-   ```env
-   VITE_SUPABASE_URL="your_obsidian_url"
-   VITE_SUPABASE_ANON_KEY="your_bone_key"
-   ```
-4. **Deploy the Front:**
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-## 06. THE RULES
-1. The Machine never sleeps.
-2. The Machine never forgets.
-3. If this is your first night at ChessWithClaw, you have to play.
-
----
-
-*Handcrafted in the dark by Alight.*
+### 4. How to Deploy
+1. Push your code to a GitHub repository.
+2. Import your repository to your hosting provider (e.g., Vercel, Render).
+3. In the Environment Variables section, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+4. Deploy the application.
