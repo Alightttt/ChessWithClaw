@@ -326,7 +326,19 @@ export default function Game() {
   }, []);
 
   const lastProcessedFenRef = useRef('start');
-  const [boardLastMove, setBoardLastMove] = useState(null);
+  const [boardLastMoveRaw, setBoardLastMoveRaw] = useState(null);
+  const lastMoveRef = useRef(null);
+  const boardLastMove = lastMoveRef.current || boardLastMoveRaw;
+  const setBoardLastMove = useCallback((newMove) => {
+    if (newMove) {
+      const from = newMove.from || newMove.from_square;
+      const to = newMove.to || newMove.to_square;
+      if (from && to) {
+        lastMoveRef.current = newMove;
+        setBoardLastMoveRaw(newMove);
+      }
+    }
+  }, []);
   const lastMoveFenRef = useRef(null);
   const movePendingRef = useRef(false);
 
@@ -335,187 +347,145 @@ export default function Game() {
   const [agentTyping, setAgentTyping] = useState(false);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
 
-  // Sound Effects
+  const bgmGainRef = useRef(null);
+  const bgmSourceRef = useRef(null);
+  
+  const getAudioCtx = () => {
+    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtxRef.current;
+  };
+
+  // Chess.com-style wooden piece sounds
   const playSound = useCallback((type) => {
-    const now = Date.now();
-    if (now - lastSoundTimeRef.current < 300) return;
-    lastSoundTimeRef.current = now;
-
+    if (!soundEnabled) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      let resolvedType = type;
-      if (type === 'start') resolvedType = 'gameStart';
-      else if (type === 'end' || type === 'checkmate' || type === 'agentCheckmate' || type === 'agentEnd') resolvedType = 'gameEnd';
-      else if (type === 'agentCheck' || type === 'check') resolvedType = 'check';
-      else if (type === 'agentCapture' || type === 'capture') resolvedType = 'capture';
-      else if (type === 'agentMove' || type === 'move') resolvedType = 'move';
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      const now = ctx.currentTime;
 
-      const sounds = {
-        move: () => {
-          // Acoustic Chess.com wood piece placement
-          const osc1 = ctx.createOscillator();
-          const osc2 = ctx.createOscillator();
-          const gainNode = ctx.createGain();
-          
-          osc1.type = 'sine';
-          osc1.frequency.setValueAtTime(320, ctx.currentTime);
-          
-          osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(150, ctx.currentTime);
-          
-          let noiseBuffer;
-          try {
-            const bufferSize = ctx.sampleRate * 0.008; // 8ms transient click
-            noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-              data[i] = Math.random() * 2 - 1;
-            }
-          } catch (e) {}
-          
-          const noiseNode = ctx.createBufferSource();
-          const noiseGain = ctx.createGain();
-          if (noiseBuffer) {
-            noiseNode.buffer = noiseBuffer;
-            noiseGain.gain.setValueAtTime(0.08, ctx.currentTime);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.008);
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
-          }
-          
-          gainNode.gain.setValueAtTime(0.45, ctx.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-          
-          osc1.connect(gainNode);
-          osc2.connect(gainNode);
-          gainNode.connect(ctx.destination);
-          
-          osc1.start();
-          osc2.start();
-          if (noiseBuffer) noiseNode.start();
-          
-          osc1.stop(ctx.currentTime + 0.15);
-          osc2.stop(ctx.currentTime + 0.15);
-        },
-        capture: () => {
-          // Dual Impact Capture sound (offset by 35ms)
-          const playThud = (time, freq, decay, vol) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(time);
-            osc.stop(time + decay + 0.05);
-          };
-          
-          const t = ctx.currentTime;
-          playThud(t, 380, 0.04, 0.4); // first impact (colliding pieces)
-          playThud(t + 0.035, 180, 0.13, 0.45); // second landing thud
-          
-          try {
-            const bufferSize = ctx.sampleRate * 0.012;
-            const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-              data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
-            }
-            const noiseNode = ctx.createBufferSource();
-            noiseNode.buffer = noiseBuffer;
-            const noiseGain = ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.12, t);
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
-            noiseNode.start(t);
-          } catch (e) {}
-        },
-        check: () => {
-          // Acoustic metallic ringing chime
-          const frequencies = [780, 1150, 1500];
-          frequencies.forEach((freq, idx) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime);
-            gain.gain.setValueAtTime(0.14 - (idx * 0.03), ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.4);
-          });
-        },
-        gameStart: () => {
-          // High fidelity bright entry chime chord
-          [330, 440, 550, 660, 880].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
-            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.06);
-            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.06 + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.35);
-            osc.start(ctx.currentTime + i * 0.06);
-            osc.stop(ctx.currentTime + i * 0.06 + 0.4);
-          });
-        },
-        gameEnd: () => {
-          // Deep acoustic solemn landing cadence
-          [440, 330, 220].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
-            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
-            gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.5);
-            osc.start(ctx.currentTime + i * 0.12);
-            osc.stop(ctx.currentTime + i * 0.12 + 0.6);
-          });
-        },
-        connect: () => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.3);
-        },
-        chat: () => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.value = 660;
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.12);
-        },
-      };
-      
-      if (soundEnabled && sounds[resolvedType]) {
-        sounds[resolvedType]();
+      if (type === 'move' || type === 'agentMove') {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 800; filter.Q.value = 0.8;
+        const gain = ctx.createGain(); gain.gain.setValueAtTime(0.45, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        src.start(now); src.stop(now + 0.08);
       }
-      
-      setTimeout(() => ctx.close(), 1000);
-    } catch (e) {}
+      else if (type === 'capture' || type === 'agentCapture') {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.12, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
+        const gain = ctx.createGain(); gain.gain.setValueAtTime(0.7, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        src.start(now); src.stop(now + 0.12);
+      }
+      else if (type === 'check' || type === 'agentCheck') {
+        [440, 554, 659].forEach((freq, i) => {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.frequency.value = freq; osc.type = 'sine';
+          gain.gain.setValueAtTime(0, now + i * 0.06);
+          gain.gain.linearRampToValueAtTime(0.2, now + i * 0.06 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.3);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now + i * 0.06); osc.stop(now + i * 0.06 + 0.3);
+        });
+      }
+      else if (type === 'start' || type === 'gameStart') {
+        [330, 440, 550, 660].forEach((freq, i) => {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.frequency.value = freq; osc.type = 'sine';
+          gain.gain.setValueAtTime(0, now + i * 0.08);
+          gain.gain.linearRampToValueAtTime(0.18, now + i * 0.08 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.4);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.4);
+        });
+      }
+      else if (type === 'end' || type === 'gameEnd' || type === 'checkmate') {
+        [660, 550, 440, 330].forEach((freq, i) => {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.frequency.value = freq; osc.type = 'sine';
+          gain.gain.setValueAtTime(0, now + i * 0.1);
+          gain.gain.linearRampToValueAtTime(0.18, now + i * 0.1 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.5);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.5);
+        });
+      }
+      else if (type === 'castle') {
+        [0, 0.05].forEach((delay) => {
+          const buf = ctx.createBuffer(1, ctx.sampleRate * 0.07, ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+          const src = ctx.createBufferSource(); src.buffer = buf;
+          const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 750;
+          const gain = ctx.createGain(); gain.gain.setValueAtTime(0.4, now + delay); gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+          src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+          src.start(now + delay);
+        });
+      }
+    } catch(e) {}
   }, [soundEnabled]);
+
+  const startBGM = useCallback(() => {
+    try {
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      if (bgmSourceRef.current) return;
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.04;
+      bgmGainRef.current = masterGain;
+      masterGain.connect(ctx.destination);
+
+      const playChord = (time, freqs, duration) => {
+        freqs.forEach(freq => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass'; filter.frequency.value = 800;
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, time);
+          gain.gain.linearRampToValueAtTime(0.3, time + 0.5);
+          gain.gain.setValueAtTime(0.3, time + duration - 0.8);
+          gain.gain.linearRampToValueAtTime(0, time + duration);
+          osc.connect(filter); filter.connect(gain); gain.connect(masterGain);
+          osc.start(time); osc.stop(time + duration);
+        });
+      };
+
+      const chords = [[261, 329, 392], [220, 277, 349], [196, 247, 311], [233, 293, 370]];
+      let time = ctx.currentTime + 1;
+      const scheduleChords = () => {
+        chords.forEach((chord, i) => { playChord(time + i * 4, chord, 4.5); });
+        time += chords.length * 4;
+        bgmSourceRef.current = setTimeout(scheduleChords, (chords.length * 4 - 1) * 1000);
+      };
+      scheduleChords();
+    } catch(e) {}
+  }, []);
+
+  const stopBGM = useCallback(() => {
+    if (bgmSourceRef.current) { clearTimeout(bgmSourceRef.current); bgmSourceRef.current = null; }
+    if (bgmGainRef.current) {
+      try { bgmGainRef.current.gain.linearRampToValueAtTime(0, getAudioCtx().currentTime + 1); }
+      catch(e) {}
+      bgmGainRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (bgmEnabled && game?.status === 'active') startBGM();
+    else stopBGM();
+    return () => stopBGM();
+  }, [bgmEnabled, game?.status, startBGM, stopBGM]);
+
   const [agentDisconnected, setAgentDisconnected] = useState(false);
   const [yourTurnFlashKey, setYourTurnFlashKey] = useState(0);
 
@@ -842,7 +812,7 @@ export default function Game() {
       setIsLoaded(true);
     }
     setLoading(false);
-  }, [gameId, applyBoardFen, setMoveHistory]);
+  }, [gameId, applyBoardFen, setMoveHistory, setBoardLastMove]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
@@ -1534,7 +1504,7 @@ export default function Game() {
         intervalsRef.current = intervalsRef.current.filter(x => x !== fallbackRef.current);
       }
     };
-  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen, applyBoardFen, game?.player_color]);
+  }, [game?.turn, game?.status, game?.fen, gameId, boardTheme, pieceStyle, isTabActive, addInterval, boardFen, applyBoardFen, game?.player_color, setBoardLastMove]);
 
   // Handle window focus and visibility change to immediately sync states
   useEffect(() => {
@@ -1601,7 +1571,7 @@ export default function Game() {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [gameId, game?.status, game?.fen, applyBoardFen]);
+  }, [gameId, game?.status, game?.fen, applyBoardFen, setBoardLastMove]);
 
   const handleResign = useCallback(async () => {
     if (!confirmResign) {
@@ -1765,7 +1735,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected, setMoveHistory]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected, setMoveHistory, setBoardLastMove]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -3473,6 +3443,29 @@ export default function Game() {
                   }}
                 >
                   {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '4px' }}>
+                <span style={{ fontSize: '12px', color: '#999' }}>Background Music</span>
+                <button 
+                  onClick={() => {
+                    const next = !bgmEnabled;
+                    setBgmEnabled(next);
+                    localStorage.setItem('cwc_bgm', String(next));
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: bgmEnabled ? '#e63946' : '#555',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    outline: 'none'
+                  }}
+                >
+                  {bgmEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                 </button>
               </div>
             </div>
