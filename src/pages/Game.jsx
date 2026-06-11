@@ -2691,7 +2691,7 @@ export default function Game() {
               borderRadius: '6px',
               border: '1px solid rgba(255,255,255,0.03)'
             }}>
-              {gamePhase}
+              You
             </span>
             <span style={{ 
               fontSize: '12px', 
@@ -2699,7 +2699,7 @@ export default function Game() {
               fontWeight: 500,
               fontFamily: '"JetBrains Mono", monospace'
             }}>
-              MOVE <span style={{ color: '#fff', fontWeight: 600 }}>{moveCount + 1}</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{game?.agent_name || 'Your OpenClaw'}</span>
             </span>
           </div>
 

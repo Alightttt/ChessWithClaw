@@ -157,7 +157,8 @@ module.exports = async function handler(req, res) {
 
   // Build the complete standardized JSON structure
   const responseData = {
-    event,
+    event: event || '',
+    events: event ? [event] : [],
     fen: game.fen,
     board_ascii,
     turn: trueTurn,

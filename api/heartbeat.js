@@ -111,7 +111,8 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({ 
     success: true, 
-    alive: true, 
+    alive: true,
+    agent_connected: true,
     status: game.status, 
     turn: game.turn, 
     role: isAgentRequest ? 'agent' : 'human' 
