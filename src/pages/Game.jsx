@@ -2500,7 +2500,7 @@ export default function Game() {
               <div key={`flash-${yourTurnFlashKey}`} style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none',
                 borderRadius: '8px', zIndex: 10,
-                animation: yourTurnFlashKey ? 'yourTurnFlash 0.5s ease-out' : 'none'
+                animation: yourTurnFlashKey ? 'yourTurnFlash 0.2s ease-out' : 'none'
               }} />
               <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
@@ -2887,7 +2887,7 @@ export default function Game() {
           <div key={`flash-${yourTurnFlashKey}`} style={{
             position: 'absolute', inset: 12, pointerEvents: 'none',
             borderRadius: '4px', zIndex: 10,
-            animation: yourTurnFlashKey ? 'yourTurnFlash 0.5s ease-out' : 'none'
+            animation: yourTurnFlashKey ? 'yourTurnFlash 0.2s ease-out' : 'none'
           }} />
           <div style={{ height: '8px' }} />
           {isOpenClawTurn && (

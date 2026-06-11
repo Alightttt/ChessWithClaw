@@ -155,11 +155,10 @@ export default function ChessBoard({
   // Custom square styles: last move, legal dots, check glow
   const customSquareStyles = {};
 
-  // Last move highlight (re-written with parsedLastMove)
+  // Last move highlight
   if (parsedLastMove) {
-    const lastMoveStyle = { backgroundColor: 'rgba(255, 215, 0, 0.35)' };
-    customSquareStyles[parsedLastMove.from] = lastMoveStyle;
-    customSquareStyles[parsedLastMove.to] = lastMoveStyle;
+    if (parsedLastMove.from) customSquareStyles[parsedLastMove.from] = { backgroundColor: 'rgba(255, 255, 100, 0.35)' };
+    if (parsedLastMove.to) customSquareStyles[parsedLastMove.to] = { backgroundColor: 'rgba(255, 255, 100, 0.5)' };
   }
 
   // Flashing arrival square highlight
@@ -244,7 +243,7 @@ export default function ChessBoard({
         customSquareStyles={customSquareStyles}
         customLightSquareStyle={{ backgroundColor: theme.light }}
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
-        animationDuration={150}
+        animationDuration={300}
         arePiecesDraggable={false}
         customPieces={customPiecesMap}
         boardStyle={{
