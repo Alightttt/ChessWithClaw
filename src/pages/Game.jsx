@@ -20,7 +20,7 @@ import { useRipple } from '../hooks/useRipple';
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 function findKingSquare(fen, color) {
-  if (!fen) return null;
+  if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
   const pieceChar = color === 'w' ? 'K' : 'k';
   const rows = fen.split(' ')[0].split('/');
   for (let rank = 0; rank < 8; rank++) {
@@ -58,6 +58,7 @@ const getCheckedKingSquare = (fen, turn) => {
 };
 
 function getKingSquare(fen, colorChar) {
+  if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
   const rows = fen.split(' ')[0].split('/');
   const king = colorChar === 'w' ? 'K' : 'k';
   for (let rank = 0; rank < 8; rank++) {
@@ -127,8 +128,6 @@ export default function Game() {
   }, []);
 
   const agentToken = location.state?.agentToken;
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
-  const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
   
   const [game, setGame] = useState(() => {
     try {
@@ -251,6 +250,28 @@ export default function Game() {
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
+      }
+      [data-piece] {
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      }
+      @keyframes agentBreathe {
+        0% { opacity: 0.6; }
+        50% { opacity: 1.0; }
+        100% { opacity: 0.6; }
+      }
+      @keyframes emojiBounce {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.4); }
+        100% { transform: scale(1); }
+      }
+      @keyframes thoughtEntrance {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes yourTurnFlash {
+        0% { box-shadow: inset 0 0 0px rgba(230,57,70,0); }
+        15% { box-shadow: inset 0 0 40px rgba(230,57,70,0.6); }
+        100% { box-shadow: inset 0 0 0px rgba(230,57,70,0); }
       }
       .cwc-msg-new { animation-play-state: running !important; -webkit-animation-play-state: running !important; }
       @media (prefers-reduced-motion: reduce) {
@@ -496,6 +517,7 @@ export default function Game() {
     } catch (e) {}
   }, [soundEnabled]);
   const [agentDisconnected, setAgentDisconnected] = useState(false);
+  const [yourTurnFlashKey, setYourTurnFlashKey] = useState(0);
 
   const [thoughtText, setThoughtText] = useState('');
   const [thoughtVisible, setThoughtVisible] = useState(false);
@@ -554,9 +576,7 @@ export default function Game() {
     thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
   }, []);
 
-  useEffect(() => {
-    if (game?.companion_thought) showThought(game.companion_thought);
-  }, [game?.companion_thought, showThought]);
+
 
   useEffect(() => {
     setThoughtVisible(false);
@@ -565,7 +585,7 @@ export default function Game() {
   }, [game?.thought_language]);
   
   const getKingSquare = (fen, color) => {
-    if (!fen) return null;
+    if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
     const pieceChar = color === 'w' ? 'K' : 'k';
     const rows = fen.split(' ')[0].split('/');
     for (let rank = 0; rank < 8; rank++) {
@@ -592,8 +612,10 @@ export default function Game() {
   }, [boardFen]);
 
   const trueTurn = useMemo(() => {
-    if (!boardFen || !boardFen.includes(' ')) return 'white';
-    return boardFen.split(' ')[1] === 'w' ? 'white' : 'black';
+    const trueTurnResult = (boardFen && typeof boardFen === 'string' && boardFen.includes(' '))
+      ? (boardFen.split(' ')[1] === 'w' ? 'white' : 'black')
+      : 'white';
+    return trueTurnResult;
   }, [boardFen]);
 
   const infoState = game?.status === 'waiting'
@@ -636,7 +658,7 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (!boardFen || !boardFen.includes(' ')) return '🦞';
+    if (!boardFen || typeof boardFen !== 'string' || !boardFen.includes(' ')) return '🦞';
     const fenParts = boardFen.split(' ');
     const board = fenParts[0];
     const currentTurn = fenParts[1];
@@ -824,9 +846,18 @@ export default function Game() {
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
 
-  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 900);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 600);
+  const [isTablet, setIsTablet] = useState(typeof window !== 'undefined' && window.innerWidth >= 600 && window.innerWidth < 960);
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 960);
+  
+  const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
+  
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 900);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+      setIsTablet(window.innerWidth >= 600 && window.innerWidth < 960);
+      setIsDesktop(window.innerWidth >= 960);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -1002,13 +1033,18 @@ export default function Game() {
       
       let maxH, maxW;
       
-      if (vw >= 1024) {
+      const currentIsDesktop = vw >= 960;
+      
+      if (currentIsDesktop) {
         // Desktop: Board is in a flex container next to a 360px sidebar
+        const sidebarWidth = 360;
+        const padding = 64;
         const usedHeight = 52 + 64 + 100; // header + padding + top/bottom info
         maxH = vh - usedHeight;
-        maxW = vw - 360 - 64; // sidebar width + padding
+        maxW = vw - sidebarWidth - padding; // sidebar width + padding
       } else {
-        // Mobile
+        // Mobile / Tablet
+        const padding = 24;
         const usedHeight =
           52 +   // header
           100 +  // agent section (merged, collapsed)
@@ -1017,11 +1053,17 @@ export default function Game() {
           44 +   // move history header
           24;    // padding
         maxH = vh - usedHeight;
-        maxW = vw - 24;
+        maxW = vw - padding;
       }
       
-      const availableWidth = maxW - 24;
-      setBoardSize(Math.max(280, Math.min(availableWidth, maxH, 800)));
+      const paddingForBoard = currentIsDesktop ? 24 : 24;
+      const maxBoardSize = 800;
+      
+      const calculatedWidth = currentIsDesktop
+        ? Math.min(vw - 360 - 64 - paddingForBoard, maxBoardSize)
+        : Math.min(vw - paddingForBoard, maxBoardSize);
+        
+      setBoardSize(Math.max(280, Math.min(calculatedWidth, maxH)));
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     
@@ -1286,85 +1328,91 @@ export default function Game() {
   }, [game, toast, agentName, gameId]);
   
   const handleRealtimeUpdate = useCallback((payload) => {
-    const newData = payload.new || payload;
+    const incoming = payload.new || payload;
 
     setGame(prev => {
       if (!prev) return prev;
-      if (newData.move_history && prev.move_history && newData.move_history.length < prev.move_history.length) {
+      if (incoming.move_history && prev.move_history && incoming.move_history.length < prev.move_history.length) {
         return prev;
       }
+      return { ...prev, ...incoming };
+    });
 
-      if (newData.board_theme) {
-        const newTheme = newData.board_theme;
-        if (newTheme !== boardTheme) {
-          setBoardTheme(newTheme);
-          localStorage.setItem('cwc_board_theme', newTheme);
-          localStorage.setItem('cwc_theme', newTheme);
-        }
-      }
+    if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
+      setPieceStyle(incoming.piece_style);
+      localStorage.setItem('cwc_piece_style', incoming.piece_style);
+    }
+    
+    if (Array.isArray(incoming.chat_history)) {
+      setChatMessages(incoming.chat_history);
+    }
 
-      if (newData.piece_style) {
-        const newPiece = newData.piece_style;
-        if (newPiece !== pieceStyle) {
-          setPieceStyle(newPiece);
-          localStorage.setItem('cwc_piece_style', newPiece);
-        }
-      }
-
-      if (Array.isArray(newData.move_history)) {
-        setMoveHistory(newData.move_history);
-      }
-      if (Array.isArray(newData.chat_history)) {
-        setChatMessages(newData.chat_history);
-      }
-
-      // If this confirms our optimistic move: skip board update, only update metadata
-      if (movePendingRef.current && newData.fen === lastMoveFenRef.current) {
-        movePendingRef.current = false;
-        lastMoveFenRef.current = null;
-        lastProcessedFenRef.current = newData.fen; // synchronize
-        return { ...prev, ...newData };
-      }
-
-      if (newData.fen && newData.fen === lastProcessedFenRef.current) {
-        return { ...prev, ...newData };
-      }
-
+    if (movePendingRef.current && incoming.fen === lastMoveFenRef.current) {
       movePendingRef.current = false;
       lastMoveFenRef.current = null;
+      lastProcessedFenRef.current = incoming.fen;
+      return;
+    }
 
-      const prevFen = boardFenRef.current;
-      const newFen = newData.fen;
+    if (incoming.fen && incoming.fen === lastProcessedFenRef.current) {
+      return;
+    }
 
-      if (newFen && newFen !== prevFen) {
-        applyBoardFen(newFen);
-        lastProcessedFenRef.current = newFen;
-        if (newData.last_move) {
-          setBoardLastMove(newData.last_move);
-        }
+    movePendingRef.current = false;
+    lastMoveFenRef.current = null;
 
-        const playerColor = prev.player_color || 'w';
-        const isAgentMove = !!newData.last_move && (newData.turn === playerColor);
-        if (isAgentMove) {
-          const isCapture = !!newData.last_move?.captured || 
-                            (newData.last_move?.san && newData.last_move.san.includes('x')) || 
-                            (typeof newData.last_move === 'string' && newData.last_move.includes('x'));
-          const isCheck = Boolean(newData.in_check);
-          setTimeout(() => {
-            if (isCheck) {
-              playSound('check');
-            } else if (isCapture) {
-              playSound('capture');
-            } else {
-              playSound('move');
-            }
-          }, 50);
-        }
+    // All agent-move updates in ONE synchronous pass
+    if (incoming.fen && incoming.fen !== boardFenRef.current) {
+      const prevTurn = boardFenRef.current && boardFenRef.current.includes(' ') ? boardFenRef.current.split(' ')[1] : 'w';
+      
+      // 1. Board moves
+      applyBoardFen(incoming.fen);
+      lastProcessedFenRef.current = incoming.fen;
+      if (incoming.last_move) {
+        setBoardLastMove(incoming.last_move);
       }
 
-      return { ...prev, ...newData };
-    });
-  }, [playSound, applyBoardFen, boardTheme, setBoardTheme, pieceStyle, setMoveHistory]);
+      // 5. Your turn flash
+      const newTurn = incoming.fen.split(' ')[1];
+      if (prevTurn !== newTurn && newTurn === (game?.player_color || 'w')) {
+        setYourTurnFlashKey(Date.now());
+      }
+
+      // 2. Sound (immediate)
+      if (incoming.last_move && (incoming.turn === (game?.player_color || 'w'))) {
+        const isCapture = !!incoming.last_move?.captured || 
+                          (incoming.last_move?.san && incoming.last_move.san.includes('x')) || 
+                          (typeof incoming.last_move === 'string' && incoming.last_move.includes('x'));
+        const isCheck = Boolean(incoming.in_check);
+        try { 
+            if (isCheck) playSound('check');
+            else if (isCapture) playSound('capture');
+            else playSound('move');
+        } catch(e) {}
+      }
+
+      // 3. Move history (immediate)
+      if (Array.isArray(incoming.move_history)) setMoveHistory(incoming.move_history);
+
+      // 4. Mood emoji recalculates from new FEN — already handled by useMemo on boardFen ✓
+
+      // 5. Thought (50ms delay — just enough for board animation to start)
+      if (incoming.companion_thought && incoming.companion_thought !== game?.companion_thought) {
+        setTimeout(() => {
+          if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+          setThoughtText(incoming.companion_thought.trim());
+          setThoughtVisible(true);
+        }, 50);
+      }
+
+      // 6. Board theme
+      if (incoming.board_theme && incoming.board_theme !== boardTheme) {
+        setBoardTheme(incoming.board_theme);
+        localStorage.setItem('cwc_board_theme', incoming.board_theme);
+        localStorage.setItem('cwc_theme', incoming.board_theme);
+      }
+    }
+  }, [game, boardTheme, pieceStyle, playSound, applyBoardFen, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, setBoardLastMove]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1905,6 +1953,7 @@ export default function Game() {
   }
 
   function getMaterialBalance(fen) {
+    if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return 0;
     const board = fen.split(' ')[0];
     const values = { p: 1, n: 3, b: 3, r: 5, q: 9 };
     let white = 0, black = 0;
@@ -2071,7 +2120,7 @@ export default function Game() {
   if (isLoading) {
     return (
       <div style={{
-        minHeight: '100vh', background: '#0a0a0a',
+        minHeight: '100dvh', background: '#0a0a0a',
         display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
         <div style={{
@@ -2423,13 +2472,15 @@ export default function Game() {
               border: '1px solid rgba(255,255,255,0.06)', 
               borderRadius: '12px', 
               boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
+              animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
               transition: 'box-shadow 0.7s ease' 
             }}>
-              <span style={{
+              <span key={moodEmoji} style={{
                 fontSize: '22px',
                 display: 'inline-block',
                 fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
-                userSelect: 'none'
+                userSelect: 'none',
+                animation: 'emojiBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}>
                 {moodEmoji}
               </span>
@@ -2459,7 +2510,8 @@ export default function Game() {
               </div>
               <div style={{
                 opacity: thoughtVisible ? 1 : 0,
-                transition: 'opacity 0.4s ease',
+                transform: thoughtVisible ? 'translateY(0)' : 'translateY(6px)',
+                transition: 'opacity 0.4s ease, transform 0.4s ease',
                 fontStyle: 'italic',
                 fontSize: 13,
                 color: 'rgba(242,242,242,0.6)',
@@ -2474,7 +2526,12 @@ export default function Game() {
                 
             
             {/* B) CHESS BOARD AND EVALUATION ROW */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, position: 'relative' }}>
+              <div key={`flash-${yourTurnFlashKey}`} style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                borderRadius: '8px', zIndex: 10,
+                animation: yourTurnFlashKey ? 'yourTurnFlash 0.5s ease-out' : 'none'
+              }} />
               <div style={{ width: '100%', height: '100%', maxWidth: 'min(100%, calc(100dvh - 52px - 48px - 48px - 48px))', aspectRatio: '1/1', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', height: '100%', width: '100%', alignItems: 'stretch' }}>
                   
@@ -2803,14 +2860,16 @@ export default function Game() {
           border: '1px solid rgba(255,255,255,0.06)', 
           borderRadius: '12px', 
           boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
+          animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
           transition: 'box-shadow 0.7s ease',
           margin: '12px'
         }}>
-          <span style={{
+          <span key={moodEmoji} style={{
             fontSize: '22px',
             display: 'inline-block',
             fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
-            userSelect: 'none'
+            userSelect: 'none',
+            animation: 'emojiBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}>
             {moodEmoji}
           </span>
@@ -2855,6 +2914,11 @@ export default function Game() {
 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
+          <div key={`flash-${yourTurnFlashKey}`} style={{
+            position: 'absolute', inset: 12, pointerEvents: 'none',
+            borderRadius: '4px', zIndex: 10,
+            animation: yourTurnFlashKey ? 'yourTurnFlash 0.5s ease-out' : 'none'
+          }} />
           <div style={{ height: '8px' }} />
           {isOpenClawTurn && (
             <div style={{
@@ -2953,7 +3017,7 @@ export default function Game() {
             </div>
             <form 
               onSubmit={sendMessage} 
-              style={{ padding: '6px 12px 8px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}
+              style={{ padding: '6px 12px 8px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}
             >
               <input
                 id="chat-input"
@@ -3125,7 +3189,7 @@ export default function Game() {
 
       {showGameOver && game?.status === 'finished' && (
         <div style={{
-          position:'fixed', inset:0, zIndex:1000,
+          position:'fixed', inset:0, zIndex:9999,
           background:'rgba(6,6,6,0.97)',
           backdropFilter:'blur(10px)',
           WebkitBackdropFilter:'blur(10px)',
@@ -3133,6 +3197,7 @@ export default function Game() {
           padding:'20px'
         }}>
           <div style={{
+            position: 'relative', zIndex: 10000,
             background:'#111', border:'1px solid #222',
             borderRadius:'24px', padding:'40px 28px',
             maxWidth:'340px', width:'100%', textAlign:'center',
