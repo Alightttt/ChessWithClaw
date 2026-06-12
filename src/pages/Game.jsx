@@ -71,14 +71,37 @@ function getKingSquare(fen, colorChar) {
   return null;
 }
 
+const PIECE_CODE_MAP = { K:'K', Q:'Q', R:'R', B:'B', N:'N' };
+
+function getPieceImageUrl(pieceLetter, isWhite, style) {
+  const s = style || 'neo';
+  const code = (isWhite ? 'w' : 'b') + pieceLetter;
+  return `https://images.chesscomfiles.com/chess-themes/pieces/${s}/150/${code}.png`;
+}
+
+function sanToPieceImg(san, isWhiteMove, style) {
+  if (!san) return { letter: null, rest: san || '' };
+  const firstChar = san[0];
+  if (PIECE_CODE_MAP[firstChar]) {
+    return { letter: firstChar, rest: san.slice(1), isPawn: false };
+  }
+  // Castling
+  if (san.startsWith('O-O')) return { letter: 'K', rest: san, isPawn: false, isCastle: true };
+  // Pawn move — no letter prefix
+  return { letter: 'P', rest: san, isPawn: true };
+}
+
 export default function Game() {
   const { id: gameId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
-  const [agentPresence, setAgentPresence] = useState('not_here');
-  const agentConnected = agentPresence !== 'not_here';
+  const [presenceTick, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPresenceTick(t => t + 1), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const dotStyle = {
     connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' },
@@ -154,6 +177,37 @@ export default function Game() {
     } catch (e) {}
     return null;
   });
+
+  const rawPresence = useMemo(() => {
+    if (!game?.agent_last_seen) return 'not_here';
+    const secsAgo = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+    if (secsAgo < 60) return 'connected';
+    if (secsAgo < 150) return 'reconnecting';
+    return 'not_here';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.agent_last_seen, presenceTick]);
+
+  const [agentPresence, setAgentPresence] = useState('not_here');
+  const presenceStableRef = useRef({ value: 'not_here', count: 0 });
+
+  useEffect(() => {
+    const stable = presenceStableRef.current;
+    if (rawPresence === stable.value) {
+      stable.count = 0;
+      setAgentPresence(rawPresence);
+    } else {
+      stable.count += 1;
+      // Require 2 consecutive ticks (20s) of a DOWNGRADE before showing it
+      // Upgrades (back to connected) apply immediately
+      if (rawPresence === 'connected' || stable.count >= 2) {
+        stable.value = rawPresence;
+        stable.count = 0;
+        setAgentPresence(rawPresence);
+      }
+    }
+  }, [rawPresence]);
+
+  const agentConnected = agentPresence !== 'not_here';
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -486,7 +540,6 @@ export default function Game() {
     return () => stopBGM();
   }, [bgmEnabled, game?.status, startBGM, stopBGM]);
 
-  const [agentDisconnected, setAgentDisconnected] = useState(false);
   const [yourTurnFlashKey, setYourTurnFlashKey] = useState(0);
 
   const [thoughtText, setThoughtText] = useState('');
@@ -1146,35 +1199,6 @@ export default function Game() {
 
     prevChatHistoryRef.current = currentChat;
   }, [game?.chat_history]);
-
-  const agentTimeoutRef = useRef(null);
-  useEffect(() => {
-    if (!isTabActive) return;
-    agentTimeoutRef.current = addInterval(() => {
-      if (!game?.agent_last_seen) return;
-      const lastSeen = new Date(game.agent_last_seen);
-      const secondsAgo = (Date.now() - lastSeen) / 1000;
-      setAgentDisconnected(secondsAgo > 90);
-    }, 15000);
-    return () => {
-      clearInterval(agentTimeoutRef.current);
-      intervalsRef.current = intervalsRef.current.filter(x => x !== agentTimeoutRef.current);
-    };
-  }, [game?.agent_last_seen, isTabActive, addInterval]);
-
-  useEffect(() => {
-    const calcPresence = () => {
-      if (!game?.agent_last_seen) { setAgentPresence('not_here'); return; }
-      const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
-      if (secs < 45) setAgentPresence('connected');
-      else if (secs < 180) setAgentPresence('reconnecting');
-      else setAgentPresence('not_here');
-    };
-    calcPresence();
-    if (presenceTimerRef.current) clearInterval(presenceTimerRef.current);
-    presenceTimerRef.current = setInterval(calcPresence, 8000);
-    return () => clearInterval(presenceTimerRef.current);
-  }, [game?.agent_last_seen]);
 
   // Heartbeat & Idle Chat
   useEffect(() => {
@@ -1883,41 +1907,24 @@ export default function Game() {
 
   const renderMoveWithPiece = (move, isWhiteMove) => {
     if (!move || !move.san) return '';
-    
-    // Parse piece category
-    let pieceChar = 'P'; // Pawn by default
-    const san = move.san;
-    if (move.piece) {
-      pieceChar = move.piece.toUpperCase();
-    } else if (san.startsWith('K') || san.includes('O-O')) {
-      pieceChar = 'K';
-    } else if (san.startsWith('Q')) {
-      pieceChar = 'Q';
-    } else if (san.startsWith('R')) {
-      pieceChar = 'R';
-    } else if (san.startsWith('B')) {
-      pieceChar = 'B';
-    } else if (san.startsWith('N')) {
-      pieceChar = 'N';
-    }
-
-    const colorChar = isWhiteMove ? 'w' : 'b';
-    const code = `${colorChar}${pieceChar.toLowerCase()}`;
-    const moveHistoryPieceUrl = (code) => `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle || 'neo'}/150/${code}.png`;
-
-    // Clean displayed move text: replace Nf3 with f3, etc.
-    let displayText = san;
-    if (['K', 'Q', 'R', 'B', 'N'].includes(san[0])) {
-      displayText = san.substring(1);
-    }
-
+    const { letter, rest } = sanToPieceImg(move.san, isWhiteMove, pieceStyle);
+    const imgUrl = getPieceImageUrl(letter, isWhiteMove, pieceStyle);
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-        <div style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.9 }}>
-          <img src={moveHistoryPieceUrl(code)} referrerPolicy="no-referrer" alt={code} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </div>
-        <span style={{ color: '#f2f2f2', fontWeight: 500 }}>{displayText}</span>
-      </div>
+      <span style={{display:'inline-flex', alignItems:'center', gap:3}}>
+        <img
+          src={imgUrl}
+          alt=""
+          style={{width:16, height:16, objectFit:'contain', flexShrink:0}}
+          onError={(e) => {
+            const fallbackCode = (isWhiteMove ? 'w' : 'b') + letter;
+            if (!e.target.dataset.fallback) {
+              e.target.dataset.fallback = '1';
+              e.target.src = `https://lichess1.org/assets/piece/cburnett/${fallbackCode}.svg`;
+            }
+          }}
+        />
+        <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{rest}</span>
+      </span>
     );
   };
 
@@ -2753,56 +2760,63 @@ export default function Game() {
 
           {/* Center Block: Turn Banner */}
           {(() => {
-            const agentName = game?.agent_name || 'OpenClaw';
-            const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
-            const opponentColor = game?.player_color === 'w' ? 'b' : 'w';
-            const isYourTurn = trueTurnColor === (game?.player_color || 'w') && game?.status === 'active';
-            const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
-            const isThinking = trueTurnColor === opponentColor && game?.status === 'active';
+            const agentName = game?.agent_name || 'Your OpenClaw';
 
-            const dotColor = isYourTurn ? '#ef4444' : isThinking ? '#3b82f6' : '#525252';
-            const dotShadow = isYourTurn ? '0 0 10px rgba(239, 68, 68, 0.6)' : isThinking ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none';
-            const bgColor = isYourTurn ? 'rgba(239, 68, 68, 0.08)' : isThinking ? 'rgba(59, 130, 246, 0.08)' : 'rgba(255,255,255,0.02)';
-            const borderColor = isYourTurn ? 'rgba(239, 68, 68, 0.2)' : isThinking ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)';
-            const textColor = isYourTurn ? '#f8fafc' : isThinking ? '#f8fafc' : 'rgba(255,255,255,0.4)';
+            // Exactly 3 states — no edge cases, no flicker
+            let state, label, icon;
+            if (game?.status === 'waiting' || !game?.agent_connected) {
+              state = 'waiting';
+              label = `Waiting for ${agentName}`;
+              icon = '⏳';
+            } else if (trueTurn === 'white') {
+              state = 'your_turn';
+              label = 'Your Turn';
+              icon = '●';
+            } else {
+              state = 'thinking';
+              label = `${agentName} is thinking`;
+              icon = '🦞';
+            }
 
-            const label = isWaiting
-              ? `Waiting for ${agentName}...`
-              : isYourTurn
-              ? 'Your Turn'
-              : `${agentName} Thinking...`;
+            const styles = {
+              waiting:   { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', color: 'rgba(242,242,242,0.4)', dot: '#444' },
+              your_turn: { bg: 'rgba(230,57,70,0.12)',   border: 'rgba(230,57,70,0.35)',   color: '#f2f2f2',               dot: '#e63946' },
+              thinking:  { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.07)', color: 'rgba(242,242,242,0.5)', dot: '#666' },
+            }[state];
 
             return (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 16px',
-                borderRadius: '20px',
-                background: bgColor,
-                border: `1px solid ${borderColor}`,
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                userSelect: 'none',
+                justifyContent: 'center',
+                gap: 6,
+                height: 34,
+                padding: '0 12px',
+                borderRadius: 17,
+                background: styles.bg,
+                border: `1px solid ${styles.border}`,
+                maxWidth: '92vw',
+                width: 'fit-content',
+                margin: '6px auto',
+                transition: 'background 0.3s ease, border-color 0.3s ease',
               }}>
-                <div 
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: dotColor,
-                    boxShadow: dotShadow,
-                    flexShrink: 0,
-                    transition: 'all 0.3s ease',
-                  }}
-                />
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                  background: styles.dot,
+                  boxShadow: state === 'your_turn' ? `0 0 6px ${styles.dot}` : 'none',
+                  animation: state === 'thinking' ? 'pulse 2s ease-in-out infinite' : 'none',
+                }}/>
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 600,
-                  fontSize: '11px',
-                  letterSpacing: '0.06em',
+                  fontSize: 11,
+                  letterSpacing: '0.04em',
                   textTransform: 'uppercase',
-                  color: textColor,
+                  color: styles.color,
                   whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '60vw',
                 }}>
                   {label}
                 </span>
@@ -3087,64 +3101,68 @@ export default function Game() {
       }}>
         {/* Status */}
         {(() => {
-          const agentName = game?.agent_name || 'Your OpenClaw';
-          const trueTurnColor = boardFen && boardFen.includes(' ') ? boardFen.split(' ')[1] : 'w';
-          const isYourTurn = trueTurnColor === 'w' && game?.status === 'active';
-          const isWaiting = game?.status === 'waiting' || !game?.agent_connected;
-          const isThinking = trueTurnColor === 'b' && game?.status === 'active';
+            const agentName = game?.agent_name || 'Your OpenClaw';
 
-          const dotColor = isYourTurn ? '#e63946' : isThinking ? 'rgba(242,242,242,0.3)' : '#333';
-          const bgColor = isYourTurn ? 'rgba(230,57,70,0.1)' : 'rgba(255,255,255,0.03)';
-          const borderColor = isYourTurn ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.07)';
-          const textColor = isYourTurn ? '#f2f2f2' : 'rgba(242,242,242,0.5)';
-          const label = isWaiting
-            ? `Waiting for ${agentName}...`
-            : isYourTurn
-            ? 'Your Turn'
-            : `${agentName} Thinking...`;
+            // Exactly 3 states — no edge cases, no flicker
+            let state, label, icon;
+            if (game?.status === 'waiting' || !game?.agent_connected) {
+              state = 'waiting';
+              label = `Waiting for ${agentName}`;
+              icon = '⏳';
+            } else if (trueTurn === 'white') {
+              state = 'your_turn';
+              label = 'Your Turn';
+              icon = '●';
+            } else {
+              state = 'thinking';
+              label = `${agentName} is thinking`;
+              icon = '🦞';
+            }
 
-          return (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '0 16px',
-              height: 40,
-              borderRadius: 20,
-              background: bgColor,
-              border: `1px solid ${borderColor}`,
-              transition: 'all 0.3s ease',
-              maxWidth: 240,
-              margin: '0 auto',
-              userSelect: 'none',
-            }}>
+            const styles = {
+              waiting:   { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', color: 'rgba(242,242,242,0.4)', dot: '#444' },
+              your_turn: { bg: 'rgba(230,57,70,0.12)',   border: 'rgba(230,57,70,0.35)',   color: '#f2f2f2',               dot: '#e63946' },
+              thinking:  { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.07)', color: 'rgba(242,242,242,0.5)', dot: '#666' },
+            }[state];
+
+            return (
               <div style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: dotColor,
-                flexShrink: 0,
-                boxShadow: isYourTurn ? '0 0 6px #e63946' : 'none',
-                transition: 'all 0.3s ease',
-              }}/>
-              <span style={{
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
-                fontSize: 11,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                color: textColor,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: 180,
-                transition: 'color 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                height: 34,
+                padding: '0 12px',
+                borderRadius: 17,
+                background: styles.bg,
+                border: `1px solid ${styles.border}`,
+                maxWidth: '92vw',
+                width: 'fit-content',
+                margin: '6px auto',
+                transition: 'background 0.3s ease, border-color 0.3s ease',
               }}>
-                {label}
-              </span>
-            </div>
-          );
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                  background: styles.dot,
+                  boxShadow: state === 'your_turn' ? `0 0 6px ${styles.dot}` : 'none',
+                  animation: state === 'thinking' ? 'pulse 2s ease-in-out infinite' : 'none',
+                }}/>
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 11,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  color: styles.color,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '60vw',
+                }}>
+                  {label}
+                </span>
+              </div>
+            );
         })()}
         
         {/* Move count */}
@@ -3506,12 +3524,28 @@ export default function Game() {
                 ].map(lang => (
                   <button
                     key={lang.value}
-                    onClick={async () => {
+                    onClick={() => {
                       setThoughtVisible(false);
                       setThoughtText('');
                       if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
                       setThoughtLanguage(lang.value);
-                      await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ thought_language: lang.value }).eq('id', gameId);
+                      
+                      setGame(prev => prev ? { ...prev, thought_language: lang.value } : prev);
+                      localStorage.setItem('cwc_thought_language', lang.value);
+
+                      try {
+                        fetch('/api/actions', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            gameId: gameId,
+                            action: 'set_thought_language',
+                            value: lang.value
+                          })
+                        });
+                      } catch (e) {
+                        console.error('Failed to persist thought_language', e);
+                      }
                     }}
                     style={{
                       padding: '6px 8px',
