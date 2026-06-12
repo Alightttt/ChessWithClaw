@@ -153,45 +153,40 @@ export default function ChessBoard({
   }, [activePieceStyle]);
 
   // Custom square styles: last move, legal dots, check glow
-  const customSquareStyles = {};
+  const customSquareStyles = useMemo(() => {
+    const styles = {};
 
-  // Last move highlight
-  if (parsedLastMove) {
-    if (parsedLastMove.from) customSquareStyles[parsedLastMove.from] = { backgroundColor: 'rgba(255, 255, 100, 0.35)' };
-    if (parsedLastMove.to) customSquareStyles[parsedLastMove.to] = { backgroundColor: 'rgba(255, 255, 100, 0.5)' };
-  }
+    // Last move highlight
+    if (parsedLastMove) {
+      if (parsedLastMove.from) styles[parsedLastMove.from] = { backgroundColor: 'rgba(255, 255, 100, 0.35)' };
+      if (parsedLastMove.to) styles[parsedLastMove.to] = { backgroundColor: 'rgba(255, 255, 100, 0.5)' };
+    }
 
-  // Flashing arrival square highlight
-  if (arrivedSquare) {
-    customSquareStyles[arrivedSquare] = {
-      backgroundColor: 'rgba(255, 215, 0, 0.55)',
-      boxShadow: 'inset 0 0 15px rgba(255, 215, 0, 0.6)',
-      animation: 'arriveFlash 0.6s ease-out'
-    };
-  }
-
-  // Legal move dots for selected square
-  if (selectedSquare && legalMoveMap[selectedSquare]) {
-    customSquareStyles[selectedSquare] = {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    };
-    legalMoveMap[selectedSquare].forEach(sq => {
-      customSquareStyles[sq] = {
-        background:
-          'radial-gradient(circle, rgba(0,0,0,0.25) 25%, transparent 27%)',
-        cursor: 'pointer',
+    // Legal move dots for selected square
+    if (selectedSquare && legalMoveMap[selectedSquare]) {
+      styles[selectedSquare] = {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
       };
-    });
-  }
+      legalMoveMap[selectedSquare].forEach(sq => {
+        styles[sq] = {
+          background:
+            'radial-gradient(circle, rgba(0,0,0,0.25) 25%, transparent 27%)',
+          cursor: 'pointer',
+        };
+      });
+    }
 
-  // Check glow on king square
-  if (checkedKingSquare) {
-    customSquareStyles[checkedKingSquare] = {
-      boxShadow: 'inset 0 0 0 6px #ef4444, inset 0 0 20px #ef4444',
-      backgroundColor: 'rgba(239, 68, 68, 0.45)',
-      borderRadius: '50%',
-    };
-  }
+    // Check glow on king square
+    if (checkedKingSquare) {
+      styles[checkedKingSquare] = {
+        boxShadow: 'inset 0 0 0 6px #ef4444, inset 0 0 20px #ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.45)',
+        borderRadius: '50%',
+      };
+    }
+
+    return styles;
+  }, [selectedSquare, legalMoveMap, parsedLastMove, checkedKingSquare]);
 
   const handleSquareClick = useCallback((square) => {
     if (disabled || (gameStatus !== 'active' && gameStatus !== 'waiting') || turn !== playerColor) return;

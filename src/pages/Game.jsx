@@ -526,9 +526,13 @@ export default function Game() {
   }, [game?.fen]);
 
   useEffect(() => {
-    if (!game?.fen || game.fen === boardFen) return;
-    applyBoardFen(game.fen);
-  }, [game?.fen, applyBoardFen, boardFen]);
+    if (!game?.fen) return;
+    if (game.fen === boardFenRef.current) return;
+    requestAnimationFrame(() => {
+      applyBoardFen(game.fen);
+      if (game.last_move) setBoardLastMove(game.last_move);
+    });
+  }, [game?.fen, game?.last_move, applyBoardFen, setBoardLastMove]);
 
   useEffect(() => {
     if (!game?.fen || !game?.turn) return;
@@ -628,26 +632,45 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (!boardFen || typeof boardFen !== 'string' || !boardFen.includes(' ')) return '🦞';
-    const fenParts = boardFen.split(' ');
-    const board = fenParts[0];
-    const currentTurn = fenParts[1];
+    if (!boardFen || !boardFen.includes(' ')) return '🦞';
+    const board = boardFen.split(' ')[0];
+    const turn = boardFen.split(' ')[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
-    let wMat = 0, bMat = 0;
+    let w = 0, b = 0;
     for (const ch of board) {
-      const low = ch.toLowerCase();
-      if (vals[low]) {
-        if (ch === ch.toUpperCase()) wMat += vals[low];
-        else bMat += vals[low];
-      }
+      const l = ch.toLowerCase();
+      if (vals[l]) { if (ch === ch.toUpperCase()) w += vals[l]; else b += vals[l]; }
     }
-    const balance = wMat - bMat;
-    if (game?.in_check && currentTurn === 'b') return '😤';
-    if (balance <= -5) return '😈';
-    if (balance >= 5) return '😰';
-    if (balance <= -2) return '😏';
-    return '🦞';
-  }, [boardFen, game?.in_check]);
+    const adv = w - b; // positive = white ahead (agent losing)
+    const moveNum = parseInt(boardFen.split(' ')[5] || '1');
+    const inCheck = game?.in_check;
+    const phase = game?.game_phase || 'opening';
+
+    if (inCheck && turn === 'b') return '😤';       // agent in check = annoyed
+    if (inCheck && turn === 'w') return '😈';       // agent gave check = devious
+    if (adv <= -8) return '😭';                     // agent crushing
+    if (adv <= -4) return '😈';                     // agent clearly winning
+    if (adv <= -2) return '😏';                     // agent slightly ahead
+    if (adv >= 8)  return '😱';                     // agent getting destroyed
+    if (adv >= 4)  return '😰';                     // agent clearly losing
+    if (adv >= 2)  return '😬';                     // agent slightly behind
+    if (phase === 'endgame' && moveNum > 30) return '🧠';  // endgame focus
+    if (moveNum <= 5) return '😎';                  // confident opening
+    if (moveNum > 15 && adv === 0) return '🤝';    // even fight midgame
+    return '🦞';                                    // default
+  }, [boardFen, game?.in_check, game?.game_phase]);
+
+  const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
+  const [emojiAnimating, setEmojiAnimating] = useState(false);
+
+  useEffect(() => {
+    if (moodEmoji === displayedEmoji) return;
+    setEmojiAnimating(true);
+    setTimeout(() => {
+      setDisplayedEmoji(moodEmoji);
+      setEmojiAnimating(false);
+    }, 150);
+  }, [moodEmoji, displayedEmoji]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -1336,11 +1359,8 @@ export default function Game() {
       const prevTurn = boardFenRef.current && boardFenRef.current.includes(' ') ? boardFenRef.current.split(' ')[1] : 'w';
       
       // 1. Board moves
-      applyBoardFen(incoming.fen);
+      // applyBoardFen removed from here per instructions
       lastProcessedFenRef.current = incoming.fen;
-      if (incoming.last_move) {
-        setBoardLastMove(incoming.last_move);
-      }
 
       // 5. Your turn flash
       const newTurn = incoming.fen.split(' ')[1];
@@ -1382,7 +1402,7 @@ export default function Game() {
         localStorage.setItem('cwc_theme', incoming.board_theme);
       }
     }
-  }, [game, boardTheme, pieceStyle, playSound, applyBoardFen, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, setBoardLastMove]);
+  }, [game, boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages]);
 
   useEffect(() => {
     if (!gameId) {
@@ -2445,14 +2465,15 @@ export default function Game() {
               animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
               transition: 'box-shadow 0.7s ease' 
             }}>
-              <span key={moodEmoji} style={{
-                fontSize: '22px',
+              <span style={{
+                fontSize: 26,
                 display: 'inline-block',
-                fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
+                transform: emojiAnimating ? 'scale(0.5)' : 'scale(1)',
+                opacity: emojiAnimating ? 0 : 1,
+                transition: 'transform 0.15s ease, opacity 0.15s ease',
                 userSelect: 'none',
-                animation: 'emojiBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}>
-                {moodEmoji}
+                {displayedEmoji}
               </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -2834,14 +2855,15 @@ export default function Game() {
           transition: 'box-shadow 0.7s ease',
           margin: '12px'
         }}>
-          <span key={moodEmoji} style={{
-            fontSize: '22px',
+          <span style={{
+            fontSize: 26,
             display: 'inline-block',
-            fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif',
+            transform: emojiAnimating ? 'scale(0.5)' : 'scale(1)',
+            opacity: emojiAnimating ? 0 : 1,
+            transition: 'transform 0.15s ease, opacity 0.15s ease',
             userSelect: 'none',
-            animation: 'emojiBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}>
-            {moodEmoji}
+            {displayedEmoji}
           </span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
