@@ -103,18 +103,6 @@ export default function Game() {
     return () => clearInterval(id);
   }, []);
 
-  const dotStyle = {
-    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' },
-    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b66' },
-    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' }
-  }[agentPresence];
-
-  const statusLabel = {
-    connected: 'ONLINE',
-    reconnecting: 'RECONNECTING...',
-    not_here: 'OFFLINE'
-  }[agentPresence];
-
   const submittingRef = useRef(false);
   const audioCtxRef = useRef(null);
   const prevMoveCountRef = useRef(0);
@@ -208,6 +196,18 @@ export default function Game() {
   }, [rawPresence]);
 
   const agentConnected = agentPresence !== 'not_here';
+
+  const dotStyle = {
+    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' },
+    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b66' },
+    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' }
+  }[agentPresence] || { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' };
+
+  const statusLabel = {
+    connected: 'ONLINE',
+    reconnecting: 'RECONNECTING...',
+    not_here: 'OFFLINE'
+  }[agentPresence] || 'OFFLINE';
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
