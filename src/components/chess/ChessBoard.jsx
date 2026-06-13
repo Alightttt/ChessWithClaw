@@ -68,6 +68,8 @@ export default function ChessBoard({
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [optionSquares, setOptionSquares] = useState({});
   const lastAppliedMoveRef = useRef(null);
+  const [promotionSquare, setPromotionSquare] = useState(null);
+  const [promotionSource, setPromotionSource] = useState(null);
 
   const [pieceStyle, setPieceStyle] = useState(() => {
     // Initial fetch from local storage with fallback
@@ -199,11 +201,16 @@ export default function ChessBoard({
         const moveStr = selectedSquare + square;
         // Handle pawn promotion
         const isPromotion =
-          fen.includes('P') &&
-          selectedSquare[1] === '7' && square[1] === '8' ||
-          fen.includes('p') &&
-          selectedSquare[1] === '2' && square[1] === '1';
-        onMove?.(selectedSquare, square, isPromotion ? 'q' : undefined);
+          (fen.includes('P') && playerColor === 'w' && selectedSquare[1] === '7' && square[1] === '8') ||
+          (fen.includes('p') && playerColor === 'b' && selectedSquare[1] === '2' && square[1] === '1');
+        
+        if (isPromotion) {
+          setPromotionSource(selectedSquare);
+          setPromotionSquare(square);
+          return;
+        }
+
+        onMove?.(selectedSquare, square);
         setSelectedSquare(null);
         setOptionSquares({});
         return;
@@ -234,6 +241,18 @@ export default function ChessBoard({
         position={fen || 'start'}
         onSquareClick={handleSquareClick}
         onPieceDrop={handlePieceDrop}
+        promotionToSquare={promotionSquare}
+        showPromotionDialog={!!promotionSquare}
+        onPromotionPieceSelect={(piece) => {
+          if (piece) {
+            const promType = piece[1].toLowerCase();
+            onMove?.(promotionSource, promotionSquare, promType);
+          }
+          setPromotionSquare(null);
+          setPromotionSource(null);
+          setSelectedSquare(null);
+          return true;
+        }}
         boardOrientation={orientation}
         customSquareStyles={customSquareStyles}
         customLightSquareStyle={{ backgroundColor: theme.light }}

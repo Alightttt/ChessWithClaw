@@ -40,6 +40,7 @@ module.exports = async function handler(req, res) {
   }
   
   let { id, game_id, gameId: bodyGameId, text: bodyText, message, type, sender: bodySender, role, token, reasoning, thinking, action, messageId, emoji } = req.body || {};
+  const replyTo = req.body.reply_to || null;
   let gameId = game_id || bodyGameId || id;
   const msgId = id || messageId || require('crypto').randomUUID();
   let text = bodyText || message;
@@ -51,7 +52,7 @@ module.exports = async function handler(req, res) {
   const agentToken = req.headers['x-agent-token'] || token || '';
   const agentTyping = req.headers['x-agent-typing'];
 
-  if (sender === 'agent' && agentTyping === 'true') {
+  if (sender === 'agent' && agentTyping !== undefined) {
     const supabase = createClient(
       (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
       process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -61,8 +62,7 @@ module.exports = async function handler(req, res) {
     if (!agentToken || agentToken !== game.agent_token) {
       return res.status(403).json({ error: 'Forbidden: Invalid or missing token for agent.', code: 'INVALID_TOKEN' });
     }
-    await supabase.from('games').update({ agent_typing: true }).eq('id', gameId);
-    return res.status(200).json({ success: true, typing: true });
+    await supabase.from('games').update({ agent_typing: agentTyping === 'true' }).eq('id', gameId);
   }
 
   if (!validateUUID(gameId)) {
@@ -150,7 +150,12 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true, action: 'typing', typing: isTyping });
   }
 
-  if (!text) return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
+  if (!text) {
+    if (agentTyping !== undefined) {
+      return res.status(200).json({ success: true, typing: agentTyping === 'true' });
+    }
+    return res.status(400).json({ error: 'Missing text in JSON body', code: 'MISSING_TEXT' });
+  }
 
   const actualReasoning = reasoning || thinking || '';
   const sanitizedText = sanitizeText(text, 500);
@@ -203,6 +208,7 @@ module.exports = async function handler(req, res) {
     id: msgId,
     role: sender,
     text: text,
+    reply_to: replyTo,
     timestamp: Date.now()
   };
 
@@ -258,6 +264,7 @@ module.exports = async function handler(req, res) {
     role: resolvedRole,
     message: resolvedMessage,
     text: resolvedMessage,
+    reply_to: replyTo,
     timestamp: Date.now()
   };
   const updatedHistory = [...currentHistory, newMessage];

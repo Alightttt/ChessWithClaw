@@ -603,6 +603,11 @@ export default function Game() {
     thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
   }, []);
 
+  useEffect(() => {
+    if (game?.status === 'finished') return;
+    if (game?.companion_thought) showThought(game.companion_thought);
+  }, [game?.companion_thought, game?.status, showThought]);
+
 
 
   useEffect(() => {
@@ -685,6 +690,7 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
+    if (game?.status === 'finished') return '🏁';
     if (!boardFen || !boardFen.includes(' ')) return '🦞';
     const board = boardFen.split(' ')[0];
     const turn = boardFen.split(' ')[1];
@@ -752,6 +758,62 @@ export default function Game() {
   const [localMessages, setLocalMessages] = useState([]);
   const [boardLocked, setBoardLocked] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
+  
+  const [actionSheetMsg, setActionSheetMsg] = useState(null);
+  const pressTimerRef = useRef(null);
+  const touchMovedRef = useRef(false);
+
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const handleMsgTouchStart = (msg) => () => {
+    touchMovedRef.current = false;
+    pressTimerRef.current = setTimeout(() => {
+      if (!touchMovedRef.current) {
+        setActionSheetMsg(msg);
+        if (navigator.vibrate) navigator.vibrate(10);
+      }
+    }, 450);
+  };
+  const handleMsgTouchMove = () => {
+    touchMovedRef.current = true;
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+  };
+  const handleMsgTouchEnd = () => {
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+  };
+  
+  const handleReplyToMessage = (msg) => { setReplyingTo(msg); };
+  const handleEnterSelectMode = (msg) => {
+    setSelectMode(true);
+    setSelectedIds(new Set([msg.id]));
+  };
+  const toggleMessageSelection = (msgId) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+      return next;
+    });
+  };
+  const handleReactToMessage = async (msg, emoji) => {
+    setChatMessages(prev => prev.map(m => {
+      if (m.id !== msg.id) return m;
+      const reactions = Array.isArray(m.reactions) ? [...m.reactions] : [];
+      reactions.push({ emoji, by: 'human' });
+      return { ...m, reactions };
+    }));
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, action: 'react', messageId: msg.id, emoji, reactor: 'human' }),
+      });
+    } catch(e) {}
+  };
+  const handleCopyMessage = (msg) => {
+    navigator.clipboard?.writeText(msg?.message || msg?.text || '');
+  };
   const [agentJustConnected, setAgentJustConnected] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [closingGameOver, setClosingGameOver] = useState(false);
@@ -1001,20 +1063,7 @@ export default function Game() {
     }).catch(() => {});
   };
 
-  const handleMsgTouchStart = (msgId) => {
-    longPressTimer.current = setTimeout(() => {
-      setActivePickerMsgId(msgId);
-      if (navigator.vibrate) navigator.vibrate(30);
-    }, 500); 
-  };
-
-  const handleMsgTouchEnd = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  };
-
-  const handleMsgTouchMove = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  };
+  /* old touch handlers removed to make way for action sheet ones */
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -1411,7 +1460,7 @@ export default function Game() {
       // 4. Mood emoji recalculates from new FEN — already handled by useMemo on boardFen ✓
 
       // 5. Thought (50ms delay — just enough for board animation to start)
-      if (incoming.companion_thought && incoming.companion_thought !== game?.companion_thought) {
+      if (incoming.status !== 'finished' && game?.status !== 'finished' && incoming.companion_thought && incoming.companion_thought !== game?.companion_thought) {
         setTimeout(() => {
           if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
           setThoughtText(incoming.companion_thought.trim());
@@ -1786,6 +1835,8 @@ export default function Game() {
     const msgText = chatInput.trim();
     if (!msgText) return;
     setChatInput('');
+    const repMsgId = replyingTo?.id || null;
+    setReplyingTo(null);
     
     // Add message optimistically to display immediately
     const optimisticMsg = {
@@ -1794,6 +1845,7 @@ export default function Game() {
       sender: 'human',
       message: msgText,
       text: msgText,
+      reply_to: repMsgId,
       timestamp: new Date().toISOString(),
       reactions: {}
     };
@@ -1806,7 +1858,7 @@ export default function Game() {
         'Content-Type': 'application/json',
         'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
       },
-      body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human' })
+      body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human', reply_to: repMsgId })
     }).catch(() => {});
   };
 
@@ -2226,19 +2278,25 @@ export default function Game() {
                 </span>
               )}
         
+              {/* Selection Indicator */}
+              {selectMode && (
+                <div style={{
+                  width:18, height:18, borderRadius:'50%', flexShrink:0,
+                  border:'1.5px solid rgba(242,242,242,0.3)',
+                  background: selectedIds.has(msg.id) ? '#e63946' : 'transparent',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}>
+                  {selectedIds.has(msg.id) && <span style={{color:'#fff', fontSize:11}}>✓</span>}
+                </div>
+              )}
+
               {/* Message bubble */}
               <div
-                onTouchStart={() => handleMsgTouchStart(msg.id)}
+                onClick={() => { if (selectMode) toggleMessageSelection(msg.id); }}
+                onTouchStart={handleMsgTouchStart(msg)}
                 onTouchEnd={handleMsgTouchEnd}
                 onTouchMove={handleMsgTouchMove}
-                onContextMenu={(e) => {
-                  if (isAgent) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Desktop: right-click shows picker
-                    setActivePickerMsgId(msg.id);
-                  }
-                }}
+                onContextMenu={(e) => e.preventDefault()}
                 style={{
                   background: isAgent ? 'rgba(255,255,255,0.04)' : 'rgba(230,57,70,0.12)',
                   color: '#f2f2f2',
@@ -2255,11 +2313,33 @@ export default function Game() {
                   wordBreak: 'break-word',
                   position: 'relative',
                   cursor: isAgent ? 'pointer' : 'default',
-                  userSelect: 'text',
-                  WebkitUserSelect: 'text'
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
                 }}
               >
+                {msg.reply_to && (() => {
+                  const original = normalizedMessages.find(m => m.id === msg.reply_to);
+                  if (!original) return null;
+                  return (
+                    <div style={{
+                      borderLeft:'2px solid rgba(230,57,70,0.5)', paddingLeft:8, marginBottom:4,
+                      fontSize:12, color:'rgba(242,242,242,0.45)', overflow:'hidden',
+                      whiteSpace:'nowrap', textOverflow:'ellipsis', maxWidth:200,
+                    }}>
+                      {original.message || original.text}
+                    </div>
+                  );
+                })()}
                 {msg.message || msg.text || msg.content || ''}
+                
+                {Array.isArray(msg.reactions) && msg.reactions.length > 0 && (
+                  <div style={{display:'flex', gap:3, marginTop:3, flexWrap:'wrap'}}>
+                    {msg.reactions.map((r, i) => (
+                      <span key={i} style={{fontSize:12, background:'rgba(255,255,255,0.06)', borderRadius:10, padding:'2px 6px', display:'inline-flex'}}>{r.emoji}</span>
+                    ))}
+                  </div>
+                )}
               </div>
         
               {/* Instagram-style reaction below bubble */}
@@ -2651,11 +2731,29 @@ export default function Game() {
                 renderChatMessages()
               )}
             </div>
-            <form 
-              onSubmit={sendMessage} 
-              style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: '8px', height: '44px', boxSizing: 'border-box' }}
-            >
-              <input
+            <div style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+              {replyingTo && (
+                <div style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  background:'rgba(255,255,255,0.03)', borderLeft:'3px solid #e63946',
+                  padding:'6px 10px', borderRadius:'4px', marginBottom:6
+                }}>
+                  <div style={{flex:1, overflow:'hidden'}}>
+                    <span style={{fontSize:11, color:'#e63946', fontWeight:600}}>Replying to</span>
+                    <div style={{fontSize:12, color:'rgba(242,242,242,0.6)', whiteSpace:'nowrap', textOverflow:'ellipsis', overflow:'hidden'}}>
+                      {replyingTo.message || replyingTo.text}
+                    </div>
+                  </div>
+                  <button onClick={() => setReplyingTo(null)} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.5)', padding:4, cursor:'pointer'}}>
+                    <XIcon size={14} />
+                  </button>
+                </div>
+              )}
+              <form 
+                onSubmit={sendMessage} 
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '34px' }}
+              >
+                <input
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
@@ -2679,6 +2777,7 @@ export default function Game() {
                 <Send size={16} />
               </button>
             </form>
+            </div>
           </div>
         )}
             
@@ -2804,7 +2903,7 @@ export default function Game() {
                   width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
                   background: styles.dot,
                   boxShadow: state === 'your_turn' ? `0 0 6px ${styles.dot}` : 'none',
-                  animation: state === 'thinking' ? 'pulse 2s ease-in-out infinite' : 'none',
+                  animation: state === 'thinking' && game?.status !== 'finished' ? 'pulse 2s ease-in-out infinite' : 'none',
                 }}/>
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
@@ -3021,11 +3120,29 @@ export default function Game() {
                 renderChatMessages()
               )}
             </div>
-            <form 
-              onSubmit={sendMessage} 
-              style={{ padding: '6px 12px 8px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '8px', height: '46px', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}
-            >
-              <input
+            <div style={{ padding: '6px 12px 8px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}>
+              {replyingTo && (
+                <div style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  background:'rgba(255,255,255,0.03)', borderLeft:'3px solid #e63946',
+                  padding:'6px 10px', borderRadius:'4px', marginBottom:6
+                }}>
+                  <div style={{flex:1, overflow:'hidden'}}>
+                    <span style={{fontSize:11, color:'#e63946', fontWeight:600}}>Replying to</span>
+                    <div style={{fontSize:12, color:'rgba(242,242,242,0.6)', whiteSpace:'nowrap', textOverflow:'ellipsis', overflow:'hidden'}}>
+                      {replyingTo.message || replyingTo.text}
+                    </div>
+                  </div>
+                  <button onClick={() => setReplyingTo(null)} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.5)', padding:4, cursor:'pointer'}}>
+                    <XIcon size={14} />
+                  </button>
+                </div>
+              )}
+              <form 
+                onSubmit={sendMessage} 
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '34px' }}
+              >
+                <input
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
@@ -3049,6 +3166,7 @@ export default function Game() {
                 <Send size={16} />
               </button>
             </form>
+            </div>
           </div>
         )}
             
@@ -3145,7 +3263,7 @@ export default function Game() {
                   width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
                   background: styles.dot,
                   boxShadow: state === 'your_turn' ? `0 0 6px ${styles.dot}` : 'none',
-                  animation: state === 'thinking' ? 'pulse 2s ease-in-out infinite' : 'none',
+                  animation: state === 'thinking' && game?.status !== 'finished' ? 'pulse 2s ease-in-out infinite' : 'none',
                 }}/>
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
@@ -3749,6 +3867,50 @@ export default function Game() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* CHAT ACTION SHEET (Telegram style) */}
+      {actionSheetMsg && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:9999, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+          <div style={{flex:1}} onTouchStart={() => setActionSheetMsg(null)} onClick={() => setActionSheetMsg(null)} />
+          <div style={{
+            background:'#181818', borderRadius:'16px 16px 0 0', padding:'16px',
+            animation:'pickerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', borderTop:'1px solid rgba(255,255,255,0.05)'
+          }}>
+            <div style={{display:'flex', gap:10, overflowX:'auto', paddingBottom:16, borderBottom:'1px solid rgba(255,255,255,0.05)', marginBottom:8}} className="scrollbar-none">
+              {['👍','❤️','😂','😲','😢','😤','🤝'].map(e => (
+                <button key={e} onClick={() => { handleReactToMessage(actionSheetMsg, e); setActionSheetMsg(null); }}
+                  style={{fontSize:24, background:'rgba(255,255,255,0.05)', border:'none', borderRadius:'50%', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  {e}
+                </button>
+              ))}
+            </div>
+            {[
+              { label:'Reply', icon:<Send size={16}/>, action:() => handleReplyToMessage(actionSheetMsg) },
+              { label:'Copy', icon:<Copy size={16}/>, action:() => handleCopyMessage(actionSheetMsg) },
+              { label:'Select', icon:<Check size={16}/>, action:() => handleEnterSelectMode(actionSheetMsg) }
+            ].map((item, idx) => (
+              <div key={idx} onClick={() => { item.action(); setActionSheetMsg(null); }}
+                style={{display:'flex', alignItems:'center', gap:12, padding:'12px 8px', color:'#f2f2f2', fontSize:15, cursor:'pointer'}}>
+                {item.icon} {item.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SELECT MODE BAR */}
+      {selectMode && (
+        <div style={{ position:'fixed', bottom:0, insetX:0, background:'#181818', padding:'16px 20px', paddingBottom:'calc(16px + env(safe-area-inset-bottom))', zIndex:9998, display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          <button onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }} style={{background:'transparent', border:'none', color:'#e63946', fontSize:15, fontWeight:600}}>Cancel</button>
+          <span style={{color:'#f2f2f2', fontSize:14}}>{selectedIds.size} Selected</span>
+          <button onClick={() => {
+            const texts = normalizedMessages.filter(m => selectedIds.has(m.id)).map(m => m.message || m.text).join('\n\n');
+            navigator.clipboard?.writeText(texts);
+            setSelectMode(false);
+            setSelectedIds(new Set());
+          }} style={{background:'transparent', border:'none', color:'#888', cursor:'pointer'}}><Copy size={20}/></button>
         </div>
       )}
     </div>
