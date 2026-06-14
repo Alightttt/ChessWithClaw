@@ -814,6 +814,7 @@ export default function Game() {
   const handleCopyMessage = (msg) => {
     navigator.clipboard?.writeText(msg?.message || msg?.text || '');
   };
+
   const [agentJustConnected, setAgentJustConnected] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [closingGameOver, setClosingGameOver] = useState(false);
@@ -1899,17 +1900,51 @@ export default function Game() {
   function handleToggleAgentSection() { setAgentSectionOpen(prev => !prev) }
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
   function handleCloseGameOverModal() { setShowGameOver(false) }
-  async function handleShareResult(e) {
-    const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
-    const result = game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
-    const text = `I played chess vs ${agentName} on ChessWithClaw! ${result} in ${moves} moves. chesswithclaw.vercel.app 🦞`;
+  const handleShareResult = () => {
+    const agentName = game?.agent_name || 'Your OpenClaw';
+    const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
+    const isWin = game?.winner === 'white';
+    const isDraw = !game?.winner || game?.result === 'draw';
+    const resultWord = isWin ? 'beat' : isDraw ? 'drew with' : 'lost to';
+    const resultEmoji = isWin ? '🏆' : isDraw ? '🤝' : '💀';
+
+    const whiteCaps = (() => {
+      if (!game?.fen) return 0;
+      const b = game.fen.split(' ')[0];
+      return 15 - (b.match(/[qrbnp]/g)||[]).length;
+    })();
+    const blackCaps = (() => {
+      if (!game?.fen) return 0;
+      const b = game.fen.split(' ')[0];
+      return 15 - (b.match(/[QRBNP]/g)||[]).length;
+    })();
+
+    const shareText = [
+      `${resultEmoji} Just ${resultWord} ${agentName} on ChessWithClaw`,
+      ``,
+      `📊 Game Stats`,
+      `♟  ${moveCount} moves played`,
+      `⚔️  I captured ${whiteCaps} pieces`,
+      `🛡  Lost ${blackCaps} pieces`,
+      `🎯  Ended by: ${game?.result || 'agreement'}`,
+      ``,
+      `Challenge YOUR OpenClaw 👇`,
+      `https://chesswithclaw.vercel.app`,
+      `#ChessWithClaw 🦞`,
+    ].join('\n');
+
     if (navigator.share) {
-      navigator.share({ text }).catch(()=>{});
-    } else { 
-      navigator.clipboard.writeText(text); 
-      toast.success('Copied!'); 
+      navigator.share({
+        title: `Chess vs ${agentName} — ChessWithClaw`,
+        text: shareText,
+        url: 'https://chesswithclaw.vercel.app',
+      }).catch(() => {
+        navigator.clipboard?.writeText(shareText);
+      });
+    } else {
+      navigator.clipboard?.writeText(shareText);
     }
-  }
+  };
 
   function handleLogoError(e) {
     e.target.style.display = 'none';
@@ -2409,20 +2444,26 @@ export default function Game() {
             </div>
           );
         })}
-        {(game?.agent_typing) && (
-          <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6}}>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0s'}}/>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.2s'}}/>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#f2f2f2',animation:'typingDot 1s infinite 0.4s'}}/>
-            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginLeft:4,fontFamily:'Inter'}}>{agentName} is typing...</span>
-          </div>
-        )}
-        {(isUserTyping) && (
-          <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 12px',opacity:0.6,justifyContent:'flex-end'}}>
-            <span style={{fontSize:11,color:'rgba(242,242,242,0.4)',marginRight:4,fontFamily:'Inter'}}>You are typing...</span>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0s'}}/>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0.2s'}}/>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'#e63946',animation:'typingDot 1s infinite 0.4s'}}/>
+        {(game?.agent_typing || isUserTyping) && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', minHeight:32, justifyContent: game?.agent_typing ? 'flex-start' : 'flex-end', flexDirection: game?.agent_typing ? 'row' : 'row-reverse' }}>
+            <span style={{
+              fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(242,242,242,0.4)',
+              whiteSpace:'nowrap',
+            }}>
+              {game?.agent_typing
+                ? (game?.agent_name || 'Your OpenClaw')
+                : 'You'
+              }
+            </span>
+            <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+              {[0, 0.2, 0.4].map((delay, i) => (
+                <div key={i} style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: game?.agent_typing ? 'rgba(242,242,242,0.6)' : 'rgba(230,57,70,0.7)',
+                  animation: `typingWave 1.2s ease-in-out ${delay}s infinite`,
+                }}/>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -2451,6 +2492,10 @@ export default function Game() {
         @keyframes typingDot {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes typingWave {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+          30% { transform: translateY(-5px); opacity: 1; }
         }
         @keyframes clawPulse {
           0%, 100% { transform: scale(1); opacity: 1; }
@@ -2483,6 +2528,10 @@ export default function Game() {
         @keyframes gameOverIn {
           from { opacity: 0; transform: scale(0.88) translateY(16px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes popIn {
+          from { transform:scale(0.5); opacity:0; }
+          to { transform:scale(1); opacity:1; }
         }
         @keyframes resultIconBounce {
           0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
@@ -2640,11 +2689,6 @@ export default function Game() {
                       }} />
                     )}
 
-                    {game?.in_check && game.status === 'active' && (
-                      <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(230,57,70,0.95)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '6px', padding: '4px 10px', color: '#ffffff', fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, textAlign: 'center', zIndex: 30, boxShadow: '0 4px 10px rgba(0,0,0,0.5)', pointerEvents: 'none', letterSpacing: '0.05em' }}>
-                        ⚠️ CHECK!
-                      </div>
-                    )}
 
                     <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
@@ -3034,13 +3078,6 @@ export default function Game() {
               zIndex: 0
             }} />
           )}
-          {game?.in_check && game.status === 'active' && (
-            <div 
-              style={{ background: 'rgba(230,57,70,0.15)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', padding: '6px 12px', marginBottom: '8px', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, textAlign: 'center' }}
-            >
-              ⚠️ Check!
-            </div>
-          )}
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
@@ -3327,112 +3364,91 @@ export default function Game() {
           <div style={{
             position: 'relative', zIndex: 10000,
             background:'#111', border:'1px solid #222',
-            borderRadius:'24px', padding:'40px 28px',
-            maxWidth:'340px', width:'100%', textAlign:'center',
+            borderRadius:'24px', padding:'0px',
+            maxWidth:'340px', width:'100%',
             animation:'gameOverIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards'
           }}>
-            {/* Result icon */}
-            <div style={{fontSize:'64px',lineHeight:1,marginBottom:'16px',
-              animation:'resultBounce 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.15s both'}}>
-              {(game.result==='white_wins' || game.result==='white') ? '♛' : (game.result==='black_wins' || game.result==='black') ? '🦞' : '🤝'}
-            </div>
-            
-            {/* Accent line */}
-            <div style={{
-              width:'40px',height:'3px',borderRadius:'100px',
-              margin:'0 auto 16px',
-              background: (game.result==='white_wins' || game.result==='white') ? '#739552' :
-                          (game.result==='black_wins' || game.result==='black') ? '#e63946' : '#555'
-            }}/>
-            
-            {/* Headline */}
-            <h2 style={{fontFamily:'Inter',fontWeight:800,fontSize:'26px',
-              color:'#f2f2f2',margin:'0 0 8px',letterSpacing:'-0.025em'}}>
-              {(game.result==='white_wins' || game.result==='white') ? 'You Won!' :
-               (game.result==='black_wins' || game.result==='black') ? `${agentName} Wins` : 'Draw'}
-            </h2>
-            
-            {/* Subtext */}
-            <p style={{fontFamily:'Inter',fontSize:'14px',lineHeight:1.5,
-              color:'rgba(242,242,242,0.4)',margin:'0 0 24px'}}>
-              {(game.result==='white_wins' || game.result==='white')
-                ? `${agentName} put up a great fight.`
-                : (game.result==='black_wins' || game.result==='black')
-                ? `${agentName} outplayed you. Rematch?`
-                : 'Evenly matched. Good game.'}
-            </p>
-            
-            {/* Stats */}
-            <div style={{display:'flex',justifyContent:'center',
-              borderTop:'1px solid #1e1e1e',borderBottom:'1px solid #1e1e1e',
-              marginBottom:'24px'}}>
-              <div style={{flex:1,padding:'16px 8px',textAlign:'center',
-                borderRight:'1px solid #1e1e1e'}}>
-                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
-                  color:'#f2f2f2',lineHeight:1}}>
-                  {(game.move_history||[]).length}
+            {(() => {
+              const agentName = game?.agent_name || 'Your OpenClaw';
+              const isWin = game?.winner === 'white';
+              const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
+              const isLoss = game?.winner === 'black';
+              const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
+              const resultEmoji = isWin ? '🏆' : isDraw ? '🤝' : '💀';
+              const resultText = isWin ? 'You Won' : isDraw ? 'Draw' : 'You Lost';
+              const subText = isWin
+                ? `${agentName} couldn't escape.`
+                : isDraw
+                ? `Evenly matched.`
+                : `${agentName} got you this time.`;
+              const lastThought = game?.companion_thought || null;
+
+              return (
+                <div style={{ textAlign:'center', padding:'28px 24px 20px', maxWidth:320, margin:'0 auto' }}>
+                  <div style={{ fontSize:52, marginBottom:8, animation:'popIn 0.4s cubic-bezier(.175,.885,.32,1.275)' }}>
+                    {resultEmoji}
+                  </div>
+                  <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:26, color:'#f2f2f2', marginBottom:4 }}>
+                    {resultText}
+                  </div>
+                  <div style={{ fontFamily:'Inter, sans-serif', fontSize:14, color:'rgba(242,242,242,0.5)', marginBottom:20 }}>
+                    {subText}
+                  </div>
+
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:20 }}>
+                    {[
+                      { label:'Moves', value: moveCount },
+                      { label:'Result', value: game?.result === 'checkmate' ? 'Checkmate' : game?.result === 'resignation' ? 'Resign' : 'Draw' },
+                      { label:'Pieces lost', value: (() => {
+                        if (!game?.fen) return '?';
+                        const board = game.fen.split(' ')[0];
+                        const missing = 15 - (board.match(/[QRBNP]/g)||[]).length;
+                        return missing;
+                      })() },
+                    ].map((stat, i) => (
+                      <div key={i} style={{ background:'rgba(255,255,255,0.04)', borderRadius:10, padding:'10px 8px' }}>
+                        <div style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:17, color:'#f2f2f2' }}>{stat.value}</div>
+                        <div style={{ fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(242,242,242,0.4)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{stat.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {lastThought && (
+                    <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.5)', marginBottom:20,
+                      background:'rgba(255,255,255,0.03)', borderRadius:10, padding:'10px 14px',
+                      borderLeft:'2px solid rgba(230,57,70,0.4)' }}>
+                      "{lastThought}" — {agentName}
+                    </div>
+                  )}
+
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <button onClick={handleShareResult} style={{
+                      background:'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.04)),#e63946',
+                      border:'none', borderRadius:10, color:'#fff', fontFamily:'Inter, sans-serif',
+                      fontWeight:600, fontSize:14, padding:'13px 20px', cursor:'pointer',
+                    }}>
+                      📤 Share Result
+                    </button>
+                    <div style={{ display:'flex', gap:10 }}>
+                      <button onClick={handleRematch} style={{
+                        flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
+                        borderRadius:10, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
+                        fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer',
+                      }}>
+                        🔄 Rematch
+                      </button>
+                      <button onClick={() => navigate('/')} style={{
+                        flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.08)',
+                        borderRadius:10, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
+                        fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer',
+                      }}>
+                        Home
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
-                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
-                  Moves
-                </div>
-              </div>
-              <div style={{flex:1,padding:'16px 8px',textAlign:'center'}}>
-                <div style={{fontFamily:'Inter',fontWeight:700,fontSize:'26px',
-                  color: (game.result==='white_wins' || game.result==='white')?'#739552':
-                         (game.result==='black_wins' || game.result==='black')?'#e63946':'#888',lineHeight:1}}>
-                  {(game.result==='white_wins' || game.result==='white')?'WIN':
-                   (game.result==='black_wins' || game.result==='black')?'LOSS':'DRAW'}
-                </div>
-                <div style={{fontFamily:'Inter',fontSize:'10px',color:'#444',
-                  letterSpacing:'0.1em',marginTop:'4px',textTransform:'uppercase'}}>
-                  Result
-                </div>
-              </div>
-            </div>
-            
-            {/* Play Again */}
-            <button onClick={()=>{window.location.href='/'}} style={{
-              width:'100%',height:'50px',border:'none',borderRadius:'12px',
-              background:'linear-gradient(180deg,rgba(255,255,255,0.08) 0%,rgba(0,0,0,0.04) 100%),#e63946',
-              boxShadow:'rgba(255,255,255,0.18) 0px 1px 0px inset',
-              color:'#fff',fontFamily:'Inter',fontWeight:700,fontSize:'15px',
-              cursor:'pointer',marginBottom:'10px'
-            }}>
-              Play Again
-            </button>
-            
-            {/* Share */}
-            <button onClick={async ()=>{
-              const hasWon = game.result === 'white_wins' || game.result === 'white' || (game.result_reason === 'resignation' && game.player_color === 'w');
-              const hasLost = game.result === 'black_wins' || game.result === 'black' || (game.result_reason === 'resignation' && game.player_color === 'b');
-              const t=`Played chess vs ${agentName} on ChessWithClaw — ${
-                hasWon ? 'I won' : hasLost ? `${agentName} won` : 'drew'
-              } in ${(game.move_history||[]).length} moves. chesswithclaw.vercel.app 🦞`;
-              try {
-                if (navigator.clipboard?.writeText) {
-                  await navigator.clipboard.writeText(t);
-                } else {
-                  const tempInput = document.createElement('textarea');
-                  tempInput.value = t;
-                  document.body.appendChild(tempInput);
-                  tempInput.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(tempInput);
-                }
-                setCopiedResult(true);
-                setTimeout(() => setCopiedResult(false), 2000);
-              } catch (err) {
-                console.error(err);
-              }
-            }} style={{
-              width:'100%',height:'44px',background:'transparent',
-              border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',
-              color: copiedResult ? '#22c55e' : 'rgba(242,242,242,0.4)',fontFamily:'Inter',
-              fontWeight:500,fontSize:'14px',cursor:'pointer', transition: 'all 0.2s ease'
-            }}>
-              {copiedResult ? 'Copied to Clipboard! ✓' : 'Share Result'}
-            </button>
+              );
+            })()}
           </div>
         </div>
       )}
