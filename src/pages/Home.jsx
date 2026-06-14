@@ -97,6 +97,54 @@ export default function Home() {
   const [copied2, setCopied2] = useState(false);
   const [copied2b, setCopied2b] = useState(false);
   const [copied3, setCopied3] = useState(false);
+  
+  const [gamesPlayed, setGamesPlayed] = useState('500+');
+  useEffect(() => {
+    fetch('https://chesswithclaw.vercel.app/api/stats')
+      .then(r => r.json())
+      .then(d => setGamesPlayed(d.total_games || '500+'))
+      .catch(() => {});
+  }, []);
+
+  const RECENT_RESULTS = [
+    'Someone just beat their OpenClaw in 31 moves 🏆',
+    'A game ended in checkmate 2 mins ago 🦞',
+    'Nova drew in 47 moves — too close 🤝',
+    'Someone lost in 22 moves. Rematch incoming 💀',
+    'A game just started — challenge accepted',
+  ];
+  const [ticker, setTicker] = useState(RECENT_RESULTS[0]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTicker(RECENT_RESULTS[Math.floor(Math.random() * RECENT_RESULTS.length)]);
+    }, 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  const DEMO_THOUGHTS_SIM = [
+    '"Hmm. Did not expect that."',
+    '"Classic move. I was ready."',
+    '"Okay okay. Let me think."',
+    '"bhai kya kar raha hai"',
+    '"Getting interesting now."',
+  ];
+  const [demoThought, setDemoThought] = useState(DEMO_THOUGHTS_SIM[0]);
+  const [demoVisible, setDemoVisible] = useState(true);
+
+  useEffect(() => {
+    const cycle = () => {
+      setDemoVisible(false);
+      setTimeout(() => {
+        setDemoThought(prev => {
+          const idx = (DEMO_THOUGHTS_SIM.indexOf(prev) + 1) % DEMO_THOUGHTS_SIM.length;
+          return DEMO_THOUGHTS_SIM[idx];
+        });
+        setDemoVisible(true);
+      }, 400);
+    };
+    const id = setInterval(cycle, 3000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const savedGame = localStorage.getItem('cwc_active_game');
@@ -426,7 +474,7 @@ export default function Home() {
               color: '#f2f2f2',
             }}
           >
-            Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
+            Your OpenClaw Has Been <span style={{ color: '#e63946' }}>Holding Back.</span>
           </motion.h1>
           
           <motion.p className="mx-auto md:mx-0" 
@@ -443,7 +491,7 @@ export default function Home() {
               
             }}
           >
-            The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
+            It's time to find out who's actually better.
           </motion.p>
 
           
@@ -452,28 +500,44 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="hidden md:flex flex-row items-center justify-start w-auto"
-            style={{ gap: '16px', marginTop: '24px' }}
+            className="hidden md:flex flex-col items-start w-auto"
+            style={{ gap: '0px', marginTop: '24px' }}
           >
-            <a
-              href="/api/new"
-              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textDecoration: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Challenge OpenClaw
-            </a>
-            <a 
-              href="#how"
-              className="design-btn-secondary w-auto"
-            >
-              Quick Start
-            </a>
+            <div className="flex flex-row items-center justify-start w-auto" style={{ gap: '16px' }}>
+              <a
+                href="/api/new"
+                className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Challenge Mine Now →
+              </a>
+              <a 
+                href="#how"
+                className="design-btn-secondary w-auto"
+              >
+                Quick Start
+              </a>
+            </div>
+            
+            <div style={{
+              fontSize: 13, color:'rgba(242,242,242,0.35)',
+              fontFamily:'Inter, sans-serif', marginTop:12, letterSpacing:'0.02em',
+            }}>
+              No signup. No account. Just you and your OpenClaw.
+            </div>
+
+            <div style={{
+              fontSize:12, color:'rgba(242,242,242,0.3)', fontFamily:'Inter, sans-serif',
+              marginTop:10, transition:'opacity 0.4s ease',
+            }}>
+              {ticker}
+            </div>
           </motion.div>
         </div>
         
@@ -500,6 +564,14 @@ export default function Home() {
                 <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
                 </div>
               </div>
+              <div style={{
+                opacity: demoVisible ? 1 : 0, transition:'opacity 0.4s ease',
+                fontStyle:'italic', color:'rgba(242,242,242,0.55)', fontSize:14,
+                fontFamily:'Inter, sans-serif', textAlign:'center', marginTop:12,
+                minHeight:22,
+              }}>
+                🦞 {demoThought}
+              </div>
             </div>
           </motion.div>
         
@@ -520,7 +592,7 @@ export default function Home() {
                 cursor: 'pointer'
               }}
             >
-              Challenge OpenClaw
+              Challenge Mine Now →
             </a>
             <a 
               href="#how"
@@ -528,22 +600,45 @@ export default function Home() {
             >
               Quick Start
             </a>
+
+            <div style={{
+              fontSize: 13, color:'rgba(242,242,242,0.35)',
+              fontFamily:'Inter, sans-serif', marginTop:8, letterSpacing:'0.02em', textAlign: 'center'
+            }}>
+              No signup. No account. Just you and your OpenClaw.
+            </div>
+
+            <div style={{
+              fontSize:12, color:'rgba(242,242,242,0.3)', fontFamily:'Inter, sans-serif',
+              marginTop:4, transition:'opacity 0.4s ease', textAlign: 'center'
+            }}>
+              {ticker}
+            </div>
           </motion.div>
       </section>
 
       <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: Zap, title: "Zero Latency", desc: "Moves sync globally in 150ms over WebSocket." },
+            { number: gamesPlayed, label: "Games Played" },
             { icon: () => <span className="text-2xl"><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
-            <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column' }}>
-              <f.icon className="text-[#e63946]" size={28} />
-              <div>
-                <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{f.title}</h3>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
-              </div>
+            <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              {f.number ? (
+                <>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '48px', fontWeight: 800, lineHeight: 1, color: '#e63946', letterSpacing: '-0.03em' }}>{f.number}</div>
+                  <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 600, color: 'rgba(242,242,242,0.8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</div>
+                </>
+              ) : (
+                <>
+                  {f.icon && <f.icon className="text-[#e63946]" size={28} />}
+                  <div>
+                    <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{f.title}</h3>
+                    <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -555,7 +650,7 @@ export default function Home() {
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.03em' }}>Quick Start</h2>
         <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '48px' }}>Three simple steps. Done once. Play forever.</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Card 1: Chess Skill Installation */}
           <div style={{
             background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
@@ -803,6 +898,47 @@ export default function Home() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Card 4: Share */}
+          <div style={{
+            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+            transition: 'all 0.3s'
+          }} className="hover:border-[rgba(230,57,70,0.3)] hover:translate-y-[-2px]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Globe size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 04
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Share the result
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              Share the result → your friends challenge theirs
+            </p>
           </div>
         </div>
 
