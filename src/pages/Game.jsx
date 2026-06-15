@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../components/Toast';
-import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter } from 'lucide-react';
+import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter, Trophy, Handshake, Skull, Share, RefreshCw, Home, Bot, Flame, Zap, Brain, ShieldAlert, Crosshair, Target, Activity, AlertTriangle, ThumbsUp, Heart, Smile, Frown, Sparkles } from 'lucide-react';
 import { Chess } from 'chess.js';
 import ChessBoard from '../components/chess/ChessBoard';
 import { ChessPiece } from '../components/chess/PieceSVGs';
@@ -17,45 +17,23 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
+const DefaultAgentAvatar = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><Bot size={16}/></span>;
 
-function findKingSquare(fen, color) {
-  if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
-  const pieceChar = color === 'w' ? 'K' : 'k';
-  const rows = fen.split(' ')[0].split('/');
-  for (let rank = 0; rank < 8; rank++) {
-    let file = 0;
-    for (const ch of rows[rank]) {
-      if (ch === pieceChar) {
-        return String.fromCharCode(97 + file) + (8 - rank);
-      }
-      if (isNaN(ch)) file++;
-      else file += parseInt(ch);
-    }
-  }
-  return null;
+const REACTION_ICONS = [
+  { id: '❤️', icon: <Heart size={14} /> },
+  { id: '😂', icon: <Smile size={14} /> },
+  { id: '🔥', icon: <Flame size={14} /> },
+  { id: '😮', icon: <Zap size={14} /> },
+  { id: '😅', icon: <Sparkles size={14} /> },
+  { id: '👍', icon: <ThumbsUp size={14} /> },
+  { id: '😢', icon: <Frown size={14} /> },
+  { id: '🤝', icon: <Handshake size={14} /> },
+];
+
+const renderReactionIcon = (idStr) => {
+  const match = REACTION_ICONS.find(r => r.id === idStr);
+  return match ? match.icon : <span style={{ fontSize: '10px' }}>{idStr}</span>;
 }
-
-const getCheckedKingSquare = (fen, turn) => {
-  if (!fen) return null;
-  try {
-    const chess = new Chess(fen);
-    if (!chess.inCheck()) return null;
-    const kingColor = turn === 'w' ? 'w' : 'b';
-    const board = chess.board();
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        const piece = board[r][f];
-        if (piece && piece.type === 'k' && piece.color === kingColor) {
-          const file = String.fromCharCode(97 + f);
-          const rank = 8 - r;
-          return file + rank;
-        }
-      }
-    }
-  } catch (e) {}
-  return null;
-};
 
 function getKingSquare(fen, colorChar) {
   if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
@@ -615,22 +593,6 @@ export default function Game() {
     setThoughtText('');
     if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
   }, [game?.thought_language]);
-  
-  const getKingSquare = (fen, color) => {
-    if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return null;
-    const pieceChar = color === 'w' ? 'K' : 'k';
-    const rows = fen.split(' ')[0].split('/');
-    for (let rank = 0; rank < 8; rank++) {
-      let file = 0;
-      for (const ch of rows[rank]) {
-        if (ch === pieceChar) {
-          return String.fromCharCode(97 + file) + (8 - rank);
-        }
-        file += isNaN(parseInt(ch)) ? 1 : parseInt(ch);
-      }
-    }
-    return null;
-  };
 
   const checkedSquare = useMemo(() => {
     try {
@@ -690,8 +652,8 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (game?.status === 'finished') return '🏁';
-    if (!boardFen || !boardFen.includes(' ')) return '🦞';
+    if (game?.status === 'finished') return <Flag size={20} className="text-[#f2f2f2]" />;
+    if (!boardFen || !boardFen.includes(' ')) return <Bot size={20} className="text-[#f2f2f2]" />;
     const board = boardFen.split(' ')[0];
     const turn = boardFen.split(' ')[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
@@ -705,21 +667,21 @@ export default function Game() {
     const inCheck = game?.in_check;
     const phase = game?.game_phase || 'opening';
 
-    if (inCheck && turn === 'b') return '😤';       // agent in check = annoyed
-    if (inCheck && turn === 'w') return '😈';       // agent gave check = devious
-    if (adv <= -8) return '😭';                     // agent crushing
-    if (adv <= -4) return '😈';                     // agent clearly winning
-    if (adv <= -2) return '😏';                     // agent slightly ahead
-    if (adv >= 8)  return '😱';                     // agent getting destroyed
-    if (adv >= 4)  return '😰';                     // agent clearly losing
-    if (adv >= 2)  return '😬';                     // agent slightly behind
-    if (phase === 'endgame' && moveNum > 30) return '🧠';  // endgame focus
-    if (moveNum <= 5) return '😎';                  // confident opening
-    if (moveNum > 15 && adv === 0) return '🤝';    // even fight midgame
-    return '🦞';                                    // default
-  }, [boardFen, game?.in_check, game?.game_phase]);
+    if (inCheck && turn === 'b') return <ShieldAlert size={20} className="text-[#e63946]" />; // agent in check
+    if (inCheck && turn === 'w') return <Crosshair size={20} className="text-[#e63946]" />;      // agent gave check
+    if (adv <= -8) return <Flame size={20} className="text-orange-500" />;                    // agent crushing
+    if (adv <= -4) return <Zap size={20} className="text-yellow-500" />;                      // agent clearly winning
+    if (adv <= -2) return <Target size={20} className="text-green-500" />;                    // agent slightly ahead
+    if (adv >= 8)  return <AlertTriangle size={20} className="text-red-600" />;               // agent getting destroyed
+    if (adv >= 4)  return <Activity size={20} className="text-red-400" />;                    // agent clearly losing
+    if (adv >= 2)  return <Activity size={20} className="text-yellow-600" />;                 // agent slightly behind
+    if (phase === 'endgame' && moveNum > 30) return <Brain size={20} className="text-blue-400" />;  // endgame focus
+    if (moveNum <= 5) return <Zap size={20} className="text-blue-500" />;                     // confident opening
+    if (moveNum > 15 && adv === 0) return <Handshake size={20} className="text-gray-400" />; // even fight midgame
+    return <Bot size={20} className="text-[#f2f2f2]" />;                                      // default
+  }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
 
-  const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
+  const [displayedEmoji, setDisplayedEmoji] = useState(<Bot size={20} className="text-[#f2f2f2]" />);
   const [emojiAnimating, setEmojiAnimating] = useState(false);
 
   useEffect(() => {
@@ -1743,6 +1705,34 @@ export default function Game() {
     let isCapture = false;
     try {
       const tempChess = new Chess(boardFen);
+
+      if (promotion) {
+        // Enforce user's house rule: Can only promote to captured pieces
+        let currentCount = 0;
+        const targetColor = tempChess.turn();
+        
+        // Count how many of the requested promotion piece type are currently on the board
+        for (let i = 0; i < 64; i++) {
+          const square = tempChess.SQUARES[i];
+          const piece = tempChess.get(square);
+          if (piece && piece.color === targetColor && piece.type === promotion) {
+            currentCount++;
+          }
+        }
+        
+        // Starting counts for standard pieces
+        const startingCounts = { q: 1, r: 2, n: 2, b: 2 };
+        
+        if (currentCount >= startingCounts[promotion]) {
+          toast('You can only promote to pieces you have already lost.', {
+            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+          });
+          submittingRef.current = false;
+          setBoardLocked(false);
+          return;
+        }
+      }
+
       const result = tempChess.move({ from, to, promotion: promotion || 'q' });
       if (result) {
         newFen = tempChess.fen();
@@ -1792,7 +1782,7 @@ export default function Game() {
         const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
-            icon: <LobsterEmoji />,
+            icon: <Bot size={20} color="#e63946" strokeWidth={1.5} />,
             style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
           });
         } else if (errData.code === 'TURN_CONFLICT') {
@@ -2220,7 +2210,7 @@ export default function Game() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white selection:bg-red-500/30 p-4 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full pointer-events-none transition-colors duration-1000" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 70%)' }} />
         <div className="relative z-10 flex flex-col items-center gap-6 glass border-white/10 p-12 rounded-2xl max-w-md text-center glow-anim">
-          <div className="text-5xl drop-shadow-md"><LobsterEmoji /></div>
+          <div className="text-5xl drop-shadow-md text-[#e63946]"><Bot size={48} strokeWidth={1.2} /></div>
           <div className="font-sans text-3xl font-bold tracking-wide">Game not found</div>
           <div className="text-neutral-400 text-sm font-sans">
             It looks like this game doesn&apos;t exist anymore or you have the wrong link.
@@ -2389,31 +2379,31 @@ export default function Game() {
                   {myReaction && (
                     <span
                       style={{
-                        fontSize: '14px',
                         background: '#1e1e1e',
                         border: '1px solid #2a2a2a',
                         borderRadius: '100px',
-                        padding: '1px 6px',
+                        padding: '4px 6px',
                         animation: 'reactionPop 0.3s ease-out',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
                         sendReaction(msg.id, myReaction[0]);
                       }}
                     >
-                      {myReaction[0]}
+                      {renderReactionIcon(myReaction[0])}
                     </span>
                   )}
                   {agentReaction && agentReaction[0] !== myReaction?.[0] && (
                     <span style={{
-                      fontSize: '14px',
                       background: '#1e1e1e',
                       border: '1px solid #2a2a2a',
                       borderRadius: '100px',
-                      padding: '1px 6px'
+                      padding: '4px 6px',
+                      display: 'flex', alignItems: 'center'
                     }}>
-                      {agentReaction[0]}
+                      {renderReactionIcon(agentReaction[0])}
                     </span>
                   )}
                 </div>
@@ -2432,11 +2422,11 @@ export default function Game() {
                   }}
                   onClick={e => e.stopPropagation()}
                 >
-                  {['❤️', '😂', '🔥', '😮', '😅', '👏'].map(emoji => (
-                    <button key={emoji} onClick={() => sendReaction(msg.id, emoji)}
+                  {REACTION_ICONS.slice(0, 6).map(({ id, icon }) => (
+                    <button key={id} onClick={() => sendReaction(msg.id, id)}
                       style={{background:'none',border:'none',cursor:'pointer',
-                              fontSize:'20px',padding:'2px',lineHeight:1}}>
-                      {emoji}
+                              padding:'4px',lineHeight:1, color: '#f2f2f2'}}>
+                      {icon}
                     </button>
                   ))}
                 </div>
@@ -2768,7 +2758,7 @@ export default function Game() {
             <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
                 <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
+                  <span style={{ fontSize: '24px' }} className="text-[#333]"><Bot size={24} /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
               ) : (
@@ -3150,7 +3140,7 @@ export default function Game() {
             <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
                 <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }}><LobsterEmoji /></span>
+                  <span style={{ fontSize: '24px' }} className="text-[#333]"><Bot size={24} /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
               ) : (
@@ -3374,7 +3364,7 @@ export default function Game() {
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
               const isLoss = game?.winner === 'black';
               const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-              const resultEmoji = isWin ? '🏆' : isDraw ? '🤝' : '💀';
+              const resultIcon = isWin ? <Trophy size={52} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={52} color="#9ca3af" strokeWidth={1.5} /> : <Skull size={52} color="#e63946" strokeWidth={1.5} />;
               const resultText = isWin ? 'You Won' : isDraw ? 'Draw' : 'You Lost';
               const subText = isWin
                 ? `${agentName} couldn't escape.`
@@ -3385,8 +3375,8 @@ export default function Game() {
 
               return (
                 <div style={{ textAlign:'center', padding:'28px 24px 20px', maxWidth:320, margin:'0 auto' }}>
-                  <div style={{ fontSize:52, marginBottom:8, animation:'popIn 0.4s cubic-bezier(.175,.885,.32,1.275)' }}>
-                    {resultEmoji}
+                  <div style={{ marginBottom:16, animation:'popIn 0.4s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
+                    {resultIcon}
                   </div>
                   <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:26, color:'#f2f2f2', marginBottom:4 }}>
                     {resultText}
@@ -3417,7 +3407,7 @@ export default function Game() {
                     <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.5)', marginBottom:20,
                       background:'rgba(255,255,255,0.03)', borderRadius:10, padding:'10px 14px',
                       borderLeft:'2px solid rgba(230,57,70,0.4)' }}>
-                      "{lastThought}" — {agentName}
+                      &quot;{lastThought}&quot; — {agentName}
                     </div>
                   )}
 
@@ -3425,24 +3415,24 @@ export default function Game() {
                     <button onClick={handleShareResult} style={{
                       background:'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.04)),#e63946',
                       border:'none', borderRadius:10, color:'#fff', fontFamily:'Inter, sans-serif',
-                      fontWeight:600, fontSize:14, padding:'13px 20px', cursor:'pointer',
+                      fontWeight:600, fontSize:14, padding:'13px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                     }}>
-                      📤 Share Result
+                      <Share size={16} /> Share Result
                     </button>
                     <div style={{ display:'flex', gap:10 }}>
                       <button onClick={handleRematch} style={{
                         flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
                         borderRadius:10, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
-                        fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer',
+                        fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                       }}>
-                        🔄 Rematch
+                        <RefreshCw size={16} /> Rematch
                       </button>
                       <button onClick={() => navigate('/')} style={{
                         flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.08)',
                         borderRadius:10, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
-                        fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer',
+                        fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                       }}>
-                        Home
+                        <Home size={16} /> Home
                       </button>
                     </div>
                   </div>
@@ -3895,10 +3885,10 @@ export default function Game() {
             animation:'pickerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', borderTop:'1px solid rgba(255,255,255,0.05)'
           }}>
             <div style={{display:'flex', gap:10, overflowX:'auto', paddingBottom:16, borderBottom:'1px solid rgba(255,255,255,0.05)', marginBottom:8}} className="scrollbar-none">
-              {['👍','❤️','😂','😲','😢','😤','🤝'].map(e => (
-                <button key={e} onClick={() => { handleReactToMessage(actionSheetMsg, e); setActionSheetMsg(null); }}
-                  style={{fontSize:24, background:'rgba(255,255,255,0.05)', border:'none', borderRadius:'50%', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  {e}
+              {REACTION_ICONS.map(({ id, icon }) => (
+                <button key={id} onClick={() => { handleReactToMessage(actionSheetMsg, id); setActionSheetMsg(null); }}
+                  style={{background:'rgba(255,255,255,0.05)', color: '#f2f2f2', border:'none', borderRadius:'50%', minWidth:44, height:44, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  {React.cloneElement(icon, { size: 20 })}
                 </button>
               ))}
             </div>

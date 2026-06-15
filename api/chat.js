@@ -248,32 +248,6 @@ module.exports = async function handler(req, res) {
     await supabase.from('games').update(updates).eq('id', gameId);
   }
 
-  const resolvedMessageId = messageId || msgId;
-  const resolvedRole = role || sender;
-  const resolvedMessage = message || text;
-
-  const { data: currentGame } = await supabase
-    .from('games')
-    .select('chat_history')
-    .eq('id', gameId)
-    .single();
-
-  const currentHistory = Array.isArray(currentGame?.chat_history) ? currentGame.chat_history : [];
-  const newMessage = {
-    id: resolvedMessageId,
-    role: resolvedRole,
-    message: resolvedMessage,
-    text: resolvedMessage,
-    reply_to: replyTo,
-    timestamp: Date.now()
-  };
-  const updatedHistory = [...currentHistory, newMessage];
-
-  await supabase
-    .from('games')
-    .update({ chat_history: updatedHistory })
-    .eq('id', gameId);
-
   const savedMessage = newMsg;
   const updatedChatHistory = newHistory;
   return res.status(200).json({

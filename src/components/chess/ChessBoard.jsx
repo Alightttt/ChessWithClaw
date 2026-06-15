@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
+import { Chess } from 'chess.js';
 import { PIECE_COMPONENTS } from './ChessPieces';
 
 const BOARD_THEMES = {
@@ -200,9 +201,16 @@ export default function ChessBoard({
         // Valid move — execute it
         const moveStr = selectedSquare + square;
         // Handle pawn promotion
-        const isPromotion =
-          (fen.includes('P') && playerColor === 'w' && selectedSquare[1] === '7' && square[1] === '8') ||
-          (fen.includes('p') && playerColor === 'b' && selectedSquare[1] === '2' && square[1] === '1');
+        let isPromotion = false;
+        try {
+          const tempChess = new Chess(fen);
+          const piece = tempChess.get(selectedSquare);
+          if (piece && piece.type === 'p') {
+            if ((piece.color === 'w' && square[1] === '8') || (piece.color === 'b' && square[1] === '1')) {
+              isPromotion = true;
+            }
+          }
+        } catch (e) {}
         
         if (isPromotion) {
           setPromotionSource(selectedSquare);

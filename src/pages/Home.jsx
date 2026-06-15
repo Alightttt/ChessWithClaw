@@ -3,20 +3,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe } from "lucide-react";
+import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot } from "lucide-react";
 
 
-const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
+
 
 
 const DEMO_THOUGHTS = [
   { text: "Bhai... kya kar raha hai tu", lang: "HI" },
-  { text: "I see you. 👀", lang: "EN" },
+  { text: "I see you.", lang: "EN" },
   { text: "Interesting choice...", lang: "EN" },
-  { text: "Yaar seriously? 💀", lang: "HI" },
+  { text: "Yaar seriously?", lang: "HI" },
   { text: "Wait wait wait.", lang: "EN" },
   { text: "Arre bhai... sochne do thoda", lang: "HI" },
-  { text: "OKAY. Okay okay. 😤", lang: "EN" },
+  { text: "OKAY. Okay okay.", lang: "EN" },
   { text: "Accha? Yeh plan tha tumhara?", lang: "HI" },
   { text: "Oh. OH.", lang: "EN" },
   { text: "Not bad. Not bad at all.", lang: "EN" },
@@ -118,31 +118,6 @@ export default function Home() {
     const id = setInterval(() => {
       setTicker(RECENT_RESULTS[Math.floor(Math.random() * RECENT_RESULTS.length)]);
     }, 4000);
-    return () => clearInterval(id);
-  }, []);
-
-  const DEMO_THOUGHTS_SIM = [
-    '"Hmm. Did not expect that."',
-    '"Classic move. I was ready."',
-    '"Okay okay. Let me think."',
-    '"bhai kya kar raha hai"',
-    '"Getting interesting now."',
-  ];
-  const [demoThought, setDemoThought] = useState(DEMO_THOUGHTS_SIM[0]);
-  const [demoVisible, setDemoVisible] = useState(true);
-
-  useEffect(() => {
-    const cycle = () => {
-      setDemoVisible(false);
-      setTimeout(() => {
-        setDemoThought(prev => {
-          const idx = (DEMO_THOUGHTS_SIM.indexOf(prev) + 1) % DEMO_THOUGHTS_SIM.length;
-          return DEMO_THOUGHTS_SIM[idx];
-        });
-        setDemoVisible(true);
-      }, 400);
-    };
-    const id = setInterval(cycle, 3000);
     return () => clearInterval(id);
   }, []);
 
@@ -347,8 +322,8 @@ export default function Home() {
       {resumeGame && (
         <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2' }}>
-              <LobsterEmoji /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bot size={16} /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button 
@@ -474,7 +449,7 @@ export default function Home() {
               color: '#f2f2f2',
             }}
           >
-            Your OpenClaw Has Been <span style={{ color: '#e63946' }}>Holding Back.</span>
+            Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
           </motion.h1>
           
           <motion.p className="mx-auto md:mx-0" 
@@ -491,7 +466,7 @@ export default function Home() {
               
             }}
           >
-            It's time to find out who's actually better.
+            The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
           </motion.p>
 
           
@@ -551,7 +526,7 @@ export default function Home() {
             <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
               <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl"><LobsterEmoji /></span>
+                  <span className="text-2xl text-[#e63946]"><Bot size={24} /></span>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
                 </div>
                 <ThoughtBubble />
@@ -563,14 +538,6 @@ export default function Home() {
                   
                 <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
                 </div>
-              </div>
-              <div style={{
-                opacity: demoVisible ? 1 : 0, transition:'opacity 0.4s ease',
-                fontStyle:'italic', color:'rgba(242,242,242,0.55)', fontSize:14,
-                fontFamily:'Inter, sans-serif', textAlign:'center', marginTop:12,
-                minHeight:22,
-              }}>
-                🦞 {demoThought}
               </div>
             </div>
           </motion.div>
@@ -621,7 +588,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { number: gamesPlayed, label: "Games Played" },
-            { icon: () => <span className="text-2xl"><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { icon: Bot, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

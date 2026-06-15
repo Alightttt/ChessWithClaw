@@ -225,6 +225,23 @@ module.exports = async function handler(req, res) {
   try {
     const { Chess } = await import('chess.js');
     chess = new Chess(game.fen);
+    
+    if (promotion) {
+      let currentCount = 0;
+      const targetColor = chess.turn();
+      for (let i = 0; i < 64; i++) {
+        const sq = chess.SQUARES[i];
+        const p = chess.get(sq);
+        if (p && p.color === targetColor && p.type === promotion) {
+          currentCount++;
+        }
+      }
+      const startingCounts = { q: 1, r: 2, n: 2, b: 2 };
+      if (currentCount >= startingCounts[promotion]) {
+        return res.status(400).json({ "error": "House Rule: You can only promote to pieces you have already lost.", "code": "INVALID_MOVE" });
+      }
+    }
+
     const moveResult = chess.move({ from, to, promotion });
     
     if (!moveResult) {
@@ -463,7 +480,7 @@ module.exports = async function handler(req, res) {
     }).eq('id', targetGameId);
   }
 
-  if (isHumanMove && game.webhook_url) {
+  if (isHumanMove && game.webhook_url && newStatus !== 'finished') {
     const webhookUrl = game.webhook_url;
     let verboseMoves = [];
     let matBalance = { white: 0, black: 0, advantage: 'equal' };
