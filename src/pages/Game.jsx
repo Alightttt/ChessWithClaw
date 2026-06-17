@@ -774,21 +774,6 @@ export default function Game() {
       return next;
     });
   };
-  const handleReactToMessage = async (msg, emoji) => {
-    setChatMessages(prev => prev.map(m => {
-      if (m.id !== msg.id) return m;
-      const reactions = Array.isArray(m.reactions) ? [...m.reactions] : [];
-      reactions.push({ emoji, by: 'human' });
-      return { ...m, reactions };
-    }));
-    try {
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, action: 'react', messageId: msg.id, emoji, reactor: 'human' }),
-      });
-    } catch(e) {}
-  };
   const handleCopyMessage = (msg) => {
     navigator.clipboard?.writeText(msg?.message || msg?.text || '');
   };
@@ -1987,25 +1972,27 @@ export default function Game() {
     const origin = window.location.origin;
 
     const shareText = [
-      `${resultEmoji} I just ${resultWord} ${agentName.toUpperCase()} on OpenClaw Chess!`,
+      `🦞 I just played chess against my own OpenClaw.`,
       ``,
-      `🦞 THE MATCH REPORT ♟️`,
-      `💥 Moves: ${moveCount}`,
-      `⚔️ Takedowns: ${userCaps} to ${agentCaps}`,
-      `🛑 Ended by: ${game?.result_reason || game?.result || 'agreement'}`,
+      `📋 Result: ${isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated'} (${isWin ? 'You won' : isDraw ? 'Draw' : (agentName + ' won')})`,
+      `♟️ Moves: ${moveCount}`,
+      `🔴 Ended by: ${game?.result_reason || game?.result || 'agreement'}`,
       ``,
-      `Think your logic is better?`,
-      `Bring your custom OpenClaw & challenge here:`,
-      `${origin}`,
+      `Most chess sites let you play against an bot.`,
       ``,
-      `#OpenClaw #AI #Chess`
+      `This one lets you bring your own OpenClaw.`,
+      ``,
+      `Think your OpenClaw can beat you? Bring your OpenClaw & challange here:`,
+      ``,
+      `https://chesswithclaw.vercel.app`,
+      ``,
+      `#ChessWithClaw #OpenClaw #Chess`
     ].join('\n');
 
     if (navigator.share) {
       navigator.share({
         title: `Chess vs ${agentName} — OpenClaw`,
         text: shareText,
-        url: origin,
       }).catch(() => {
         navigator.clipboard?.writeText(shareText);
         toast.success("Result copied to clipboard!");
@@ -2350,11 +2337,11 @@ export default function Game() {
         
           // Get human's reaction to this message (if any)
           const myReaction = Object.entries(msg.reactions || {}).find(
-            ([emoji, reactors]) => reactors && reactors.includes('human')
+            ([emoji, reactors]) => Array.isArray(reactors) && reactors.includes('human')
           );
           // Get agent's reaction to this message (if any)
           const agentReaction = Object.entries(msg.reactions || {}).find(
-            ([emoji, reactors]) => reactors && reactors.includes('agent')
+            ([emoji, reactors]) => Array.isArray(reactors) && reactors.includes('agent')
           );
         
           return (
@@ -2437,14 +2424,6 @@ export default function Game() {
                   );
                 })()}
                 {msg.message || msg.text || msg.content || ''}
-                
-                {Array.isArray(msg.reactions) && msg.reactions.length > 0 && (
-                  <div style={{display:'flex', gap:3, marginTop:3, flexWrap:'wrap'}}>
-                    {msg.reactions.map((r, i) => (
-                      <span key={i} style={{fontSize:12, background:'rgba(255,255,255,0.06)', borderRadius:10, padding:'2px 6px', display:'inline-flex'}}>{r.emoji}</span>
-                    ))}
-                  </div>
-                )}
               </div>
         
               {/* Instagram-style reaction below bubble */}
@@ -3964,7 +3943,7 @@ export default function Game() {
           }}>
             <div style={{display:'flex', gap:10, overflowX:'auto', paddingBottom:16, borderBottom:'1px solid rgba(255,255,255,0.05)', marginBottom:8}} className="scrollbar-none">
               {REACTION_ICONS.map(({ id, icon }) => (
-                <button key={id} onClick={() => { handleReactToMessage(actionSheetMsg, id); setActionSheetMsg(null); }}
+                <button key={id} onClick={() => { sendReaction(actionSheetMsg.id, id); setActionSheetMsg(null); }}
                   style={{background:'rgba(255,255,255,0.05)', color: '#f2f2f2', border:'none', borderRadius:'50%', minWidth:44, height:44, display:'flex', alignItems:'center', justifyContent:'center'}}>
                   {React.cloneElement(icon, { size: 20 })}
                 </button>
