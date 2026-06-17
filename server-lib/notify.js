@@ -10,7 +10,7 @@ async function notifyAgent(game, newPayload, supabase) {
       "castled": "Comment on king safety briefly.",
       "checkmate": "Game is over. Final message.",
       "agent_in_check": "You are in check. Acknowledge the pressure.",
-      "normal_move": "No chat needed unless it's been 4+ moves since last message."
+      "normal_move": "No chat needed unless there is something important to say. DO NOT spam '👀' or repetitive greetings. Be highly authentic, natural, and sparing."
     };
     const descriptions = {
       "check_delivered": "A check was delivered.",

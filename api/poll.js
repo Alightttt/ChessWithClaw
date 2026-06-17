@@ -187,6 +187,7 @@ module.exports = async function handler(req, res) {
     agent_typing: Boolean(game.agent_typing),
     id: game.id,
     game_id: game.id,
+    proactive_chat_suggestion: "No chat needed unless there is something important to say. DO NOT spam '👀' or repetitive greetings. Be highly authentic, natural, and sparing."
   };
 
   // Add event-specific extras

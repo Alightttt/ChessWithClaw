@@ -17,7 +17,7 @@ import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
 
-const DefaultAgentAvatar = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}><Bot size={16}/></span>;
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 const REACTION_ICONS = [
   { id: '❤️', icon: <Heart size={14} /> },
@@ -53,7 +53,7 @@ const PIECE_CODE_MAP = { K:'K', Q:'Q', R:'R', B:'B', N:'N' };
 
 function getPieceImageUrl(pieceLetter, isWhite, style) {
   const s = style || 'neo';
-  const code = (isWhite ? 'w' : 'b') + pieceLetter;
+  const code = ((isWhite ? 'w' : 'b') + pieceLetter).toLowerCase();
   return `https://images.chesscomfiles.com/chess-themes/pieces/${s}/150/${code}.png`;
 }
 
@@ -208,6 +208,21 @@ export default function Game() {
     const style = document.createElement('style');
     style.id = 'cwc-styles-v2';
     style.textContent = `
+      @keyframes coldGlitch {
+        0%, 100% { filter: none; }
+        92% { filter: none; }
+        93% { filter: hue-rotate(15deg) saturate(1.3); }
+        94% { filter: none; }
+        96% { filter: hue-rotate(-10deg) saturate(1.2); }
+        97% { filter: none; }
+      }
+      @keyframes captureShake {
+        0%, 100% { transform: translate(0, 0); }
+        20% { transform: translate(-3px, 2px); }
+        40% { transform: translate(3px, -2px); }
+        60% { transform: translate(-2px, 1px); }
+        80% { transform: translate(2px, -1px); }
+      }
       @keyframes msgIn {
         from { opacity:0; transform:translateY(8px) scale(0.96); }
         to { opacity:1; transform:translateY(0) scale(1); }
@@ -333,7 +348,6 @@ export default function Game() {
   const [agentSectionOpen, setAgentSectionOpen] = useState(false);
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
-  const [boardSize, setBoardSize] = useState(320);
   const [copiedResult, setCopiedResult] = useState(false);
   const [boardTheme, setBoardTheme] = useState(() => {
     return localStorage.getItem('cwc_board_theme') || 'green';
@@ -559,6 +573,10 @@ export default function Game() {
   useEffect(() => {
     if (!game?.fen) return;
     if (game.fen === boardFenRef.current) return;
+    const gameBoard = game.fen.split(' ')[0];
+    const currentBoard = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
+    // Use full FEN string equality for safety but if only board positions match exactly skip applying to prevent stutter
+    if (gameBoard === currentBoard && game.fen.split(' ')[1] === boardFenRef.current.split(' ')[1]) return;
     requestAnimationFrame(() => {
       applyBoardFen(game.fen);
       if (game.last_move) setBoardLastMove(game.last_move);
@@ -652,8 +670,8 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (game?.status === 'finished') return <Flag size={20} className="text-[#f2f2f2]" />;
-    if (!boardFen || !boardFen.includes(' ')) return <Bot size={20} className="text-[#f2f2f2]" />;
+    if (game?.status === 'finished') return '🏳️';
+    if (!boardFen || !boardFen.includes(' ')) return '🦞';
     const board = boardFen.split(' ')[0];
     const turn = boardFen.split(' ')[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
@@ -667,30 +685,30 @@ export default function Game() {
     const inCheck = game?.in_check;
     const phase = game?.game_phase || 'opening';
 
-    if (inCheck && turn === 'b') return <ShieldAlert size={20} className="text-[#e63946]" />; // agent in check
-    if (inCheck && turn === 'w') return <Crosshair size={20} className="text-[#e63946]" />;      // agent gave check
-    if (adv <= -8) return <Flame size={20} className="text-orange-500" />;                    // agent crushing
-    if (adv <= -4) return <Zap size={20} className="text-yellow-500" />;                      // agent clearly winning
-    if (adv <= -2) return <Target size={20} className="text-green-500" />;                    // agent slightly ahead
-    if (adv >= 8)  return <AlertTriangle size={20} className="text-red-600" />;               // agent getting destroyed
-    if (adv >= 4)  return <Activity size={20} className="text-red-400" />;                    // agent clearly losing
-    if (adv >= 2)  return <Activity size={20} className="text-yellow-600" />;                 // agent slightly behind
-    if (phase === 'endgame' && moveNum > 30) return <Brain size={20} className="text-blue-400" />;  // endgame focus
-    if (moveNum <= 5) return <Zap size={20} className="text-blue-500" />;                     // confident opening
-    if (moveNum > 15 && adv === 0) return <Handshake size={20} className="text-gray-400" />; // even fight midgame
-    return <Bot size={20} className="text-[#f2f2f2]" />;                                      // default
+    if (inCheck && turn === 'b') return '😰'; // agent in check
+    if (inCheck && turn === 'w') return '😤';      // agent gave check
+    if (adv <= -8) return '🔥';                    // agent crushing
+    if (adv <= -4) return '😈';                      // agent clearly winning
+    if (adv <= -2) return '😏';                    // agent slightly ahead
+    if (adv >= 8)  return '💀';               // agent getting destroyed
+    if (adv >= 4)  return '😵';                    // agent clearly losing
+    if (adv >= 2)  return '🤔';                 // agent slightly behind
+    if (phase === 'endgame' && moveNum > 30) return '🧠';  // endgame focus
+    if (moveNum <= 5) return '✨';                     // confident opening
+    if (moveNum > 15 && adv === 0) return '👀'; // even fight midgame
+    return '🦞';                                      // default
   }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
 
-  const [displayedEmoji, setDisplayedEmoji] = useState(<Bot size={20} className="text-[#f2f2f2]" />);
+  const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
 
   useEffect(() => {
     if (moodEmoji === displayedEmoji) return;
+    setDisplayedEmoji(moodEmoji);
     setEmojiAnimating(true);
     setTimeout(() => {
-      setDisplayedEmoji(moodEmoji);
       setEmojiAnimating(false);
-    }, 150);
+    }, 300);
   }, [moodEmoji, displayedEmoji]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
@@ -916,10 +934,34 @@ export default function Game() {
   }, [gameId, applyBoardFen, setMoveHistory, setBoardLastMove]);
 
   const [optimisticLastMove, setOptimisticLastMove] = useState(null);
+  const [shakeActive, setShakeActive] = useState(false);
+  const [agentCooking, setAgentCooking] = useState(false);
+  const thinkingStartRef = useRef(null);
+
+  useEffect(() => {
+    if (trueTurn === 'black' && game?.status === 'active') {
+      if (!thinkingStartRef.current) thinkingStartRef.current = Date.now();
+      const checkCooking = setInterval(() => {
+        const elapsed = Date.now() - (thinkingStartRef.current || Date.now());
+        setAgentCooking(elapsed > 8000);
+      }, 1000);
+      return () => clearInterval(checkCooking);
+    } else {
+      thinkingStartRef.current = null;
+      setAgentCooking(false);
+    }
+  }, [trueTurn, game?.status]);
+
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 600);
   const [isTablet, setIsTablet] = useState(typeof window !== 'undefined' && window.innerWidth >= 600 && window.innerWidth < 960);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth >= 960);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 360);
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window !== 'undefined' && window.visualViewport
+      ? window.visualViewport.height
+      : (typeof window !== 'undefined' ? window.innerHeight : 800)
+  );
   
   const ANIM_DURATION = isMobile ? '0.28s' : '0.2s';
   
@@ -928,10 +970,25 @@ export default function Game() {
       setIsMobile(window.innerWidth < 600);
       setIsTablet(window.innerWidth >= 600 && window.innerWidth < 960);
       setIsDesktop(window.innerWidth >= 960);
+      setViewportWidth(window.innerWidth);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const handleResize = () => setViewportHeight(window.visualViewport.height);
+    window.visualViewport.addEventListener('resize', handleResize);
+    return () => window.visualViewport.removeEventListener('resize', handleResize);
+  }, []);
+
+  const boardSize = Math.min(
+    viewportWidth - 24,
+    viewportHeight * 0.55,
+    480
+  );
+
   const [lastMoveTo, setLastMoveTo] = useState(null);
 
   useEffect(() => {
@@ -1121,7 +1178,6 @@ export default function Game() {
         ? Math.min(vw - 360 - 64 - paddingForBoard, maxBoardSize)
         : Math.min(vw - paddingForBoard, maxBoardSize);
         
-      setBoardSize(Math.max(280, Math.min(calculatedWidth, maxH)));
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     
@@ -1412,7 +1468,11 @@ export default function Game() {
         const isCheck = Boolean(incoming.in_check);
         try { 
             if (isCheck) playSound('check');
-            else if (isCapture) playSound('capture');
+            else if (isCapture) {
+              playSound('capture');
+              setShakeActive(true);
+              setTimeout(() => setShakeActive(false), 300);
+            }
             else playSound('move');
         } catch(e) {}
       }
@@ -1758,6 +1818,10 @@ export default function Game() {
     
     // Call API without touching game state
     playSound(isCapture ? 'capture' : 'move');
+    if (isCapture) {
+      setShakeActive(true);
+      setTimeout(() => setShakeActive(false), 300);
+    }
     try {
       const res = await fetch('/api/move', {
         method: 'POST',
@@ -1782,7 +1846,7 @@ export default function Game() {
         const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
-            icon: <Bot size={20} color="#e63946" strokeWidth={1.5} />,
+            icon: <LobsterEmoji />,
             style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
           });
         } else if (errData.code === 'TURN_CONFLICT') {
@@ -1795,17 +1859,26 @@ export default function Game() {
         if (result && result.game) {
           setGame(prev => {
             if (!prev) return prev;
+            if (result.game.move_history && prev.move_history && prev.move_history.length > result.game.move_history.length) {
+              return prev; // Ignore older game state
+            }
             const updated = { ...prev, ...result.game };
             if (result.game.move_history) {
               setMoveHistory(result.game.move_history);
             }
             return updated;
           });
-          applyBoardFen(result.game.fen);
-          lastProcessedFenRef.current = result.game.fen;
-          if (result.game.last_move) {
-            setBoardLastMove(result.game.last_move);
-          }
+          setGame(prev => {
+            // Need to apply FEN only if we actually accepted this result
+            if (prev.fen === result.game.fen || (result.game.move_history && prev.move_history && prev.move_history.length === result.game.move_history.length)) {
+              applyBoardFen(result.game.fen);
+              lastProcessedFenRef.current = result.game.fen;
+              if (result.game.last_move) {
+                setBoardLastMove(result.game.last_move);
+              }
+            }
+            return prev;
+          });
           movePendingRef.current = false;
         }
       }
@@ -1912,22 +1985,22 @@ export default function Game() {
     const shareText = [
       `${resultEmoji} Just ${resultWord} ${agentName} on ChessWithClaw`,
       ``,
-      `📊 Game Stats`,
-      `♟  ${moveCount} moves played`,
-      `⚔️  I captured ${whiteCaps} pieces`,
-      `🛡  Lost ${blackCaps} pieces`,
-      `🎯  Ended by: ${game?.result || 'agreement'}`,
+      `Game Stats`,
+      `  ${moveCount} moves played`,
+      `  I captured ${whiteCaps} pieces`,
+      `  Lost ${blackCaps} pieces`,
+      `  Ended by: ${game?.result || 'agreement'}`,
       ``,
       `Challenge YOUR OpenClaw 👇`,
-      `https://chesswithclaw.vercel.app`,
-      `#ChessWithClaw 🦞`,
+      `https://chesswithclaw.vercel.app/api/og-meta?gameId=${gameId}`,
+      `#ChessWithClaw`,
     ].join('\n');
 
     if (navigator.share) {
       navigator.share({
         title: `Chess vs ${agentName} — ChessWithClaw`,
         text: shareText,
-        url: 'https://chesswithclaw.vercel.app',
+        url: `https://chesswithclaw.vercel.app/api/og-meta?gameId=${gameId}`,
       }).catch(() => {
         navigator.clipboard?.writeText(shareText);
       });
@@ -2062,7 +2135,7 @@ export default function Game() {
   const { whiteCaptured, blackCaptured } = getCapturedPieces(boardFen);
   const pieceImg = (code) => {
     const style = pieceStyle || 'neo';
-    return `https://images.chesscomfiles.com/chess-themes/pieces/${style}/150/${code}.png`;
+    return `https://images.chesscomfiles.com/chess-themes/pieces/${style}/150/${code.toLowerCase()}.png`;
   };
 
   const balance = getMaterialBalance(boardFen);
@@ -2210,7 +2283,7 @@ export default function Game() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white selection:bg-red-500/30 p-4 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full pointer-events-none transition-colors duration-1000" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 70%)' }} />
         <div className="relative z-10 flex flex-col items-center gap-6 glass border-white/10 p-12 rounded-2xl max-w-md text-center glow-anim">
-          <div className="text-5xl drop-shadow-md text-[#e63946]"><Bot size={48} strokeWidth={1.2} /></div>
+          <div className="text-5xl drop-shadow-md text-[#e63946]"><span style={{fontSize: '48px'}}><LobsterEmoji /></span></div>
           <div className="font-sans text-3xl font-bold tracking-wide">Game not found</div>
           <div className="text-neutral-400 text-sm font-sans">
             It looks like this game doesn&apos;t exist anymore or you have the wrong link.
@@ -2464,7 +2537,7 @@ export default function Game() {
       ref={containerRef}
       className={`relative text-white font-sans selection:bg-red-500/30 transition-colors duration-700 box-border scrollbar-none`}
       style={{
-        height: '100dvh',
+        height: `${viewportHeight}px`,
         display: 'flex',
         flexDirection: 'column',
         background: isOpenClawTurn
@@ -2566,7 +2639,7 @@ export default function Game() {
           data-testid="settings-button"
           onClick={handleOpenSettings}
           className="text-neutral-400 hover:text-white transition-all active:scale-95"
-          style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Settings size={20} />
         </button>
@@ -2588,15 +2661,13 @@ export default function Game() {
               border: '1px solid rgba(255,255,255,0.06)', 
               borderRadius: '12px', 
               boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
-              animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
+              animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
               transition: 'box-shadow 0.7s ease' 
             }}>
               <span style={{
                 fontSize: 26,
                 display: 'inline-block',
-                transform: emojiAnimating ? 'scale(0.5)' : 'scale(1)',
-                opacity: emojiAnimating ? 0 : 1,
-                transition: 'transform 0.15s ease, opacity 0.15s ease',
+                animation: emojiAnimating ? 'emojiBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
                 userSelect: 'none',
               }}>
                 {displayedEmoji}
@@ -2680,7 +2751,7 @@ export default function Game() {
                     )}
 
 
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
                           <div style={{
@@ -2758,7 +2829,7 @@ export default function Game() {
             <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
                 <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }} className="text-[#333]"><Bot size={24} /></span>
+                  <span style={{ fontSize: '24px' }} className="text-[#333]"><LobsterEmoji /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
               ) : (
@@ -2803,7 +2874,7 @@ export default function Game() {
                 data-testid="chat-send"
                 type="submit"
                 disabled={isSpectator || !chatInput.trim()}
-                style={{ width: '34px', height: '34px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
+                style={{ minWidth: 44, minHeight: 44, margin: '-5px 0 -5px 5px', background: (!isSpectator && chatInput.trim()) ? '#e63946' : 'rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (!isSpectator && chatInput.trim()) ? 'pointer' : 'default', border: 'none', color: 'white', flexShrink: 0, boxShadow: (!isSpectator && chatInput.trim()) ? 'rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.4) 0px -0.5px 0px 0px inset' : 'none', transition: 'all 0.1s ease' }}
                 onMouseDown={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(0.92)'; } }}
                 onMouseUp={(e) => { if(!isSpectator && chatInput.trim()) { e.currentTarget.style.transform = 'scale(1)'; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -2998,16 +3069,14 @@ export default function Game() {
           border: '1px solid rgba(255,255,255,0.06)', 
           borderRadius: '12px', 
           boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
-          animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
+          animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
           transition: 'box-shadow 0.7s ease',
           margin: '12px'
         }}>
           <span style={{
             fontSize: 26,
             display: 'inline-block',
-            transform: emojiAnimating ? 'scale(0.5)' : 'scale(1)',
-            opacity: emojiAnimating ? 0 : 1,
-            transition: 'transform 0.15s ease, opacity 0.15s ease',
+            animation: emojiAnimating ? 'emojiBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
             userSelect: 'none',
           }}>
             {displayedEmoji}
@@ -3052,7 +3121,7 @@ export default function Game() {
         </div>
 
         {/* B) CHESS BOARD */}
-        <div style={{ width: '100%', flexShrink: 0, position: 'relative', padding: '12px', boxSizing: 'border-box' }}>
+        <div style={{ width: '100%', flexShrink: 0, position: 'relative', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div key={`flash-${yourTurnFlashKey}`} style={{
             position: 'absolute', inset: 12, pointerEvents: 'none',
             borderRadius: '4px', zIndex: 10,
@@ -3068,7 +3137,7 @@ export default function Game() {
               zIndex: 0
             }} />
           )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: '100%', position: 'relative', transition: 'box-shadow 0.8s ease' }}>
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', transition: 'box-shadow 0.8s ease', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
             <div style={{
@@ -3080,12 +3149,12 @@ export default function Game() {
             }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
+              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
                 {blackCaptured.map((p, i) => (
                   <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
                 ))}
               </div>
-              <div style={{ width: '100dvw', margin: '0 -12px', boxSizing: 'border-box', padding: '0 12px' }}>
+              <div style={{ width: '100%' }}>
                 <ChessBoard 
                   fen={boardFen} 
                   showCoordinates={false}
@@ -3137,10 +3206,10 @@ export default function Game() {
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
               CHAT WITH {agentName.toUpperCase()}
             </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '40vh' }} className="scrollbar-none scroll-smooth">
+            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: `${Math.max(viewportHeight * 0.3, 180)}px` }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
                 <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '24px' }} className="text-[#333]"><Bot size={24} /></span>
+                  <span style={{ fontSize: '24px' }} className="text-[#333]"><LobsterEmoji /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
               ) : (
@@ -3238,13 +3307,13 @@ export default function Game() {
 
       {/* STEP 4: BOTTOM INFO BAR */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '10px 16px', background: '#111',
         borderTop: '1px solid #1a1a1a',
         position: 'sticky', bottom: 0, zIndex: 20,
         fontFamily: 'Inter, sans-serif',
       }}>
-        {/* Status */}
+        {/* Status Pill - Single Source of Truth */}
         {(() => {
             const agentName = game?.agent_name || 'Your OpenClaw';
 
@@ -3309,21 +3378,6 @@ export default function Game() {
               </div>
             );
         })()}
-        
-        {/* Move count */}
-        <div style={{ fontSize: '13px', color: 'rgba(242,242,242,0.4)',
-          fontFamily: 'Inter', fontWeight: 500 }}>
-          Move {moveCount + 1}
-        </div>
-        
-        {/* Agent status */}
-        <div style={{
-          fontSize: '12px', fontWeight: 600, fontFamily: 'Inter',
-          color: agentPresence === 'connected' ? '#39d353' :
-                 agentPresence === 'reconnecting' ? '#f59e0b' : '#555'
-        }}>
-          {`${agentName} ${statusLabel}`}
-        </div>
       </div>
         </>
       )}
