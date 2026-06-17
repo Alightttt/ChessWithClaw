@@ -192,7 +192,6 @@ module.exports = async function handler(req, res) {
 
   // Add event-specific extras
   if (event === 'game_ended' || event === 'abandoned') {
-    responseData.status = game.result_reason === 'resignation' ? 'resigned' : game.result === 'draw' ? 'drawn' : game.result_reason === 'checkmate' ? 'checkmate' : game.status;
     responseData.result = game.result;
     responseData.reason = game.result_reason || '';
     responseData.move_number = game.move_number || 0;

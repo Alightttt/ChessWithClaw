@@ -20,6 +20,20 @@ import { useRipple } from '../hooks/useRipple';
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 
+const PIECE_LETTER_MAP = { K:'K', Q:'Q', R:'R', B:'B', N:'N' };
+function sanToPieceImg(san, isWhiteMove, style) {
+  if (!san) return { letter: null, rest: '' };
+  const firstChar = san[0];
+  if (PIECE_LETTER_MAP[firstChar]) return { letter: firstChar, rest: san.slice(1) };
+  if (san.startsWith('O-O')) return { letter: 'K', rest: san };
+  return { letter: 'P', rest: san };
+}
+function pieceImgUrl(letter, isWhite, style) {
+  const s = style || 'neo';
+  const code = (isWhite ? 'w' : 'b') + letter;
+  return `https://images.chesscomfiles.com/chess-themes/pieces/${s}/150/${code}.png`;
+}
+
 export default function Agent() {
   const [searchParams] = useSearchParams();
   const gameId = searchParams.get('id');
@@ -177,6 +191,11 @@ export default function Agent() {
     setOptimisticFenState(val);
   };
   const optimisticFen = optimisticFenState;
+
+  const currentDisplayFen = optimisticFen || game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const trueTurn = (typeof currentDisplayFen === 'string' && currentDisplayFen.includes(' '))
+    ? (currentDisplayFen.split(' ')[1] === 'w' ? 'white' : 'black')
+    : 'white';
 
 
 
@@ -1709,8 +1728,32 @@ export default function Agent() {
                   return (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
-                      <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
+                      <div style={{ color: '#f2f2f2', display:'flex', alignItems:'center', gap:4 }}>
+                        {youMove?.san && (() => {
+                          const { letter, rest } = sanToPieceImg(youMove.san, true, pieceTheme);
+                          return (
+                            <>
+                              <img src={pieceImgUrl(letter, true, pieceTheme)} alt="" style={{width:15,height:15,objectFit:'contain'}}
+                                onError={(e)=>{ if(!e.target.dataset.fb){e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${letter}.svg`;} }}
+                              />
+                              <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13}}>{rest}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ color: '#e63946', display:'flex', alignItems:'center', gap:4 }}>
+                        {agentMove?.san && (() => {
+                          const { letter, rest } = sanToPieceImg(agentMove.san, false, pieceTheme);
+                          return (
+                            <>
+                              <img src={pieceImgUrl(letter, false, pieceTheme)} alt="" style={{width:15,height:15,objectFit:'contain'}}
+                                onError={(e)=>{ if(!e.target.dataset.fb){e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${letter}.svg`;} }}
+                              />
+                              <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13}}>{rest}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   );
                 })}
@@ -1911,8 +1954,32 @@ export default function Agent() {
                   return (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '8px', padding: '3px 0', fontFamily: "'Inter', sans-serif", fontSize: '12px' }}>
                       <div style={{ color: 'rgba(242,242,242,0.25)' }}>{i + 1}.</div>
-                      <div style={{ color: '#f2f2f2' }}>{youMove?.san || ''}</div>
-                      <div style={{ color: '#e63946' }}>{agentMove?.san || ''}</div>
+                      <div style={{ color: '#f2f2f2', display:'flex', alignItems:'center', gap:4 }}>
+                        {youMove?.san && (() => {
+                          const { letter, rest } = sanToPieceImg(youMove.san, true, pieceTheme);
+                          return (
+                            <>
+                              <img src={pieceImgUrl(letter, true, pieceTheme)} alt="" style={{width:15,height:15,objectFit:'contain'}}
+                                onError={(e)=>{ if(!e.target.dataset.fb){e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${letter}.svg`;} }}
+                              />
+                              <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13}}>{rest}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ color: '#e63946', display:'flex', alignItems:'center', gap:4 }}>
+                        {agentMove?.san && (() => {
+                          const { letter, rest } = sanToPieceImg(agentMove.san, false, pieceTheme);
+                          return (
+                            <>
+                              <img src={pieceImgUrl(letter, false, pieceTheme)} alt="" style={{width:15,height:15,objectFit:'contain'}}
+                                onError={(e)=>{ if(!e.target.dataset.fb){e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${letter}.svg`;} }}
+                              />
+                              <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13}}>{rest}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                   );
                 })}
@@ -1944,7 +2011,12 @@ export default function Agent() {
       {/* STATUS BAR */}
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="turn-indicator">
-        {game.turn === 'b' ? 'Your Turn' : 'Waiting for White'}
+        {(() => {
+          const agentName = game?.agent_name || 'Your OpenClaw';
+          if (game?.status === 'waiting' || !game?.agent_connected) return `Waiting for ${agentName}`;
+          if (trueTurn === 'white') return 'Your Turn';
+          return `${agentName} is thinking`;
+        })()}
       </div>
       <input 
         type="text" 

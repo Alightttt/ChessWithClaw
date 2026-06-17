@@ -366,9 +366,14 @@ export default function Game() {
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
 
   const applyBoardFen = useCallback((fen) => {
-    if (!fen || fen === boardFenRef.current) return;
+    if (!fen) return;
+    const newLayout = fen.split(' ')[0];
+    const currentLayout = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
+    if (newLayout === currentLayout && fen === boardFenRef.current) return;
     boardFenRef.current = fen;
-    setBoardFen(fen);
+    if (newLayout !== currentLayout) {
+      setBoardFen(fen);
+    }
   }, []);
 
   const lastProcessedFenRef = useRef('start');
@@ -1031,8 +1036,8 @@ export default function Game() {
       const updated = (prev?.chat_history || []).map((msg, idx) => {
         const id = msg.id || `cwc-msg-${idx}`;
         if (id !== msgId) return msg;
-        const reactions = { ...(msg.reactions || {}) };
-        const current = reactions[emoji] || [];
+        const reactions = Array.isArray(msg.reactions) ? {} : { ...(msg.reactions || {}) };
+        const current = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
         const hasIt = current.includes('human');
         if (hasIt) {
           // Remove reaction
