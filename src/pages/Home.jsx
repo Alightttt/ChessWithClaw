@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot } from "lucide-react";
 
+const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
+
 
 
 
@@ -106,15 +108,15 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const RECENT_RESULTS = [
-    'Someone just beat their OpenClaw in 31 moves 🏆',
-    'A game ended in checkmate 2 mins ago 🦞',
-    'Nova drew in 47 moves — too close 🤝',
-    'Someone lost in 22 moves. Rematch incoming 💀',
-    'A game just started — challenge accepted',
-  ];
-  const [ticker, setTicker] = useState(RECENT_RESULTS[0]);
+  const [ticker, setTicker] = useState('Someone just beat their OpenClaw in 31 moves 🏆');
   useEffect(() => {
+    const RECENT_RESULTS = [
+      'Someone just beat their OpenClaw in 31 moves 🏆',
+      'A game ended in checkmate 2 mins ago 🦞',
+      'Nova drew in 47 moves — too close 🤝',
+      'Someone lost in 22 moves. Rematch incoming 💀',
+      'A game just started — challenge accepted',
+    ];
     const id = setInterval(() => {
       setTicker(RECENT_RESULTS[Math.floor(Math.random() * RECENT_RESULTS.length)]);
     }, 4000);
@@ -323,7 +325,7 @@ export default function Home() {
         <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bot size={16} /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
+              <LobsterEmoji /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button 
@@ -526,7 +528,7 @@ export default function Home() {
             <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
               <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl text-[#e63946]"><Bot size={24} /></span>
+                  <span className="text-2xl text-[#e63946]"><LobsterEmoji /></span>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
                 </div>
                 <ThoughtBubble />
@@ -588,7 +590,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { number: gamesPlayed, label: "Games Played" },
-            { icon: Bot, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { customIcon: <span style={{fontSize: 28, lineHeight: 1}}><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -600,6 +602,7 @@ export default function Home() {
               ) : (
                 <>
                   {f.icon && <f.icon className="text-[#e63946]" size={28} />}
+                  {f.customIcon && f.customIcon}
                   <div>
                     <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{f.title}</h3>
                     <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>

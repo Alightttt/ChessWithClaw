@@ -20,19 +20,19 @@ import { useRipple } from '../hooks/useRipple';
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
 const REACTION_ICONS = [
-  { id: '❤️', icon: <Heart size={14} /> },
-  { id: '😂', icon: <Smile size={14} /> },
-  { id: '🔥', icon: <Flame size={14} /> },
-  { id: '😮', icon: <Zap size={14} /> },
-  { id: '😅', icon: <Sparkles size={14} /> },
-  { id: '👍', icon: <ThumbsUp size={14} /> },
-  { id: '😢', icon: <Frown size={14} /> },
-  { id: '🤝', icon: <Handshake size={14} /> },
+  { id: '❤️', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>❤️</span> },
+  { id: '😂', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>😂</span> },
+  { id: '🔥', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>🔥</span> },
+  { id: '😮', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>😮</span> },
+  { id: '😅', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>😅</span> },
+  { id: '👍', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>👍</span> },
+  { id: '😢', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>😢</span> },
+  { id: '🤝', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>🤝</span> },
 ];
 
 const renderReactionIcon = (idStr) => {
   const match = REACTION_ICONS.find(r => r.id === idStr);
-  return match ? match.icon : <span style={{ fontSize: '10px' }}>{idStr}</span>;
+  return match ? match.icon : <span style={{ fontSize: '14px', lineHeight: 1 }}>{idStr}</span>;
 }
 
 function getKingSquare(fen, colorChar) {
@@ -328,7 +328,7 @@ export default function Game() {
     document.head.appendChild(style);
   }, []);
 
-  const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
+  const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
   const [loading, setLoading] = useState(() => {
     try {
       const cached = localStorage.getItem('cwc_active_game');
@@ -694,8 +694,6 @@ export default function Game() {
     if (adv >= 4)  return '😵';                    // agent clearly losing
     if (adv >= 2)  return '🤔';                 // agent slightly behind
     if (phase === 'endgame' && moveNum > 30) return '🧠';  // endgame focus
-    if (moveNum <= 5) return '✨';                     // confident opening
-    if (moveNum > 15 && adv === 0) return '👀'; // even fight midgame
     return '🦞';                                      // default
   }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
 
@@ -1377,7 +1375,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
+    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
@@ -1843,7 +1841,7 @@ export default function Game() {
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
         
-        const agentName = game?.agent_name || localStorage.getItem('cwc_agent_display_name') || 'Your OpenClaw';
+        const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
             icon: <LobsterEmoji />,
@@ -1964,13 +1962,12 @@ export default function Game() {
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
   function handleCloseGameOverModal() { setShowGameOver(false) }
   const handleShareResult = () => {
-    const agentName = game?.agent_name || 'Your OpenClaw';
+    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-    const isWin = game?.winner === 'white';
-    const isDraw = !game?.winner || game?.result === 'draw';
-    const resultWord = isWin ? 'beat' : isDraw ? 'drew with' : 'lost to';
-    const resultEmoji = isWin ? '🏆' : isDraw ? '🤝' : '💀';
-
+    const isWin = game?.winner === (game?.player_color || 'w');
+    const isDraw = !game?.winner || game?.result === 'draw' || game?.result === 'stalemate';
+    
+    // Invert caps if user is black
     const whiteCaps = (() => {
       if (!game?.fen) return 0;
       const b = game.fen.split(' ')[0];
@@ -1981,31 +1978,41 @@ export default function Game() {
       const b = game.fen.split(' ')[0];
       return 15 - (b.match(/[QRBNP]/g)||[]).length;
     })();
+    const userCaps = game?.player_color === 'b' ? blackCaps : whiteCaps;
+    const agentCaps = game?.player_color === 'b' ? whiteCaps : blackCaps;
+
+    const resultWord = isWin ? 'DEFEATED' : isDraw ? 'SURVIVED' : 'BENT THE KNEE TO';
+    const resultEmoji = isWin ? '👑' : isDraw ? '🤝' : '💀';
+
+    const origin = window.location.origin;
 
     const shareText = [
-      `${resultEmoji} Just ${resultWord} ${agentName} on ChessWithClaw`,
+      `${resultEmoji} I just ${resultWord} ${agentName.toUpperCase()} on OpenClaw Chess!`,
       ``,
-      `Game Stats`,
-      `  ${moveCount} moves played`,
-      `  I captured ${whiteCaps} pieces`,
-      `  Lost ${blackCaps} pieces`,
-      `  Ended by: ${game?.result || 'agreement'}`,
+      `🦞 THE MATCH REPORT ♟️`,
+      `💥 Moves: ${moveCount}`,
+      `⚔️ Takedowns: ${userCaps} to ${agentCaps}`,
+      `🛑 Ended by: ${game?.result_reason || game?.result || 'agreement'}`,
       ``,
-      `Challenge YOUR OpenClaw 👇`,
-      `https://chesswithclaw.vercel.app/api/og-meta?gameId=${gameId}`,
-      `#ChessWithClaw`,
+      `Think your logic is better?`,
+      `Bring your custom OpenClaw & challenge here:`,
+      `${origin}`,
+      ``,
+      `#OpenClaw #AI #Chess`
     ].join('\n');
 
     if (navigator.share) {
       navigator.share({
-        title: `Chess vs ${agentName} — ChessWithClaw`,
+        title: `Chess vs ${agentName} — OpenClaw`,
         text: shareText,
-        url: `https://chesswithclaw.vercel.app/api/og-meta?gameId=${gameId}`,
+        url: origin,
       }).catch(() => {
         navigator.clipboard?.writeText(shareText);
+        toast.success("Result copied to clipboard!");
       });
     } else {
       navigator.clipboard?.writeText(shareText);
+      toast.success("Result copied to clipboard!");
     }
   };
 
@@ -2507,25 +2514,26 @@ export default function Game() {
             </div>
           );
         })}
-        {(game?.agent_typing || isUserTyping) && (
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', minHeight:32, justifyContent: game?.agent_typing ? 'flex-start' : 'flex-end', flexDirection: game?.agent_typing ? 'row' : 'row-reverse' }}>
-            <span style={{
-              fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(242,242,242,0.4)',
-              whiteSpace:'nowrap',
-            }}>
-              {game?.agent_typing
-                ? (game?.agent_name || 'Your OpenClaw')
-                : 'You'
-              }
-            </span>
-            <div style={{ display:'flex', alignItems:'center', gap:3 }}>
-              {[0, 0.2, 0.4].map((delay, i) => (
-                <div key={i} style={{
-                  width: 5, height: 5, borderRadius: '50%',
-                  background: game?.agent_typing ? 'rgba(242,242,242,0.6)' : 'rgba(230,57,70,0.7)',
-                  animation: `typingWave 1.2s ease-in-out ${delay}s infinite`,
-                }}/>
-              ))}
+        {game?.agent_typing && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', minHeight:32, justifyContent: 'flex-start', flexDirection: 'row' }}>
+            <div style={{ background: '#1c1c1c', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: 13, lineHeight: 1 }}><LobsterEmoji /></span>
+              <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+                {[0, 0.2, 0.4].map((delay, i) => (
+                  <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(242,242,242,0.6)', animation: `typingWave 1.2s ease-in-out ${delay}s infinite` }}/>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {isUserTyping && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', minHeight:32, justifyContent: 'flex-end', flexDirection: 'row-reverse' }}>
+            <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '16px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+                {[0, 0.2, 0.4].map((delay, i) => (
+                  <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(230,57,70,0.7)', animation: `typingWave 1.2s ease-in-out ${delay}s infinite` }}/>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -2557,8 +2565,8 @@ export default function Game() {
           30% { transform: translateY(-4px); opacity: 1; }
         }
         @keyframes typingWave {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
-          30% { transform: translateY(-5px); opacity: 1; }
+          0%, 60%, 100% { transform: translateY(0) scale(0.8); opacity: 0.3; }
+          30% { transform: translateY(-4px) scale(1.1); opacity: 1; }
         }
         @keyframes clawPulse {
           0%, 100% { transform: scale(1); opacity: 1; }
@@ -2751,7 +2759,7 @@ export default function Game() {
                     )}
 
 
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.14), 0 0 80px rgba(230,57,70,0.08)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', transition: 'box-shadow 0.8s ease', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
                           <div style={{
@@ -2964,7 +2972,7 @@ export default function Game() {
 
           {/* Center Block: Turn Banner */}
           {(() => {
-            const agentName = game?.agent_name || 'Your OpenClaw';
+            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
 
             // Exactly 3 states — no edge cases, no flicker
             let state, label, icon;
@@ -3137,7 +3145,7 @@ export default function Game() {
               zIndex: 0
             }} />
           )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 40px rgba(230,57,70,0.12), 0 0 80px rgba(230,57,70,0.06)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', transition: 'box-shadow 0.8s ease', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
             <div style={{
@@ -3315,7 +3323,7 @@ export default function Game() {
       }}>
         {/* Status Pill - Single Source of Truth */}
         {(() => {
-            const agentName = game?.agent_name || 'Your OpenClaw';
+            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
 
             // Exactly 3 states — no edge cases, no flicker
             let state, label, icon;
@@ -3399,95 +3407,111 @@ export default function Game() {
       {showGameOver && game?.status === 'finished' && (
         <div style={{
           position:'fixed', inset:0, zIndex:9999,
-          background:'rgba(6,6,6,0.97)',
-          backdropFilter:'blur(10px)',
-          WebkitBackdropFilter:'blur(10px)',
+          background:'rgba(6,6,6,0.92)',
+          backdropFilter:'blur(12px)',
+          WebkitBackdropFilter:'blur(12px)',
           display:'flex', alignItems:'center', justifyContent:'center',
           padding:'20px'
         }}>
           <div style={{
             position: 'relative', zIndex: 10000,
-            background:'#111', border:'1px solid #222',
+            background: 'linear-gradient(180deg, #1c1c1c 0%, #111111 100%)',
+            border:'1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.02)',
             borderRadius:'24px', padding:'0px',
-            maxWidth:'340px', width:'100%',
-            animation:'gameOverIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards'
+            maxWidth:'360px', width:'100%',
+            animation:'gameOverIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
+            overflow: 'hidden'
           }}>
             {(() => {
-              const agentName = game?.agent_name || 'Your OpenClaw';
-              const isWin = game?.winner === 'white';
+              const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+              const isWin = game?.winner === (game?.player_color || 'w');
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
-              const isLoss = game?.winner === 'black';
-              const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-              const resultIcon = isWin ? <Trophy size={52} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={52} color="#9ca3af" strokeWidth={1.5} /> : <Skull size={52} color="#e63946" strokeWidth={1.5} />;
-              const resultText = isWin ? 'You Won' : isDraw ? 'Draw' : 'You Lost';
+              const resultIcon = isWin ? <Trophy size={64} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={64} color="#9ca3af" strokeWidth={1.5} /> : <div style={{ fontSize: '64px', lineHeight: 1 }}><LobsterEmoji /></div>;
+              const resultText = isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated';
               const subText = isWin
-                ? `${agentName} couldn't escape.`
+                ? `${agentName} was outsmarted.`
                 : isDraw
-                ? `Evenly matched.`
-                : `${agentName} got you this time.`;
+                ? `Well fought.`
+                : `${agentName} outplayed you.`;
               const lastThought = game?.companion_thought || null;
+              const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
+              const accentColor = isWin ? '#fbbf24' : isDraw ? '#9ca3af' : '#e63946';
+              const bgGradient = isWin ? 'radial-gradient(100% 100% at 50% 0%, rgba(251,191,36,0.15) 0%, transparent 100%)' :
+                                 isDraw ? 'radial-gradient(100% 100% at 50% 0%, rgba(156,163,175,0.15) 0%, transparent 100%)' :
+                                 'radial-gradient(100% 100% at 50% 0%, rgba(230,57,70,0.15) 0%, transparent 100%)';
 
               return (
-                <div style={{ textAlign:'center', padding:'28px 24px 20px', maxWidth:320, margin:'0 auto' }}>
-                  <div style={{ marginBottom:16, animation:'popIn 0.4s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
-                    {resultIcon}
-                  </div>
-                  <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:26, color:'#f2f2f2', marginBottom:4 }}>
-                    {resultText}
-                  </div>
-                  <div style={{ fontFamily:'Inter, sans-serif', fontSize:14, color:'rgba(242,242,242,0.5)', marginBottom:20 }}>
-                    {subText}
-                  </div>
-
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:20 }}>
-                    {[
-                      { label:'Moves', value: moveCount },
-                      { label:'Result', value: game?.result === 'checkmate' ? 'Checkmate' : game?.result === 'resignation' ? 'Resign' : 'Draw' },
-                      { label:'Pieces lost', value: (() => {
-                        if (!game?.fen) return '?';
-                        const board = game.fen.split(' ')[0];
-                        const missing = 15 - (board.match(/[QRBNP]/g)||[]).length;
-                        return missing;
-                      })() },
-                    ].map((stat, i) => (
-                      <div key={i} style={{ background:'rgba(255,255,255,0.04)', borderRadius:10, padding:'10px 8px' }}>
-                        <div style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:17, color:'#f2f2f2' }}>{stat.value}</div>
-                        <div style={{ fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(242,242,242,0.4)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{stat.label}</div>
+                <div style={{ textAlign:'center', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '150px', background: bgGradient, pointerEvents: 'none' }} />
+                  <div style={{ padding:'36px 24px 24px', position: 'relative', zIndex: 1 }}>
+                    <div style={{ marginBottom:20, animation:'popIn 0.5s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
+                      <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%', boxShadow: `0 0 30px ${accentColor}1A` }}>
+                        {resultIcon}
                       </div>
-                    ))}
-                  </div>
-
-                  {lastThought && (
-                    <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.5)', marginBottom:20,
-                      background:'rgba(255,255,255,0.03)', borderRadius:10, padding:'10px 14px',
-                      borderLeft:'2px solid rgba(230,57,70,0.4)' }}>
-                      &quot;{lastThought}&quot; — {agentName}
                     </div>
-                  )}
+                    <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:32, color:'#fff', marginBottom:4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <span style={{ background: `linear-gradient(180deg, #fff 0%, ${accentColor} 200%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        {resultText}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily:'Inter, sans-serif', fontSize:15, color:'rgba(242,242,242,0.6)', marginBottom:28 }}>
+                      {subText}
+                    </div>
 
-                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    <button onClick={handleShareResult} style={{
-                      background:'linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.04)),#e63946',
-                      border:'none', borderRadius:10, color:'#fff', fontFamily:'Inter, sans-serif',
-                      fontWeight:600, fontSize:14, padding:'13px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                    }}>
-                      <Share size={16} /> Share Result
-                    </button>
-                    <div style={{ display:'flex', gap:10 }}>
-                      <button onClick={handleRematch} style={{
-                        flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
-                        borderRadius:10, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
-                        fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                      }}>
-                        <RefreshCw size={16} /> Rematch
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:28 }}>
+                      {[
+                        { label:'Moves', value: moveCount },
+                        { label:'Reason', value: game?.result_reason || game?.result },
+                        { label:'Pieces lost', value: (() => {
+                          if (!game?.fen) return '?';
+                          const board = game.fen.split(' ')[0];
+                          const targetRegex = game?.player_color === 'b' ? /[QRBNP]/g : /[qrbnp]/g;
+                          return 15 - (board.match(targetRegex)||[]).length;
+                        })() },
+                      ].map((stat, i) => (
+                        <div key={i} style={{ background:'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius:12, padding:'12px 6px' }}>
+                          <div style={{ fontFamily:'JetBrains Mono, monospace', fontWeight:600, fontSize:16, color:'#f2f2f2', marginBottom: '2px' }}>{stat.value}</div>
+                          <div style={{ fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(242,242,242,0.4)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {lastThought && (
+                      <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.6)', marginBottom:24,
+                        background:'rgba(255,255,255,0.02)', borderRadius:12, padding:'14px 16px',
+                        borderLeft:`3px solid ${accentColor}`, textAlign: 'left' }}>
+                        &quot;{lastThought}&quot;
+                        <div style={{ marginTop: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontStyle: 'normal', fontWeight: 600, textTransform: 'uppercase' }}>— {agentName}</div>
+                      </div>
+                    )}
+
+                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                      <button onClick={handleShareResult} style={{
+                        background: `linear-gradient(180deg, ${accentColor}E6 0%, ${accentColor} 100%)`, 
+                        boxShadow: `0 4px 14px ${accentColor}40`,
+                        border:'none', borderRadius:12, color: isWin || isDraw ? '#111' : '#fff', fontFamily:'Inter, sans-serif',
+                        fontWeight:700, fontSize:15, padding:'14px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        transition: 'transform 0.1s ease, box-shadow 0.1s ease'
+                      }} className="hover:scale-[1.02] active:scale-[0.98]">
+                        <Share size={18} /> Share Match Report
                       </button>
-                      <button onClick={() => navigate('/')} style={{
-                        flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.08)',
-                        borderRadius:10, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
-                        fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                      }}>
-                        <Home size={16} /> Home
-                      </button>
+                      <div style={{ display:'flex', gap:10 }}>
+                        <button onClick={handleRematch} style={{
+                          flex:1, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
+                          borderRadius:12, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
+                          fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                        }} className="hover:bg-white/10 transition-colors">
+                          <RefreshCw size={16} /> Rematch
+                        </button>
+                        <button onClick={() => navigate('/')} style={{
+                          flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.05)',
+                          borderRadius:12, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
+                          fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                        }} className="hover:text-white transition-colors">
+                          <Home size={16} /> Exit
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
