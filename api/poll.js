@@ -193,7 +193,6 @@ module.exports = async function handler(req, res) {
   // Add event-specific extras
   if (event === 'game_ended' || event === 'abandoned') {
     responseData.result = game.result;
-    responseData.winner = game.winner;
     responseData.reason = game.result_reason || '';
     responseData.move_number = game.move_number || 0;
   } else if (event === 'your_turn') {

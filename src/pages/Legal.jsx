@@ -1,230 +1,108 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Legal() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('privacy');
-
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0a0a0a',
-      color: '#f2f2f2',
-      fontFamily: 'Inter, sans-serif'
+      minHeight: '100vh', background: '#0a0a0a', color: '#f2f2f2',
+      fontFamily: 'Inter, sans-serif', padding: '32px 20px 80px', maxWidth: 720, margin: '0 auto',
     }}>
-      {/* Sticky Top Header */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        background: 'rgba(10,10,10,0.9)',
-        backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '16px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 50
-      }}>
-        <Link to="/" style={{ color: 'rgba(242,242,242,0.6)', textDecoration: 'none', fontSize: 14 }}>← Back</Link>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>ChessWithClaw 🦞</div>
-      </div>
+      <button onClick={() => {
+        if (window.history.length > 2) {
+          navigate(-1);
+        } else {
+          navigate('/');
+        }
+      }} style={{
+        background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+        color: 'rgba(242,242,242,0.6)', padding: '8px 14px', fontSize: 13, marginBottom: 24, cursor: 'pointer',
+      }}>← Back</button>
 
-      <div style={{
-        maxWidth: 800,
-        margin: '0 auto',
-        padding: '48px 24px 80px'
-      }}>
-        <h1 style={{ fontWeight: 800, fontSize: 32, letterSpacing: '-0.02em', color: '#f2f2f2', marginBottom: 8 }}>
-          ChessWithClaw — Legal
-        </h1>
-        <p style={{ fontSize: 15, color: 'rgba(242,242,242,0.5)', marginBottom: 40 }}>
-          Last updated: June 2026
-        </p>
+      <h1 style={{ fontWeight: 800, fontSize: 26, marginBottom: 4 }}>ChessWithClaw — Privacy Policy &amp; Terms of Service</h1>
+      <p style={{ fontSize: 13, color: 'rgba(242,242,242,0.4)', marginBottom: 32 }}>Last updated: June 2026</p>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 16 }}>
-          <button
-            onClick={() => setActiveTab('privacy')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: activeTab === 'privacy' ? '#e63946' : 'rgba(242,242,242,0.6)',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              outline: 'none',
-              padding: '0 8px'
-            }}
-          >
-            Privacy Policy
-          </button>
-          <button
-            onClick={() => setActiveTab('terms')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: activeTab === 'terms' ? '#e63946' : 'rgba(242,242,242,0.6)',
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              outline: 'none',
-              padding: '0 8px'
-            }}
-          >
-            Terms of Service
-          </button>
-        </div>
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 32, marginBottom: 10 }}>1. What ChessWithClaw Is</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        ChessWithClaw is a real-time chess platform where a human plays against their own AI agent (&quot;OpenClaw&quot;).
+        There is no account creation, no login, and no payment of any kind. Each game is identified by a unique
+        link and access token generated when the game is created.
+      </p>
 
-        {activeTab === 'privacy' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Information We Collect</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Game IDs (randomly generated UUIDs), agent names (user-provided), chat messages (stored in game records), move history, board settings preferences. No email, no password, no personal identification required.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>How We Use Information</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                To facilitate real-time chess games between users and their AI agents. To display game state, chat, and companion thoughts. To improve service reliability.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Data Storage</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                All game data stored in Supabase (PostgreSQL) with row-level security. Games auto-expire after 4 hours of inactivity. No permanent user accounts.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Third-Party Services</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Supabase (database), Vercel (hosting), Chess.com CDN (piece images). No advertising trackers. No analytics that identify individuals.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>AI Agent Communication</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Your OpenClaw agent connects via authenticated API endpoints. Agent tokens are game-specific and expire with the game. We do not store your agent&apos;s internal data.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Data Retention</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Active games retained while in progress. Abandoned games marked as expired after 4 hours. Game records may be retained in aggregated, anonymized form for analytics.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Your Rights</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                No account to delete. Clear localStorage to remove preferences. Game data expires automatically. Contact us to request data deletion.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Children&apos;s Privacy</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Service not directed at children under 13. No age verification required as no personal data is collected.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Changes to This Policy</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                We may update this policy. Changes posted on this page with updated date.
-              </p>
-            </div>
-          </div>
-        )}
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>2. Your Game Link Is Your Access Key</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        Because there are no accounts, the unique link and token created for your game function as your only
+        access credential. Anyone who has your game link or agent token can view or interact with that specific
+        game. Do not share your game link or token publicly if you do not want others to access that game.
+        We are not able to verify identity beyond possession of this link.
+      </p>
 
-        {activeTab === 'terms' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Acceptance</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                By using ChessWithClaw, you agree to these terms.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Service Description</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Free real-time chess platform for OpenClaw users to play chess against their personal AI agents.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Acceptable Use</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                No cheating, no abuse of API endpoints, no attempts to crash the service, no spamming chat, no reverse engineering. Rate limiting may be applied.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Intellectual Property</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                ChessWithClaw name, logo, and code are property of their respective owners. Chess piece images from Chess.com CDN. OpenClaw is a separate service.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Disclaimer</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Service provided &quot;as is&quot; without warranties. Games may experience connectivity issues. Agent behavior depends on your OpenClaw configuration and is not controlled by ChessWithClaw.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Limitation of Liability</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                ChessWithClaw is not liable for any damages arising from use of the service. Maximum liability is limited to $0 as this is a free service.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Game Fairness</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Games are played in real-time. The platform does not guarantee agent performance. Connection issues may affect gameplay.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Termination</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                Games auto-expire after 4 hours of inactivity. We reserve the right to terminate abusive sessions.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Governing Law</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                These terms are governed by applicable laws.
-              </p>
-            </div>
-            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 32 }}>
-              <h2 style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 12 }}>Contact</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(242,242,242,0.7)' }}>
-                For questions about these terms, reach out via the GitHub repository.
-              </p>
-            </div>
-          </div>
-        )}
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>3. Data We Collect</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        We collect only what is needed to run a chess game: the moves played, board position (FEN), chat
+        messages sent during the game, your chosen display name for your agent, and your interface preferences
+        (board theme, piece style, sound settings) stored locally in your browser. For abuse prevention, we log
+        IP addresses on a short-term basis to apply rate limits to our API. We do not collect names, emails,
+        phone numbers, or any payment information, because none of these are ever requested.
+      </p>
 
-        <div style={{ marginTop: 48, display: 'flex', justifyContent: 'center' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946',
-              boxShadow: 'rgba(255,255,255,0.18) 0px 1px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px inset',
-              borderRadius: 8,
-              border: 'none',
-              height: 48,
-              padding: '0 32px',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: 15,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              maxWidth: 300
-            }}
-          >
-            Back to Home
-          </button>
-        </div>
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>4. How We Use Your Data</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        Data is used exclusively to operate your chess game: storing the live board state, displaying chat and
+        move history, and allowing your agent to connect and play. We do not sell data, run advertising, or
+        share game data with third parties for marketing purposes.
+      </p>
 
-      </div>
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>5. Third-Party Services We Use</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        Game data is stored using Supabase (database and real-time sync). The application is hosted on Vercel.
+        Chess piece images are loaded from Chess.com&apos;s public image CDN and, as a fallback, Lichess&apos;s open-source
+        piece assets. These providers may receive standard technical request data (such as IP address) as a normal
+        part of serving these resources, governed by their own privacy policies.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>6. Data Retention</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        Games that remain inactive for an extended period are automatically marked abandoned and are eligible for
+        deletion by an automated cleanup process. Completed games are retained for a reasonable period to allow
+        you to view results and share them, after which they may be removed. We do not guarantee indefinite
+        storage of any game.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>7. Children&apos;s Privacy</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        ChessWithClaw is not directed at children under 13, and we do not knowingly collect data from children
+        under 13. If you believe a child has used the service in a way that raises a privacy concern, contact us
+        and we will address it.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>8. Acceptable Use</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        You agree not to: abuse, flood, or attack the API beyond normal gameplay; attempt to access another
+        person&apos;s game without their game link or token; use the chat feature to harass, threaten, or send
+        unlawful content; or attempt to reverse engineer the service to bypass security controls. We reserve
+        the right to terminate access to any game found in violation of these terms.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>9. No Warranty</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        ChessWithClaw is provided &quot;as is&quot; and &quot;as available,&quot; without warranties of any kind, express or implied.
+        We do not guarantee uninterrupted availability, error-free operation, or that any specific agent behavior
+        will meet your expectations. To the maximum extent permitted by law, ChessWithClaw and its operator are
+        not liable for any indirect, incidental, or consequential damages arising from use of the service.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>10. Changes to These Terms</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        We may update this Privacy Policy and these Terms from time to time. Continued use of ChessWithClaw after
+        changes are posted constitutes acceptance of the revised terms.
+      </p>
+
+      <h2 style={{ fontWeight: 700, fontSize: 19, marginTop: 28, marginBottom: 10 }}>11. Contact</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(242,242,242,0.75)' }}>
+        Questions about this policy can be directed through the contact information listed on the ChessWithClaw
+        GitHub repository.
+      </p>
     </div>
   );
 }

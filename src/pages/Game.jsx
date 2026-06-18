@@ -562,6 +562,12 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
+    if (game?.thought_language) {
+      setThoughtLanguage(game.thought_language);
+    }
+  }, [game?.thought_language]);
+
+  useEffect(() => {
     const checkCheck = () => {
       try {
         const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -694,18 +700,15 @@ export default function Game() {
     }
     const balance = wMat - bMat; // positive = white ahead, negative = black ahead
     
-    const humanColor = game?.player_color || 'w';
-    const agentColor = humanColor === 'w' ? 'b' : 'w';
-    const agentAdvantage = humanColor === 'w' ? -balance : balance;
-    
-    if (game?.in_check && currentTurn === agentColor) return '😰'; // agent in check
-    if (game?.in_check && currentTurn === humanColor) return '😈'; // human in check
-    if (agentAdvantage >= 5) return '😈'; // agent way ahead
-    if (agentAdvantage <= -5) return '😰'; // agent way behind
-    if (agentAdvantage >= 3) return '😏'; // agent moderately ahead
-    if (agentAdvantage <= -3) return '😟'; // agent moderately behind
+    // Agent is black. Negative balance = agent ahead = confident
+    if (game?.in_check && currentTurn === 'b') return '😰'; // agent in check
+    if (game?.in_check && currentTurn === 'w') return '😈'; // human in check
+    if (balance <= -5) return '😈'; // agent way ahead
+    if (balance >= 5) return '😰'; // agent way behind
+    if (balance <= -2) return '😏'; // agent slightly ahead
+    if (balance >= 2) return '😟'; // agent slightly behind
     return '🦞'; // neutral
-  }, [boardFen, game?.in_check, game?.status, game?.player_color]);
+  }, [boardFen, game?.in_check, game?.status]);
 
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
@@ -881,6 +884,16 @@ export default function Game() {
         }
         if (Array.isArray(fetchedGame?.chat_history)) {
           setChatMessages(fetchedGame.chat_history);
+        }
+
+        if (fetchedGame?.board_theme) {
+          setBoardTheme(fetchedGame.board_theme);
+          localStorage.setItem('cwc_board_theme', fetchedGame.board_theme);
+          localStorage.setItem('cwc_theme', fetchedGame.board_theme);
+        }
+        if (fetchedGame?.piece_style) {
+          setPieceStyle(fetchedGame.piece_style);
+          localStorage.setItem('cwc_piece_style', fetchedGame.piece_style);
         }
 
         applyBoardFen(data.fen || 'start');
@@ -1439,13 +1452,25 @@ export default function Game() {
       }
     }
 
+    // 4. Apply board theme from agent (only if different from current)
+    if (incoming.board_theme && incoming.board_theme !== boardTheme) {
+      setBoardTheme(incoming.board_theme);
+      localStorage.setItem('cwc_board_theme', incoming.board_theme);
+    }
+
+    // 5. Apply piece style from agent
+    if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
+      setPieceStyle(incoming.piece_style);
+      localStorage.setItem('cwc_piece_style', incoming.piece_style);
+    }
+
     // 6. Do NOT overwrite thought_language from Realtime
     // (user's local selection takes priority — the DB will sync via API)
 
     if (Array.isArray(incoming.chat_history)) {
       setChatMessages(incoming.chat_history);
     }
-  }, [playSound, setMoveHistory, setChatMessages, applyBoardFen, showThought]);
+  }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1514,13 +1539,14 @@ export default function Game() {
             if (Array.isArray(freshData?.move_history)) {
               setMoveHistory(freshData.move_history);
             }
+            if (freshData.board_theme) setBoardTheme(freshData.board_theme);
             setGame(freshData);
           });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [gameId, applyBoardFen, setMoveHistory, setGame]);
+  }, [gameId, applyBoardFen, setMoveHistory, setBoardTheme, setGame]);
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1912,10 +1938,9 @@ export default function Game() {
   const handleShareResult = () => {
     const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-    const winnerValue = game?.winner || (['black', 'white'].includes(game?.result) ? game?.result : null);
-    const isWinColor = winnerValue === 'black' ? 'b' : winnerValue === 'white' ? 'w' : null;
+    const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
     const isWin = isWinColor === (game?.player_color || 'w');
-    const isDraw = (!winnerValue && !['black', 'white'].includes(game?.result)) || game?.result === 'draw' || game?.result === 'stalemate';
+    const isDraw = !game?.winner || game?.result === 'draw' || game?.result === 'stalemate';
     
     // Invert caps if user is black
     const whiteCaps = (() => {
@@ -3391,8 +3416,7 @@ export default function Game() {
           }}>
             {(() => {
               const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
-              const winnerValue = game?.winner || (['black', 'white'].includes(game?.result) ? game?.result : null);
-              const isWinColor = winnerValue === 'black' ? 'b' : winnerValue === 'white' ? 'w' : null;
+              const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
               const isWin = isWinColor === (game?.player_color || 'w');
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
               const resultIcon = isWin ? <Trophy size={64} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={64} color="#9ca3af" strokeWidth={1.5} /> : <div style={{ fontSize: '64px', lineHeight: 1 }}><LobsterEmoji /></div>;
@@ -3564,6 +3588,7 @@ export default function Game() {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_board_theme', theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
+                      setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
@@ -3607,6 +3632,7 @@ export default function Game() {
                     onClick={() => {
                       setPieceStyle(piece.id);
                       localStorage.setItem('cwc_piece_style', piece.id);
+                      setGame(prev => prev ? { ...prev, piece_style: piece.id } : prev);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
@@ -3705,6 +3731,8 @@ export default function Game() {
                       setThoughtText('');
                       if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
                       setThoughtLanguage(lang.value);
+                      
+                      setGame(prev => prev ? { ...prev, thought_language: lang.value } : prev);
                       localStorage.setItem('cwc_thought_language', lang.value);
 
                       try {
