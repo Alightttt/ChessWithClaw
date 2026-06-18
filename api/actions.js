@@ -23,7 +23,16 @@ module.exports = async function handler(req, res) {
   const agentToken = req.headers['x-agent-token'];
   const gameToken = req.headers['x-game-token'];
 
-  if (!agentToken && !gameToken) {
+  const validActions = [
+    'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language', 'set_board_theme', 'set_piece_style'
+  ];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ error: 'Invalid action', allowed: validActions });
+  }
+
+  const DISPLAY_ACTIONS = ['set_board_theme', 'set_piece_style', 'set_thought_language'];
+
+  if (!DISPLAY_ACTIONS.includes(action) && !agentToken && !gameToken) {
     return res.status(401).json({ error: 'Unauthorized: Missing token header.', code: 'INVALID_TOKEN' });
   }
 
@@ -32,13 +41,6 @@ module.exports = async function handler(req, res) {
   }
   if (!validateUUID(gameId)) {
     return res.status(400).json({ error: 'Invalid gameId format' });
-  }
-
-  const validActions = [
-    'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language', 'set_board_theme', 'set_piece_style'
-  ];
-  if (!validActions.includes(action)) {
-    return res.status(400).json({ error: 'Invalid action', allowed: validActions });
   }
 
   try {
@@ -59,7 +61,10 @@ module.exports = async function handler(req, res) {
 
     // Determine role and authorize
     let role = '';
-    if (agentToken) {
+    
+    if (DISPLAY_ACTIONS.includes(action)) {
+      // Allow without specific role checking, relying on just knowing the gameId
+    } else if (agentToken) {
       if (agentToken !== game.agent_token) {
         return res.status(401).json({ "error": "Unauthorized", "code": "INVALID_TOKEN" });
       }
@@ -99,6 +104,10 @@ module.exports = async function handler(req, res) {
       updates = { draw_offer: null, draw_offer_pending: false };
       chatText = message || (role === 'agent' ? `${agentName} declined the draw offer.` : `You declined the draw offer.`);
     } else if (action === 'set_thought_language') {
+      const allowedLangs = ['english', 'hindi', 'hinglish', 'simple_english'];
+      if (!allowedLangs.includes(value)) {
+        return res.status(400).json({ error: 'Invalid language value' });
+      }
       updates.thought_language = value;
       chatText = `[System] Thought language set to ${value} 🦞`;
     } else if (action === 'set_board_theme') {

@@ -332,23 +332,31 @@ module.exports = async function handler(req, res) {
   let gameResult = null;
   let gameWinner = null;
 
-  const actualCheckmate = chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate ? chess.in_checkmate() : false);
-  const actualStalemate = chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate ? chess.in_stalemate() : false);
-  const actualDraw = chess.isDraw ? chess.isDraw() : (chess.in_draw ? chess.in_draw() : false);
-
-  if (actualCheckmate) {
+  if (chess.isCheckmate ? chess.isCheckmate() : (chess.in_checkmate && chess.in_checkmate())) {
     gameResult = 'checkmate';
     gameWinner = chess.turn() === 'w' ? 'black' : 'white';
-  } else if (actualStalemate) {
-    gameResult = 'draw';
+  } else if (chess.isStalemate ? chess.isStalemate() : (chess.in_stalemate && chess.in_stalemate())) {
+    gameResult = 'stalemate';
     gameWinner = null;
-  } else if (actualDraw) {
+  } else if (chess.isDraw ? chess.isDraw() : (chess.in_draw && chess.in_draw())) {
     gameResult = 'draw';
     gameWinner = null;
   }
 
-  const newStatus = gameResult ? 'finished' : game.status;
+  const newStatus = gameResult ? 'finished' : 'active';
   const finishedAt = gameResult ? new Date().toISOString() : game.finished_at;
+
+  const boardStr = (fen || game.fen).split(' ')[0];
+  const pieceVals = { p:1, n:3, b:3, r:5, q:9 };
+  let wMat = 0, bMat = 0;
+  for (const ch of boardStr) {
+    const low = ch.toLowerCase();
+    if (pieceVals[low]) {
+      if (ch === ch.toUpperCase()) wMat += pieceVals[low];
+      else bMat += pieceVals[low];
+    }
+  }
+  materialBalance = wMat - bMat;
 
   const updates = {
     fen: fen || game.fen,
@@ -524,12 +532,17 @@ module.exports = async function handler(req, res) {
     thought_received: !!companionThought,
     agent_name: agentName || game.agent_name || 'Your OpenClaw',
     companion_thought: companionThought,
+    winner: gameWinner,
+    result: gameResult,
+    material_balance: materialBalance,
     game: {
       id: updated.id,
       fen: updated.fen,
       turn: nextTurn,
-      status: updates.status,
-      result: updates.result,
+      status: updates.status || newStatus,
+      result: updates.result || gameResult,
+      winner: updates.winner || gameWinner,
+      material_balance: materialBalance,
       move_number: updated.move_number || Math.floor(game.move_history.length / 2) + 1,
       last_move: updated.last_move,
       in_check: inCheck,

@@ -368,14 +368,18 @@ export default function Game() {
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
 
   const applyBoardFen = useCallback((fen) => {
-    if (!fen) return;
-    const newLayout = fen.split(' ')[0];
-    const currentLayout = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
-    if (newLayout === currentLayout && fen === boardFenRef.current) return;
-    boardFenRef.current = fen;
-    if (newLayout !== currentLayout) {
-      setBoardFen(fen);
+    if (!fen || !fen.includes(' ')) return;
+    // Compare only piece placement (first field of FEN), not full FEN
+    // This prevents re-animation when only metadata (clocks, en passant) changed
+    const currentPosition = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
+    const newPosition = fen.split(' ')[0];
+    if (newPosition === currentPosition) {
+      // Board layout identical — just update ref for metadata, no re-render
+      boardFenRef.current = fen;
+      return;
     }
+    boardFenRef.current = fen;
+    setBoardFen(fen);
   }, []);
 
   const lastProcessedFenRef = useRef('start');
@@ -558,12 +562,6 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    if (game?.thought_language) {
-      setThoughtLanguage(game.thought_language);
-    }
-  }, [game?.thought_language]);
-
-  useEffect(() => {
     const checkCheck = () => {
       try {
         const chess = new Chess(game?.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -677,35 +675,36 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (game?.status === 'finished') return '🏳️';
     if (!boardFen || !boardFen.includes(' ')) return '🦞';
+    if (game?.status === 'finished') return '🏳️';
     
-    const inCheck = game?.in_check;
-    const turn = boardFen.split(' ')[1];
-    const agentColor = game?.player_color === 'b' ? 'w' : 'b';
-
-    // Reactions strictly for check events
-    if (inCheck && turn === agentColor) return '😰'; // Agent's king is in check
-    if (inCheck && turn !== agentColor) return '😤'; // Agent just gave check
-
-    // Calculate material advantage
-    const board = boardFen.split(' ')[0];
+    const fenParts = boardFen.split(' ');
+    const currentTurn = fenParts[1];
+    const board = fenParts[0];
+    
+    // Compute material balance from FEN directly
     const vals = { p:1, n:3, b:3, r:5, q:9 };
-    let w = 0, b = 0;
+    let wMat = 0, bMat = 0;
     for (const ch of board) {
-      const l = ch.toLowerCase();
-      if (vals[l]) { if (ch === ch.toUpperCase()) w += vals[l]; else b += vals[l]; }
+      const low = ch.toLowerCase();
+      if (vals[low]) {
+        if (ch === ch.toUpperCase()) wMat += vals[low];
+        else bMat += vals[low];
+      }
     }
+    const balance = wMat - bMat; // positive = white ahead, negative = black ahead
     
-    const agentAdvantage = agentColor === 'w' ? (w - b) : (b - w);
-
-    // Only show extreme emotions for significant material imbalance (e.g. Queen or Rook difference)
-    if (agentAdvantage >= 8) return '🔥';
-    if (agentAdvantage <= -8) return '💀';
-    if (agentAdvantage >= 4) return '😏';
-    if (agentAdvantage <= -5) return '😵';
+    const humanColor = game?.player_color || 'w';
+    const agentColor = humanColor === 'w' ? 'b' : 'w';
+    const agentAdvantage = humanColor === 'w' ? -balance : balance;
     
-    return '🦞';
+    if (game?.in_check && currentTurn === agentColor) return '😰'; // agent in check
+    if (game?.in_check && currentTurn === humanColor) return '😈'; // human in check
+    if (agentAdvantage >= 5) return '😈'; // agent way ahead
+    if (agentAdvantage <= -5) return '😰'; // agent way behind
+    if (agentAdvantage >= 3) return '😏'; // agent moderately ahead
+    if (agentAdvantage <= -3) return '😟'; // agent moderately behind
+    return '🦞'; // neutral
   }, [boardFen, game?.in_check, game?.status, game?.player_color]);
 
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
@@ -882,16 +881,6 @@ export default function Game() {
         }
         if (Array.isArray(fetchedGame?.chat_history)) {
           setChatMessages(fetchedGame.chat_history);
-        }
-
-        if (fetchedGame?.board_theme) {
-          setBoardTheme(fetchedGame.board_theme);
-          localStorage.setItem('cwc_board_theme', fetchedGame.board_theme);
-          localStorage.setItem('cwc_theme', fetchedGame.board_theme);
-        }
-        if (fetchedGame?.piece_style) {
-          setPieceStyle(fetchedGame.piece_style);
-          localStorage.setItem('cwc_piece_style', fetchedGame.piece_style);
         }
 
         applyBoardFen(data.fen || 'start');
@@ -1412,86 +1401,51 @@ export default function Game() {
     setGame(prev => {
       if (!prev) return prev;
       
-      if (incoming.piece_style && incoming.piece_style !== prev.piece_style) {
-        setPieceStyle(incoming.piece_style);
-        localStorage.setItem('cwc_piece_style', incoming.piece_style);
-      }
-      if (incoming.board_theme && incoming.board_theme !== prev.board_theme) {
-        setBoardTheme(incoming.board_theme);
-        localStorage.setItem('cwc_board_theme', incoming.board_theme);
-        localStorage.setItem('cwc_theme', incoming.board_theme);
-      }
-      
       if (incoming.move_history && prev.move_history && incoming.move_history.length < prev.move_history.length) {
         return prev;
       }
       return { ...prev, ...incoming };
     });
     
+    // 1. Update board position with sound (fixes frozen board + no sound)
+    if (incoming.fen) {
+      const prevFen = boardFenRef?.current || '';
+      const prevPosition = prevFen.split(' ')[0];
+      const newPosition = incoming.fen.split(' ')[0];
+      if (newPosition !== prevPosition) {
+        applyBoardFen(incoming.fen);
+        // Sound: if previous turn was 'b', agent just moved
+        if (prevFen.includes(' ') && prevFen.split(' ')[1] === 'b') {
+          const isCapture = incoming.last_move?.captured || incoming.last_move?.flags?.includes('c') || (typeof incoming.last_move === 'string' && incoming.last_move.includes('x')) || (incoming.last_move?.san && incoming.last_move.san.includes('x'));
+          setTimeout(() => { try { playSound(isCapture ? 'capture' : 'move'); } catch(e) {} }, 60);
+        }
+      }
+    }
+
+    // 2. Update move history
+    if (Array.isArray(incoming.move_history)) {
+      setMoveHistory(incoming.move_history);
+    }
+
+    // 3. Show companion thought with 4-second fade
+    if (incoming.companion_thought && incoming.companion_thought.trim() !== '') {
+      if (typeof showThought === 'function') {
+        showThought(incoming.companion_thought);
+      } else {
+        setThoughtText(incoming.companion_thought.trim());
+        setThoughtVisible(true);
+        if (thoughtTimerRef?.current) clearTimeout(thoughtTimerRef.current);
+        thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
+      }
+    }
+
+    // 6. Do NOT overwrite thought_language from Realtime
+    // (user's local selection takes priority — the DB will sync via API)
+
     if (Array.isArray(incoming.chat_history)) {
       setChatMessages(incoming.chat_history);
     }
-
-    if (movePendingRef.current && incoming.fen === lastMoveFenRef.current) {
-      movePendingRef.current = false;
-      lastMoveFenRef.current = null;
-      lastProcessedFenRef.current = incoming.fen;
-      return;
-    }
-
-    if (incoming.fen && incoming.fen === lastProcessedFenRef.current) {
-      return;
-    }
-
-    movePendingRef.current = false;
-    lastMoveFenRef.current = null;
-
-    // All agent-move updates in ONE synchronous pass
-    if (incoming.fen && incoming.fen !== boardFenRef.current) {
-      const prevTurn = boardFenRef.current && boardFenRef.current.includes(' ') ? boardFenRef.current.split(' ')[1] : 'w';
-      
-      // 1. Board moves
-      // applyBoardFen removed from here per instructions
-      lastProcessedFenRef.current = incoming.fen;
-
-      // 5. Your turn flash
-      const newTurn = incoming.fen.split(' ')[1];
-      if (prevTurn !== newTurn && newTurn === (game?.player_color || 'w')) {
-        setYourTurnFlashKey(Date.now());
-      }
-
-      // 2. Sound (immediate)
-      if (incoming.last_move && (incoming.turn === (game?.player_color || 'w'))) {
-        const isCapture = !!incoming.last_move?.captured || 
-                          (incoming.last_move?.san && incoming.last_move.san.includes('x')) || 
-                          (typeof incoming.last_move === 'string' && incoming.last_move.includes('x'));
-        const isCheck = Boolean(incoming.in_check);
-        try { 
-            if (isCheck) playSound('check');
-            else if (isCapture) {
-              playSound('capture');
-              setShakeActive(true);
-              setTimeout(() => setShakeActive(false), 300);
-            }
-            else playSound('move');
-        } catch(e) {}
-      }
-
-      // 3. Move history (immediate)
-      if (Array.isArray(incoming.move_history)) setMoveHistory(incoming.move_history);
-
-      // 4. Mood emoji recalculates from new FEN — already handled by useMemo on boardFen ✓
-
-      // 5. Thought (50ms delay — just enough for board animation to start)
-      if (incoming.status !== 'finished' && game?.status !== 'finished' && incoming.companion_thought && incoming.companion_thought !== game?.companion_thought) {
-        setTimeout(() => {
-          if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-          setThoughtText(incoming.companion_thought.trim());
-          setThoughtVisible(true);
-        }, 50);
-      }
-    }
-  }, [game, boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages]);
+  }, [playSound, setMoveHistory, setChatMessages, applyBoardFen, showThought]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1560,14 +1514,13 @@ export default function Game() {
             if (Array.isArray(freshData?.move_history)) {
               setMoveHistory(freshData.move_history);
             }
-            if (freshData.board_theme) setBoardTheme(freshData.board_theme);
             setGame(freshData);
           });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [gameId, applyBoardFen, setMoveHistory, setBoardTheme, setGame]);
+  }, [gameId, applyBoardFen, setMoveHistory, setGame]);
 
   // Start fallback polling when it's agent's turn
   useEffect(() => {
@@ -1959,9 +1912,10 @@ export default function Game() {
   const handleShareResult = () => {
     const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-    const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+    const winnerValue = game?.winner || (['black', 'white'].includes(game?.result) ? game?.result : null);
+    const isWinColor = winnerValue === 'black' ? 'b' : winnerValue === 'white' ? 'w' : null;
     const isWin = isWinColor === (game?.player_color || 'w');
-    const isDraw = !game?.winner || game?.result === 'draw' || game?.result === 'stalemate';
+    const isDraw = (!winnerValue && !['black', 'white'].includes(game?.result)) || game?.result === 'draw' || game?.result === 'stalemate';
     
     // Invert caps if user is black
     const whiteCaps = (() => {
@@ -2062,23 +2016,27 @@ export default function Game() {
 
   const renderMoveWithPiece = (move, isWhiteMove) => {
     if (!move || !move.san) return '';
-    const { letter, rest } = sanToPieceImg(move.san, isWhiteMove, pieceStyle);
-    const imgUrl = getPieceImageUrl(letter, isWhiteMove, pieceStyle);
+    // Extract pieces type and clean up SAN
+    const cleamSan = move.san.split(' ')[0]; // removes any appended evaluation
+    const pieceMap = { K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N' };
+    const firstChar = cleamSan.charAt(0);
+    const pieceType = pieceMap[firstChar] || 'P'; // Default to pawn
+    
+    // White pieces (You column) use 'w' prefix, Black pieces (agent column) use 'b' prefix
+    const colorPrefix = isWhiteMove ? 'w' : 'b';
+    const imgUrl = `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle}/150/${colorPrefix}${pieceType}.png`;
+    
     return (
       <span style={{display:'inline-flex', alignItems:'center', gap:3}}>
         <img
           src={imgUrl}
           alt=""
-          style={{width:16, height:16, objectFit:'contain', flexShrink:0}}
+          style={{width:16, height:16, objectFit:'contain', display:'block', verticalAlign:'middle', flexShrink:0}}
           onError={(e) => {
-            const fallbackCode = (isWhiteMove ? 'w' : 'b') + letter;
-            if (!e.target.dataset.fallback) {
-              e.target.dataset.fallback = '1';
-              e.target.src = `https://lichess1.org/assets/piece/cburnett/${fallbackCode}.svg`;
-            }
+            e.target.style.display = 'none';
           }}
         />
-        <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{rest}</span>
+        <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{cleamSan}</span>
       </span>
     );
   };
@@ -2138,9 +2096,13 @@ export default function Game() {
   }
 
   const { whiteCaptured, blackCaptured } = getCapturedPieces(boardFen);
-  const pieceImg = (code) => {
-    const style = pieceStyle || 'neo';
-    return `https://images.chesscomfiles.com/chess-themes/pieces/${style}/150/${code.toLowerCase()}.png`;
+  const pieceImgUrl = (pieceCode, style) => {
+    // pieceCode is like 'p' (black pawn), 'P' (white pawn), 'n', 'N', etc.
+    const pieceStyle = style || localStorage.getItem('cwc_piece_style') || 'neo';
+    const isWhite = pieceCode === pieceCode.toUpperCase();
+    const colorPrefix = isWhite ? 'w' : 'b';
+    const pieceType = pieceCode.toUpperCase();
+    return `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle}/150/${colorPrefix}${pieceType}.png`;
   };
 
   const balance = getMaterialBalance(boardFen);
@@ -2665,10 +2627,9 @@ export default function Game() {
               <span style={{
                 fontSize: 26,
                 display: 'inline-block',
-                animation: emojiAnimating ? 'emojiBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
                 userSelect: 'none',
               }}>
-                {displayedEmoji}
+                {moodEmoji}
               </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -2761,9 +2722,10 @@ export default function Game() {
                           }} />
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
-                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            {/* White's captures (black pieces lost) — shown ABOVE the board */}
+                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
                               ))}
                             </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
@@ -2783,9 +2745,10 @@ export default function Game() {
                                 disabled={!agentConnected}
                               />
                             </div>
-                            <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            {/* Black's captures (white pieces lost) — shown BELOW the board */}
+                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
                               ))}
                             </div>
                           </div>
@@ -3080,10 +3043,9 @@ export default function Game() {
           <span style={{
             fontSize: 26,
             display: 'inline-block',
-            animation: emojiAnimating ? 'emojiBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
             userSelect: 'none',
           }}>
-            {displayedEmoji}
+            {moodEmoji}
           </span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -3153,9 +3115,10 @@ export default function Game() {
             }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+              {/* White's captures (black pieces lost) — shown ABOVE the board */}
+              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('b' + p)} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
                 ))}
               </div>
               <div style={{ width: '100%' }}>
@@ -3176,9 +3139,10 @@ export default function Game() {
                   disabled={!agentConnected}
                 />
               </div>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'center', gap: '2px', paddingLeft: '12px' }}>
+              {/* Black's captures (white pieces lost) — shown BELOW the board */}
+              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImg('w' + p.toLowerCase())} referrerPolicy="no-referrer" style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt={p} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
                 ))}
               </div>
             </div>
@@ -3427,7 +3391,8 @@ export default function Game() {
           }}>
             {(() => {
               const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
-              const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+              const winnerValue = game?.winner || (['black', 'white'].includes(game?.result) ? game?.result : null);
+              const isWinColor = winnerValue === 'black' ? 'b' : winnerValue === 'white' ? 'w' : null;
               const isWin = isWinColor === (game?.player_color || 'w');
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
               const resultIcon = isWin ? <Trophy size={64} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={64} color="#9ca3af" strokeWidth={1.5} /> : <div style={{ fontSize: '64px', lineHeight: 1 }}><LobsterEmoji /></div>;
@@ -3599,7 +3564,6 @@ export default function Game() {
                       setBoardTheme(theme.id);
                       localStorage.setItem('cwc_board_theme', theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
-                      setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
@@ -3643,7 +3607,6 @@ export default function Game() {
                     onClick={() => {
                       setPieceStyle(piece.id);
                       localStorage.setItem('cwc_piece_style', piece.id);
-                      setGame(prev => prev ? { ...prev, piece_style: piece.id } : prev);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
@@ -3742,8 +3705,6 @@ export default function Game() {
                       setThoughtText('');
                       if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
                       setThoughtLanguage(lang.value);
-                      
-                      setGame(prev => prev ? { ...prev, thought_language: lang.value } : prev);
                       localStorage.setItem('cwc_thought_language', lang.value);
 
                       try {
