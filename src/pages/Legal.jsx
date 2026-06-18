@@ -8,7 +8,13 @@ export default function Legal() {
       minHeight: '100vh', background: '#0a0a0a', color: '#f2f2f2',
       fontFamily: 'Inter, sans-serif', padding: '32px 20px 80px', maxWidth: 720, margin: '0 auto',
     }}>
-      <button onClick={() => navigate(-1)} style={{
+      <button onClick={() => {
+        if (window.history.length > 2) {
+          navigate(-1);
+        } else {
+          navigate('/');
+        }
+      }} style={{
         background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
         color: 'rgba(242,242,242,0.6)', padding: '8px 14px', fontSize: 13, marginBottom: 24, cursor: 'pointer',
       }}>← Back</button>

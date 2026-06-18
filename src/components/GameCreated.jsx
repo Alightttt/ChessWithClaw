@@ -212,106 +212,107 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         }} />
 
       {/* Main Layout Card Grid */}
-      <div className="max-w-[720px] mx-auto px-4 pb-16 flex flex-col gap-6 animate-fade-up relative z-10" style={{ animationDelay: '0.15s' }}>
+      <div className="max-w-[800px] mx-auto px-4 pb-16 flex flex-col gap-6 animate-fade-up relative z-10" style={{ animationDelay: '0.15s' }}>
 
-        {/* CARD 1: Setup Invitation */}
-        <div className="bg-[#111111] border border-[#222222] rounded-3xl p-6 sm:p-8 hover:border-white/10 transition-colors relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-3xl -mt-10 -mr-10 pointer-events-none" />
+        <div className="bg-[#111111] border border-[#222222] rounded-3xl overflow-hidden shadow-2xl relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl -mt-20 -mr-20 pointer-events-none" />
           
-          <div className="flex items-center gap-3 mb-5 relative z-10">
-            <div className="w-8 h-8 rounded-full bg-[#e63946] text-white text-sm font-bold flex items-center justify-center font-mono">
-              1
+          {/* LOBBY HEADER */}
+          <div className="bg-[#161616] px-6 py-5 sm:px-8 sm:py-6 border-b border-[#222] flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full transition-all duration-300 ${agentConnected ? 'bg-[#22c55e]' : 'bg-neutral-600'}`} style={{ animation: agentConnected ? 'statusPulse 2s infinite ease-in-out' : 'none', boxShadow: agentConnected ? '0 0 12px rgba(34,197,94,0.6)' : 'none' }} />
+              <div>
+                <h2 className="text-white font-bold text-lg leading-tight" style={{ fontFamily: "'Inter', sans-serif" }}>Lobby Status</h2>
+                <div className={`text-[14px] font-medium leading-tight mt-1 ${agentConnected ? 'text-[#22c55e]' : 'text-neutral-400'}`}>
+                  {agentConnected ? `${agentName || "OpenClaw"} successfully connected!` : "Awaiting incoming OpenClaw connection..."}
+                </div>
+              </div>
             </div>
-            <h3 className="font-semibold text-xl text-neutral-100 flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.02em' }}>
-              <MessageSquare size={20} className="text-[#e63946]" />
-              <span>Invite {agentName || 'OpenClaw'}</span>
-            </h3>
-          </div>
-
-          <p className="text-[15px] sm:text-[16px] text-neutral-400 mb-5 leading-relaxed relative z-10" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Send this invite payload to your OpenClaw to establish a live secure bridge:
-          </p>
-
-          <div className="bg-[#0a0a0a] border border-[#222] rounded-xl p-5 font-mono text-[13px] text-neutral-300 leading-relaxed max-h-[160px] overflow-y-auto w-full box-border whitespace-pre-wrap select-all relative z-10">
-            {inviteMessage}
-          </div>
-
-          <button 
-            onClick={handleCopyInvite}
-            className="design-btn-primary w-full mt-6 h-14 text-[14px] font-semibold tracking-wide uppercase rounded-xl flex items-center justify-center gap-2 z-10 relative"
-          >
-            {copied ? (
-              <>
-                <Check size={18} />
-                <span>Copied to Clipboard!</span>
-              </>
-            ) : (
-              <>
-                <Copy size={16} />
-                <span>Copy Invite Payload</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* CARD 3: Open Arena and Launch */}
-        <div className="bg-[#111111] border border-[#222222] rounded-3xl p-6 sm:p-8 hover:border-white/10 transition-colors relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-6 relative z-10">
-            <div className={`w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center font-mono transition-all duration-500 ${agentConnected ? 'bg-[#222] border-neutral-600 text-neutral-300' : 'bg-[#e63946] border-transparent text-white'}`}>
-              2
+            
+            <div className="text-right">
+               <div className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Game Origin</div>
+               <div className="font-mono text-sm text-neutral-300 bg-black/40 px-3 py-1 rounded-md mt-1 border border-white/5">{gameId?.slice(0, 8)}</div>
             </div>
-            <h3 className="font-semibold text-xl text-neutral-100 flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.02em' }}>
-              <Swords size={20} className="text-[#e63946]" />
-              <span>Enter Battlefield</span>
-            </h3>
           </div>
 
-          {/* Connection Status Banner */}
-          <div className="flex items-center gap-4 bg-[#0a0a0a] border border-[#222] rounded-xl px-5 py-4 mb-6 relative z-10">
-            <div className={`w-[12px] h-[12px] rounded-full transition-all duration-300 flex-shrink-0 ${agentConnected ? 'bg-[#22c55e]' : 'bg-neutral-600'}`} style={{ animation: agentConnected ? 'statusPulse 2s infinite ease-in-out' : 'none', boxShadow: agentConnected ? '0 0 12px rgba(34,197,94,0.6)' : 'none' }} />
-            <span className={`text-[14px] sm:text-[15px] font-medium leading-tight ${agentConnected ? 'text-[#22c55e]' : 'text-neutral-400'}`} style={{ fontFamily: "'Inter', sans-serif" }}>
-              {agentConnected 
-                ? `${agentName || "OpenClaw"} successfully connected!`
-                : "Awaiting incoming OpenClaw secure connection..."
-              }
-            </span>
-          </div>
+          <div className="p-6 sm:p-8 flex flex-col md:flex-row gap-8 sm:gap-10 relative z-10">
+            
+            {/* LEFT COLUMN: INVITE */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#333] text-neutral-300 text-xs font-bold flex items-center justify-center font-mono">1</div>
+                <h3 className="font-semibold text-[17px] text-neutral-100 flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  <MessageSquare size={16} className="text-[#e63946]" />
+                  <span>Send Invite Payload</span>
+                </h3>
+              </div>
+              <p className="text-[14px] text-neutral-400 mb-4 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Copy and send this encrypted bridge payload to your OpenClaw to allow it to connect.
+              </p>
+              
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-xl p-4 font-mono text-[12px] text-neutral-300 leading-relaxed h-[140px] overflow-y-auto w-full box-border whitespace-pre-wrap select-all mb-4 scrollbar-thin scrollbar-thumb-neutral-800">
+                {inviteMessage}
+              </div>
 
-          <label style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14,
-            fontSize: 13, color: 'rgba(242,242,242,0.55)', cursor: 'pointer', lineHeight: 1.5,
-          }}>
-            <input
-              type="checkbox"
-              checked={legalAccepted}
-              onChange={(e) => setLegalAccepted(e.target.checked)}
-              style={{ marginTop: 2, width: 16, height: 16, accentColor: '#e63946', cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span>
-              By checking this you agree with the{' '}
-              <a href="/legal" target="_blank" rel="noopener noreferrer" style={{ color: '#e63946', textDecoration: 'underline' }}>
-                privacy policy and terms &amp; conditions
-              </a>{' '}of ChessWithClaw.
-            </span>
-          </label>
-          <button
-            onClick={handleOpenBoard}
-            disabled={!legalAccepted || boardOpening}
-            className="w-full h-14 bg-[#0a0a0a] text-white font-semibold text-[15px] hover:bg-[#1a1a1a] border border-[#333] rounded-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 relative z-10 uppercase tracking-wide"
-            style={{
-              opacity: legalAccepted ? 1 : 0.4,
-              cursor: legalAccepted ? 'pointer' : 'not-allowed',
-            }}
-          >
-            {boardOpening ? (
-              <div className="w-5 h-5 border-2 border-neutral-500 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>Launch Client Arena</span>
-                <span className="text-[#e63946] text-lg leading-none">→</span>
-              </>
-            )}
-          </button>
+              <button 
+                onClick={handleCopyInvite}
+                className="w-full h-12 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-[13px] text-white font-semibold tracking-wide uppercase rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+              >
+                {copied ? <><Check size={16} className="text-green-500"/> <span className="text-green-500">Copied!</span></> : <><Copy size={16} /> <span>Copy Invite Payload</span></>}
+              </button>
+            </div>
+
+            {/* RIGHT COLUMN: ENTER ARENA */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#333] text-neutral-300 text-xs font-bold flex items-center justify-center font-mono">2</div>
+                <h3 className="font-semibold text-[17px] text-neutral-100 flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  <Swords size={16} className="text-[#e63946]" />
+                  <span>Enter Battlefield</span>
+                </h3>
+              </div>
+              <p className="text-[14px] text-neutral-400 mb-6 leading-relaxed flex-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+                You can enter the arena now and wait for your agent, or wait here until the lobby connection is confirmed.
+              </p>
+
+              <div className="mt-auto">
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
+                  fontSize: 12, color: 'rgba(242,242,242,0.5)', cursor: 'pointer', lineHeight: 1.5,
+                }} className="hover:text-neutral-300 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={legalAccepted}
+                    onChange={(e) => setLegalAccepted(e.target.checked)}
+                    style={{ marginTop: 2, width: 14, height: 14, accentColor: '#e63946', cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <span>
+                    By checking this you agree with the{' '}
+                    <a href="/legal" target="_blank" rel="noopener noreferrer" style={{ color: '#e63946', textDecoration: 'underline' }}>
+                      privacy policy and terms &amp; conditions
+                    </a>{' '}of ChessWithClaw.
+                  </span>
+                </label>
+                
+                <button
+                  onClick={handleOpenBoard}
+                  disabled={!legalAccepted || boardOpening}
+                  className="w-full h-14 bg-[#e63946] text-white font-bold text-[14px] hover:bg-[#ff4d5a] rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40 disabled:bg-[#333] disabled:text-neutral-500 uppercase tracking-widest shadow-[0_0_20px_rgba(230,57,70,0.2)] disabled:shadow-none"
+                  style={{ cursor: legalAccepted ? 'pointer' : 'not-allowed' }}
+                >
+                  {boardOpening ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Launch Game</span>
+                      <span>→</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
 
         {/* CARD 2: Quick Developer Instructions (Moved to bottom) */}

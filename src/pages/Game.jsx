@@ -360,7 +360,9 @@ export default function Game() {
     }
     return saved;
   });
-  const [thoughtLanguage, setThoughtLanguage] = useState('english');
+  const [thoughtLanguage, setThoughtLanguage] = useState(() => {
+    return localStorage.getItem('cwc_thought_language') || 'english';
+  });
 
   const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
@@ -677,30 +679,34 @@ export default function Game() {
   const moodEmoji = useMemo(() => {
     if (game?.status === 'finished') return '🏳️';
     if (!boardFen || !boardFen.includes(' ')) return '🦞';
-    const board = boardFen.split(' ')[0];
+    
+    const inCheck = game?.in_check;
     const turn = boardFen.split(' ')[1];
+    const agentColor = game?.player_color === 'b' ? 'w' : 'b';
+
+    // Reactions strictly for check events
+    if (inCheck && turn === agentColor) return '😰'; // Agent's king is in check
+    if (inCheck && turn !== agentColor) return '😤'; // Agent just gave check
+
+    // Calculate material advantage
+    const board = boardFen.split(' ')[0];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
     let w = 0, b = 0;
     for (const ch of board) {
       const l = ch.toLowerCase();
       if (vals[l]) { if (ch === ch.toUpperCase()) w += vals[l]; else b += vals[l]; }
     }
-    const adv = w - b; // positive = white ahead (agent losing)
-    const moveNum = parseInt(boardFen.split(' ')[5] || '1');
-    const inCheck = game?.in_check;
-    const phase = game?.game_phase || 'opening';
+    
+    const agentAdvantage = agentColor === 'w' ? (w - b) : (b - w);
 
-    if (inCheck && turn === 'b') return '😰'; // agent in check
-    if (inCheck && turn === 'w') return '😤';      // agent gave check
-    if (adv <= -8) return '🔥';                    // agent crushing
-    if (adv <= -4) return '😈';                      // agent clearly winning
-    if (adv <= -2) return '😏';                    // agent slightly ahead
-    if (adv >= 8)  return '💀';               // agent getting destroyed
-    if (adv >= 4)  return '😵';                    // agent clearly losing
-    if (adv >= 2)  return '🤔';                 // agent slightly behind
-    if (phase === 'endgame' && moveNum > 30) return '🧠';  // endgame focus
-    return '🦞';                                      // default
-  }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
+    // Only show extreme emotions for significant material imbalance (e.g. Queen or Rook difference)
+    if (agentAdvantage >= 8) return '🔥';
+    if (agentAdvantage <= -8) return '💀';
+    if (agentAdvantage >= 4) return '😏';
+    if (agentAdvantage <= -5) return '😵';
+    
+    return '🦞';
+  }, [boardFen, game?.in_check, game?.status, game?.player_color]);
 
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
@@ -1405,16 +1411,22 @@ export default function Game() {
 
     setGame(prev => {
       if (!prev) return prev;
+      
+      if (incoming.piece_style && incoming.piece_style !== prev.piece_style) {
+        setPieceStyle(incoming.piece_style);
+        localStorage.setItem('cwc_piece_style', incoming.piece_style);
+      }
+      if (incoming.board_theme && incoming.board_theme !== prev.board_theme) {
+        setBoardTheme(incoming.board_theme);
+        localStorage.setItem('cwc_board_theme', incoming.board_theme);
+        localStorage.setItem('cwc_theme', incoming.board_theme);
+      }
+      
       if (incoming.move_history && prev.move_history && incoming.move_history.length < prev.move_history.length) {
         return prev;
       }
       return { ...prev, ...incoming };
     });
-
-    if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
-      setPieceStyle(incoming.piece_style);
-      localStorage.setItem('cwc_piece_style', incoming.piece_style);
-    }
     
     if (Array.isArray(incoming.chat_history)) {
       setChatMessages(incoming.chat_history);
@@ -1477,13 +1489,6 @@ export default function Game() {
           setThoughtText(incoming.companion_thought.trim());
           setThoughtVisible(true);
         }, 50);
-      }
-
-      // 6. Board theme
-      if (incoming.board_theme && incoming.board_theme !== boardTheme) {
-        setBoardTheme(incoming.board_theme);
-        localStorage.setItem('cwc_board_theme', incoming.board_theme);
-        localStorage.setItem('cwc_theme', incoming.board_theme);
       }
     }
   }, [game, boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages]);
@@ -1954,7 +1959,8 @@ export default function Game() {
   const handleShareResult = () => {
     const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-    const isWin = game?.winner === (game?.player_color || 'w');
+    const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+    const isWin = isWinColor === (game?.player_color || 'w');
     const isDraw = !game?.winner || game?.result === 'draw' || game?.result === 'stalemate';
     
     // Invert caps if user is black
@@ -2793,7 +2799,13 @@ export default function Game() {
                           {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
                         </div>
                         <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
-                          {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+                          {(() => {
+                            if (game?.status === 'abandoned') return 'Game expired due to inactivity';
+                            if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw directly';
+                            const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+                            const isWin = winColor === (game?.player_color || 'w');
+                            return (isWin ? 'You won' : agentName + ' won');
+                          })()}
                         </div>
                       </div>
                     )}
@@ -3180,7 +3192,13 @@ export default function Game() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+                {(() => {
+                  if (game?.status === 'abandoned') return 'Game expired due to inactivity';
+                  if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw directly';
+                  const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+                  const isWin = winColor === (game?.player_color || 'w');
+                  return (isWin ? 'You won' : agentName + ' won');
+                })()}
               </div>
             </div>
           )}
@@ -3409,7 +3427,8 @@ export default function Game() {
           }}>
             {(() => {
               const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
-              const isWin = game?.winner === (game?.player_color || 'w');
+              const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+              const isWin = isWinColor === (game?.player_color || 'w');
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
               const resultIcon = isWin ? <Trophy size={64} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={64} color="#9ca3af" strokeWidth={1.5} /> : <div style={{ fontSize: '64px', lineHeight: 1 }}><LobsterEmoji /></div>;
               const resultText = isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated';
@@ -3581,7 +3600,14 @@ export default function Game() {
                       localStorage.setItem('cwc_board_theme', theme.id);
                       localStorage.setItem('cwc_theme', theme.id);
                       setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
-                      getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({ board_theme: theme.id }).eq('id', gameId).then(() => {});
+                      fetch('/api/actions', { 
+                        method: 'POST', 
+                        headers: { 
+                        'Content-Type': 'application/json',
+                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                        }, 
+                        body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
+                      }).catch(() => {});
                     }}
                     style={{
                       width: '24px',
@@ -3617,6 +3643,7 @@ export default function Game() {
                     onClick={() => {
                       setPieceStyle(piece.id);
                       localStorage.setItem('cwc_piece_style', piece.id);
+                      setGame(prev => prev ? { ...prev, piece_style: piece.id } : prev);
                       fetch('/api/actions', { 
                         method: 'POST', 
                         headers: { 
@@ -3722,7 +3749,10 @@ export default function Game() {
                       try {
                         fetch('/api/actions', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                          },
                           body: JSON.stringify({
                             gameId: gameId,
                             action: 'set_thought_language',
