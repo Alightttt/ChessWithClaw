@@ -14,6 +14,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [copied, setCopied] = useState(false);
   const [agentToken, setAgentToken] = useState(initialAgentToken || '');
   const [boardOpening, setBoardOpening] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
@@ -121,7 +122,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
   };
 
   const handleOpenBoard = () => {
-    if (boardOpening) return;
+    if (boardOpening || !legalAccepted) return;
     setBoardOpening(true);
     navigate(`/game/${gameId}`);
   };
@@ -276,10 +277,31 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             </span>
           </div>
 
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14,
+            fontSize: 13, color: 'rgba(242,242,242,0.55)', cursor: 'pointer', lineHeight: 1.5,
+          }}>
+            <input
+              type="checkbox"
+              checked={legalAccepted}
+              onChange={(e) => setLegalAccepted(e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, accentColor: '#e63946', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <span>
+              By checking this you agree with the{' '}
+              <a href="/legal" target="_blank" rel="noopener noreferrer" style={{ color: '#e63946', textDecoration: 'underline' }}>
+                privacy policy and terms &amp; conditions
+              </a>{' '}of ChessWithClaw.
+            </span>
+          </label>
           <button
             onClick={handleOpenBoard}
-            disabled={boardOpening}
-            className="w-full h-14 bg-[#0a0a0a] text-white font-semibold text-[15px] hover:bg-[#1a1a1a] border border-[#333] rounded-xl cursor-pointer flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed relative z-10 uppercase tracking-wide"
+            disabled={!legalAccepted || boardOpening}
+            className="w-full h-14 bg-[#0a0a0a] text-white font-semibold text-[15px] hover:bg-[#1a1a1a] border border-[#333] rounded-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 relative z-10 uppercase tracking-wide"
+            style={{
+              opacity: legalAccepted ? 1 : 0.4,
+              cursor: legalAccepted ? 'pointer' : 'not-allowed',
+            }}
           >
             {boardOpening ? (
               <div className="w-5 h-5 border-2 border-neutral-500 border-t-white rounded-full animate-spin" />
