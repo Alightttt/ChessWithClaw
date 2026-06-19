@@ -226,8 +226,26 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
             </span>
           </div>
 
-          <button onClick={handleOpenBoard} disabled={boardOpening} style={{ width: '100%', height: '48px', background: '#0f0f0f', border: '1px solid #2a2a2a', borderRadius: '10px', color: 'rgba(242,242,242,0.85)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '14px', cursor: boardOpening ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: boardOpening ? 0.5 : 1, transition: 'all 0.2s ease', letterSpacing: '0.02em' }}>
-            {boardOpening ? (<><div style={{ width: '16px', height: '16px', border: '2px solid #444', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></>) : (<><span>Open Board</span><span style={{ color: '#e63946', fontSize: '16px' }}>→</span></>)}
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,
+            fontSize: 12, color: 'rgba(242,242,242,0.5)', cursor: 'pointer', lineHeight: 1.5,
+          }}>
+            <input
+              type="checkbox"
+              checked={legalAccepted}
+              onChange={(e) => setLegalAccepted(e.target.checked)}
+              style={{ marginTop: 2, width: 14, height: 14, accentColor: '#e63946', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <span>
+              By checking this you agree with the{' '}
+              <a href="/legal" target="_blank" rel="noopener noreferrer" style={{ color: '#e63946', textDecoration: 'underline' }}>
+                privacy policy and terms &amp; conditions
+              </a>{' '}of ChessWithClaw.
+            </span>
+          </label>
+
+          <button onClick={handleOpenBoard} disabled={boardOpening || !legalAccepted} style={{ width: '100%', height: '48px', background: !legalAccepted ? '#222' : '#0f0f0f', border: !legalAccepted ? '1px solid #333' : '1px solid #2a2a2a', borderRadius: '10px', color: !legalAccepted ? 'rgba(242,242,242,0.3)' : 'rgba(242,242,242,0.85)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '14px', cursor: (boardOpening || !legalAccepted) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: boardOpening ? 0.5 : 1, transition: 'all 0.2s ease', letterSpacing: '0.02em' }}>
+            {boardOpening ? (<><div style={{ width: '16px', height: '16px', border: '2px solid #444', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /></>) : (<><span>Open Board</span><span style={{ color: !legalAccepted ? 'rgba(242,242,242,0.2)' : '#e63946', fontSize: '16px' }}>→</span></>)}
           </button>
         </div>
 
