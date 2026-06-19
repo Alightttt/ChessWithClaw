@@ -561,11 +561,6 @@ export default function Game() {
     };
   }, []);
 
-  useEffect(() => {
-    if (game?.thought_language) {
-      setThoughtLanguage(game.thought_language);
-    }
-  }, [game?.thought_language]);
 
   useEffect(() => {
     const checkCheck = () => {
@@ -586,13 +581,11 @@ export default function Game() {
     if (game.fen === boardFenRef.current) return;
     const gameBoard = game.fen.split(' ')[0];
     const currentBoard = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
-    // Use full FEN string equality for safety but if only board positions match exactly skip applying to prevent stutter
     if (gameBoard === currentBoard && game.fen.split(' ')[1] === boardFenRef.current.split(' ')[1]) return;
     requestAnimationFrame(() => {
       applyBoardFen(game.fen);
-      if (game.last_move) setBoardLastMove(game.last_move);
     });
-  }, [game?.fen, game?.last_move, applyBoardFen, setBoardLastMove]);
+  }, [game?.fen, applyBoardFen]);
 
   useEffect(() => {
     if (!game?.fen || !game?.turn) return;
@@ -681,34 +674,34 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (!boardFen || !boardFen.includes(' ')) return '🦞';
     if (game?.status === 'finished') return '🏳️';
-    
-    const fenParts = boardFen.split(' ');
-    const currentTurn = fenParts[1];
-    const board = fenParts[0];
-    
-    // Compute material balance from FEN directly
+    if (!boardFen || !boardFen.includes(' ')) return '🦞';
+    const board = boardFen.split(' ')[0];
+    const turn = boardFen.split(' ')[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
-    let wMat = 0, bMat = 0;
+    let w = 0, b = 0;
     for (const ch of board) {
-      const low = ch.toLowerCase();
-      if (vals[low]) {
-        if (ch === ch.toUpperCase()) wMat += vals[low];
-        else bMat += vals[low];
-      }
+      const l = ch.toLowerCase();
+      if (vals[l]) { if (ch === ch.toUpperCase()) w += vals[l]; else b += vals[l]; }
     }
-    const balance = wMat - bMat; // positive = white ahead, negative = black ahead
-    
-    // Agent is black. Negative balance = agent ahead = confident
-    if (game?.in_check && currentTurn === 'b') return '😰'; // agent in check
-    if (game?.in_check && currentTurn === 'w') return '😈'; // human in check
-    if (balance <= -5) return '😈'; // agent way ahead
-    if (balance >= 5) return '😰'; // agent way behind
-    if (balance <= -2) return '😏'; // agent slightly ahead
-    if (balance >= 2) return '😟'; // agent slightly behind
-    return '🦞'; // neutral
-  }, [boardFen, game?.in_check, game?.status]);
+    const adv = w - b;
+    const moveNum = parseInt(boardFen.split(' ')[5] || '1');
+    const inCheck = game?.in_check;
+    const phase = game?.game_phase || 'opening';
+
+    // Check emojis always fire (high priority)
+    if (inCheck && turn === 'b') return '😰';
+    if (inCheck && turn === 'w') return '😤';
+    // No material-based emoji in the first 6 moves — game hasn't developed
+    if (moveNum <= 6) return '🦞';
+    // Higher thresholds — only strong advantages change the emoji
+    if (adv <= -9) return '🔥';
+    if (adv <= -5) return '😈';
+    if (adv >= 9)  return '💀';
+    if (adv >= 5)  return '😵';
+    if (phase === 'endgame' && moveNum > 30) return '🧠';
+    return '🦞';
+  }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
 
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
@@ -1037,46 +1030,27 @@ export default function Game() {
   }, []); // only on mount - captures initial count
 
   const sendReaction = async (msgId, emoji) => {
-    setActivePickerMsgId(null);
-  
-    // Optimistic update immediately — no delay
-    setGame(prev => {
-      const updated = (prev?.chat_history || []).map((msg, idx) => {
-        const id = msg.id || `cwc-msg-${idx}`;
-        if (id !== msgId) return msg;
-        const reactions = Array.isArray(msg.reactions) ? {} : { ...(msg.reactions || {}) };
-        const current = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
-        const hasIt = current.includes('human');
-        if (hasIt) {
-          // Remove reaction
-          const newArr = current.filter(r => r !== 'human');
-          if (newArr.length === 0) delete reactions[emoji];
-          else reactions[emoji] = newArr;
-        } else {
-          // Add reaction (remove other human reactions first — one at a time)
-          Object.keys(reactions).forEach(e => {
-            reactions[e] = (reactions[e] || []).filter(r => r !== 'human');
-            if (reactions[e].length === 0) delete reactions[e];
-          });
-          reactions[emoji] = [...current.filter(r => r !== 'human'), 'human'];
-        }
-        return { ...msg, reactions };
+    // Optimistic update immediately
+    setChatMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      const reactions = { ...(m.reactions || {}) };
+      const reactors = Array.isArray(reactions[emoji]) ? [...reactions[emoji]] : [];
+      if (reactors.includes('human')) {
+        reactions[emoji] = reactors.filter(r => r !== 'human');
+        if (reactions[emoji].length === 0) delete reactions[emoji];
+      } else {
+        reactions[emoji] = [...reactors, 'human'];
+      }
+      return { ...m, reactions };
+    }));
+    // Send to backend
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, action: 'react', messageId: msgId, emoji, reactor: 'human' }),
       });
-      return { ...prev, chat_history: updated };
-    });
-  
-    // Send to backend silently
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameId,
-        action: 'react',
-        messageId: msgId,
-        emoji,
-        reactor: 'human'
-      })
-    }).catch(() => {});
+    } catch(e) {}
   };
 
   /* old touch handlers removed to make way for action sheet ones */
@@ -1432,6 +1406,18 @@ export default function Game() {
           const isCapture = incoming.last_move?.captured || incoming.last_move?.flags?.includes('c') || (typeof incoming.last_move === 'string' && incoming.last_move.includes('x')) || (incoming.last_move?.san && incoming.last_move.san.includes('x'));
           setTimeout(() => { try { playSound(isCapture ? 'capture' : 'move'); } catch(e) {} }, 60);
         }
+        
+        // 6. Piece style (only update from Realtime on moves, not on standalone events)
+        if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
+          setPieceStyle(incoming.piece_style);
+          localStorage.setItem('cwc_piece_style', incoming.piece_style);
+        }
+        // 7. Board theme
+        if (incoming.board_theme && incoming.board_theme !== boardTheme) {
+          setBoardTheme(incoming.board_theme);
+          localStorage.setItem('cwc_board_theme', incoming.board_theme);
+          localStorage.setItem('cwc_theme', incoming.board_theme);
+        }
       }
     }
 
@@ -1450,18 +1436,6 @@ export default function Game() {
         if (thoughtTimerRef?.current) clearTimeout(thoughtTimerRef.current);
         thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
       }
-    }
-
-    // 4. Apply board theme from agent (only if different from current)
-    if (incoming.board_theme && incoming.board_theme !== boardTheme) {
-      setBoardTheme(incoming.board_theme);
-      localStorage.setItem('cwc_board_theme', incoming.board_theme);
-    }
-
-    // 5. Apply piece style from agent
-    if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
-      setPieceStyle(incoming.piece_style);
-      localStorage.setItem('cwc_piece_style', incoming.piece_style);
     }
 
     // 6. Do NOT overwrite thought_language from Realtime
@@ -1738,33 +1712,6 @@ export default function Game() {
     try {
       const tempChess = new Chess(boardFen);
 
-      if (promotion) {
-        // Enforce user's house rule: Can only promote to captured pieces
-        let currentCount = 0;
-        const targetColor = tempChess.turn();
-        
-        // Count how many of the requested promotion piece type are currently on the board
-        for (let i = 0; i < 64; i++) {
-          const square = tempChess.SQUARES[i];
-          const piece = tempChess.get(square);
-          if (piece && piece.color === targetColor && piece.type === promotion) {
-            currentCount++;
-          }
-        }
-        
-        // Starting counts for standard pieces
-        const startingCounts = { q: 1, r: 2, n: 2, b: 2 };
-        
-        if (currentCount >= startingCounts[promotion]) {
-          toast('You can only promote to pieces you have already lost.', {
-            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
-          });
-          submittingRef.current = false;
-          setBoardLocked(false);
-          return;
-        }
-      }
-
       const result = tempChess.move({ from, to, promotion: promotion || 'q' });
       if (result) {
         newFen = tempChess.fen();
@@ -1938,8 +1885,8 @@ export default function Game() {
   const handleShareResult = () => {
     const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
-    const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
-    const isWin = isWinColor === (game?.player_color || 'w');
+    const playerColorFull = game?.player_color === 'w' ? 'white' : 'black';
+    const isWin = game?.winner === playerColorFull;
     const isDraw = !game?.winner || game?.result === 'draw' || game?.result === 'stalemate';
     
     // Invert caps if user is black
@@ -2041,27 +1988,26 @@ export default function Game() {
 
   const renderMoveWithPiece = (move, isWhiteMove) => {
     if (!move || !move.san) return '';
-    // Extract pieces type and clean up SAN
-    const cleamSan = move.san.split(' ')[0]; // removes any appended evaluation
-    const pieceMap = { K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N' };
-    const firstChar = cleamSan.charAt(0);
-    const pieceType = pieceMap[firstChar] || 'P'; // Default to pawn
-    
-    // White pieces (You column) use 'w' prefix, Black pieces (agent column) use 'b' prefix
-    const colorPrefix = isWhiteMove ? 'w' : 'b';
-    const imgUrl = `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle}/150/${colorPrefix}${pieceType}.png`;
-    
+    const { letter, rest } = sanToPieceImg(move.san, isWhiteMove, pieceStyle);
+    const imgUrl = getPieceImageUrl(letter, isWhiteMove, pieceStyle);
+    if (!letter) return <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{rest}</span>;
     return (
       <span style={{display:'inline-flex', alignItems:'center', gap:3}}>
         <img
           src={imgUrl}
           alt=""
-          style={{width:16, height:16, objectFit:'contain', display:'block', verticalAlign:'middle', flexShrink:0}}
+          loading="eager"
+          decoding="async"
+          style={{width:16, height:16, objectFit:'contain', flexShrink:0, minWidth:16}}
           onError={(e) => {
-            e.target.style.display = 'none';
+            if (!e.target.dataset.fallback) {
+              e.target.dataset.fallback = '1';
+              const colorChar = isWhiteMove ? 'w' : 'b';
+              e.target.src = `https://lichess1.org/assets/piece/cburnett/${colorChar}${letter}.svg`;
+            }
           }}
         />
-        <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{cleamSan}</span>
+        <span style={{fontFamily:'JetBrains Mono, monospace', fontSize:13, color:'#f2f2f2'}}>{rest}</span>
       </span>
     );
   };
@@ -2422,6 +2368,29 @@ export default function Game() {
                   );
                 })()}
                 {msg.message || msg.text || msg.content || ''}
+                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                  <div style={{display:'flex', gap:3, marginTop:4, flexWrap:'wrap'}}>
+                    {Object.entries(msg.reactions).map(([emoji, reactors]) =>
+                      Array.isArray(reactors) && reactors.length > 0 ? (
+                        <span key={emoji} style={{
+                          fontSize:12,
+                          background: reactors.includes('human') ? 'rgba(230,57,70,0.15)' : 'rgba(255,255,255,0.06)',
+                          border: reactors.includes('human') ? '1px solid rgba(230,57,70,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                          borderRadius:10,
+                          padding:'2px 7px',
+                          display:'inline-flex',
+                          alignItems:'center',
+                          gap:3,
+                          cursor:'pointer',
+                        }}
+                        onClick={(e) => { e.stopPropagation(); sendReaction(msg.id, emoji); }}
+                        >
+                          {renderReactionIcon(emoji)}{reactors.length > 1 && <span style={{fontSize:11,color:'rgba(242,242,242,0.5)'}}>{reactors.length}</span>}
+                        </span>
+                      ) : null
+                    )}
+                  </div>
+                )}
               </div>
         
               {/* Instagram-style reaction below bubble */}
@@ -2746,11 +2715,11 @@ export default function Game() {
                             animation: 'pulse 1.5s ease infinite'
                           }} />
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', gap: '4px' }}>
                             {/* White's captures (black pieces lost) — shown ABOVE the board */}
                             <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                               ))}
                             </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
@@ -2773,7 +2742,7 @@ export default function Game() {
                             {/* Black's captures (white pieces lost) — shown BELOW the board */}
                             <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                               ))}
                             </div>
                           </div>
@@ -3139,11 +3108,11 @@ export default function Game() {
               animation: 'pulse 1.3s ease infinite'
             }} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
               {/* White's captures (black pieces lost) — shown ABOVE the board */}
               <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                 ))}
               </div>
               <div style={{ width: '100%' }}>
@@ -3167,7 +3136,7 @@ export default function Game() {
               {/* Black's captures (white pieces lost) — shown BELOW the board */}
               <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                 ))}
               </div>
             </div>
@@ -3416,8 +3385,8 @@ export default function Game() {
           }}>
             {(() => {
               const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
-              const isWinColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
-              const isWin = isWinColor === (game?.player_color || 'w');
+              const playerColorFull = game?.player_color === 'w' ? 'white' : 'black';
+              const isWin = game?.winner === playerColorFull;
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
               const resultIcon = isWin ? <Trophy size={64} color="#fbbf24" strokeWidth={1.5} /> : isDraw ? <Handshake size={64} color="#9ca3af" strokeWidth={1.5} /> : <div style={{ fontSize: '64px', lineHeight: 1 }}><LobsterEmoji /></div>;
               const resultText = isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated';
