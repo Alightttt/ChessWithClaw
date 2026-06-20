@@ -1706,6 +1706,16 @@ export default function Game() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [confirmResign, confirmDraw, handleDraw, handleResign]);
 
+  const handleIllegalMove = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 420);
+  }, []);
+
+  const handleCapture = useCallback(() => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 300);
+  }, []);
+
   const handlePlayerMove = useCallback(async (from, to, promotion) => {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (!agentConnected) {
@@ -2081,16 +2091,6 @@ export default function Game() {
 
   const balance = getMaterialBalance(boardFen);
   const youAdvantage = game?.player_color === 'w' ? balance : -balance;
-
-  const handleIllegalMove = useCallback(() => {
-    setShaking(true);
-    setTimeout(() => setShaking(false), 420);
-  }, []);
-
-  const handleCapture = useCallback(() => {
-    setShaking(true);
-    setTimeout(() => setShaking(false), 300);
-  }, []);
 
   const [legalMoves, setLegalMoves] = useState([]);
 
