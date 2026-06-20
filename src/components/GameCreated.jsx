@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
@@ -216,7 +217,17 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           </div>
 
           <button onClick={handleCopyInvite} style={{ width: '100%', height: '48px', background: copied ? 'rgba(34,197,94,0.12)' : 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946', border: copied ? '1px solid rgba(34,197,94,0.3)' : 'none', boxShadow: copied ? 'none' : 'rgba(255,255,255,0.18) 0px 1px 0px 0px inset, rgba(0,0,0,0.22) 0px -1px 0px 0px inset', borderRadius: '10px', color: copied ? '#22c55e' : '#fff', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s ease' }}>
-            {copied ? (<><Check size={16} /><span>Copied!</span></>) : (<><Copy size={16} /><span>Copy Invite</span></>)}
+            <AnimatePresence mode="wait" initial={false}>
+              {copied ? (
+                <motion.span key="copied" initial={{ scale: 0.5, opacity: 0, rotate: -45 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Check size={16} /><span>Copied!</span>
+                </motion.span>
+              ) : (
+                <motion.span key="copy" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Copy size={16} /><span>Copy Invite</span>
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         </div>
 

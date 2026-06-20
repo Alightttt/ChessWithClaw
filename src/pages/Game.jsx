@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { TextMorph } from 'torph/react';
 import ThoughtChain from '../components/ThoughtChain';
 import { useToast } from '../components/Toast';
@@ -354,6 +354,7 @@ export default function Game() {
   const [notFound, setNotFound] = useState(false);
   
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const [agentSectionOpen, setAgentSectionOpen] = useState(false);
   const [moveHistoryOpen, setMoveHistoryOpen] = useState(false);
   
@@ -1902,7 +1903,6 @@ export default function Game() {
     setTimeout(() => setCopiedInvite(false), 2000);
   }
 
-  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
 
   function handleGoHome(e) { 
     if (game?.status === 'active') {
@@ -2631,7 +2631,14 @@ export default function Game() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ ...dotStyle, flexShrink: 0 }} />
+                    <motion.div
+                      key={agentPresence}
+                      initial={{ scale: 0.3, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                    >
+                      <div style={{ ...dotStyle, flexShrink: 0 }} />
+                    </motion.div>
                     <span style={{
                       fontFamily: 'Inter, sans-serif',
                       fontWeight: 600,
@@ -2994,14 +3001,21 @@ export default function Game() {
 
           {/* Right Block: Connection Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444',
-              boxShadow: agentPresence === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
-              flexShrink: 0
-            }} />
+            <motion.div
+              key={agentPresence}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            >
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444',
+                boxShadow: agentPresence === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
+                flexShrink: 0
+              }} />
+            </motion.div>
             <span style={{
               fontFamily: 'Inter, sans-serif',
               fontWeight: 600,
@@ -3050,7 +3064,14 @@ export default function Game() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ ...dotStyle, flexShrink: 0 }} />
+                <motion.div
+                  key={agentPresence}
+                  initial={{ scale: 0.3, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                >
+                  <div style={{ ...dotStyle, flexShrink: 0 }} />
+                </motion.div>
                 <span style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 600,
@@ -3489,8 +3510,13 @@ export default function Game() {
       )}
 
       {/* SETTINGS MODAL */}
+      <AnimatePresence>
       {showSettings && (
-        <div 
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false); }}
           style={{ 
             position: 'fixed', 
@@ -3503,7 +3529,11 @@ export default function Game() {
             justifyContent: 'center' 
           }}
         >
-          <div 
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
             style={{ 
               position: 'relative', 
               background: '#0e0e0e', 
@@ -3656,48 +3686,45 @@ export default function Game() {
               <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
                 SOUND
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontSize: '12px', color: '#999' }}>Move & Capture Sounds</span>
-                <button 
-                  data-testid="toggle-sound-button"
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {soundEnabled ? <Volume2 size={18} color="#e63946" /> : <VolumeX size={18} color="#555" />}
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.75)' }}>Sound Effects</span>
+                </div>
+                <motion.button
                   onClick={() => setSoundEnabled(!soundEnabled)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: soundEnabled ? '#e63946' : '#555',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    outline: 'none'
-                  }}
+                  animate={{ backgroundColor: soundEnabled ? '#e63946' : '#2a2a2a' }}
+                  transition={{ duration: 0.2 }}
+                  style={{ width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative', padding: 0, outline: 'none' }}
                 >
-                  {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                </button>
+                  <motion.div
+                    animate={{ x: soundEnabled ? 20 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
+                  />
+                </motion.button>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '4px' }}>
-                <span style={{ fontSize: '12px', color: '#999' }}>Background Music</span>
-                <button 
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {bgmEnabled ? <Volume2 size={18} color="#e63946" /> : <VolumeX size={18} color="#555" />}
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.75)' }}>Background Music</span>
+                </div>
+                <motion.button
                   onClick={() => {
                     const next = !bgmEnabled;
                     setBgmEnabled(next);
                     localStorage.setItem('cwc_bgm', String(next));
                   }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: bgmEnabled ? '#e63946' : '#555',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    outline: 'none'
-                  }}
+                  animate={{ backgroundColor: bgmEnabled ? '#e63946' : '#2a2a2a' }}
+                  transition={{ duration: 0.2 }}
+                  style={{ width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative', padding: 0, outline: 'none' }}
                 >
-                  {bgmEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                </button>
+                  <motion.div
+                    animate={{ x: bgmEnabled ? 20 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
+                  />
+                </motion.button>
               </div>
             </div>
 
@@ -3837,9 +3864,52 @@ export default function Game() {
               </div>
             </div>
 
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+      {showLeaveWarning && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveWarning(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            style={{ background: '#0e0e0e', border: '1px solid #222', borderRadius: 16, padding: 28, maxWidth: 340, width: '100%' }}
+          >
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: '#f2f2f2', marginBottom: 8 }}>
+              Leave this game?
+            </div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.55)', lineHeight: 1.5, marginBottom: 22 }}>
+              Your game with {game?.agent_name || 'Your OpenClaw'} is still active. Leaving now won&apos;t end it, but you&apos;ll need this game&apos;s link to come back.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowLeaveWarning(false)}
+                style={{ flex: 1, height: 44, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: 'rgba(242,242,242,0.7)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                Stay
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                style={{ flex: 1, height: 44, background: '#e63946', border: 'none', borderRadius: 10, color: '#fff', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                Leave
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -3918,33 +3988,6 @@ export default function Game() {
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         input::placeholder { color: #888; }
       `}} />
-      {/* LEAVE WARNING MODAL */}
-      {showLeaveWarning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '16px', padding: '32px 24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
-            <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: '#f2f2f2', margin: '0 0 12px 0', fontSize: '20px' }}>Leave the game?</h2>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, color: '#555555', fontSize: '14px', margin: '0 0 24px 0', lineHeight: 1.4 }}>
-              Your OpenClaw is still waiting. The game will continue where you left off.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button 
-                onClick={() => setShowLeaveWarning(false)} 
-                className="design-btn-primary" 
-                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px' }}
-              >
-                Stay
-              </button>
-              <button 
-                onClick={() => navigate('/')} 
-                style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', background: 'transparent', color: '#888', border: 'none' }}
-                className="hover:bg-white/5 active:scale-95 transition-all"
-              >
-                Leave
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* CHAT ACTION SHEET (Telegram style) */}
       {actionSheetMsg && (

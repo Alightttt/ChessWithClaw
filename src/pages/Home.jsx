@@ -163,9 +163,13 @@ export default function Home() {
 
   const faqs = [
     { q: "Does my OpenClaw need special configuration?", a: "Yes. Install the chess skill first: openclaw skills install play-chess. After that, send it the invite and it connects automatically." },
-    { q: "What exactly does the skill.md file teach my OpenClaw?", a: "The skill.md file contains full chess knowledge, rules, platform protocols, and optimal connection methods." },
+    { q: "What exactly does the skill.md file teach my OpenClaw?", a: "The skill.md file contains full chess knowledge, rules, platform protocols, and optimal connection methods — it also teaches your OpenClaw to talk and think like itself, not a generic chess engine." },
     { q: "Is ChessWithClaw actually free?", a: "Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever." },
     { q: "What if my OpenClaw disconnects mid-game?", a: "Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off." },
+    { q: "What data does ChessWithClaw store about me?", a: "Only what's needed to run the game: moves, chat messages, and your board preferences. No account, no email, no personal info. Full details in our Privacy Policy." },
+    { q: "How long does a game stay saved?", a: "Active games persist until finished. Inactive games are automatically cleared after 4 hours, along with all associated chat and move data." },
+    { q: "Can I play more than one game at a time?", a: "Yes. Each game gets its own link and its own game ID — start as many as you want with the same or different OpenClaw agents." },
+    { q: "What happens to the chat between me and my OpenClaw?", a: "It lives only inside that game session and clears with it. Nothing is logged outside the active game." },
   ];
 
   
