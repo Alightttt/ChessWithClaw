@@ -19,6 +19,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('Your OpenClaw');
   const [quickSetupExpanded, setQuickSetupExpanded] = useState(false);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
   const [copiedRow1, setCopiedRow1] = useState(false);
   const [copiedRow2, setCopiedRow2] = useState(false);
   const [copiedRow2b, setCopiedRow2b] = useState(false);
@@ -96,6 +97,17 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     };
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (agentConnected) {
+      setShowTimeoutWarning(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShowTimeoutWarning(true);
+    }, 90000);
+    return () => clearTimeout(timer);
+  }, [agentConnected]);
+
   const inviteMessage = `🦞 ChessWithClaw Invite
 
 Your rival is waiting. Join as Black.
@@ -105,7 +117,7 @@ TOKEN: ${agentToken}
 BOARD: https://chesswithclaw.vercel.app/Agent?id=${gameId}&token=${agentToken}
 
 To join and play:
-npx clawhub install play-chess
+openclaw skills install play-chess
 (then send me this invite message)
 
 Save these — you need them to join:
@@ -225,6 +237,23 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
               {agentConnected ? `${agentName} is in the arena!` : 'Waiting for your OpenClaw to connect...'}
             </span>
           </div>
+
+          {showTimeoutWarning && !agentConnected && (
+            <div style={{ background: 'rgba(230,57,70,0.06)', border: '1px solid rgba(230,57,70,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#e63946', marginBottom: '4px' }}>
+                Still waiting after 90 seconds
+              </div>
+              <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.5)', lineHeight: 1.5, marginBottom: '10px' }}>
+                Your OpenClaw hasn't joined yet. Check that it received the invite and its connection logs are running.
+              </div>
+              <button
+                onClick={() => navigate('/')}
+                style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', color: '#e63946', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, padding: '8px 14px', cursor: 'pointer' }}
+              >
+                Cancel and start a new game
+              </button>
+            </div>
+          )}
 
           <label style={{
             display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16,

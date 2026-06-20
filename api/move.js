@@ -179,6 +179,13 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Game is over' });
   }
 
+  if (game.last_action_at) {
+    const msSinceLastAction = Date.now() - new Date(game.last_action_at).getTime();
+    if (msSinceLastAction < 300) {
+      return res.status(429).json({ error: 'Too many requests, slow down', code: 'RATE_LIMITED' });
+    }
+  }
+
   if (isAgentMove) {
     // Agent (Black) move — validate token
     if (game.agent_token !== agentToken) {
@@ -354,7 +361,8 @@ module.exports = async function handler(req, res) {
     last_commentary: isAgentMove ? (sanitizedReasoning?.split('.')[0]?.slice(0, 60) || '') : `You played ${moveObj.san}`,
     legal_moves: nextLegalMoves,
     agent_name: req.headers['x-agent-name'] || game.agent_name || null,
-    material_balance: materialBalance
+    material_balance: materialBalance,
+    last_action_at: new Date().toISOString()
   };
 
   if (isAgentMove) {

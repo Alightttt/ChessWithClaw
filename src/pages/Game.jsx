@@ -2027,27 +2027,6 @@ export default function Game() {
     );
   };
 
-  const getAgentMood = () => {
-    if (!game || game.status === 'waiting') return 'idle'
-    const agentColor = game?.player_color === 'w' ? 'b' : 'w';
-    if (game.turn === agentColor) return 'thinking'
-    
-    // Compare material balance
-    const mat = game.material_balance || computeMaterial(game.fen)
-    if (!mat) return 'neutral'
-    if (mat.advantage === agentColor) return 'winning'
-    if (mat.advantage === (game?.player_color || 'w')) return 'losing'
-    return 'neutral'
-  }
-
-  const moodConfig = {
-    idle:     { label: 'Waiting...', color: '#555555', bg: 'rgba(85,85,85,0.1)', border: 'rgba(85,85,85,0.25)' },
-    thinking: { label: 'Thinking...', color: '#e63946', bg: 'rgba(230,57,70,0.1)', border: 'rgba(230,57,70,0.25)' },
-    winning:  { label: 'Feeling good', color: '#739552', bg: 'rgba(115,149,82,0.1)', border: 'rgba(115,149,82,0.25)' },
-    losing:   { label: 'Fighting back', color: '#c9b458', bg: 'rgba(201,180,88,0.1)', border: 'rgba(201,180,88,0.25)' },
-    neutral:  { label: 'Equal game', color: '#888888', bg: 'rgba(136,136,136,0.1)', border: 'rgba(136,136,136,0.25)' }
-  }
-
   function getMaterialBalance(fen) {
     if (!fen || typeof fen !== 'string' || !fen.includes(' ')) return 0;
     const board = fen.split(' ')[0];
@@ -2093,9 +2072,6 @@ export default function Game() {
 
   const balance = getMaterialBalance(boardFen);
   const youAdvantage = game?.player_color === 'w' ? balance : -balance;
-
-  const mood = getAgentMood()
-  const config = moodConfig[mood]
 
   const handleIllegalMove = useCallback(() => {
     setShaking(true);

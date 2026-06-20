@@ -176,6 +176,13 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ error: 'Game not found', code: 'GAME_NOT_FOUND' });
   }
 
+  if (game.last_action_at) {
+    const msSinceLastAction = Date.now() - new Date(game.last_action_at).getTime();
+    if (msSinceLastAction < 300) {
+      return res.status(429).json({ error: 'Too many requests, slow down', code: 'RATE_LIMITED' });
+    }
+  }
+
   if (sender === 'human') {
     if (game.status === 'finished') {
       return res.status(403).json({ error: 'Game is finished', code: 'GAME_FINISHED' });
@@ -215,7 +222,8 @@ module.exports = async function handler(req, res) {
   const newHistory = [...existing, newMsg];
   
   const updates = {
-    chat_history: newHistory
+    chat_history: newHistory,
+    last_action_at: new Date().toISOString()
   };
 
   if (sender === 'agent') {
