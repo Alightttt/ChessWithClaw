@@ -411,12 +411,21 @@ export default function Game() {
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
 
   const [agentTyping, setAgentTyping] = useState(false);
+
+  useEffect(() => {
+    if (!game?.agent_typing) return;
+    const safetyTimer = setTimeout(() => {
+      setGame(prev => prev ? { ...prev, agent_typing: false } : prev);
+    }, 15000);
+    return () => clearTimeout(safetyTimer);
+  }, [game?.agent_typing]);
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
 
   const bgmGainRef = useRef(null);
   const bgmSourceRef = useRef(null);
+  const bgmAudioRef = useRef(null);
   
   const getAudioCtx = () => {
     if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -501,48 +510,20 @@ export default function Game() {
 
   const startBGM = useCallback(() => {
     try {
-      const ctx = getAudioCtx();
-      if (ctx.state === 'suspended') ctx.resume();
-      if (bgmSourceRef.current) return;
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = 0.04;
-      bgmGainRef.current = masterGain;
-      masterGain.connect(ctx.destination);
-
-      const playChord = (time, freqs, duration) => {
-        freqs.forEach(freq => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          const filter = ctx.createBiquadFilter();
-          filter.type = 'lowpass'; filter.frequency.value = 800;
-          osc.type = 'sine'; osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0, time);
-          gain.gain.linearRampToValueAtTime(0.3, time + 0.5);
-          gain.gain.setValueAtTime(0.3, time + duration - 0.8);
-          gain.gain.linearRampToValueAtTime(0, time + duration);
-          osc.connect(filter); filter.connect(gain); gain.connect(masterGain);
-          osc.start(time); osc.stop(time + duration);
-        });
-      };
-
-      const chords = [[261, 329, 392], [220, 277, 349], [196, 247, 311], [233, 293, 370]];
-      let time = ctx.currentTime + 1;
-      const scheduleChords = () => {
-        chords.forEach((chord, i) => { playChord(time + i * 4, chord, 4.5); });
-        time += chords.length * 4;
-        bgmSourceRef.current = setTimeout(scheduleChords, (chords.length * 4 - 1) * 1000);
-      };
-      scheduleChords();
+      if (bgmAudioRef.current) return;
+      const audio = new Audio('PASTE_YOUR_SUPABASE_AUDIO_URL_HERE');
+      audio.loop = true;
+      audio.volume = 0.06;
+      audio.play().catch(() => {});
+      bgmAudioRef.current = audio;
     } catch(e) {}
   }, []);
 
   const stopBGM = useCallback(() => {
-    if (bgmSourceRef.current) { clearTimeout(bgmSourceRef.current); bgmSourceRef.current = null; }
-    if (bgmGainRef.current) {
-      try { bgmGainRef.current.gain.linearRampToValueAtTime(0, getAudioCtx().currentTime + 1); }
-      catch(e) {}
-      bgmGainRef.current = null;
+    if (bgmAudioRef.current) {
+      bgmAudioRef.current.pause();
+      bgmAudioRef.current.currentTime = 0;
+      bgmAudioRef.current = null;
     }
   }, []);
 
@@ -645,7 +626,7 @@ export default function Game() {
 
   const infoState = game?.status === 'waiting'
     ? { label: 'Waiting for ' + agentName + '...', style: 'waiting' }
-    : trueTurn === 'white'
+    : trueTurn === ((game?.player_color || 'w') === 'w' ? 'white' : 'black')
     ? { label: 'Your Turn', style: 'yourturn' }
     : { label: agentName + ' Thinking...', style: 'thinking' };
 
@@ -683,8 +664,13 @@ export default function Game() {
   const dotAnimation = infoState.style === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : undefined;
 
   const moodEmoji = useMemo(() => {
-    if (game?.status === 'finished') return '🏳️';
+    if (game?.status === 'finished') {
+      if (game?.winner === (game?.player_color === 'b' ? 'white' : 'black')) return '😭';
+      if (game?.result === 'draw') return '🤝';
+      return '🏆';
+    }
     if (!boardFen || !boardFen.includes(' ')) return '🦞';
+
     const board = boardFen.split(' ')[0];
     const turn = boardFen.split(' ')[1];
     const vals = { p:1, n:3, b:3, r:5, q:9 };
@@ -698,19 +684,36 @@ export default function Game() {
     const inCheck = game?.in_check;
     const phase = game?.game_phase || 'opening';
 
-    // Check emojis always fire (high priority)
+    // Sentiment scan of the agent's own latest expressed thought — ties the
+    // emoji to what the agent actually said, not only the board math.
+    const thoughtText = (game?.companion_thought || game?.current_thought || '').toLowerCase();
+    const positiveWords = ['nice', 'good', 'love', 'confident', 'strong', 'winning', 'haha', 'great', 'fun', 'enjoy'];
+    const negativeWords = ['oops', 'mistake', 'worried', 'careful', 'danger', 'risky', 'uh oh', 'tricky', 'tough', 'hmm'];
+    const excitedWords = ['wow', 'whoa', 'finally', 'yes!', 'let\'s go', 'big move'];
+    let sentiment = 0;
+    if (thoughtText) {
+      positiveWords.forEach(w2 => { if (thoughtText.includes(w2)) sentiment += 1; });
+      negativeWords.forEach(w2 => { if (thoughtText.includes(w2)) sentiment -= 1; });
+      excitedWords.forEach(w2 => { if (thoughtText.includes(w2)) sentiment += 2; });
+    }
+
     if (inCheck && turn === 'b') return '😰';
     if (inCheck && turn === 'w') return '😤';
-    // No material-based emoji in the first 6 moves — game hasn't developed
+    if (sentiment >= 2) return '🤩';
+    if (sentiment === 1) return '😏';
+    if (sentiment === -1) return '🤔';
+    if (sentiment <= -2) return '😬';
     if (moveNum <= 6) return '🦞';
-    // Higher thresholds — only strong advantages change the emoji
     if (adv <= -9) return '🔥';
-    if (adv <= -5) return '😈';
+    if (adv <= -6) return '😈';
+    if (adv <= -3) return '😎';
     if (adv >= 9)  return '💀';
-    if (adv >= 5)  return '😵';
+    if (adv >= 6)  return '😵';
+    if (adv >= 3)  return '😅';
     if (phase === 'endgame' && moveNum > 30) return '🧠';
+    if (moveNum % 7 === 0) return '🤨';
     return '🦞';
-  }, [boardFen, game?.in_check, game?.game_phase, game?.status]);
+  }, [boardFen, game?.in_check, game?.game_phase, game?.status, game?.companion_thought, game?.current_thought, game?.winner, game?.result, game?.player_color]);
 
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
@@ -815,7 +818,13 @@ export default function Game() {
   }, [boardLastMove]);
 
   const setMoveHistory = useCallback((history) => {
-    setGame(prev => prev ? { ...prev, move_history: history } : prev);
+    if (!Array.isArray(history)) return;
+    setGame(prev => {
+      if (!prev) return prev;
+      const currentLength = Array.isArray(prev.move_history) ? prev.move_history.length : 0;
+      if (history.length < currentLength) return prev;
+      return { ...prev, move_history: history };
+    });
   }, []);
 
   useEffect(() => {
@@ -1826,7 +1835,7 @@ export default function Game() {
       submittingRef.current = false;
       setBoardLocked(false);
     }
-  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected, setMoveHistory, setBoardLastMove]);
+  }, [game, boardLocked, gameId, toast, playSound, boardFen, boardLastMove, applyBoardFen, agentConnected, setMoveHistory, setBoardLastMove, handleIllegalMove]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -2122,7 +2131,7 @@ export default function Game() {
     }));
   }, [game?.move_history]);
 
-  const isOpenClawTurn = game?.turn !== (game?.player_color || 'w') && game?.status === 'active';
+  const isOpenClawTurn = trueTurn === ((game?.player_color || 'w') === 'w' ? 'black' : 'white') && game?.status === 'active';
 
   useEffect(() => {
     if (game?.status === 'active') {
@@ -2613,8 +2622,10 @@ export default function Game() {
                 fontSize: 26,
                 display: 'inline-block',
                 userSelect: 'none',
+                transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
               }}>
-                {moodEmoji}
+                {displayedEmoji}
               </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -3030,8 +3041,10 @@ export default function Game() {
             fontSize: 26,
             display: 'inline-block',
             userSelect: 'none',
+            transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
+            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}>
-            {moodEmoji}
+            {displayedEmoji}
           </span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

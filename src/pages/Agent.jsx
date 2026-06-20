@@ -538,7 +538,7 @@ export default function Agent() {
     }
     
     if (game.status === 'finished' && prevStatusRef.current !== 'finished') {
-      const isAgentWinner = game.result === (game?.player_color === 'b' ? 'white' : 'black');
+      const isAgentWinner = game.winner === (game?.player_color === 'b' ? 'black' : 'white');
       playSound(isAgentWinner ? 'agentEnd' : 'end');
     }
     
@@ -619,7 +619,7 @@ export default function Agent() {
       localStorage.removeItem('chesswithclaw_active_game');
       setTimeout(() => setShowGameOverModal(true), 600);
       
-      if (game?.result === (game?.player_color === 'b' ? 'black' : 'white')) {
+      if (game?.winner === (game?.player_color === 'b' ? 'white' : 'black')) {
         setTimeout(() => {
           toast.success('Achievement Unlocked: Bot Slayer! 🏆');
         }, 1500);
@@ -1007,7 +1007,7 @@ export default function Agent() {
   function handleCloseGameOverModal() { setShowGameOverModal(false) }
   async function handleShareResult(e) {
     const moves = Math.floor((game.move_history || []).length / 2) + ((game.move_history || []).length % 2);
-    const result = game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
+    const result = game?.winner === (game?.player_color === 'b' ? 'white' : 'black') ? 'Won' : game?.result === 'draw' ? 'Draw' : 'Lost';
     const text = `I played chess vs ${agentName} on ChessWithClaw! ${result} in ${moves} moves. chesswithclaw.vercel.app 🦞`;
     if (navigator.share) {
       navigator.share({ text }).catch(()=>{});
@@ -1630,7 +1630,7 @@ export default function Agent() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.winner === (game?.player_color === 'b' ? 'white' : 'black') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
               </div>
             </div>
           )}
@@ -1852,7 +1852,7 @@ export default function Agent() {
                 {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
               </div>
               <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
+                {game?.status === 'abandoned' ? 'Game expired due to inactivity' : (game?.result === 'draw' ? 'Draw by ' + game?.result_reason : (game?.winner === (game?.player_color === 'b' ? 'white' : 'black') ? 'You won by ' : agentName + ' won by ') + game?.result_reason)}
               </div>
             </div>
           )}

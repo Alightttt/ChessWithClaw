@@ -17,7 +17,7 @@ export default function Legal() {
     <div style={{ minHeight: '100dvh', background: '#0a0a0a', color: '#f2f2f2' }}>
       {/* Header */}
       <header style={{ height: '64px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', position: 'sticky', top: 0, background: '#0a0a0a', zIndex: 50 }}>
-        <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: '1px solid #222', borderRadius: '8px', color: 'rgba(242,242,242,0.7)', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, padding: '6px 14px', cursor: 'pointer' }}>
+        <button onClick={() => { if (window.history.length > 2) { navigate(-1); } else { navigate('/'); } }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: '1px solid #222', borderRadius: '8px', color: 'rgba(242,242,242,0.7)', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500, padding: '6px 14px', cursor: 'pointer' }}>
           ← Back
         </button>
         <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '15px', color: '#f2f2f2' }}>
