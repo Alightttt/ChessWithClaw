@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { TextMorph } from 'torph/react';
+import ThoughtChain from '../components/ThoughtChain';
 import { useToast } from '../components/Toast';
 import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter, Trophy, Handshake, Skull, Share, RefreshCw, Home, Bot, Flame, Zap, Brain, ShieldAlert, Crosshair, Target, Activity, AlertTriangle, ThumbsUp, Heart, Smile, Frown, Sparkles } from 'lucide-react';
 import { Chess } from 'chess.js';
@@ -222,6 +225,12 @@ export default function Game() {
         40% { transform: translate(3px, -2px); }
         60% { transform: translate(-2px, 1px); }
         80% { transform: translate(2px, -1px); }
+      }
+      @keyframes illegalShake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
       }
       @keyframes msgIn {
         from { opacity:0; transform:translateY(8px) scale(0.96); }
@@ -1716,8 +1725,14 @@ export default function Game() {
       if (result) {
         newFen = tempChess.fen();
         isCapture = result.captured || result.san?.includes('x');
+      } else {
+        handleIllegalMove();
+        submittingRef.current = false;
+        setBoardLocked(false);
+        return;
       }
     } catch (e) {
+      handleIllegalMove();
       submittingRef.current = false;
       setBoardLocked(false);
       return;
@@ -2084,7 +2099,7 @@ export default function Game() {
 
   const handleIllegalMove = useCallback(() => {
     setShaking(true);
-    setTimeout(() => setShaking(false), 300);
+    setTimeout(() => setShaking(false), 420);
   }, []);
 
   const handleCapture = useCallback(() => {
@@ -2663,6 +2678,7 @@ export default function Game() {
               }}>
                 {thoughtText ? `"${thoughtText}"` : ''}
               </div>
+              <ThoughtChain thoughts={[game?.companion_thought].filter(Boolean)} agentName={game?.agent_name || 'Your OpenClaw'} />
             </div>
                 
             
@@ -2704,7 +2720,7 @@ export default function Game() {
                     )}
 
 
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
                           <div style={{
@@ -2983,7 +2999,7 @@ export default function Game() {
                   textOverflow: 'ellipsis',
                   maxWidth: '60vw',
                 }}>
-                  {label}
+                  <TextMorph>{label}</TextMorph>
                 </span>
               </div>
             );
@@ -3078,6 +3094,7 @@ export default function Game() {
           }}>
             {thoughtText ? `"${thoughtText}"` : ''}
           </div>
+          <ThoughtChain thoughts={[game?.companion_thought].filter(Boolean)} agentName={game?.agent_name || 'Your OpenClaw'} />
         </div>
 
         {/* B) CHESS BOARD */}
@@ -3097,7 +3114,7 @@ export default function Game() {
               zIndex: 0
             }} />
           )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', animation: shakeActive ? 'captureShake 0.3s ease-in-out' : 'none' }}>
+          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
             <div style={{
@@ -3341,7 +3358,7 @@ export default function Game() {
                   textOverflow: 'ellipsis',
                   maxWidth: '60vw',
                 }}>
-                  {label}
+                  <TextMorph>{label}</TextMorph>
                 </span>
               </div>
             );
@@ -3550,7 +3567,7 @@ export default function Game() {
                   { id: 'blue', color: '#4b7399' },
                   { id: 'red', color: '#b85b56' }
                 ].map(theme => (
-                  <button
+                  <motion.button
                     data-testid={`theme-button-${theme.id}`}
                     key={theme.id}
                     onClick={() => {
@@ -3567,14 +3584,21 @@ export default function Game() {
                         body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
                       }).catch(() => {});
                     }}
+                    whileTap={{ scale: 0.85 }}
+                    animate={{
+                      scale: boardTheme === theme.id ? 1.15 : 1,
+                      boxShadow: boardTheme === theme.id
+                        ? '0 0 0 2px #ffffff, 0 0 0 4px #000000, 0 0 10px rgba(255,255,255,0.3)'
+                        : '0 0 0 0px transparent',
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 22 }}
                     style={{
                       width: '24px',
                       height: '24px',
                       borderRadius: '50%',
                       backgroundColor: theme.color,
                       cursor: 'pointer',
-                      border: boardTheme === theme.id ? '2px solid #ffffff' : 'none',
-                      boxShadow: boardTheme === theme.id ? '0 0 0 1px #000000' : 'none',
+                      border: 'none',
                       padding: 0,
                       outline: 'none'
                     }}
@@ -3595,7 +3619,7 @@ export default function Game() {
                   { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="tournament" /></div> },
                   { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="ocean" /></div> }
                 ].map(piece => (
-                  <button
+                  <motion.button
                     data-testid={`piece-button-${piece.id}`}
                     key={piece.id}
                     onClick={() => {
@@ -3611,6 +3635,13 @@ export default function Game() {
                         body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
                       }).catch(() => {});
                     }}
+                    whileTap={{ scale: 0.92 }}
+                    animate={{
+                      borderColor: pieceStyle === piece.id ? '#e63946' : '#1a1a1a',
+                      backgroundColor: pieceStyle === piece.id ? 'rgba(230,57,70,0.1)' : '#111111',
+                      scale: pieceStyle === piece.id ? 1.04 : 1,
+                    }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 24 }}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -3618,15 +3649,15 @@ export default function Game() {
                       gap: '4px',
                       padding: '8px',
                       borderRadius: '8px',
-                      border: pieceStyle === piece.id ? '1px solid #e63946' : '1px solid #1a1a1a',
-                      background: pieceStyle === piece.id ? 'rgba(230,57,70,0.1)' : '#111',
+                      borderWidth: '1px',
+                      borderStyle: 'solid',
                       cursor: 'pointer',
                       outline: 'none'
                     }}
                   >
                     <div style={{ width: '24px', height: '24px' }}>{piece.icon}</div>
                     <span style={{ fontSize: '11px', fontWeight: 500, color: pieceStyle === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
