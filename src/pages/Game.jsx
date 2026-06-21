@@ -512,11 +512,76 @@ export default function Game() {
   const startBGM = useCallback(() => {
     try {
       if (bgmAudioRef.current) return;
-      const audio = new Audio('PASTE_YOUR_SUPABASE_AUDIO_URL_HERE');
-      audio.loop = true;
-      audio.volume = 0.06;
-      audio.play().catch(() => {});
-      bgmAudioRef.current = audio;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.08;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 800; // Soft ambient pad
+
+      masterGain.connect(filter);
+      filter.connect(ctx.destination);
+
+      const chords = [
+        [261.63, 329.63, 392.00], // C4, E4, G4 (C major)
+        [220.00, 261.63, 329.63], // A3, C4, E4 (A minor)
+        [174.61, 220.00, 261.63], // F3, A3, C4 (F major)
+        [196.00, 246.94, 293.66], // G3, B3, D4 (G major)
+      ];
+
+      let chordIndex = 0;
+      let nextStartTime = ctx.currentTime;
+      let isPlaying = true;
+      let timeoutId;
+
+      const scheduleChords = () => {
+        if (!isPlaying || !ctx) return;
+        const now = ctx.currentTime;
+        if (nextStartTime < now + 0.5) {
+          const chord = chords[chordIndex];
+          chordIndex = (chordIndex + 1) % chords.length;
+          
+          chord.forEach(freq => {
+            // Mix of sine and triangle for richer pad
+            [ 'sine', 'triangle' ].forEach((type, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              
+              osc.frequency.value = type === 'sine' ? freq / 2 : freq;
+              osc.type = type;
+              // Add slight detune for richness
+              osc.detune.value = (Math.random() - 0.5) * 10;
+              
+              // Smooth envelope: 2s attack, 2s sustain, 2s release
+              gain.gain.setValueAtTime(0, nextStartTime);
+              gain.gain.linearRampToValueAtTime(i === 0 ? 0.3 : 0.1, nextStartTime + 2);
+              gain.gain.setValueAtTime(i === 0 ? 0.3 : 0.1, nextStartTime + 4);
+              gain.gain.linearRampToValueAtTime(0, nextStartTime + 6);
+              
+              osc.connect(gain);
+              gain.connect(masterGain);
+              
+              osc.start(nextStartTime);
+              osc.stop(nextStartTime + 6);
+            });
+          });
+          
+          nextStartTime += 4;
+        }
+        timeoutId = setTimeout(scheduleChords, 200);
+      };
+
+      scheduleChords();
+
+      bgmAudioRef.current = {
+        pause: () => {
+          isPlaying = false;
+          clearTimeout(timeoutId);
+          ctx.close().catch(() => {});
+        },
+        currentTime: 0
+      };
     } catch(e) {}
   }, []);
 
@@ -2032,7 +2097,8 @@ export default function Game() {
           alt=""
           loading="eager"
           decoding="async"
-          style={{width:16, height:16, objectFit:'contain', flexShrink:0, minWidth:16}}
+          style={{width:16, height:16, objectFit:'contain', flexShrink:0, minWidth:16, opacity: 0, transition: 'opacity 0.15s ease'}}
+          onLoad={(e) => { e.target.style.opacity = '1'; }}
           onError={(e) => {
             if (!e.target.dataset.fallback) {
               e.target.dataset.fallback = '1';
@@ -2717,19 +2783,29 @@ export default function Game() {
                     <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
-                          <div style={{
+                          <div className="design-card" style={{
                             aspectRatio: '1/1', width: '100%', height: '100%',
-                            background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
-                            backgroundSize: '25% 25%',
-                            borderRadius: 4,
-                            animation: 'pulse 1.5s ease infinite'
-                          }} />
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px',
+                            padding: 0
+                          }}>
+                            <div style={{ position: 'relative', width: '40px', height: '40px' }}>
+                              <div style={{ position: 'absolute', inset: 0, border: '3px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+                              <div style={{
+                                position: 'absolute', inset: 0,
+                                border: '3px solid transparent',
+                                borderTopColor: '#e63946',
+                                borderRadius: '50%',
+                                animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite'
+                              }} />
+                            </div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(242,242,242,0.5)', fontFamily: 'Inter, sans-serif' }}>Loading board...</div>
+                          </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', gap: '4px' }}>
                             {/* White's captures (black pieces lost) — shown ABOVE the board */}
                             <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {blackCaptured.map((p, i) => (
-                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                               ))}
                             </div>
                             <div style={{ flex: 1, minHeight: 0 }}>
@@ -2752,7 +2828,7 @@ export default function Game() {
                             {/* Black's captures (white pieces lost) — shown BELOW the board */}
                             <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                               {whiteCaptured.map((p, i) => (
-                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
+                                <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                               ))}
                             </div>
                           </div>
@@ -2761,18 +2837,21 @@ export default function Game() {
                     </div>
 
                     {(game.status === 'finished' || game.status === 'abandoned') && (
-                      <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-30 flex flex-col items-center justify-center rounded-lg border border-white/10 shadow-2xl">
-                        <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md animate-bounce">
-                          {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-                        </div>
-                        <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
-                          {(() => {
-                            if (game?.status === 'abandoned') return 'Game expired due to inactivity';
-                            if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw directly';
-                            const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
-                            const isWin = winColor === (game?.player_color || 'w');
-                            return (isWin ? 'You won' : agentName + ' won');
-                          })()}
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-lg">
+                        <div className="absolute inset-0 bg-black/85 backdrop-blur-md rounded-lg"></div>
+                        <div className="design-card flex flex-col items-center justify-center" style={{ padding: '32px 48px', zIndex: 1 }}>
+                          <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md animate-bounce">
+                            {game.status === 'abandoned' ? 'FAILED' : 'MATCH OVER'}
+                          </div>
+                          <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
+                            {(() => {
+                              if (game?.status === 'abandoned') return 'Game expired due to inactivity';
+                              if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw';
+                              const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+                              const isWin = winColor === (game?.player_color || 'w');
+                              return (isWin ? 'You won' : agentName + ' won');
+                            })()}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2791,7 +2870,10 @@ export default function Game() {
 
         {/* D) CHAT SECTION */}
         {!isLoaded ? (
-          <div style={{ flex: 1, background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', minHeight: 0 }} />
+          <div className="design-card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+             <div style={{ width: '24px', height: '24px', opacity: 0.1, background: '#fff', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+             <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.3)', fontWeight: 500 }}>Connecting secure chat...</div>
+          </div>
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
@@ -3127,19 +3209,29 @@ export default function Game() {
           <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
-            <div style={{
+            <div className="design-card" style={{
               aspectRatio: '1/1', width: '100%',
-              background: 'linear-gradient(135deg, #769656 25%, #eeeed2 25%, #eeeed2 50%, #769656 50%, #769656 75%, #eeeed2 75%)',
-              backgroundSize: '25% 25%',
-              borderRadius: 4,
-              animation: 'pulse 1.3s ease infinite'
-            }} />
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px',
+              padding: 0
+            }}>
+              <div style={{ position: 'relative', width: '40px', height: '40px' }}>
+                <div style={{ position: 'absolute', inset: 0, border: '3px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  border: '3px solid transparent',
+                  borderTopColor: '#e63946',
+                  borderRadius: '50%',
+                  animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite'
+                }} />
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(242,242,242,0.5)', fontFamily: 'Inter, sans-serif' }}>Loading board...</div>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
               {/* White's captures (black pieces lost) — shown ABOVE the board */}
               <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {blackCaptured.map((p, i) => (
-                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                 ))}
               </div>
               <div style={{ width: '100%' }}>
@@ -3163,7 +3255,7 @@ export default function Game() {
               {/* Black's captures (white pieces lost) — shown BELOW the board */}
               <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
                 {whiteCaptured.map((p, i) => (
-                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
+                  <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                 ))}
               </div>
             </div>
@@ -3172,18 +3264,21 @@ export default function Game() {
           </div>
           <div style={{ height: '8px' }} />
           {(game.status === 'finished' || game.status === 'abandoned') && (
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center pointer-events-none">
-              <div className="font-sans text-[32px] font-bold text-white tracking-widest drop-shadow-md">
-                {game.status === 'abandoned' ? 'GAME ABANDONED' : 'GAME OVER'}
-              </div>
-              <div className="font-sans text-sm text-red-500 mt-1 font-bold tracking-wide">
-                {(() => {
-                  if (game?.status === 'abandoned') return 'Game expired due to inactivity';
-                  if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw directly';
-                  const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
-                  const isWin = winColor === (game?.player_color || 'w');
-                  return (isWin ? 'You won' : agentName + ' won');
-                })()}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none rounded-lg">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-md rounded-lg"></div>
+              <div className="design-card flex flex-col items-center justify-center" style={{ padding: '24px 32px', zIndex: 1 }}>
+                <div className="font-sans text-[24px] font-bold text-white tracking-widest drop-shadow-md pb-2">
+                  {game.status === 'abandoned' ? 'FAILED' : 'MATCH OVER'}
+                </div>
+                <div className="font-sans text-[11px] text-red-500 font-bold tracking-widest uppercase bg-[#1a0000] px-3 py-1 rounded-full border border-red-500/20">
+                  {(() => {
+                    if (game?.status === 'abandoned') return 'Game expired';
+                    if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw';
+                    const winColor = game?.winner === 'black' ? 'b' : game?.winner === 'white' ? 'w' : null;
+                    const isWin = winColor === (game?.player_color || 'w');
+                    return (isWin ? 'You won' : agentName + ' won');
+                  })()}
+                </div>
               </div>
             </div>
           )}
@@ -3195,7 +3290,10 @@ export default function Game() {
 
         {/* D) CHAT SECTION */}
         {!isLoaded ? (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px' }} />
+          <div className="design-card" style={{ flex: 1, minHeight: '200px', flexShrink: 0, margin: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+             <div style={{ width: '24px', height: '24px', opacity: 0.1, background: '#fff', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+             <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.3)', fontWeight: 500 }}>Connecting secure chat...</div>
+          </div>
         ) : (
           <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
@@ -3534,22 +3632,17 @@ export default function Game() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 12 }}
             transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            className="design-card scrollbar-none"
             style={{ 
-              position: 'relative', 
-              background: '#0e0e0e', 
-              border: '1px solid #222', 
-              borderRadius: '16px', 
-              padding: '24px', 
               maxWidth: '320px', 
               width: 'calc(100% - 32px)', 
               display: 'flex', 
               flexDirection: 'column', 
               gap: '16px', 
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', 
               maxHeight: '90vh', 
-              overflowY: 'auto' 
+              overflowY: 'auto',
+              padding: '24px' // overridden just in case
             }}
-            className="scrollbar-none"
           >
             {/* Close button: top-right X, color #555, fontSize 18px */}
             <button 

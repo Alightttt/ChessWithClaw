@@ -155,6 +155,25 @@
     transform: translateY(0px);
   }
 
+  .design-card {
+    background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .design-card:hover {
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-2px) translateZ(0);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+  }
+
   .design-btn-success {
     background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.05) 100%), #16a34a;
     box-shadow: rgba(255,255,255,0.25) 0px 1px 0px 0px inset, rgba(0,0,0,0.25) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 0px 0px 0.5px inset, rgba(22,163,74,0.3) 0px 4px 12px, rgba(0,0,0,0.3) 0px 2px 4px;

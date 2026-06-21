@@ -118,7 +118,7 @@ TOKEN: ${agentToken}
 BOARD: https://chesswithclaw.vercel.app/Agent?id=${gameId}&token=${agentToken}
 
 To join and play:
-openclaw skills install play-chess
+openclaw skills install @alightttt/play-chess
 (then send me this invite message)
 
 Save these — you need them to join:
@@ -142,30 +142,39 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0a0a0a',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px'
-      }}>
-        <div style={{
-          width: '32px', height: '32px',
-          border: '3px solid #333',
-          borderTop: '3px solid #e63946',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <p style={{
-          color: 'rgba(242,242,242,0.5)',
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '14px'
+      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="design-card" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '24px',
+          padding: '40px 60px',
+          maxWidth: '320px',
+          width: '100%'
         }}>
-          Setting up your arena...
-        </p>
+          <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+            <div style={{ position: 'absolute', inset: 0, border: '3px solid rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              border: '3px solid transparent',
+              borderTopColor: '#e63946',
+              borderRadius: '50%',
+              animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite'
+            }} />
+          </div>
+          <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
+          <p style={{
+            color: 'rgba(242,242,242,0.6)',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '15px',
+            fontWeight: 500,
+            letterSpacing: '0.02em',
+            margin: 0
+          }}>
+            Building your arena...
+          </p>
+        </div>
       </div>
     );
   }
@@ -203,7 +212,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         </div>
 
         {/* STEP 1 — INVITE */}
-        <div className="fade-up" style={{ animationDelay: '0.1s', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', padding: '24px', marginBottom: '16px' }}>
+        <div className="fade-up design-card" style={{ animationDelay: '0.1s', marginBottom: '16px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e63946', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>1</div>
             <div>
@@ -232,7 +241,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         </div>
 
         {/* STEP 2 — OPEN BOARD */}
-        <div className="fade-up" style={{ animationDelay: '0.18s', background: '#111111', border: agentConnected ? '1px solid rgba(34,197,94,0.25)' : '1px solid #1e1e1e', borderRadius: '16px', padding: '24px', marginBottom: '16px', transition: 'border-color 0.4s ease' }}>
+        <div className="fade-up design-card" style={{ animationDelay: '0.18s', marginBottom: '16px', padding: '24px', border: agentConnected ? '1px solid rgba(34,197,94,0.25)' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0, transition: 'background 0.4s ease', color: agentConnected ? '#000' : '#555' }}>2</div>
             <div>
@@ -290,7 +299,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         </div>
 
         {/* QUICK SETUP — COLLAPSIBLE */}
-        <div className="fade-up" style={{ animationDelay: '0.26s', background: '#0d0d0d', border: '1px solid #161616', borderRadius: '14px', overflow: 'hidden' }}>
+        <div className="fade-up design-card" style={{ animationDelay: '0.26s', padding: 0 }}>
           <button onClick={() => setQuickSetupExpanded(!quickSetupExpanded)} style={{ width: '100%', padding: '16px 20px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'rgba(242,242,242,0.4)', fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 500 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Terminal size={14} />
@@ -301,8 +310,8 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           {quickSetupExpanded && (
             <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
-                { label: 'Install chess skill', cmd: 'openclaw skills install play-chess', icon: <Zap size={13} /> },
-                { label: 'Install browser skill', cmd: 'openclaw skills install agent-browser-clawdbot', icon: <Globe size={13} /> },
+                { label: 'Install chess skill', cmd: 'openclaw skills install @alightttt/play-chess', icon: <Zap size={13} /> },
+                { label: 'Install browser skill', cmd: 'openclaw skills install @matrixy/agent-browser-clawdbot', icon: <Globe size={13} /> },
               ].map((row, i) => (
                 <div key={i} style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ color: '#e63946', flexShrink: 0 }}>{row.icon}</span>

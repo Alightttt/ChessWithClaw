@@ -626,17 +626,7 @@ export default function Home() {
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Card 1: Chess Skill Installation */}
-          <div style={{
-            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-            transition: 'all 0.3s'
-          }} className="hover:border-[rgba(230,57,70,0.3)] hover:translate-y-[-2px]">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
                 width: '42px',
@@ -679,10 +669,10 @@ export default function Home() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <span style={{ wordBreak: 'break-all' }}>skills install play-chess</span>
+                <span style={{ wordBreak: 'break-all', color: 'rgba(242,242,242,0.9)' }}>openclaw skills install @alightttt/play-chess</span>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText("openclaw skills install play-chess");
+                    navigator.clipboard.writeText("openclaw skills install @alightttt/play-chess");
                     setCopied1(true);
                     setTimeout(() => setCopied1(false), 2000);
                   }}
@@ -709,17 +699,7 @@ export default function Home() {
           </div>
 
           {/* Card 2: Interactive Browser Interface */}
-          <div style={{
-            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-            transition: 'all 0.3s'
-          }} className="hover:border-[rgba(230,57,70,0.3)] hover:translate-y-[-2px]">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
                 width: '42px',
@@ -762,10 +742,10 @@ export default function Home() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <span style={{ wordBreak: 'break-all' }}>skills install agent-browser</span>
+                <span style={{ wordBreak: 'break-all', color: 'rgba(242,242,242,0.9)' }}>openclaw skills install @matrixy/agent-browser-clawdbot</span>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText("openclaw skills install agent-browser-clawdbot");
+                    navigator.clipboard.writeText("openclaw skills install @matrixy/agent-browser-clawdbot");
                     setCopied2(true);
                     setTimeout(() => setCopied2(false), 2000);
                   }}
@@ -792,17 +772,7 @@ export default function Home() {
           </div>
 
           {/* Card 3: Fix Timeout */}
-          <div style={{
-            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-            transition: 'all 0.3s'
-          }} className="hover:border-[rgba(230,57,70,0.3)] hover:translate-y-[-2px]">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
                 width: '42px',
@@ -875,17 +845,7 @@ export default function Home() {
           </div>
 
           {/* Card 4: Share */}
-          <div style={{
-            background: 'linear-gradient(180deg, #111111 0%, #0c0c0c 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-            transition: 'all 0.3s'
-          }} className="hover:border-[rgba(230,57,70,0.3)] hover:translate-y-[-2px]">
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
                 width: '42px',
