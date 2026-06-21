@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot } from "lucide-react";
+import { supabase } from '../lib/supabase';
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
@@ -100,12 +101,26 @@ export default function Home() {
   const [copied2b, setCopied2b] = useState(false);
   const [copied3, setCopied3] = useState(false);
   
-  const [gamesPlayed, setGamesPlayed] = useState('500+');
+  const [gamesPlayed, setGamesPlayed] = useState(0);
+
   useEffect(() => {
-    fetch('https://chesswithclaw.vercel.app/api/stats')
-      .then(r => r.json())
-      .then(d => setGamesPlayed(d.total_games || '500+'))
-      .catch(() => {});
+    // 1. Initial count
+    const fetchCount = async () => {
+      const { count } = await supabase.from('games').select('*', { count: 'exact', head: true });
+      if (count !== null) setGamesPlayed(count);
+    };
+    fetchCount();
+
+    // 2. Subscribe to realtime updates
+    const channel = supabase.channel('public:games')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'games' }, payload => {
+        setGamesPlayed(prev => (typeof prev === 'number' ? prev + 1 : prev));
+      })
+      .subscribe();
+
+    return () => {
+       supabase.removeChannel(channel);
+    };
   }, []);
 
   const [ticker, setTicker] = useState('Someone just beat their OpenClaw in 31 moves 🏆');
@@ -590,29 +605,42 @@ export default function Home() {
           </motion.div>
       </section>
 
+      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '32px', padding: '0 20px' }}>
+        <div className="design-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', background: 'linear-gradient(145deg, #1f1013 0%, #160a0a 100%)', borderColor: 'rgba(230,57,70,0.2)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-50%', left: '-10%', width: '120%', height: '200%', background: 'radial-gradient(ellipse at center, rgba(230,57,70,0.15) 0%, transparent 60%)', pointerEvents: 'none' }} />
+          <span style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#e63946', fontWeight: 700, marginBottom: '16px', position: 'relative', zIndex: 1 }}>Global App Progress</span>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80px', overflow: 'hidden', position: 'relative', minWidth: '200px', zIndex: 1 }}>
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={gamesPlayed}
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -80, opacity: 0, position: 'absolute' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                style={{ fontFamily: "'Inter', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, color: '#f2f2f2', letterSpacing: '-0.04em' }}
+              >
+                {gamesPlayed.toLocaleString('en-US')}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '18px', fontWeight: 300, color: 'rgba(242,242,242,0.6)', marginTop: '8px', position: 'relative', zIndex: 1 }}>Total Matches Played on ChessWithClaw</div>
+        </div>
+      </section>
+
       <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[
-            { number: gamesPlayed, label: "Games Played" },
             { customIcon: <span style={{fontSize: 28, lineHeight: 1}}><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              {f.number ? (
-                <>
-                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '48px', fontWeight: 800, lineHeight: 1, color: '#e63946', letterSpacing: '-0.03em' }}>{f.number}</div>
-                  <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 600, color: 'rgba(242,242,242,0.8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</div>
-                </>
-              ) : (
-                <>
-                  {f.icon && <f.icon className="text-[#e63946]" size={28} />}
-                  {f.customIcon && f.customIcon}
-                  <div>
-                    <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{f.title}</h3>
-                    <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
-                  </div>
-                </>
-              )}
+              {f.icon && <f.icon className="text-[#e63946]" size={28} />}
+              {f.customIcon && f.customIcon}
+              <div>
+                <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '20px', fontWeight: 700, lineHeight: 1.3, marginBottom: '8px', color: '#f2f2f2', letterSpacing: '-0.02em' }}>{f.title}</h3>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '15px', fontWeight: 300, lineHeight: 1.6, color: 'rgba(242,242,242,0.6)', margin: 0 }}>{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>

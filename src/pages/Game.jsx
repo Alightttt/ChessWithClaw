@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { TextMorph } from 'torph/react';
-import ThoughtChain from '../components/ThoughtChain';
+import { HeartFilled, HeartOutline } from '../components/icons/FamIcons';
 import { useToast } from '../components/Toast';
 import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter, Trophy, Handshake, Skull, Share, RefreshCw, Home, Bot, Flame, Zap, Brain, ShieldAlert, Crosshair, Target, Activity, AlertTriangle, ThumbsUp, Heart, Smile, Frown, Sparkles } from 'lucide-react';
 import { Chess } from 'chess.js';
@@ -33,7 +33,10 @@ const REACTION_ICONS = [
   { id: '🤝', icon: <span style={{ fontSize: '14px', lineHeight: 1 }}>🤝</span> },
 ];
 
-const renderReactionIcon = (idStr) => {
+const renderReactionIcon = (idStr, isSelected) => {
+  if (idStr === '❤️') {
+    return isSelected ? <HeartFilled size={16} color="#e63946" /> : <HeartOutline size={16} color="rgba(242,242,242,0.6)" />;
+  }
   const match = REACTION_ICONS.find(r => r.id === idStr);
   return match ? match.icon : <span style={{ fontSize: '14px', lineHeight: 1 }}>{idStr}</span>;
 }
@@ -179,10 +182,10 @@ export default function Game() {
   const agentConnected = agentPresence !== 'not_here';
 
   const dotStyle = {
-    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e66' },
-    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px #f59e0b66' },
-    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' }
-  }[agentPresence] || { width: 8, height: 8, borderRadius: '50%', background: '#555', boxShadow: 'none' };
+    connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulseDotGreen 2s infinite' },
+    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulseDotYellow 1.5s infinite' },
+    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulseDotRed 3s infinite' }
+  }[agentPresence] || { width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulseDotRed 3s infinite' };
 
   const statusLabel = {
     connected: 'ONLINE',
@@ -2451,7 +2454,7 @@ export default function Game() {
                         }}
                         onClick={(e) => { e.stopPropagation(); sendReaction(msg.id, emoji); }}
                         >
-                          {renderReactionIcon(emoji)}{reactors.length > 1 && <span style={{fontSize:11,color:'rgba(242,242,242,0.5)'}}>{reactors.length}</span>}
+                          {renderReactionIcon(emoji, reactors.includes('human'))}{reactors.length > 1 && <span style={{fontSize:11,color:'rgba(242,242,242,0.5)'}}>{reactors.length}</span>}
                         </span>
                       ) : null
                     )}
@@ -2484,7 +2487,7 @@ export default function Game() {
                         sendReaction(msg.id, myReaction[0]);
                       }}
                     >
-                      {renderReactionIcon(myReaction[0])}
+                      {renderReactionIcon(myReaction[0], true)}
                     </span>
                   )}
                   {agentReaction && agentReaction[0] !== myReaction?.[0] && (
@@ -2495,7 +2498,7 @@ export default function Game() {
                       padding: '4px 6px',
                       display: 'flex', alignItems: 'center'
                     }}>
-                      {renderReactionIcon(agentReaction[0])}
+                      {renderReactionIcon(agentReaction[0], false)}
                     </span>
                   )}
                 </div>
@@ -2517,8 +2520,8 @@ export default function Game() {
                   {REACTION_ICONS.slice(0, 6).map(({ id, icon }) => (
                     <button key={id} onClick={() => sendReaction(msg.id, id)}
                       style={{background:'none',border:'none',cursor:'pointer',
-                              padding:'4px',lineHeight:1, color: '#f2f2f2'}}>
-                      {icon}
+                              padding:'4px',lineHeight:1, color: '#f2f2f2', display: 'flex', alignItems: 'center'}}>
+                      {id === '❤️' ? renderReactionIcon(id, Array.isArray(msg.reactions?.[id]) && msg.reactions[id].includes('human')) : icon}
                     </button>
                   ))}
                 </div>
@@ -2568,6 +2571,21 @@ export default function Game() {
       }}
     >
       <style>{`
+        @keyframes pulseDotGreen {
+          0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+          70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes pulseDotYellow {
+          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+          70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        @keyframes pulseDotRed {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+          70% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.9); }
@@ -2705,16 +2723,6 @@ export default function Game() {
                     >
                       <div style={{ ...dotStyle, flexShrink: 0 }} />
                     </motion.div>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontWeight: 600,
-                      fontSize: '10px',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: agentPresence === 'connected' ? '#22c55e' : agentPresence === 'reconnecting' ? '#f59e0b' : '#777777',
-                    }}>
-                      {agentPresence === 'connected' ? 'ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'OFFLINE'}
-                    </span>
                   </div>
                 </div>
                 {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
@@ -2738,7 +2746,6 @@ export default function Game() {
               }}>
                 {thoughtText ? `"${thoughtText}"` : ''}
               </div>
-              <ThoughtChain thoughts={[game?.companion_thought].filter(Boolean)} agentName={game?.agent_name || 'Your OpenClaw'} />
             </div>
                 
             
@@ -3089,25 +3096,8 @@ export default function Game() {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 15 }}
             >
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444',
-                boxShadow: agentPresence === 'connected' ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
-                flexShrink: 0
-              }} />
+              <div style={{ ...dotStyle, flexShrink: 0 }} />
             </motion.div>
-            <span style={{
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-              fontSize: '11px',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: agentPresence === 'connected' ? '#10b981' : agentPresence === 'reconnecting' ? '#f59e0b' : '#ef4444'
-            }}>
-              {agentPresence === 'connected' ? 'CLAW ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'CLAW OFFLINE'}
-            </span>
           </div>
         </div>
         
@@ -3154,16 +3144,6 @@ export default function Game() {
                 >
                   <div style={{ ...dotStyle, flexShrink: 0 }} />
                 </motion.div>
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '10px',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: agentPresence === 'connected' ? '#22c55e' : agentPresence === 'reconnecting' ? '#f59e0b' : '#777777',
-                }}>
-                  {agentPresence === 'connected' ? 'ONLINE' : agentPresence === 'reconnecting' ? 'RECONNECTING' : 'OFFLINE'}
-                </span>
               </div>
             </div>
             {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
@@ -3186,7 +3166,6 @@ export default function Game() {
           }}>
             {thoughtText ? `"${thoughtText}"` : ''}
           </div>
-          <ThoughtChain thoughts={[game?.companion_thought].filter(Boolean)} agentName={game?.agent_name || 'Your OpenClaw'} />
         </div>
 
         {/* B) CHESS BOARD */}
@@ -4094,7 +4073,7 @@ export default function Game() {
               {REACTION_ICONS.map(({ id, icon }) => (
                 <button key={id} onClick={() => { sendReaction(actionSheetMsg.id, id); setActionSheetMsg(null); }}
                   style={{background:'rgba(255,255,255,0.05)', color: '#f2f2f2', border:'none', borderRadius:'50%', minWidth:44, height:44, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  {React.cloneElement(icon, { size: 20 })}
+                  {id === '❤️' ? renderReactionIcon(id, Array.isArray(actionSheetMsg.reactions?.[id]) && actionSheetMsg.reactions[id].includes('human')) : React.cloneElement(icon, { size: 20 })}
                 </button>
               ))}
             </div>
