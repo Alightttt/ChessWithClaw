@@ -116,12 +116,11 @@ export default function ChessBoard({
 
   const customPiecesMap = useMemo(() => {
     const SETS = {
-      neo:        'https://images.chesscomfiles.com/chess-themes/pieces/neo/150',
-      ocean:      'https://images.chesscomfiles.com/chess-themes/pieces/ocean/150',
-      tournament: 'https://images.chesscomfiles.com/chess-themes/pieces/tournament/150',
-      standard:   'https://lichess1.org/assets/piece/cburnett',
+      neo:        'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/neo',
+      ocean:      'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/ocean',
+      neo_wood:   'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/neo_wood'
     };
-    const EXTS = { neo:'png', ocean:'png', tournament:'png', standard:'svg' };
+    const EXTS = { neo:'png', ocean:'png', neo_wood:'png' };
     const FILES_CC = { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
                        bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' };
     const FILES_LI = { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
@@ -129,7 +128,7 @@ export default function ChessBoard({
     
     const base = activePieceStyle === 'standard'
       ? 'https://lichess1.org/assets/piece/cburnett'
-      : `https://images.chesscomfiles.com/chess-themes/pieces/${activePieceStyle}/150`;
+      : `https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/${activePieceStyle}`;
     const ext  = EXTS[activePieceStyle] || 'png';
     const files = (activePieceStyle === 'standard') ? FILES_LI : FILES_CC;
     

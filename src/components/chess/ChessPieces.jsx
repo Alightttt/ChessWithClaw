@@ -19,7 +19,7 @@ const getColors = (pieceStyle, isWhite) => {
       stroke: isWhite ? '#05445E' : '#75E6DA',
       accent: isWhite ? '#05445E' : '#D4F1F4',
     };
-  } else if (style === 'tournament') {
+  } else if (style === 'neo_wood') {
     return {
       fill: isWhite ? '#FFFBF2' : '#2C1A04',
       stroke: isWhite ? '#4A3F35' : '#EBD6B3',

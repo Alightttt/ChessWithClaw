@@ -60,7 +60,7 @@ const PIECE_CODE_MAP = { K:'K', Q:'Q', R:'R', B:'B', N:'N' };
 function getPieceImageUrl(pieceLetter, isWhite, style) {
   const s = style || 'neo';
   const code = ((isWhite ? 'w' : 'b') + pieceLetter).toLowerCase();
-  return `https://images.chesscomfiles.com/chess-themes/pieces/${s}/150/${code}.png`;
+  return `https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/${s}/${code}.png`;
 }
 
 function sanToPieceImg(san, isWhiteMove, style) {
@@ -2150,12 +2150,11 @@ export default function Game() {
 
   const { whiteCaptured, blackCaptured } = getCapturedPieces(boardFen);
   const pieceImgUrl = (pieceCode, style) => {
-    // pieceCode is like 'p' (black pawn), 'P' (white pawn), 'n', 'N', etc.
     const pieceStyle = style || localStorage.getItem('cwc_piece_style') || 'neo';
     const isWhite = pieceCode === pieceCode.toUpperCase();
     const colorPrefix = isWhite ? 'w' : 'b';
-    const pieceType = pieceCode.toUpperCase();
-    return `https://images.chesscomfiles.com/chess-themes/pieces/${pieceStyle}/150/${colorPrefix}${pieceType}.png`;
+    const pieceType = pieceCode.toLowerCase();
+    return `https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/${pieceStyle}/${colorPrefix}${pieceType}.png`;
   };
 
   const balance = getMaterialBalance(boardFen);
@@ -3707,7 +3706,7 @@ export default function Game() {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo" /></div> },
-                  { id: 'tournament', label: 'Tournament', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="tournament" /></div> },
+                  { id: 'neo_wood', label: 'Wood', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo_wood" /></div> },
                   { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="ocean" /></div> }
                 ].map(piece => (
                   <motion.button
