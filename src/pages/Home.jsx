@@ -457,82 +457,91 @@ export default function Home() {
             <span style={{ color: '#e63946' }}>●</span> LIVE · REAL-TIME CHESS
           </motion.div>
           
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 'clamp(56px, 14vw, 84px)',
-              fontWeight: 800,
-              lineHeight: 1.05,
-              letterSpacing: '-0.03em',
-              color: '#f2f2f2',
-            }}
+          <motion.div
+            initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.6, delay: 0.0, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
-          </motion.h1>
+            <h1 
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 'clamp(56px, 14vw, 84px)',
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                color: '#f2f2f2',
+              }}
+            >
+              Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
+            </h1>
+          </motion.div>
           
-          <motion.p className="mx-auto md:mx-0" 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: 'clamp(15px, 4vw, 18px)',
-              fontWeight: 300,
-              lineHeight: 1.65,
-              color: 'rgba(242,242,242,0.5)',
-              maxWidth: '560px',
+          <motion.div
+            initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <p className="mx-auto md:mx-0" 
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: 'clamp(15px, 4vw, 18px)',
+                fontWeight: 300,
+                lineHeight: 1.65,
+                color: 'rgba(242,242,242,0.5)',
+                maxWidth: '560px',
+                
+              }}
+            >
+              The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
+            </p>
+          </motion.div>
+
+          
+          
+          <motion.div
+            initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <div 
+              className="hidden md:flex flex-col items-start w-auto"
+              style={{ gap: '0px', marginTop: '24px' }}
+            >
+              <div className="flex flex-row items-center justify-start w-auto" style={{ gap: '16px' }}>
+                <a
+                  href="/api/new"
+                  className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Challenge Mine Now →
+                </a>
+                <a 
+                  href="#how"
+                  className="design-btn-secondary w-auto"
+                >
+                  Quick Start
+                </a>
+              </div>
               
-            }}
-          >
-            The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
-          </motion.p>
+              <div style={{
+                fontSize: 13, color:'rgba(242,242,242,0.35)',
+                fontFamily:'Inter, sans-serif', marginTop:12, letterSpacing:'0.02em',
+              }}>
+                No signup. No account. Just you and your OpenClaw.
+              </div>
 
-          
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="hidden md:flex flex-col items-start w-auto"
-            style={{ gap: '0px', marginTop: '24px' }}
-          >
-            <div className="flex flex-row items-center justify-start w-auto" style={{ gap: '16px' }}>
-              <a
-                href="/api/new"
-                className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textDecoration: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Challenge Mine Now →
-              </a>
-              <a 
-                href="#how"
-                className="design-btn-secondary w-auto"
-              >
-                Quick Start
-              </a>
-            </div>
-            
-            <div style={{
-              fontSize: 13, color:'rgba(242,242,242,0.35)',
-              fontFamily:'Inter, sans-serif', marginTop:12, letterSpacing:'0.02em',
-            }}>
-              No signup. No account. Just you and your OpenClaw.
-            </div>
-
-            <div style={{
-              fontSize:12, color:'rgba(242,242,242,0.3)', fontFamily:'Inter, sans-serif',
-              marginTop:10, transition:'opacity 0.4s ease',
-            }}>
-              {ticker}
+              <div style={{
+                fontSize:12, color:'rgba(242,242,242,0.3)', fontFamily:'Inter, sans-serif',
+                marginTop:10, transition:'opacity 0.4s ease',
+              }}>
+                {ticker}
+              </div>
             </div>
           </motion.div>
         </div>

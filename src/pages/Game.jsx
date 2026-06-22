@@ -2405,8 +2405,8 @@ export default function Game() {
                   background: isAgent ? 'rgba(255,255,255,0.04)' : 'rgba(230,57,70,0.12)',
                   color: '#f2f2f2',
                   borderRadius: isAgent
-                    ? '2px 10px 10px 10px'
-                    : '10px 10px 2px 10px',
+                    ? '2px 4px 4px 4px'
+                    : '4px 4px 2px 4px',
                   padding: '10px 14px',
                   fontSize: '13px',
                   lineHeight: '1.5',
@@ -2809,7 +2809,7 @@ export default function Game() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', gap: '4px' }}>
                             {/* White's captures (black pieces lost) — shown ABOVE the board */}
-                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
+                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0, borderRadius: '8px', overflow: 'hidden' }}>
                               {blackCaptured.map((p, i) => (
                                 <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                               ))}
@@ -2832,7 +2832,7 @@ export default function Game() {
                               />
                             </div>
                             {/* Black's captures (white pieces lost) — shown BELOW the board */}
-                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
+                            <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0, borderRadius: '8px', overflow: 'hidden' }}>
                               {whiteCaptured.map((p, i) => (
                                 <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                               ))}
@@ -3207,7 +3207,7 @@ export default function Game() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
               {/* White's captures (black pieces lost) — shown ABOVE the board */}
-              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
+              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0, borderRadius: '6px', overflow: 'hidden' }}>
                 {blackCaptured.map((p, i) => (
                   <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/b${p}.svg`; } }} />
                 ))}
@@ -3231,7 +3231,7 @@ export default function Game() {
                 />
               </div>
               {/* Black's captures (white pieces lost) — shown BELOW the board */}
-              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0 }}>
+              <div style={{ display: 'flex', gap: '2px', minHeight: '20px', alignItems: 'center', padding: '0 2px', margin: 0, borderRadius: '6px', overflow: 'hidden' }}>
                 {whiteCaptured.map((p, i) => (
                   <img key={i} src={pieceImgUrl(p, pieceStyle)} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block', opacity: 0, transition: 'opacity 0.15s ease' }} onLoad={(e) => { e.target.style.opacity = '1'; }} onError={(e) => { if (!e.target.dataset.fb) { e.target.dataset.fb='1'; e.target.src=`https://lichess1.org/assets/piece/cburnett/w${p.toLowerCase()}.svg`; } }} />
                 ))}
@@ -3509,74 +3509,92 @@ export default function Game() {
                 <div style={{ textAlign:'center', position: 'relative' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '150px', background: bgGradient, pointerEvents: 'none' }} />
                   <div style={{ padding:'36px 24px 24px', position: 'relative', zIndex: 1 }}>
-                    <div style={{ marginBottom:20, animation:'popIn 0.5s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
-                      <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%', boxShadow: `0 0 30px ${accentColor}1A` }}>
-                        {resultIcon}
-                      </div>
-                    </div>
-                    <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:32, color:'#fff', marginBottom:4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <span style={{ background: `linear-gradient(180deg, #fff 0%, ${accentColor} 200%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        {resultText}
-                      </span>
-                    </div>
-                    <div style={{ fontFamily:'Inter, sans-serif', fontSize:15, color:'rgba(242,242,242,0.6)', marginBottom:28 }}>
-                      {subText}
-                    </div>
-
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:28 }}>
-                      {[
-                        { label:'Moves', value: moveCount },
-                        { label:'Reason', value: game?.result_reason || game?.result },
-                        { label:'Pieces lost', value: (() => {
-                          if (!game?.fen) return '?';
-                          const board = game.fen.split(' ')[0];
-                          const targetRegex = game?.player_color === 'b' ? /[QRBNP]/g : /[qrbnp]/g;
-                          return 15 - (board.match(targetRegex)||[]).length;
-                        })() },
-                      ].map((stat, i) => (
-                        <div key={i} style={{ background:'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius:12, padding:'12px 6px' }}>
-                          <div style={{ fontFamily:'JetBrains Mono, monospace', fontWeight:600, fontSize:16, color:'#f2f2f2', marginBottom: '2px' }}>{stat.value}</div>
-                          <div style={{ fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(242,242,242,0.4)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{stat.label}</div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.5, delay: 0.05, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
+                      <div style={{ marginBottom:20, animation:'popIn 0.5s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%', boxShadow: `0 0 30px ${accentColor}1A` }}>
+                          {resultIcon}
                         </div>
-                      ))}
-                    </div>
-
-                    {lastThought && (
-                      <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.6)', marginBottom:24,
-                        background:'rgba(255,255,255,0.02)', borderRadius:12, padding:'14px 16px',
-                        borderLeft:`3px solid ${accentColor}`, textAlign: 'left' }}>
-                        &quot;{lastThought}&quot;
-                        <div style={{ marginTop: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontStyle: 'normal', fontWeight: 600, textTransform: 'uppercase' }}>— {agentName}</div>
                       </div>
-                    )}
-
-                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                      <button onClick={handleShareResult} style={{
-                        background: `linear-gradient(180deg, ${accentColor}E6 0%, ${accentColor} 100%)`, 
-                        boxShadow: `0 4px 14px ${accentColor}40`,
-                        border:'none', borderRadius:12, color: isWin || isDraw ? '#111' : '#fff', fontFamily:'Inter, sans-serif',
-                        fontWeight:700, fontSize:15, padding:'14px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                        transition: 'transform 0.1s ease, box-shadow 0.1s ease'
-                      }} className="hover:scale-[1.02] active:scale-[0.98]">
-                        <Share size={18} /> Share Match Report
-                      </button>
-                      <div style={{ display:'flex', gap:10 }}>
-                        <button onClick={handleRematch} style={{
-                          flex:1, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
-                          borderRadius:12, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
-                          fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                        }} className="hover:bg-white/10 transition-colors">
-                          <RefreshCw size={16} /> Rematch
-                        </button>
-                        <button onClick={() => navigate('/')} style={{
-                          flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.05)',
-                          borderRadius:12, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
-                          fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                        }} className="hover:text-white transition-colors">
-                          <Home size={16} /> Exit
-                        </button>
+                      <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:32, color:'#fff', marginBottom:4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <span style={{ background: `linear-gradient(180deg, #fff 0%, ${accentColor} 200%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                          {resultText}
+                        </span>
                       </div>
-                    </div>
+                      <div style={{ fontFamily:'Inter, sans-serif', fontSize:15, color:'rgba(242,242,242,0.6)', marginBottom:28 }}>
+                        {subText}
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.5, delay: 0.13, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:28 }}>
+                        {[
+                          { label:'Moves', value: moveCount },
+                          { label:'Reason', value: game?.result_reason || game?.result },
+                          { label:'Pieces lost', value: (() => {
+                            if (!game?.fen) return '?';
+                            const board = game.fen.split(' ')[0];
+                            const targetRegex = game?.player_color === 'b' ? /[QRBNP]/g : /[qrbnp]/g;
+                            return 15 - (board.match(targetRegex)||[]).length;
+                          })() },
+                        ].map((stat, i) => (
+                          <div key={i} style={{ background:'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius:12, padding:'12px 6px' }}>
+                            <div style={{ fontFamily:'JetBrains Mono, monospace', fontWeight:600, fontSize:16, color:'#f2f2f2', marginBottom: '2px' }}>{stat.value}</div>
+                            <div style={{ fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(242,242,242,0.4)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{stat.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {lastThought && (
+                        <div style={{ fontStyle:'italic', fontSize:13, color:'rgba(242,242,242,0.6)', marginBottom:24,
+                          background:'rgba(255,255,255,0.02)', borderRadius:12, padding:'14px 16px',
+                          borderLeft:`3px solid ${accentColor}`, textAlign: 'left' }}>
+                          &quot;{lastThought}&quot;
+                          <div style={{ marginTop: '6px', fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontStyle: 'normal', fontWeight: 600, textTransform: 'uppercase' }}>— {agentName}</div>
+                        </div>
+                      )}
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.5, delay: 0.21, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    >
+                      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                        <button onClick={handleShareResult} style={{
+                          background: `linear-gradient(180deg, ${accentColor}E6 0%, ${accentColor} 100%)`, 
+                          boxShadow: `0 4px 14px ${accentColor}40`,
+                          border:'none', borderRadius:12, color: isWin || isDraw ? '#111' : '#fff', fontFamily:'Inter, sans-serif',
+                          fontWeight:700, fontSize:15, padding:'14px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          transition: 'transform 0.1s ease, box-shadow 0.1s ease'
+                        }} className="hover:scale-[1.02] active:scale-[0.98]">
+                          <Share size={18} /> Share Match Report
+                        </button>
+                        <div style={{ display:'flex', gap:10 }}>
+                          <button onClick={handleRematch} style={{
+                            flex:1, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
+                            borderRadius:12, color:'#f2f2f2', fontFamily:'Inter, sans-serif',
+                            fontWeight:600, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                          }} className="hover:bg-white/10 transition-colors">
+                            <RefreshCw size={16} /> Rematch
+                          </button>
+                          <button onClick={() => navigate('/')} style={{
+                            flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.05)',
+                            borderRadius:12, color:'rgba(242,242,242,0.5)', fontFamily:'Inter, sans-serif',
+                            fontWeight:500, fontSize:14, padding:'12px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                          }} className="hover:text-white transition-colors">
+                            <Home size={16} /> Exit
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
               );
@@ -3608,8 +3626,8 @@ export default function Game() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 12 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            exit={{ opacity: 0, filter: 'blur(4px)' }}
+            transition={{ duration: 0.18, ease: 'easeIn' }}
             className="design-card scrollbar-none"
             style={{ 
               maxWidth: '320px', 
@@ -3738,7 +3756,7 @@ export default function Game() {
                       alignItems: 'center',
                       gap: '4px',
                       padding: '8px',
-                      borderRadius: '8px',
+                      borderRadius: '4px',
                       borderWidth: '1px',
                       borderStyle: 'solid',
                       cursor: 'pointer',
@@ -3953,8 +3971,8 @@ export default function Game() {
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 12 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            exit={{ opacity: 0, filter: 'blur(4px)' }}
+            transition={{ duration: 0.18, ease: 'easeIn' }}
             style={{ background: '#0e0e0e', border: '1px solid #222', borderRadius: 16, padding: 28, maxWidth: 340, width: '100%' }}
           >
             <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: '#f2f2f2', marginBottom: 8 }}>
