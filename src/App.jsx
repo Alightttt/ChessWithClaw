@@ -49,23 +49,71 @@ function AnimatedRoutes() {
   );
 }
 
+const sendNotificationIfAllowed = () => {
+  if (Notification.permission === "granted") {
+    const msgs = [
+      "Your OpenClaw is waiting for you! 🦞 Play a match now.",
+      "Are you slipping? Your Agent just learned a new opening.",
+      "Time for a quick game of Chess! No latency, just you and your OpenClaw."
+    ];
+    const text = msgs[Math.floor(Math.random() * msgs.length)];
+    try {
+      new Notification("ChessWithClaw", {
+        body: text,
+        icon: "https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png",
+        vibrate: [200, 100, 200]
+      });
+    } catch(e) {}
+  }
+};
+
+const setupNotifications = () => {
+  if (!("Notification" in window)) return;
+  
+  // Ask for permission after a few seconds of engagement
+  setTimeout(() => {
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then(perm => {
+        if (perm === "granted") {
+          // Schedule intervals (4 hours roughly 3-4 times a day)
+          setInterval(sendNotificationIfAllowed, 4 * 60 * 60 * 1000);
+        }
+      });
+    } else if (Notification.permission === "granted") {
+      setInterval(sendNotificationIfAllowed, 4 * 60 * 60 * 1000);
+    }
+  }, 5000);
+};
+
 export default function App() {
   useEffect(() => {
     const existing = document.querySelectorAll("link[rel*='icon']");
     existing.forEach(el => el.remove());
     
+    // Original exact icon for standard browsers
     const favicon = document.createElement('link');
     favicon.rel = 'icon';
     favicon.type = 'image/png';
     favicon.sizes = '32x32';
+    // Use the scaled-down embedded version for standard favicon too, or just keep PNG? Standard is fine as is
     favicon.href = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png';
     document.head.appendChild(favicon);
     
+    // For iOS/PWA, we must pad the logo so it naturally fits the iOS app icon bounds
+    // We achieve this using a data-uri SVG that draws a dark background and places the PNG slightly smaller in the center.
+    const paddedSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+      <rect width='100' height='100' fill='#0B0B0B'/>
+      <image href='https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png' width='70' height='70' x='15' y='15'/>
+    </svg>`;
+
     const appleIcon = document.createElement('link');
     appleIcon.rel = 'apple-touch-icon';
     appleIcon.sizes = '180x180';
-    appleIcon.href = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png';
+    appleIcon.href = `data:image/svg+xml,${encodeURIComponent(paddedSvg)}`;
     document.head.appendChild(appleIcon);
+
+    // Initialize notification engine
+    setupNotifications();
   }, []);
 
   return (

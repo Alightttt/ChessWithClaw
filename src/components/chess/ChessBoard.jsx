@@ -246,6 +246,7 @@ export default function ChessBoard({
       <Chessboard
         id="cwc-board"
         position={fen || 'start'}
+        showBoardNotation={false}
         onSquareClick={handleSquareClick}
         onPieceDrop={handlePieceDrop}
         promotionToSquare={promotionSquare}

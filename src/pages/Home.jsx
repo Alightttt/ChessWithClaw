@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot } from "lucide-react";
+import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
 import { supabase } from '../lib/supabase';
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -614,26 +614,80 @@ export default function Home() {
           </motion.div>
       </section>
 
-      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '32px', padding: '0 20px' }}>
-        <div className="design-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', background: 'linear-gradient(145deg, #1f1013 0%, #160a0a 100%)', borderColor: 'rgba(230,57,70,0.2)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-50%', left: '-10%', width: '120%', height: '200%', background: 'radial-gradient(ellipse at center, rgba(230,57,70,0.15) 0%, transparent 60%)', pointerEvents: 'none' }} />
-          <span style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#e63946', fontWeight: 700, marginBottom: '16px', position: 'relative', zIndex: 1 }}>Global App Progress</span>
+      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px', marginTop: '32px' }}>
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(160deg, #161616 0%, #0a0a0a 100%)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.06)',
+          padding: '56px 32px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          boxShadow: '0 30px 60px -15px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)'
+        }}>
+          {/* subtle background grid */}
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.15, pointerEvents: 'none',
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '32px 32px', maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 70%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 0%, transparent 70%)'
+          }} />
           
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80px', overflow: 'hidden', position: 'relative', minWidth: '200px', zIndex: 1 }}>
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={gamesPlayed}
-                initial={{ y: 80, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -80, opacity: 0, position: 'absolute' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                style={{ fontFamily: "'Inter', sans-serif", fontSize: '72px', fontWeight: 900, lineHeight: 1, color: '#f2f2f2', letterSpacing: '-0.04em' }}
-              >
-                {gamesPlayed.toLocaleString('en-US')}
-              </motion.div>
-            </AnimatePresence>
+          {/* radial glow spotlight */}
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            width: '600px', height: '600px',
+            background: 'radial-gradient(circle at center, rgba(230,57,70,0.1) 0%, transparent 50%)',
+            pointerEvents: 'none'
+          }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1, marginBottom: '20px' }}>
+            <Activity className="text-[#e63946]" size={18} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#e63946', fontWeight: 700 }}>
+              Live Platform Activity
+            </span>
           </div>
-          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '18px', fontWeight: 300, color: 'rgba(242,242,242,0.6)', marginTop: '8px', position: 'relative', zIndex: 1 }}>Total Matches Played on ChessWithClaw</div>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '90px', overflow: 'hidden', position: 'relative', minWidth: '300px', zIndex: 1, filter: 'drop-shadow(0 0 40px rgba(230,57,70,0.15))' }}>
+             <AnimatePresence mode="popLayout">
+               <motion.div
+                 key={gamesPlayed}
+                 initial={{ y: 80, opacity: 0, scale: 0.9 }}
+                 animate={{ y: 0, opacity: 1, scale: 1 }}
+                 exit={{ y: -80, opacity: 0, scale: 0.9, position: 'absolute' }}
+                 transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                 style={{ 
+                   fontFamily: "'Inter', sans-serif", 
+                   fontSize: 'clamp(52px, 8vw, 84px)', 
+                   fontWeight: 900, 
+                   lineHeight: 1, 
+                   letterSpacing: '-0.04em',
+                   background: 'linear-gradient(180deg, #FFFFFF 20%, #A0A0A0 100%)',
+                   WebkitBackgroundClip: 'text',
+                   WebkitTextFillColor: 'transparent',
+                   fontVariantNumeric: 'tabular-nums'
+                 }}
+               >
+                 {gamesPlayed.toLocaleString('en-US')}
+               </motion.div>
+             </AnimatePresence>
+          </div>
+          
+          <div style={{ 
+            fontFamily: "'Poppins', sans-serif", 
+            fontSize: '18px', 
+            fontWeight: 400, 
+            color: 'rgba(242,242,242,0.5)', 
+            marginTop: '16px', 
+            zIndex: 1,
+            textAlign: 'center',
+            maxWidth: '300px',
+            lineHeight: 1.4
+          }}>
+            Total matches challenged across the globe
+          </div>
         </div>
       </section>
 
