@@ -17,38 +17,7 @@ const BOARD_THEMES = {
   'dark green': { light: '#EEEED2', dark: '#2E6B34' },
 };
 
-const PIECE_SETS = {
-  neo: {
-    base: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150',
-    ext: 'png',
-    files: { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
-             bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' }
-  },
-  ocean: {
-    base: 'https://images.chesscomfiles.com/chess-themes/pieces/ocean/150',
-    ext: 'png',
-    files: { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
-             bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' }
-  },
-  tournament: {
-    base: 'https://images.chesscomfiles.com/chess-themes/pieces/tournament/150',
-    ext: 'png',
-    files: { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
-             bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' }
-  },
-  standard: {
-    base: 'https://lichess1.org/assets/piece/cburnett',
-    ext: 'svg',
-    files: { wP:'wP',wN:'wN',wB:'wB',wR:'wR',wQ:'wQ',wK:'wK',
-             bP:'bP',bN:'bN',bB:'bB',bR:'bR',bQ:'bQ',bK:'bK' }
-  }
-};
-
-const getPieceUrl = (pieceKey, style = 'neo') => {
-  const set = PIECE_SETS[style] || PIECE_SETS.neo;
-  const filename = set.files[pieceKey];
-  return `${set.base}/${filename}.${set.ext}`;
-};
+// Pieces sets removed
 
 export default function ChessBoard({
   fen,
@@ -75,7 +44,7 @@ export default function ChessBoard({
   const [pieceStyle, setPieceStyle] = useState(() => {
     // Initial fetch from local storage with fallback
     const saved = localStorage.getItem('cwc_piece_style');
-    if (!saved || saved === 'standard') {
+    if (!saved || saved === 'standard' || saved === 'tournament') {
       localStorage.setItem('cwc_piece_style', 'neo');
       return 'neo';
     }
@@ -265,7 +234,7 @@ export default function ChessBoard({
         customSquareStyles={customSquareStyles}
         customLightSquareStyle={{ backgroundColor: theme.light }}
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
-        animationDuration={300}
+        animationDuration={200}
         arePiecesDraggable={false}
         customPieces={customPiecesMap}
         boardStyle={{

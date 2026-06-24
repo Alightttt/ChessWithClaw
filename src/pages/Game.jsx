@@ -3484,7 +3484,8 @@ export default function Game() {
             borderRadius:'24px', padding:'0px',
             maxWidth:'360px', width:'100%',
             animation:'gameOverIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            willChange: 'transform, opacity'
           }}>
             {(() => {
               const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
@@ -3510,8 +3511,8 @@ export default function Game() {
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '150px', background: bgGradient, pointerEvents: 'none' }} />
                   <div style={{ padding:'36px 24px 24px', position: 'relative', zIndex: 1 }}>
                     <motion.div
-                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.05, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
                       <div style={{ marginBottom:20, animation:'popIn 0.5s cubic-bezier(.175,.885,.32,1.275)', display: 'flex', justifyContent: 'center' }}>
@@ -3530,8 +3531,8 @@ export default function Game() {
                     </motion.div>
 
                     <motion.div
-                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.13, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:28 }}>
@@ -3563,8 +3564,8 @@ export default function Game() {
                     </motion.div>
 
                     <motion.div
-                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.21, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
                       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -3626,7 +3627,7 @@ export default function Game() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, filter: 'blur(4px)' }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeIn' }}
             className="design-card scrollbar-none"
             style={{ 
@@ -3637,7 +3638,8 @@ export default function Game() {
               gap: '16px', 
               maxHeight: '90vh', 
               overflowY: 'auto',
-              padding: '24px' // overridden just in case
+              padding: '24px', // overridden just in case
+              willChange: 'transform, opacity'
             }}
           >
             {/* Close button: top-right X, color #555, fontSize 18px */}
@@ -3971,7 +3973,7 @@ export default function Game() {
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, filter: 'blur(4px)' }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeIn' }}
             style={{ background: '#0e0e0e', border: '1px solid #222', borderRadius: 16, padding: 28, maxWidth: 340, width: '100%' }}
           >
@@ -4030,8 +4032,8 @@ export default function Game() {
           100% { background-color: rgba(255, 255, 255, 0); }
         }
         @keyframes pieceLift {
-          0% { transform: scale(1) translateY(0); filter: none; }
-          100% { transform: scale(1.15) translateY(-4px); filter: none; }
+          0% { transform: scale(1) translateY(0); }
+          100% { transform: scale(1.15) translateY(-4px); }
         }
         
         @keyframes pieceDrop {
