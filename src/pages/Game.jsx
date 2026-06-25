@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { TextMorph } from 'torph/react';
+import { SlotText } from 'slot-text/react';
+import 'slot-text/style.css';
 import { HeartFilled, HeartOutline } from '../components/icons/FamIcons';
 import { useToast } from '../components/Toast';
 import { Settings, X as XIcon, Pause, Play, Flag, Share2, Volume2, VolumeX, Download, ChevronDown, Copy, Check, Send, Twitter, Trophy, Handshake, Skull, Share, RefreshCw, Home, Bot, Flame, Zap, Brain, ShieldAlert, Crosshair, Target, Activity, AlertTriangle, ThumbsUp, Heart, Smile, Frown, Sparkles } from 'lucide-react';
@@ -1496,8 +1498,13 @@ export default function Game() {
         
         // 6. Piece style (only update from Realtime on moves, not on standalone events)
         if (incoming.piece_style && incoming.piece_style !== pieceStyle) {
-          setPieceStyle(incoming.piece_style);
-          localStorage.setItem('cwc_piece_style', incoming.piece_style);
+          const localStyle = localStorage.getItem('cwc_piece_style');
+          // Only apply DB value if it MATCHES what the user last explicitly set.
+          // This prevents a Realtime confirmation of an in-flight async write
+          // from reverting the user's freshly-chosen style back to the old DB value.
+          if (!localStyle || incoming.piece_style === localStyle) {
+            setPieceStyle(incoming.piece_style);
+          }
         }
         // 7. Board theme
         if (incoming.board_theme && incoming.board_theme !== boardTheme) {
@@ -2011,7 +2018,7 @@ export default function Game() {
     const origin = window.location.origin;
 
     const shareText = [
-      `🦞 I just played chess against my own OpenClaw.`,
+      `I just played a match against ${game?.agent_name || 'my OpenClaw'} on ChessWithClaw! 🦞`,
       ``,
       `📋 Result: ${isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated'} (${isWin ? 'You won' : isDraw ? 'Draw' : (agentName + ' won')})`,
       `♟️ Moves: ${moveCount}`,
@@ -2722,6 +2729,9 @@ export default function Game() {
                     >
                       <div style={{ ...dotStyle, flexShrink: 0 }} />
                     </motion.div>
+                    <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(242,242,242,0.5)' }}>
+                      <SlotText text={statusLabel} animation="snappy" />
+                    </div>
                   </div>
                 </div>
                 {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
@@ -2952,8 +2962,8 @@ export default function Game() {
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
           >
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
-              MOVE HISTORY · {game.move_history?.length || 0} MOVES
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em', display: 'flex', gap: '4px', alignItems: 'center' }}>
+              MOVE HISTORY · <SlotText text={String(game.move_history?.length || 0)} animation="snappy" /> MOVES
             </span>
             <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
           </div>
@@ -3081,7 +3091,7 @@ export default function Game() {
                   textOverflow: 'ellipsis',
                   maxWidth: '60vw',
                 }}>
-                  <TextMorph>{label}</TextMorph>
+                  <SlotText text={label} animation="snappy" />
                 </span>
               </div>
             );
@@ -3097,6 +3107,9 @@ export default function Game() {
             >
               <div style={{ ...dotStyle, flexShrink: 0 }} />
             </motion.div>
+            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(242,242,242,0.5)' }}>
+              <SlotText text={statusLabel} animation="snappy" />
+            </div>
           </div>
         </div>
         
@@ -3143,6 +3156,9 @@ export default function Game() {
                 >
                   <div style={{ ...dotStyle, flexShrink: 0 }} />
                 </motion.div>
+                <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(242,242,242,0.5)' }}>
+                  <SlotText text={statusLabel} animation="snappy" />
+                </div>
               </div>
             </div>
             {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
@@ -3344,8 +3360,8 @@ export default function Game() {
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: moveHistoryOpen ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
           >
-            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em' }}>
-              MOVE HISTORY · {game.move_history?.length || 0} MOVES
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, color: 'rgba(242,242,242,0.3)', letterSpacing: '0.06em', display: 'flex', gap: '4px', alignItems: 'center' }}>
+              MOVE HISTORY · <SlotText text={String(game.move_history?.length || 0)} animation="snappy" /> MOVES
             </span>
             <ChevronDown size={14} className="text-neutral-500" style={{ transform: moveHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
           </div>
@@ -3444,7 +3460,7 @@ export default function Game() {
                   textOverflow: 'ellipsis',
                   maxWidth: '60vw',
                 }}>
-                  <TextMorph>{label}</TextMorph>
+                  <SlotText text={label} animation="snappy" />
                 </span>
               </div>
             );
