@@ -200,9 +200,9 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
       `}</style>
 
       {/* HEADER */}
-      <header style={{ height: '64px', borderBottom: '1px solid #161616', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: '#0a0a0a', position: 'sticky', top: 0, zIndex: 50 }}>
+      <header style={{ height: '72px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+          <img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" alt="ChessWithClaw" style={{ width: '175px', height: 'auto', objectFit: 'contain' }} />
         </div>
         {agentConnected && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '20px', padding: '6px 12px' }}>
@@ -212,9 +212,34 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
         )}
       </header>
 
-      <div style={{ maxWidth: '480px', margin: '0 auto', padding: '40px 20px 60px' }}>
+      <div style={{ 
+        maxWidth: '480px', 
+        margin: '40px auto 60px', 
+        padding: '40px', 
+        position: 'relative',
+        background: 'linear-gradient(160deg, #111111 0%, #080808 100%)',
+        borderRadius: '24px',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 40px 80px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
+        overflow: 'hidden'
+      }}>
+        {/* subtle background grid */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.15, pointerEvents: 'none',
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '48px 48px', maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 60%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 0%, transparent 60%)'
+        }} />
 
-        {/* PAGE TITLE */}
+        {/* radial glow spotlight */}
+        <div style={{
+          position: 'absolute', top: '0', left: '50%', transform: 'translate(-50%, -50%)',
+          width: '600px', height: '600px',
+          background: 'radial-gradient(circle at center, rgba(230,57,70,0.08) 0%, transparent 60%)',
+          pointerEvents: 'none'
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* PAGE TITLE */}
         <div className="fade-up" style={{ textAlign: 'center', marginBottom: '36px' }}>
           <div style={{ fontSize: '48px', marginBottom: '12px', animation: 'lobsterBounce 2.5s ease-in-out infinite', display: 'inline-block' }}><LobsterEmoji /></div>
           <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '26px', color: '#f2f2f2', letterSpacing: '-0.03em', margin: '0 0 8px 0' }}>Summon Your OpenClaw</h1>
@@ -352,6 +377,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           )}
         </div>
 
+        </div>
       </div>
     </div>
   );

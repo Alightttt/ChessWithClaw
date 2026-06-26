@@ -927,10 +927,11 @@ export default function Game() {
   }, []);
   
   const skeletonStyle = {
-    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
+    background: 'linear-gradient(90deg, #121212 25%, #1c1c1c 50%, #121212 75%)',
     backgroundSize: '200% 100%',
-    animation: 'shimmer 1.5s infinite',
-    borderRadius: '6px'
+    animation: 'shimmer 2s infinite linear',
+    borderRadius: '8px',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)'
   };
   
   const [optimisticFenState, setOptimisticFenState] = useState(null);
@@ -3624,61 +3625,68 @@ export default function Game() {
       <AnimatePresence>
       {showSettings && (
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false); }}
+          initial={{ y: '100%', opacity: 0.5 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '100%', opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           style={{ 
             position: 'fixed', 
             inset: 0, 
             zIndex: 1000, 
-            background: 'rgba(5,5,5,0.85)', 
-            backdropFilter: 'blur(4px)', 
+            background: '#0a0a0a', 
             display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
+            flexDirection: 'column',
+            overflow: 'hidden'
           }}
         >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.92, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeIn' }}
-            className="design-card scrollbar-none"
-            style={{ 
-              maxWidth: '320px', 
-              width: 'calc(100% - 32px)', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '16px', 
-              maxHeight: '90vh', 
-              overflowY: 'auto',
-              padding: '24px', // overridden just in case
-              willChange: 'transform, opacity'
-            }}
-          >
-            {/* Close button: top-right X, color #555, fontSize 18px */}
+          <div style={{ height: '72px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(16px)', flexShrink: 0 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Settings size={20} className="text-[#e63946]" />
+              Settings
+            </div>
             <button 
               onClick={() => setShowSettings(false)} 
               style={{ 
-                position: 'absolute', 
-                top: '16px', 
-                right: '16px', 
-                background: 'none', 
-                border: 'none', 
-                color: '#555', 
+                background: 'rgba(255,255,255,0.03)', 
+                border: '1px solid rgba(255,255,255,0.1)', 
+                color: 'rgba(242,242,242,0.8)', 
                 fontSize: '18px', 
                 cursor: 'pointer', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                outline: 'none'
+                outline: 'none',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                transition: 'background 0.2s ease, color 0.2s ease'
               }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'rgba(242,242,242,0.8)'; }}
               aria-label="Close"
             >
               <XIcon size={18} />
             </button>
+          </div>
+
+          <div 
+            className="scrollbar-none"
+            style={{ 
+              flex: 1, 
+              overflowY: 'auto',
+              padding: '32px 24px',
+              display: 'flex',
+              justifyContent: 'center'
+            }}
+          >
+            <div style={{ 
+              width: '100%', 
+              maxWidth: '600px',
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '32px',
+              paddingBottom: '40px'
+            }}>
 
             {/* SECTION 1: BOARD THEME */}
             <div>
@@ -3971,8 +3979,9 @@ export default function Game() {
               </div>
             </div>
 
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
+      </motion.div>
       )}
       </AnimatePresence>
 
