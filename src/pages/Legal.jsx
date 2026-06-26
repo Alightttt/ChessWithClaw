@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const LobsterEmoji = () => <span style={{fontFamily:'"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',fontStyle:'normal'}}>🦞</span>;
 
 export default function Legal() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = 'Privacy & Terms — ChessWithClaw';
+  }, []);
 
   const Section = ({ title, children }) => (
     <div style={{ marginBottom: '36px' }}>
@@ -30,7 +34,7 @@ export default function Legal() {
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '48px 24px 80px' }}>
         <div style={{ marginBottom: '48px' }}>
           <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '32px', color: '#f2f2f2', marginBottom: '8px', letterSpacing: '-0.03em' }}>Legal</h1>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'rgba(242,242,242,0.4)' }}>Privacy Policy and Terms of Service — Last updated June 2025</p>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: 'rgba(242,242,242,0.4)' }}>Privacy Policy and Terms of Service — Last updated June 2026</p>
         </div>
 
         {/* PRIVACY POLICY */}

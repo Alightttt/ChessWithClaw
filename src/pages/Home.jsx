@@ -101,7 +101,14 @@ export default function Home() {
   const [copied2b, setCopied2b] = useState(false);
   const [copied3, setCopied3] = useState(false);
   
+  const [activeFaqIndex, setActiveFaqIndex] = useState(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
   const [gamesPlayed, setGamesPlayed] = useState(0);
+
+  useEffect(() => {
+    document.title = 'ChessWithClaw — Challenge Your OpenClaw to Chess';
+  }, []);
 
   useEffect(() => {
     // 1. Initial count
@@ -159,6 +166,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? scrollTop / docHeight : 0;
+      setScrollProgress(Math.min(1, Math.max(0, progress)));
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -192,6 +210,18 @@ export default function Home() {
 
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '2px',
+        width: `${scrollProgress * 100}%`,
+        background: '#e63946',
+        zIndex: 9999,
+        transformOrigin: 'left center',
+        transition: 'width 0.05s linear',
+        pointerEvents: 'none',
+      }} />
       <style>{`
         .fade-in-section {
           opacity: 0.01;
@@ -372,6 +402,7 @@ export default function Home() {
 
       <nav 
         style={{
+          fontFamily: "'Inter', sans-serif",
           position: 'fixed', top: resumeGame ? '48px' : 0, left: 0, right: 0, height: '72px', zIndex: 50,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
@@ -998,7 +1029,13 @@ export default function Home() {
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '48px', letterSpacing: '-0.03em' }}>Questions</h2>
         <div style={{ borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }} className="divide-y divide-[#1a1a1a]">
           {faqs.map((faq, i) => (
-            <FAQAccordion key={i} question={faq.q} answer={faq.a} />
+            <FAQAccordion
+              key={i}
+              question={faq.q}
+              answer={faq.a}
+              open={activeFaqIndex === i}
+              onToggle={() => setActiveFaqIndex(activeFaqIndex === i ? null : i)}
+            />
           ))}
         </div>
       </section>
@@ -1064,10 +1101,9 @@ export default function Home() {
   );
 }
 
-function FAQAccordion({ question, answer }) {
-  const [open, setOpen] = useState(false);
+function FAQAccordion({ question, answer, open, onToggle }) {
   return (
-    <div className="py-6 cursor-pointer group" onClick={() => setOpen(!open)}>
+    <div className="py-6 cursor-pointer group" onClick={onToggle}>
       <div className="flex justify-between items-center text-left">
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2', letterSpacing: '-0.02em' }} className="pr-8">{question}</h3>
         <ChevronDown className={`shrink-0 text-[#555555] transition-transform duration-300 ${open ? 'rotate-180 text-[#e63946]' : ''}`} size={20} />

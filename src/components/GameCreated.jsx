@@ -29,6 +29,12 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    document.title = agentConnected
+      ? `${agentName} connected! — ChessWithClaw`
+      : 'Summon Your OpenClaw — ChessWithClaw';
+  }, [agentConnected, agentName]);
+
+  useEffect(() => {
     if (!gameId || gameId === 'new') {
       window.location.href = '/api/new';
       return;
@@ -131,6 +137,10 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
     navigator.clipboard.writeText(inviteMessage).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      toast('Copy failed — long press to copy manually', {
+        style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+      });
     });
   };
 
@@ -259,18 +269,34 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           </div>
 
           {showTimeoutWarning && !agentConnected && (
-            <div style={{ background: 'rgba(230,57,70,0.06)', border: '1px solid rgba(230,57,70,0.2)', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#e63946', marginBottom: '4px' }}>
-                Still waiting after 90 seconds
-              </div>
-              <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.5)', lineHeight: 1.5, marginBottom: '10px' }}>
-                Your OpenClaw hasn't joined yet. Check that it received the invite and its connection logs are running.
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              background: '#1a0608',
+              borderBottom: '1px solid rgba(230,57,70,0.35)',
+              padding: '12px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#e63946', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: '#e63946' }}>
+                  Still waiting after 90 seconds
+                </span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: 'rgba(242,242,242,0.5)' }}>
+                  — Check your OpenClaw received the invite
+                </span>
               </div>
               <button
                 onClick={() => navigate('/')}
-                style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', color: '#e63946', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 600, padding: '8px 14px', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: '1px solid rgba(230,57,70,0.3)', borderRadius: '8px', color: '#e63946', fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 600, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
-                Cancel and start a new game
+                Start new game
               </button>
             </div>
           )}
@@ -310,7 +336,7 @@ Then poll: curl "https://chesswithclaw.vercel.app/api/poll?gameId=${gameId}&last
           {quickSetupExpanded && (
             <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
-                { label: 'Install chess skill', cmd: 'openclaw skills install @alightttt/play-chess', icon: <Zap size={13} /> },
+                { label: 'Install chess skill', cmd: 'openclaw skills install play-chess', icon: <Zap size={13} /> },
                 { label: 'Install browser skill', cmd: 'openclaw skills install @matrixy/agent-browser-clawdbot', icon: <Globe size={13} /> },
               ].map((row, i) => (
                 <div key={i} style={{ background: '#080808', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
