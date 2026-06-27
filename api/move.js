@@ -140,8 +140,10 @@ module.exports = async function handler(req, res) {
   
   let { id, gameId, game_id, move, reasoning, thinking, token, fen, san } = req.body || {};
   id = id || gameId || game_id;
+  gameId = id; // normalize: all downstream code that checks gameId also works
   if (!id || !move) return res.status(400).json({ error: 'Missing id or move in JSON body' });
   id = id.trim();
+  gameId = id;
 
   // Support all reasoning, thinking, thought, and text parameters
   const actualReasoning = reasoning || thinking || req.body?.thought || req.body?.text || '';

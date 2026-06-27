@@ -129,7 +129,7 @@ export default function ChessBoard({
 
     // Last move highlight
     if (parsedLastMove) {
-      if (parsedLastMove.from) styles[parsedLastMove.from] = { backgroundColor: 'rgba(255, 255, 100, 0.35)' };
+      if (parsedLastMove.from) styles[parsedLastMove.from] = { backgroundColor: 'rgba(255, 255, 100, 0.5)' };
       if (parsedLastMove.to) styles[parsedLastMove.to] = { backgroundColor: 'rgba(255, 255, 100, 0.5)' };
     }
 

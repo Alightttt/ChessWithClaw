@@ -216,6 +216,13 @@ export default function Game() {
     const style = document.createElement('style');
     style.id = 'cwc-styles-v2';
     style.textContent = `
+      .slot-text-char { display: inline-block; overflow: hidden; vertical-align: bottom; }
+      .slot-text-char-inner { display: inline-block; will-change: transform; }
+      @keyframes slotUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      @keyframes slotDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+      [data-slot-text] { display: inline-flex; }
+      [data-slot-text] .slot-text-char-inner { animation-fill-mode: both; animation-duration: 0.2s; animation-timing-function: cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+      [data-slot-animation="snappy"] .slot-text-char-inner { animation-name: slotUp; animation-timing-function: cubic-bezier(0.36, 0.07, 0.19, 0.97); }
       @keyframes coldGlitch {
         0%, 100% { filter: none; }
         92% { filter: none; }
@@ -659,9 +666,13 @@ export default function Game() {
   const showThought = useCallback((text) => {
     if (!text || !text.trim()) return;
     if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-    setThoughtText(text.trim());
-    setThoughtVisible(true);
-    thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
+    // Fade OUT existing thought first, then fade IN the new one
+    setThoughtVisible(false);
+    thoughtTimerRef.current = setTimeout(() => {
+      setThoughtText(text.trim());
+      setThoughtVisible(true);
+      thoughtTimerRef.current = setTimeout(() => setThoughtVisible(false), 4000);
+    }, 300);
   }, []);
 
   useEffect(() => {
@@ -1110,7 +1121,8 @@ export default function Game() {
     });
     return combined.map((msg, idx) => ({
       ...msg,
-      id: msg.id || `cwc-msg-${idx}`
+      id: msg.id || `cwc-msg-${idx}`,
+      ts: msg.ts || (msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now())
     }));
   }, [chatMessages, localMessages]);
 
@@ -1941,7 +1953,8 @@ export default function Game() {
       text: msgText,
       reply_to: repMsgId,
       timestamp: new Date().toISOString(),
-      reactions: {}
+      reactions: {},
+      ts: Date.now()
     };
     
     setLocalMessages(prev => [...prev, optimisticMsg]);
@@ -2467,6 +2480,9 @@ export default function Game() {
                     )}
                   </div>
                 )}
+                <div style={{ fontSize: 10, color: 'rgba(242,242,242,0.25)', marginTop: 3, textAlign: msg.role === 'human' ? 'right' : 'left' }}>
+                  {msg.ts ? new Date(msg.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </div>
               </div>
         
               {/* Instagram-style reaction below bubble */}
