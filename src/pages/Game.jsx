@@ -423,9 +423,9 @@ export default function Game() {
 
   useEffect(() => {
     if (!pieceStyle) return;
-    const PIECES = ['wp','wn','wb','wr','wq','wk','bp','bn','bb','br','bq','bk'];
+    const CODES = ['wp','wn','wb','wr','wq','wk','bp','bn','bb','br','bq','bk'];
     const BASE = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces';
-    PIECES.forEach(code => {
+    CODES.forEach(code => {
       const img = new window.Image();
       img.src = `${BASE}/${pieceStyle}/${code}.png`;
     });
@@ -1567,19 +1567,16 @@ export default function Game() {
       setChatMessages(incoming.chat_history);
     }
 
-    // Draw offer response from agent
-    if (drawOfferPending && incoming.draw_offer_pending === false) {
-      if (incoming.status === 'finished' && (incoming.result === 'draw' || incoming.result === 'agreement')) {
-        // Agent accepted — game over modal will handle via status change
-        setDrawOfferPending(false);
-      } else if (incoming.status !== 'finished') {
-        // Agent declined
+    if (drawOfferPending) {
+      if (incoming.draw_offer_pending === false && incoming.status !== 'finished') {
         setDrawOfferPending(false);
         setDrawDeclined(true);
-        toast(`${incoming?.agent_name || 'OpenClaw'} declined the draw offer. Game continues!`, {
+        setTimeout(() => setDrawDeclined(false), 5000);
+        toast(`${game?.agent_name || 'OpenClaw'} declined the draw. Game continues!`, {
           style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
         });
-        setTimeout(() => setDrawDeclined(false), 5000);
+      } else if (incoming.status === 'finished') {
+        setDrawOfferPending(false);
       }
     }
   }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought, drawOfferPending, toast]);
@@ -3982,14 +3979,9 @@ export default function Game() {
                 <button 
                   data-testid="draw-button"
                   onClick={async () => {
-                    if (drawOfferPending) return;
-                    const confirmed = window.confirm
-                      ? false
-                      : true;
-                    const userConfirmed = window.confirm
-                      ? window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`)
-                      : true;
-                    if (!userConfirmed) return;
+                    if (drawOfferPending || game?.status !== 'active') return;
+                    const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`);
+                    if (!confirmed) return;
                     setDrawOfferPending(true);
                     setDrawDeclined(false);
                     try {
@@ -4003,6 +3995,7 @@ export default function Game() {
                       });
                     } catch(e) {
                       setDrawOfferPending(false);
+                      toast('Failed to send draw offer', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
                     }
                   }}
                   disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
@@ -4020,9 +4013,9 @@ export default function Game() {
                   }}
                 >
                   {drawOfferPending
-                    ? <span style={{ color: 'rgba(242,242,242,0.5)', fontSize: 12 }}>Waiting for {game?.agent_name || 'OpenClaw'}...</span>
+                    ? <span style={{ fontSize: 12, color: 'rgba(242,242,242,0.5)' }}>Waiting for {game?.agent_name || 'OpenClaw'}...</span>
                     : drawDeclined
-                    ? <span style={{ color: '#e63946', fontSize: 12 }}>Draw declined</span>
+                    ? <span style={{ fontSize: 12, color: '#e63946' }}>Draw declined ✕</span>
                     : 'Offer Draw'}
                 </button>
                 <button 
