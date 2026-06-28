@@ -421,6 +421,16 @@ export default function Game() {
   const lastMoveFenRef = useRef(null);
   const movePendingRef = useRef(false);
 
+  useEffect(() => {
+    if (!pieceStyle) return;
+    const PIECES = ['wp','wn','wb','wr','wq','wk','bp','bn','bb','br','bq','bk'];
+    const BASE = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces';
+    PIECES.forEach(code => {
+      const img = new window.Image();
+      img.src = `${BASE}/${pieceStyle}/${code}.png`;
+    });
+  }, [pieceStyle]);
+
   const prevDbPieceStyleRef = useRef(game?.piece_style || null);
 
   const [agentTyping, setAgentTyping] = useState(false);
@@ -656,12 +666,13 @@ export default function Game() {
   }, [game?.fen, applyBoardFen]);
 
   useEffect(() => {
-    if (!game?.fen || !game?.turn) return;
-    if (prevGameFenRef.current && game.fen !== prevGameFenRef.current && game.turn === 'w') {
+    if (!game?.fen) return;
+    const isBlackTurn = game.fen.split(' ')[1] === 'b';
+    if (prevGameFenRef.current && game.fen !== prevGameFenRef.current && !isBlackTurn) {
       setTimeout(() => { try { playSound('move'); } catch(e) {} }, 100);
     }
     prevGameFenRef.current = game.fen;
-  }, [game?.fen, game?.turn, playSound]);
+  }, [game?.fen, playSound]);
 
   const showThought = useCallback((text) => {
     if (!text || !text.trim()) return;
@@ -832,6 +843,8 @@ export default function Game() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
+  const [drawOfferPending, setDrawOfferPending] = useState(false);
+  const [drawDeclined, setDrawDeclined] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [localMessages, setLocalMessages] = useState([]);
   const [boardLocked, setBoardLocked] = useState(false);
@@ -965,9 +978,9 @@ export default function Game() {
         setGame(prev => {
           const updated = { ...data };
           if (prev?.chat_history && data?.chat_history) {
-            const dbTexts = new Set(data.chat_history.map(m => m.text || m.message || m.content));
-            const optimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-' ) && !dbTexts.has(m.text || m.message || m.content));
-            updated.chat_history = [...data.chat_history, ...optimistic];
+            const dbIds = new Set(data.chat_history.map(m => m.id));
+            const trueOptimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbIds.has(m.id));
+            updated.chat_history = [...data.chat_history, ...trueOptimistic];
           }
           return updated;
         });
@@ -976,8 +989,10 @@ export default function Game() {
         if (Array.isArray(fetchedGame?.move_history) && fetchedGame.move_history.length > 0) {
           setMoveHistory(fetchedGame.move_history);
         }
-        if (Array.isArray(fetchedGame?.chat_history)) {
+        if (Array.isArray(fetchedGame?.chat_history) && fetchedGame.chat_history.length > 0) {
           setChatMessages(fetchedGame.chat_history);
+        } else {
+          setChatMessages([]);
         }
 
         if (fetchedGame?.board_theme) {
@@ -1551,7 +1566,23 @@ export default function Game() {
     if (Array.isArray(incoming.chat_history)) {
       setChatMessages(incoming.chat_history);
     }
-  }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought]);
+
+    // Draw offer response from agent
+    if (drawOfferPending && incoming.draw_offer_pending === false) {
+      if (incoming.status === 'finished' && (incoming.result === 'draw' || incoming.result === 'agreement')) {
+        // Agent accepted — game over modal will handle via status change
+        setDrawOfferPending(false);
+      } else if (incoming.status !== 'finished') {
+        // Agent declined
+        setDrawOfferPending(false);
+        setDrawDeclined(true);
+        toast(`${incoming?.agent_name || 'OpenClaw'} declined the draw offer. Game continues!`, {
+          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+        });
+        setTimeout(() => setDrawDeclined(false), 5000);
+      }
+    }
+  }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought, drawOfferPending, toast]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1763,10 +1794,7 @@ export default function Game() {
       setTimeout(() => setConfirmDraw(false), 3000);
       return;
     }
-    setGame(prev => ({ ...prev, status: 'finished', result: 'draw', result_reason: 'agreement' }));
-    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-      status: 'finished', result: 'draw', result_reason: 'agreement'
-    }).eq('id', gameId);
+    // Draw logic removed
     setShowSettings(false);
     setConfirmDraw(false);
   }, [confirmDraw, gameId]);
@@ -2739,7 +2767,6 @@ export default function Game() {
                   <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <motion.div
-                      key={agentPresence}
                       initial={{ scale: 0.3, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 15 }}
@@ -3117,7 +3144,6 @@ export default function Game() {
           {/* Right Block: Connection Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <motion.div
-              key={agentPresence}
               initial={{ scale: 0.3, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 15 }}
@@ -3166,7 +3192,6 @@ export default function Game() {
               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <motion.div
-                  key={agentPresence}
                   initial={{ scale: 0.3, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 15 }}
@@ -3956,8 +3981,31 @@ export default function Game() {
               <div className="grid grid-cols-2 gap-2">
                 <button 
                   data-testid="draw-button"
-                  onClick={handleDraw}
-                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
+                  onClick={async () => {
+                    if (drawOfferPending) return;
+                    const confirmed = window.confirm
+                      ? false
+                      : true;
+                    const userConfirmed = window.confirm
+                      ? window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`)
+                      : true;
+                    if (!userConfirmed) return;
+                    setDrawOfferPending(true);
+                    setDrawDeclined(false);
+                    try {
+                      await fetch('/api/actions', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                        },
+                        body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
+                      });
+                    } catch(e) {
+                      setDrawOfferPending(false);
+                    }
+                  }}
+                  disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
                   style={{
                     padding: '8px 12px',
                     borderRadius: '8px',
@@ -3971,7 +4019,11 @@ export default function Game() {
                     outline: 'none'
                   }}
                 >
-                  {confirmDraw ? 'Confirm Draw?' : 'Offer Draw'}
+                  {drawOfferPending
+                    ? <span style={{ color: 'rgba(242,242,242,0.5)', fontSize: 12 }}>Waiting for {game?.agent_name || 'OpenClaw'}...</span>
+                    : drawDeclined
+                    ? <span style={{ color: '#e63946', fontSize: 12 }}>Draw declined</span>
+                    : 'Offer Draw'}
                 </button>
                 <button 
                   data-testid="resign-button"
