@@ -19,6 +19,7 @@
     "start": "node server.mjs"
   },
   "dependencies": {
+    "@google/genai": "^2.10.0",
     "@supabase/supabase-js": "^2.98.0",
     "chess.js": "^0.13.4",
     "clsx": "^2.1.0",

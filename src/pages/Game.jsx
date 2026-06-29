@@ -198,6 +198,8 @@ export default function Game() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  const [bestQuote, setBestQuote] = useState(null);
+  const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
   const pendingMoveFenRef = useRef(null);
   const skipNextRealtimeRef = useRef(false);
 
@@ -1635,6 +1637,30 @@ export default function Game() {
   }, [game?.chat_history]);
 
   useEffect(() => {
+    if ((game?.status === 'finished' || game?.status === 'abandoned') && !bestQuote && !isGeneratingQuote) {
+      setIsGeneratingQuote(true);
+      fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentName: game.agent_name,
+          result: game.result,
+          chatHistory: chatMessages
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.quote) setBestQuote(data.quote);
+        setIsGeneratingQuote(false);
+      })
+      .catch(() => {
+        setBestQuote("Good game.");
+        setIsGeneratingQuote(false);
+      });
+    }
+  }, [game?.status, bestQuote, isGeneratingQuote, chatMessages, game?.agent_name, game?.result]);
+
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && gameId) {
         supabase
@@ -2761,7 +2787,16 @@ export default function Game() {
               </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+                  <button 
+                    onClick={() => navigate(`/rival/${agentName}`)}
+                    className="hover:text-[#e63946] transition-colors"
+                    title={`View ${agentName}'s Rival Page`}
+                    style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
+                  >
+                    {agentName}
+                  </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <motion.div
                       initial={{ scale: 0.3, opacity: 0 }}
@@ -2837,7 +2872,17 @@ export default function Game() {
                     )}
 
 
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 4px 20px rgba(0,0,0,0.6)', width: '100%', height: '100%', position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
+                    <motion.div 
+                      animate={{
+                        boxShadow: isOpenClawTurn 
+                          ? ['0 0 0 rgba(230,57,70,0)', '0 0 20px rgba(230,57,70,0.2)', '0 0 0 rgba(230,57,70,0)']
+                          : '0 4px 20px rgba(0,0,0,0.6)'
+                      }}
+                      transition={isOpenClawTurn 
+                        ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } 
+                        : { duration: 0.3 }}
+                      style={{ borderRadius: '8px', overflow: 'hidden', width: '100%', height: '100%', position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}
+                    >
                       <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7, height: '100%', width: '100%' }}>
                         {!isLoaded ? (
                           <div className="design-card" style={{
@@ -2891,16 +2936,16 @@ export default function Game() {
                           </div>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
 
                     {(game.status === 'finished' || game.status === 'abandoned') && (
                       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-lg">
                         <div className="absolute inset-0 bg-black/85 backdrop-blur-md rounded-lg"></div>
-                        <div className="design-card flex flex-col items-center justify-center" style={{ padding: '32px 48px', zIndex: 1 }}>
-                          <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md animate-bounce">
+                        <div className="design-card flex flex-col items-center justify-center text-center max-w-sm w-full relative overflow-hidden" style={{ padding: '32px 32px', zIndex: 1 }}>
+                          <div className="font-sans text-[28px] font-extrabold text-white tracking-widest drop-shadow-md pb-1">
                             {game.status === 'abandoned' ? 'FAILED' : 'MATCH OVER'}
                           </div>
-                          <div className="font-sans text-xs text-[#ff4d5a] mt-2 font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner">
+                          <div className="font-sans text-xs text-[#ff4d5a] font-bold tracking-widest uppercase bg-[#1a0000] px-4 py-1.5 rounded-full border border-red-500/20 shadow-inner mb-6">
                             {(() => {
                               if (game?.status === 'abandoned') return 'Game expired due to inactivity';
                               if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw';
@@ -2909,6 +2954,38 @@ export default function Game() {
                               return (isWin ? 'You won' : agentName + ' won');
                             })()}
                           </div>
+
+                          {bestQuote && (
+                            <div className="w-full bg-[#111] border border-[#222] rounded-xl p-6 relative overflow-hidden shadow-xl mb-6">
+                              <div className="absolute -top-4 -right-4 text-white/5">
+                                <Bot size={100} />
+                              </div>
+                              <div className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-3 text-left relative z-10">{agentName} says:</div>
+                              <div className="text-white text-lg font-serif italic mb-6 text-left relative z-10">
+                                &quot;{bestQuote}&quot;
+                              </div>
+                              <div className="flex items-center justify-between pt-4 border-t border-[#222] relative z-10">
+                                <div className="text-[10px] text-[#e63946] font-mono font-bold tracking-widest uppercase">
+                                  Play this agent
+                                </div>
+                                <div className="text-white/30 text-[10px] font-mono">
+                                  {gameId.substring(0, 8)}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <button 
+                            onClick={() => {
+                              const url = `${window.location.origin}/game/${gameId}`;
+                              navigator.clipboard.writeText(url);
+                              toast('Link copied! Share to challenge others.', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
+                            }}
+                            className="px-6 py-3 w-full bg-[#e63946] text-white text-sm font-bold tracking-wider uppercase rounded-xl shadow-[0_0_20px_rgba(230,57,70,0.2)] hover:bg-[#ff4d5a] hover:scale-105 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Share2 size={16} />
+                            Copy Match Link
+                          </button>
                         </div>
                       </div>
                     )}
@@ -3186,7 +3263,16 @@ export default function Game() {
           </span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
+              <button 
+                onClick={() => navigate(`/rival/${agentName}`)}
+                className="hover:text-[#e63946] transition-colors"
+                title={`View ${agentName}'s Rival Page`}
+                style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent' }}
+                onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
+                onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
+              >
+                {agentName}
+              </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <motion.div
                   initial={{ scale: 0.3, opacity: 0 }}
@@ -3239,7 +3325,17 @@ export default function Game() {
               zIndex: 0
             }} />
           )}
-          <div style={{ borderRadius: '4px', overflow: 'hidden', boxShadow: isOpenClawTurn ? '0 0 20px rgba(230,57,70,0.15)' : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)', width: `${boardSize}px`, position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}>
+          <motion.div 
+            animate={{
+              boxShadow: isOpenClawTurn 
+                ? ['0 0 0 rgba(230,57,70,0)', '0 0 20px rgba(230,57,70,0.2)', '0 0 0 rgba(230,57,70,0)']
+                : '0 2px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.4)'
+            }}
+            transition={isOpenClawTurn 
+              ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } 
+              : { duration: 0.3 }}
+            style={{ borderRadius: '4px', overflow: 'hidden', width: `${boardSize}px`, position: 'relative', animation: shaking ? 'illegalShake 0.42s cubic-bezier(.36,.07,.19,.97) both' : (shakeActive ? 'captureShake 0.3s ease-in-out' : 'none') }}
+          >
           <div style={{ pointerEvents: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 'auto' : 'none', opacity: (game?.agent_connected || game?.status === 'finished' || game?.status === 'abandoned') ? 1 : 0.7 }}>
           {!isLoaded ? (
             <div className="design-card" style={{
@@ -3294,16 +3390,16 @@ export default function Game() {
             </div>
           )}
           </div>
-          </div>
+          </motion.div>
           <div style={{ height: '8px' }} />
           {(game.status === 'finished' || game.status === 'abandoned') && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none rounded-lg">
               <div className="absolute inset-0 bg-black/70 backdrop-blur-md rounded-lg"></div>
-              <div className="design-card flex flex-col items-center justify-center" style={{ padding: '24px 32px', zIndex: 1 }}>
-                <div className="font-sans text-[24px] font-bold text-white tracking-widest drop-shadow-md pb-2">
+              <div className="design-card flex flex-col items-center justify-center text-center max-w-sm w-full relative overflow-hidden pointer-events-auto" style={{ padding: '24px 24px', zIndex: 1, margin: '0 24px' }}>
+                <div className="font-sans text-[24px] font-bold text-white tracking-widest drop-shadow-md pb-1">
                   {game.status === 'abandoned' ? 'FAILED' : 'MATCH OVER'}
                 </div>
-                <div className="font-sans text-[11px] text-red-500 font-bold tracking-widest uppercase bg-[#1a0000] px-3 py-1 rounded-full border border-red-500/20">
+                <div className="font-sans text-[11px] text-red-500 font-bold tracking-widest uppercase bg-[#1a0000] px-3 py-1 rounded-full border border-red-500/20 mb-4">
                   {(() => {
                     if (game?.status === 'abandoned') return 'Game expired';
                     if (game?.result === 'draw' || game?.result === 'stalemate') return 'Draw';
@@ -3312,6 +3408,38 @@ export default function Game() {
                     return (isWin ? 'You won' : agentName + ' won');
                   })()}
                 </div>
+
+                {bestQuote && (
+                  <div className="w-full bg-[#111] border border-[#222] rounded-xl p-5 relative overflow-hidden shadow-xl mb-4">
+                    <div className="absolute -top-4 -right-4 text-white/5">
+                      <Bot size={80} />
+                    </div>
+                    <div className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-2 text-left relative z-10">{agentName} says:</div>
+                    <div className="text-white text-base font-serif italic mb-4 text-left relative z-10">
+                      &quot;{bestQuote}&quot;
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-[#222] relative z-10">
+                      <div className="text-[10px] text-[#e63946] font-mono font-bold tracking-widest uppercase">
+                        Play this agent
+                      </div>
+                      <div className="text-white/30 text-[10px] font-mono">
+                        {gameId.substring(0, 8)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => {
+                    const url = `${window.location.origin}/game/${gameId}`;
+                    navigator.clipboard.writeText(url);
+                    toast('Link copied! Share to challenge others.', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
+                  }}
+                  className="px-4 py-3 w-full bg-[#e63946] text-white text-xs font-bold tracking-wider uppercase rounded-xl shadow-[0_0_15px_rgba(230,57,70,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <Share2 size={14} />
+                  Copy Match Link
+                </button>
               </div>
             </div>
           )}
