@@ -3662,387 +3662,254 @@ export default function Game() {
       {/* SETTINGS MODAL */}
       <AnimatePresence>
       {showSettings && (
-        <motion.div 
-          initial={{ y: '100%', opacity: 0.5 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: '100%', opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            zIndex: 1000, 
-            background: '#0a0a0a', 
-            display: 'flex', 
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{ height: '72px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: 'rgba(10,10,10,0.85)', backdropFilter: 'blur(16px)', flexShrink: 0 }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Settings size={20} className="text-[#e63946]" />
-              Settings
-            </div>
-            <button 
-              onClick={() => setShowSettings(false)} 
-              style={{ 
-                background: 'rgba(255,255,255,0.03)', 
-                border: '1px solid rgba(255,255,255,0.1)', 
-                color: 'rgba(242,242,242,0.8)', 
-                fontSize: '18px', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                outline: 'none',
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                transition: 'background 0.2s ease, color 0.2s ease'
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'rgba(242,242,242,0.8)'; }}
-              aria-label="Close"
-            >
-              <XIcon size={18} />
-            </button>
-          </div>
-
-          <div 
-            className="scrollbar-none"
-            style={{ 
-              flex: 1, 
-              overflowY: 'auto',
-              padding: '32px 24px',
-              display: 'flex',
-              justifyContent: 'center'
-            }}
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSettings(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-lg bg-[#111] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
           >
-            <div style={{ 
-              width: '100%', 
-              maxWidth: '600px',
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '32px',
-              paddingBottom: '40px'
-            }}>
-
-            {/* SECTION 1: BOARD THEME */}
-            <div>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                BOARD THEME
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#222] bg-[#0a0a0a]">
+              <div className="flex items-center gap-3">
+                <Settings size={20} className="text-[#e63946]" />
+                <h2 className="text-lg font-bold text-white tracking-tight">Settings</h2>
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {[
-                  { id: 'green', color: '#769656' },
-                  { id: 'brown', color: '#b58863' },
-                  { id: 'icy_sea', color: '#8ca2ac' },
-                  { id: 'blue', color: '#4b7399' },
-                  { id: 'red', color: '#b85b56' }
-                ].map(theme => (
-                  <motion.button
-                    data-testid={`theme-button-${theme.id}`}
-                    key={theme.id}
-                    onClick={() => {
-                      setBoardTheme(theme.id);
-                      localStorage.setItem('cwc_board_theme', theme.id);
-                      localStorage.setItem('cwc_theme', theme.id);
-                      setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
-                      fetch('/api/actions', { 
-                        method: 'POST', 
-                        headers: { 
-                        'Content-Type': 'application/json',
-                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                        }, 
-                        body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
-                      }).catch(() => {});
-                    }}
-                    whileTap={{ scale: 0.85 }}
-                    animate={{
-                      scale: boardTheme === theme.id ? 1.15 : 1,
-                      boxShadow: boardTheme === theme.id
-                        ? '0 0 0 2px #ffffff, 0 0 0 4px #000000, 0 0 10px rgba(255,255,255,0.3)'
-                        : '0 0 0 0px transparent',
-                    }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: theme.color,
-                      cursor: 'pointer',
-                      border: 'none',
-                      padding: 0,
-                      outline: 'none'
-                    }}
-                    title={theme.id}
-                  />
-                ))}
-              </div>
+              <button 
+                onClick={() => setShowSettings(false)} 
+                className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <XIcon size={18} />
+              </button>
             </div>
 
-            {/* SECTION 2: PIECE STYLE */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                PIECE STYLE
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'neo', label: 'Neo', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo" /></div> },
-                  { id: 'neo_wood', label: 'Wood', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="neo_wood" /></div> },
-                  { id: 'ocean', label: 'Ocean', icon: <div style={{ width: 24, height: 24 }}><Pieces.wN pieceStyle="ocean" /></div> }
-                ].map(piece => (
-                  <motion.button
-                    data-testid={`piece-button-${piece.id}`}
-                    key={piece.id}
-                    onClick={() => {
-                      setPieceStyle(piece.id);
-                      localStorage.setItem('cwc_piece_style', piece.id);
-                      setGame(prev => prev ? { ...prev, piece_style: piece.id } : prev);
-                      fetch('/api/actions', { 
-                        method: 'POST', 
-                        headers: { 
-                        'Content-Type': 'application/json',
-                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                        }, 
-                        body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
-                      }).catch(() => {});
-                    }}
-                    whileTap={{ scale: 0.92 }}
-                    animate={{
-                      borderColor: pieceStyle === piece.id ? '#e63946' : '#1a1a1a',
-                      backgroundColor: pieceStyle === piece.id ? 'rgba(230,57,70,0.1)' : '#111111',
-                      scale: pieceStyle === piece.id ? 1.04 : 1,
-                    }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 24 }}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      borderWidth: '1px',
-                      borderStyle: 'solid',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    <div style={{ width: '24px', height: '24px' }}>{piece.icon}</div>
-                    <span style={{ fontSize: '11px', fontWeight: 500, color: pieceStyle === piece.id ? '#fff' : '#888' }}>{piece.label}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* SECTION 3: SOUND */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                SOUND
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {soundEnabled ? <Volume2 size={18} color="#e63946" /> : <VolumeX size={18} color="#555" />}
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.75)' }}>Sound Effects</span>
-                </div>
-                <motion.button
-                  onClick={() => setSoundEnabled(!soundEnabled)}
-                  animate={{ backgroundColor: soundEnabled ? '#e63946' : '#2a2a2a' }}
-                  transition={{ duration: 0.2 }}
-                  style={{ width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative', padding: 0, outline: 'none' }}
-                >
-                  <motion.div
-                    animate={{ x: soundEnabled ? 20 : 2 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
-                  />
-                </motion.button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {bgmEnabled ? <Volume2 size={18} color="#e63946" /> : <VolumeX size={18} color="#555" />}
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.75)' }}>Background Music</span>
-                </div>
-                <motion.button
-                  onClick={() => {
-                    const next = !bgmEnabled;
-                    setBgmEnabled(next);
-                    localStorage.setItem('cwc_bgm', String(next));
-                  }}
-                  animate={{ backgroundColor: bgmEnabled ? '#e63946' : '#2a2a2a' }}
-                  transition={{ duration: 0.2 }}
-                  style={{ width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative', padding: 0, outline: 'none' }}
-                >
-                  <motion.div
-                    animate={{ x: bgmEnabled ? 20 : 2 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
-                  />
-                </motion.button>
-              </div>
-            </div>
-
-            {/* SECTION 4: THOUGHTS LANGUAGE */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                THOUGHTS LANGUAGE
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'english', label: 'English' },
-                  { value: 'hindi', label: 'Hindi' },
-                  { value: 'hinglish', label: 'Hinglish' },
-                  { value: 'simple_english', label: 'Simple' }
-                ].map(lang => (
-                  <button
-                    key={lang.value}
-                    onClick={() => {
-                      setThoughtVisible(false);
-                      setThoughtText('');
-                      if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
-                      setThoughtLanguage(lang.value);
-                      
-                      setGame(prev => prev ? { ...prev, thought_language: lang.value } : prev);
-                      localStorage.setItem('cwc_thought_language', lang.value);
-
-                      try {
-                        fetch('/api/actions', {
-                          method: 'POST',
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-none">
+              {/* BOARD THEME */}
+              <div className="space-y-3">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Board Theme</div>
+                <div className="flex gap-3">
+                  {[
+                    { id: 'green', color: '#769656' },
+                    { id: 'brown', color: '#b58863' },
+                    { id: 'icy_sea', color: '#8ca2ac' },
+                    { id: 'blue', color: '#4b7399' },
+                    { id: 'red', color: '#b85b56' }
+                  ].map(theme => (
+                    <button
+                      data-testid={`theme-button-${theme.id}`}
+                      key={theme.id}
+                      onClick={() => {
+                        setBoardTheme(theme.id);
+                        localStorage.setItem('cwc_board_theme', theme.id);
+                        localStorage.setItem('cwc_theme', theme.id);
+                        setGame(prev => prev ? { ...prev, board_theme: theme.id } : prev);
+                        fetch('/api/actions', { 
+                          method: 'POST', 
                           headers: { 
                             'Content-Type': 'application/json',
                             'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                          }, 
+                          body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
+                        }).catch(() => {});
+                      }}
+                      className={`w-10 h-10 rounded-xl flex-shrink-0 transition-all ${boardTheme === theme.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111] scale-110 shadow-lg' : 'hover:scale-105 hover:shadow-md'}`}
+                      style={{ backgroundColor: theme.color }}
+                      title={theme.id}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* PIECE STYLE */}
+              <div className="space-y-3 pt-6 border-t border-[#222]">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Piece Style</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'neo', label: 'Neo', icon: <Pieces.wN pieceStyle="neo" /> },
+                    { id: 'neo_wood', label: 'Wood', icon: <Pieces.wN pieceStyle="neo_wood" /> },
+                    { id: 'ocean', label: 'Ocean', icon: <Pieces.wN pieceStyle="ocean" /> }
+                  ].map(piece => (
+                    <button
+                      data-testid={`piece-button-${piece.id}`}
+                      key={piece.id}
+                      onClick={() => {
+                        setPieceStyle(piece.id);
+                        localStorage.setItem('cwc_piece_style', piece.id);
+                        setGame(prev => prev ? { ...prev, piece_style: piece.id } : prev);
+                        fetch('/api/actions', { 
+                          method: 'POST', 
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                          }, 
+                          body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
+                        }).catch(() => {});
+                      }}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${pieceStyle === piece.id ? 'border-[#e63946] bg-[#e63946]/10 text-white' : 'border-[#222] bg-[#1a1a1a] text-white/50 hover:border-white/20 hover:text-white'}`}
+                    >
+                      <div className="w-8 h-8 mb-2">{piece.icon}</div>
+                      <span className="text-xs font-semibold">{piece.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SOUND & AUDIO */}
+              <div className="space-y-3 pt-6 border-t border-[#222]">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Audio</div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1a] border border-[#222]">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${soundEnabled ? 'bg-[#e63946]/10 text-[#e63946]' : 'bg-black/50 text-white/40'}`}>
+                        {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                      </div>
+                      <span className="text-sm font-medium text-white/80">Sound Effects</span>
+                    </div>
+                    <button
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      className={`w-11 h-6 rounded-full relative transition-colors ${soundEnabled ? 'bg-[#e63946]' : 'bg-[#333]'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${soundEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1a] border border-[#222]">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${bgmEnabled ? 'bg-[#e63946]/10 text-[#e63946]' : 'bg-black/50 text-white/40'}`}>
+                        {bgmEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                      </div>
+                      <span className="text-sm font-medium text-white/80">Background Music</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const next = !bgmEnabled;
+                        setBgmEnabled(next);
+                        localStorage.setItem('cwc_bgm', String(next));
+                      }}
+                      className={`w-11 h-6 rounded-full relative transition-colors ${bgmEnabled ? 'bg-[#e63946]' : 'bg-[#333]'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${bgmEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* THOUGHTS LANGUAGE */}
+              <div className="space-y-3 pt-6 border-t border-[#222]">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Agent Thoughts Language</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: 'english', label: 'English' },
+                    { value: 'hindi', label: 'Hindi' },
+                    { value: 'hinglish', label: 'Hinglish' },
+                    { value: 'simple_english', label: 'Simple' }
+                  ].map(lang => (
+                    <button
+                      key={lang.value}
+                      onClick={() => {
+                        setThoughtVisible(false);
+                        setThoughtText('');
+                        if (thoughtTimerRef.current) clearTimeout(thoughtTimerRef.current);
+                        setThoughtLanguage(lang.value);
+                        setGame(prev => prev ? { ...prev, thought_language: lang.value } : prev);
+                        localStorage.setItem('cwc_thought_language', lang.value);
+                        try {
+                          fetch('/api/actions', {
+                            method: 'POST',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                            },
+                            body: JSON.stringify({ gameId, action: 'set_thought_language', value: lang.value })
+                          });
+                        } catch (e) {}
+                      }}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${thoughtLanguage === lang.value ? 'bg-[#e63946] text-white shadow-md shadow-red-500/20' : 'bg-[#1a1a1a] text-white/50 border border-[#222] hover:bg-[#222] hover:text-white'}`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* GAME INFO */}
+              <div className="space-y-3 pt-6 border-t border-[#222]">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Game Identity</div>
+                <div className="flex items-center justify-between bg-[#1a1a1a] border border-[#222] rounded-xl p-3">
+                  <code className="text-xs text-white/60 font-mono select-all">
+                    {gameId}
+                  </code>
+                  <button
+                    onClick={(e) => {
+                      navigator.clipboard.writeText(gameId);
+                      const btn = e.currentTarget;
+                      const oldText = btn.innerText;
+                      btn.innerText = 'Copied!';
+                      setTimeout(() => { btn.innerText = oldText; }, 2000);
+                    }}
+                    className="text-xs font-bold text-[#e63946] hover:text-[#f74554] transition-colors ml-4"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              {/* GAME CONTROLS */}
+              <div className="space-y-3 pt-6 border-t border-[#222] pb-4">
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Match Controls</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    data-testid="draw-button"
+                    onClick={async () => {
+                      if (drawOfferPending || game?.status !== 'active') return;
+                      const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`);
+                      if (!confirmed) return;
+                      setDrawOfferPending(true);
+                      setDrawDeclined(false);
+                      try {
+                        await fetch('/api/actions', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                           },
-                          body: JSON.stringify({
-                            gameId: gameId,
-                            action: 'set_thought_language',
-                            value: lang.value
-                          })
+                          body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
                         });
-                      } catch (e) {
-                        console.error('Failed to persist thought_language', e);
+                      } catch(e) {
+                        setDrawOfferPending(false);
+                        toast('Failed to send draw offer', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
                       }
                     }}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: '6px',
-                      border: thoughtLanguage === lang.value ? '1px solid #e63946' : '1px solid #1a1a1a',
-                      background: thoughtLanguage === lang.value ? 'rgba(230,57,70,0.1)' : '#111',
-                      color: thoughtLanguage === lang.value ? '#fff' : '#888',
-                      fontSize: '11px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
+                    disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmDraw ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-[#1a1a1a] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
                   >
-                    {lang.label}
+                    {drawOfferPending
+                      ? <span className="text-xs text-white/50">Waiting...</span>
+                      : drawDeclined
+                      ? <span className="text-xs text-[#e63946]">Declined ✕</span>
+                      : 'Offer Draw'}
                   </button>
-                ))}
+                  <button 
+                    data-testid="resign-button"
+                    onClick={handleResign}
+                    disabled={game?.status === 'finished' || game?.status === 'abandoned'}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmResign ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#1a1a1a] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
+                  >
+                    {confirmResign ? 'Confirm Resign?' : 'Resign Match'}
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* SECTION 5: GAME INFO */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                GAME INFO
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111', border: '1px solid #1a1a1a', borderRadius: '6px', padding: '6px 10px' }}>
-                <code style={{ fontSize: '10px', color: '#888', fontFamily: 'monospace' }}>
-                  {gameId.substring(0, 18)}...
-                </code>
-                <button
-                  onClick={(e) => {
-                    navigator.clipboard.writeText(gameId);
-                    const btn = e.currentTarget;
-                    const oldText = btn.innerText;
-                    btn.innerText = 'Copied!';
-                    setTimeout(() => { btn.innerText = oldText; }, 2000);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#e63946',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    outline: 'none'
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-
-            {/* SECTION 6: GAME CONTROLS */}
-            <div style={{ borderTop: '1px solid #1a1a1a', paddingTop: '16px' }}>
-              <div style={{ fontSize: '10px', letterSpacing: '0.12em', color: '#444', fontFamily: 'Inter', textTransform: 'uppercase', marginBottom: '8px' }}>
-                GAME CONTROLS
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  data-testid="draw-button"
-                  onClick={async () => {
-                    if (drawOfferPending || game?.status !== 'active') return;
-                    const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`);
-                    if (!confirmed) return;
-                    setDrawOfferPending(true);
-                    setDrawDeclined(false);
-                    try {
-                      await fetch('/api/actions', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                        },
-                        body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
-                      });
-                    } catch(e) {
-                      setDrawOfferPending(false);
-                      toast('Failed to send draw offer', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
-                    }
-                  }}
-                  disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
-                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
-                    background: confirmDraw ? 'rgba(202,138,4,0.1)' : '#111',
-                    border: confirmDraw ? '1px solid rgba(202,138,4,0.5)' : '1px solid #1a1a1a',
-                    color: confirmDraw ? '#eab308' : '#888',
-                    outline: 'none'
-                  }}
-                >
-                  {drawOfferPending
-                    ? <span style={{ fontSize: 12, color: 'rgba(242,242,242,0.5)' }}>Waiting for {game?.agent_name || 'OpenClaw'}...</span>
-                    : drawDeclined
-                    ? <span style={{ fontSize: 12, color: '#e63946' }}>Draw declined ✕</span>
-                    : 'Offer Draw'}
-                </button>
-                <button 
-                  data-testid="resign-button"
-                  onClick={handleResign}
-                  disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: (game?.status === 'finished' || game?.status === 'abandoned') ? 'not-allowed' : 'pointer',
-                    opacity: (game?.status === 'finished' || game?.status === 'abandoned') ? 0.4 : 1,
-                    background: confirmResign ? 'rgba(230,57,70,0.1)' : '#111',
-                    border: confirmResign ? '1px solid rgba(230,57,70,0.5)' : '1px solid #1a1a1a',
-                    color: confirmResign ? '#e63946' : '#888',
-                    outline: 'none'
-                  }}
-                >
-                  {confirmResign ? 'Confirm Resign?' : 'Resign'}
-                </button>
-              </div>
-            </div>
-
-          </div>
+          </motion.div>
         </div>
-      </motion.div>
       )}
       </AnimatePresence>
 

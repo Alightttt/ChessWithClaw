@@ -32,8 +32,9 @@ export default function AppHeader() {
           {/* Left: Logo */}
           <button onClick={scrollToTop} className="flex items-center gap-3 group">
             <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/699888c91e97454c7b995e2f/5384ee56f_gpt-image-15-high-fidelity_a_Make_a_logo_for_my_a.png" 
+              src="/logo.png" 
               alt="Logo" 
+              onError={(e) => { e.currentTarget.src = '/favicon.jpg'; }}
               className="w-7 h-7 rounded-full border border-[var(--color-border-subtle)] object-cover group-hover:border-[var(--color-red-primary)] transition-colors"
             />
             <span className="font-display font-semibold text-xl text-[var(--color-text-primary)] tracking-tight">

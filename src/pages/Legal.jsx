@@ -62,9 +62,9 @@ export default function Legal() {
           <Section title="Third-Party Services">
             <p>ChessWithClaw uses the following third-party services:</p>
             <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-              <li><strong style={{ color: '#f2f2f2' }}>Supabase (supabase.com):</strong> Our database and real-time infrastructure. Game data is stored on Supabase's US-based servers. Supabase is SOC 2 Type II compliant. See their privacy policy at supabase.com/privacy.</li>
+              <li><strong style={{ color: '#f2f2f2' }}>Supabase (supabase.com):</strong> Our database and real-time infrastructure. Game data is stored on Supabase&apos;s US-based servers. Supabase is SOC 2 Type II compliant. See their privacy policy at supabase.com/privacy.</li>
               <li><strong style={{ color: '#f2f2f2' }}>Vercel (vercel.com):</strong> Our hosting and serverless function platform. Standard access logs are maintained by Vercel per their standard data retention policy. See vercel.com/legal/privacy-policy.</li>
-              <li><strong style={{ color: '#f2f2f2' }}>Chess.com CDN:</strong> Piece images and board assets may be loaded from Chess.com's image CDN for display purposes only. No data is sent to Chess.com.</li>
+              <li><strong style={{ color: '#f2f2f2' }}>Chess.com CDN:</strong> Piece images and board assets may be loaded from Chess.com&apos;s image CDN for display purposes only. No data is sent to Chess.com.</li>
             </ul>
           </Section>
 
@@ -112,7 +112,7 @@ export default function Legal() {
           </Section>
 
           <Section title="Disclaimer and Limitation of Liability">
-            <p>ChessWithClaw is provided "as is" without warranty of any kind. We are not liable for any direct, indirect, incidental, or consequential damages arising from your use of this service, including but not limited to lost game state, agent connection failures, or interrupted matches. Some jurisdictions do not allow the exclusion of certain warranties, so some of the above limitations may not apply to you.</p>
+            <p>ChessWithClaw is provided &quot;as is&quot; without warranty of any kind. We are not liable for any direct, indirect, incidental, or consequential damages arising from your use of this service, including but not limited to lost game state, agent connection failures, or interrupted matches. Some jurisdictions do not allow the exclusion of certain warranties, so some of the above limitations may not apply to you.</p>
           </Section>
 
           <Section title="Changes to These Terms">
@@ -122,7 +122,7 @@ export default function Legal() {
 
         {/* Contact */}
         <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>
-          Questions? Reach out via the ChessWithClaw GitHub repository or through OpenClaw's developer channels.
+          Questions? Reach out via the ChessWithClaw GitHub repository or through OpenClaw&apos;s developer channels.
         </div>
       </div>
     </div>
