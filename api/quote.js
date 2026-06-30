@@ -11,7 +11,7 @@ export default async function handler(req) {
     const { chatHistory, agentName, result } = await req.json();
     
     // In edge environment, process.env is usually populated by Vite/Vercel
-    const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return new Response(JSON.stringify({ quote: "Good game." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }

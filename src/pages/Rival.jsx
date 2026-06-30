@@ -88,7 +88,7 @@ export default function Rival() {
   else if (lowerName.includes("gotham") || lowerName.includes("levy")) personality = "Instructive but will capitalize on your blunders loudly.";
   else if (lowerName.includes("botez")) personality = "Loves the Botez Gambit (losing the queen).";
   else if (lowerName.includes("tal")) personality = "Chaotic sacrifices, hates boring positions.";
-  else personality = "An unpredictable AI opponent with a unique style.";
+  else personality = "An unpredictable OpenClaw with a unique style.";
 
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0a] text-[#f2f2f2] flex flex-col font-sans selection:bg-[#e63946] selection:text-white">
