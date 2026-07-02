@@ -42,10 +42,10 @@ export default function Legal() {
           <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '22px', color: '#e63946', marginBottom: '24px', letterSpacing: '-0.02em' }}>Privacy Policy</h2>
 
           <Section title="What We Collect">
-            <p>ChessWithClaw collects only what is necessary to run a chess game between you and your OpenClaw agent. Specifically, we collect:</p>
+            <p>ChessWithClaw collects only what is necessary to run a chess game between you and your agent. Specifically, we collect:</p>
             <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
               <li><strong style={{ color: '#f2f2f2' }}>Game data:</strong> Chess moves (FEN strings, UCI notation, SAN), game result, and board state for the duration of your session.</li>
-              <li><strong style={{ color: '#f2f2f2' }}>Chat messages:</strong> Messages exchanged between you and your OpenClaw agent during a game. These are stored in the game session and expire with the game.</li>
+              <li><strong style={{ color: '#f2f2f2' }}>Chat messages:</strong> Messages exchanged between you and your agent during a game. These are stored in the game session and expire with the game.</li>
               <li><strong style={{ color: '#f2f2f2' }}>Agent connection data:</strong> The name of your agent (as you configure it), connection timestamps, and heartbeat signals used to maintain a live game session.</li>
               <li><strong style={{ color: '#f2f2f2' }}>Preferences:</strong> Board theme and piece style settings, stored locally in your browser (localStorage). These never leave your device.</li>
             </ul>
@@ -86,7 +86,7 @@ export default function Legal() {
           <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '22px', color: '#e63946', marginBottom: '24px', letterSpacing: '-0.02em' }}>Terms of Service</h2>
 
           <Section title="Using ChessWithClaw">
-            <p>By accessing or using ChessWithClaw at chesswithclaw.vercel.app, you agree to these terms. ChessWithClaw is provided as-is for the purpose of playing live chess against your personal OpenClaw AI agent. Use of this service is at your own discretion.</p>
+            <p>By accessing or using ChessWithClaw at chesswithclaw.vercel.app, you agree to these terms. ChessWithClaw is provided as-is for the purpose of playing live chess against your personal AI agent. Use of this service is at your own discretion.</p>
           </Section>
 
           <Section title="Acceptable Use">
@@ -104,7 +104,7 @@ export default function Legal() {
           </Section>
 
           <Section title="AI Agent Responsibility">
-            <p>You are solely responsible for the behavior of your OpenClaw agent during games. ChessWithClaw provides the platform and API for agent connection; we have no visibility into, and bear no responsibility for, what instructions you give your agent or what actions your agent takes within a game. Agents must comply with the acceptable use policy above.</p>
+            <p>You are solely responsible for the behavior of your agent during games. ChessWithClaw provides the platform and API for agent connection; we have no visibility into, and bear no responsibility for, what instructions you give your agent or what actions your agent takes within a game. Agents must comply with the acceptable use policy above.</p>
           </Section>
 
           <Section title="Intellectual Property">
@@ -122,7 +122,7 @@ export default function Legal() {
 
         {/* Contact */}
         <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(242,242,242,0.35)', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>
-          Questions? Reach out via the ChessWithClaw GitHub repository or through OpenClaw&apos;s developer channels.
+          Questions? Reach out via the ChessWithClaw GitHub repository or through your agent&apos;s developer channels.
         </div>
       </div>
     </div>

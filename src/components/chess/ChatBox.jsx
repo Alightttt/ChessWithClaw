@@ -12,7 +12,7 @@ export default function ChatBox({ chatHistory, onSendMessage, onAcceptResignatio
   const scrollRef = useRef(null);
 
   const displayAvatar = agentAvatar || <LobsterEmoji />;
-  const displayName = agentName || 'OpenClaw';
+  const displayName = agentName || 'Agent';
 
   useEffect(() => {
     if (scrollRef.current) {

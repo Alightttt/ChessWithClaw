@@ -107,7 +107,7 @@ export default function Home() {
   const [gamesPlayed, setGamesPlayed] = useState(0);
 
   useEffect(() => {
-    document.title = 'ChessWithClaw — Challenge Your OpenClaw to Chess';
+    document.title = 'ChessWithClaw — Challenge Your Agent to Chess';
   }, []);
 
   useEffect(() => {
@@ -130,10 +130,10 @@ export default function Home() {
     };
   }, []);
 
-  const [ticker, setTicker] = useState('Someone just beat their OpenClaw in 31 moves 🏆');
+  const [ticker, setTicker] = useState('Someone just beat their agent in 31 moves 🏆');
   useEffect(() => {
     const RECENT_RESULTS = [
-      'Someone just beat their OpenClaw in 31 moves 🏆',
+      'Someone just beat their agent in 31 moves 🏆',
       'A game ended in checkmate 2 mins ago 🦞',
       'Nova drew in 47 moves — too close 🤝',
       'Someone lost in 22 moves. Rematch incoming 💀',
@@ -195,14 +195,14 @@ export default function Home() {
 
 
   const faqs = [
-    { q: "Does my OpenClaw need special configuration?", a: "Yes. Install the chess skill first: openclaw skills install play-chess. After that, send it the invite and it connects automatically." },
-    { q: "What exactly does the skill.md file teach my OpenClaw?", a: "The skill.md file contains full chess knowledge, rules, platform protocols, and optimal connection methods — it also teaches your OpenClaw to talk and think like itself, not a generic chess engine." },
-    { q: "Is ChessWithClaw actually free?", a: "Yes. No subscriptions, no premium tier, no ads. Free for every OpenClaw user, forever." },
-    { q: "What if my OpenClaw disconnects mid-game?", a: "Games are persistent. Your OpenClaw reconnects and continues from exactly where it left off." },
+    { q: "Does my agent need special configuration?", a: "Yes. Add ChessWithClaw as a tool your agent can use — the exact step depends on your platform. For OpenClaw: openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp. Other supported platforms use their own equivalent 'add an MCP tool' step. After that, send it the invite and it connects automatically." },
+    { q: "How does my agent know how to play?", a: "The moment it connects, it automatically receives everything it needs: full chess understanding, how to read the board, and how to be a good opponent — no separate file to install or read." },
+    { q: "Is ChessWithClaw actually free?", a: "Yes. No subscriptions, no premium tier, no ads. Free for every agent user, forever." },
+    { q: "What if my agent disconnects mid-game?", a: "Games are persistent. Your agent reconnects and continues from exactly where it left off." },
     { q: "What data does ChessWithClaw store about me?", a: "Only what's needed to run the game: moves, chat messages, and your board preferences. No account, no email, no personal info. Full details in our Privacy Policy." },
     { q: "How long does a game stay saved?", a: "Active games persist until finished. Inactive games are automatically cleared after 4 hours, along with all associated chat and move data." },
-    { q: "Can I play more than one game at a time?", a: "Yes. Each game gets its own link and its own game ID — start as many as you want with the same or different OpenClaw agents." },
-    { q: "What happens to the chat between me and my OpenClaw?", a: "It lives only inside that game session and clears with it. Nothing is logged outside the active game." },
+    { q: "Can I play more than one game at a time?", a: "Yes. Each game gets its own link and its own game ID — start as many as you want with the same or different agents." },
+    { q: "What happens to the chat between me and my agent?", a: "It lives only inside that game session and clears with it. Nothing is logged outside the active game." },
   ];
 
   
@@ -491,7 +491,7 @@ export default function Home() {
                 color: '#f2f2f2',
               }}
             >
-              Play Chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
+              Play Chess with your <span style={{ color: '#e63946' }}>Agent.</span>
             </h1>
           </motion.div>
           
@@ -511,7 +511,7 @@ export default function Home() {
                 
               }}
             >
-              The OpenClaw you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
+              The agent you use every day — fighting you for board control in a beautiful, real-time arena. No latency.
             </p>
           </motion.div>
 
@@ -552,7 +552,7 @@ export default function Home() {
                 fontSize: 13, color:'rgba(242,242,242,0.35)',
                 fontFamily:'Inter, sans-serif', marginTop:12, letterSpacing:'0.02em',
               }}>
-                No signup. No account. Just you and your OpenClaw.
+                No signup. No account. Just you and your agent.
               </div>
             </div>
           </motion.div>
@@ -569,7 +569,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl text-[#e63946]"><LobsterEmoji /></span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>OpenClaw</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>Agent</span>
                 </div>
                 <ThoughtBubble />
               </div>
@@ -614,7 +614,7 @@ export default function Home() {
               fontSize: 13, color:'rgba(242,242,242,0.35)',
               fontFamily:'Inter, sans-serif', marginTop:8, letterSpacing:'0.02em', textAlign: 'center'
             }}>
-              No signup. No account. Just you and your OpenClaw.
+              No signup. No account. Just you and your agent.
             </div>
           </motion.div>
       </section>
@@ -736,7 +736,7 @@ export default function Home() {
       <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[
-            { customIcon: <span style={{fontSize: 28, lineHeight: 1}}><LobsterEmoji /></span>, title: "OpenClaw Integration", desc: "Native plugin support for raw OpenClaw logic." },
+            { customIcon: <span style={{fontSize: 28, lineHeight: 1}}><LobsterEmoji /></span>, title: "Agent Integration", desc: "Native plugin support for raw agent logic." },
             { icon: Shield, title: "Persistent Match", desc: "Close the tab. Come back. The game remains." }
           ].map((f, i) => (
             <div key={i} className="design-card" style={{ gap: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -755,6 +755,7 @@ export default function Home() {
       
       <section id="how" className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.03em' }}>Quick Start</h2>
+        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '16px' }}>Works with OpenClaw, Hermes, and other MCP-capable personal agents.</p>
         <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '48px' }}>Three simple steps. Done once. Play forever.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1020,7 +1021,7 @@ export default function Home() {
             {"★★★★★"}
           </div>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '19px', lineHeight: 1.6, color: 'rgba(242,242,242,0.92)', fontWeight: 400 }}>
-            &quot;Holy shit the best thing I saw today, we can play Chess with our OpenClaw. Like can&apos;t believe this. We are heading towards a new era of gaming with OpenClaws.&quot;
+            &quot;Holy shit the best thing I saw today, we can play Chess with our agent. Like can&apos;t believe this. We are heading towards a new era of gaming with agents.&quot;
           </p>
           <div className="flex items-center gap-4 mt-4">
             <img 
@@ -1053,7 +1054,7 @@ export default function Home() {
 
       <section className="fade-in-section text-center" style={{ marginBottom: '40px', padding: '0 20px' }}>
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge OpenClaw?</h2>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge your agent?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
           <a
              href="/api/new"

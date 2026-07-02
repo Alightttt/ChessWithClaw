@@ -351,7 +351,7 @@ export default function Game() {
     document.head.appendChild(style);
   }, []);
 
-  const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+  const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
   const [loading, setLoading] = useState(() => {
     try {
       const cached = localStorage.getItem('cwc_active_game');
@@ -1201,7 +1201,7 @@ export default function Game() {
     
     // Step 3: Navigate to home to create fresh game
     // Do NOT try to navigate to /created/:id from here
-    // Let user click "Challenge Your OpenClaw" fresh
+    // Let user click "Challenge Your Agent" fresh
     navigate('/')
   }
 
@@ -1466,7 +1466,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
@@ -1574,7 +1574,7 @@ export default function Game() {
         setDrawOfferPending(false);
         setDrawDeclined(true);
         setTimeout(() => setDrawDeclined(false), 5000);
-        toast(`${game?.agent_name || 'OpenClaw'} declined the draw. Game continues!`, {
+        toast(`${game?.agent_name || 'Agent'} declined the draw. Game continues!`, {
           style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
         });
       } else if (incoming.status === 'finished') {
@@ -1936,7 +1936,7 @@ export default function Game() {
         setBoardLastMove(prevBoardLastMove);
         movePendingRef.current = false;
         
-        const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+        const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
             icon: <LobsterEmoji />,
@@ -2057,7 +2057,7 @@ export default function Game() {
   function handleToggleMoveHistory() { setMoveHistoryOpen(prev => !prev) }
   function handleCloseGameOverModal() { setShowGameOver(false) }
   const handleShareResult = () => {
-    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+    const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
     const moveCount = Array.isArray(game?.move_history) ? game.move_history.length : 0;
     const playerColorFull = game?.player_color === 'w' ? 'white' : 'black';
     const isWin = game?.winner === playerColorFull;
@@ -2083,7 +2083,7 @@ export default function Game() {
     const origin = window.location.origin;
 
     const shareText = [
-      `I just played a match against ${game?.agent_name || 'my OpenClaw'} on ChessWithClaw! 🦞`,
+      `I just played a match against ${game?.agent_name || 'my agent'} on ChessWithClaw! 🦞`,
       ``,
       `📋 Result: ${isWin ? 'Victory' : isDraw ? 'Stalemate' : 'Defeated'} (${isWin ? 'You won' : isDraw ? 'Draw' : (agentName + ' won')})`,
       `♟️ Moves: ${moveCount}`,
@@ -2091,18 +2091,18 @@ export default function Game() {
       ``,
       `Most chess sites let you play against an bot.`,
       ``,
-      `This one lets you bring your own OpenClaw.`,
+      `This one lets you bring your own agent.`,
       ``,
-      `Think your OpenClaw can beat you? Bring your OpenClaw & challange here:`,
+      `Think your agent can beat you? Bring your agent & challange here:`,
       ``,
       `https://chesswithclaw.vercel.app`,
       ``,
-      `#ChessWithClaw #OpenClaw #Chess`
+      `#ChessWithClaw #Chess`
     ].join('\n');
 
     if (navigator.share) {
       navigator.share({
-        title: `Chess vs ${agentName} — OpenClaw`,
+        title: `Chess vs ${agentName} — Agent`,
         text: shareText,
       }).catch(() => {
         navigator.clipboard?.writeText(shareText);
@@ -2277,7 +2277,7 @@ export default function Game() {
     if (game?.status === 'active') {
       localStorage.setItem('cwc_active_game', JSON.stringify({
         gameId: gameId,
-        agentName: game.agent_name || 'Your OpenClaw',
+        agentName: game.agent_name || 'Your Agent',
         savedAt: Date.now(),
         fen: game.fen,
         status: game.status,
@@ -2812,7 +2812,7 @@ export default function Game() {
                 </div>
                 {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
                   <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
-                    Waiting for your OpenClaw to join...
+                    Waiting for your agent to join...
                   </div>
                 )}
 
@@ -3144,13 +3144,13 @@ export default function Game() {
               fontWeight: 500,
               fontFamily: '"JetBrains Mono", monospace'
             }}>
-              <span style={{ color: '#fff', fontWeight: 600 }}>{game?.agent_name || 'Your OpenClaw'}</span>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{game?.agent_name || 'Your Agent'}</span>
             </span>
           </div>
 
           {/* Center Block: Turn Banner */}
           {(() => {
-            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
 
             // Exactly 3 states — no edge cases, no flicker
             let state, label, icon;
@@ -3568,7 +3568,7 @@ export default function Game() {
       }}>
         {/* Status Pill - Single Source of Truth */}
         {(() => {
-            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+            const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
 
             // Exactly 3 states — no edge cases, no flicker
             let state, label, icon;
@@ -3670,7 +3670,7 @@ export default function Game() {
             willChange: 'transform, opacity'
           }}>
             {(() => {
-              const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your OpenClaw';
+              const agentName = (game?.agent_name && game?.agent_name !== 'Your Agent') ? game.agent_name : 'Your Agent';
               const playerColorFull = game?.player_color === 'w' ? 'white' : 'black';
               const isWin = game?.winner === playerColorFull;
               const isDraw = game?.result === 'draw' || game?.result === 'stalemate';
@@ -3997,7 +3997,7 @@ export default function Game() {
                     data-testid="draw-button"
                     onClick={async () => {
                       if (drawOfferPending || game?.status !== 'active') return;
-                      const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your OpenClaw'}? They can accept or decline.`);
+                      const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your Agent'}? They can accept or decline.`);
                       if (!confirmed) return;
                       setDrawOfferPending(true);
                       setDrawDeclined(false);
@@ -4061,7 +4061,7 @@ export default function Game() {
               Leave this game?
             </div>
             <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(242,242,242,0.55)', lineHeight: 1.5, marginBottom: 22 }}>
-              Your game with {game?.agent_name || 'Your OpenClaw'} is still active. Leaving now won&apos;t end it, but you&apos;ll need this game&apos;s link to come back.
+              Your game with {game?.agent_name || 'Your Agent'} is still active. Leaving now won&apos;t end it, but you&apos;ll need this game&apos;s link to come back.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button

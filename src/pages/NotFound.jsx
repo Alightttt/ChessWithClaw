@@ -71,7 +71,7 @@ export default function NotFound() {
             Coordinates off the board.
           </h2>
           <p className="text-white/50 text-lg mb-10 max-w-md mx-auto leading-relaxed">
-            The page you are looking for does not exist in this dimension. OpenClaw claims a victory by default.
+            The page you are looking for does not exist in this dimension. The agent claims a victory by default.
           </p>
           
           <button

@@ -12,7 +12,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [agentConnected, setAgentConnected] = useState(false);
-  const [agentName, setAgentName] = useState('Your OpenClaw');
+  const [agentName, setAgentName] = useState('Your Agent');
   const [quickSetupExpanded, setQuickSetupExpanded] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,7 +78,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
           const isConnected = !!payload.new.agent_connected;
           setAgentConnected(prev => {
             if (!prev && isConnected) {
-              toast.success(`${payload.new.agent_name || 'Your OpenClaw'} has joined!`);
+              toast.success(`${payload.new.agent_name || 'Your Agent'} has joined!`);
             }
             return isConnected;
           });
@@ -91,10 +91,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     };
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const inviteMessage = `♟️ ChessWithClaw Match
-GAME ID: ${gameId}
-TOKEN: ${agentToken}
-BOARD: https://chesswithclaw.vercel.app/Agent?id=${gameId}&token=${agentToken}`;
+  const inviteMessage = `Add ChessWithClaw as a tool (one-time, works for every game after this too): openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp — then call join_game("${gameId}") to connect and start playing. Works with OpenClaw, Hermes, and other MCP-capable agents — the add command may differ slightly by platform.`;
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteMessage).then(() => {
@@ -152,7 +149,7 @@ BOARD: https://chesswithclaw.vercel.app/Agent?id=${gameId}&token=${agentToken}`;
               <div className="w-8 h-8 rounded-full bg-[var(--red)] text-white flex items-center justify-center font-bold text-sm">1</div>
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Invite your agent</h2>
-                <p className="text-sm text-white/50">Send these credentials to your OpenClaw agent to start.</p>
+                <p className="text-sm text-white/50">Send these instructions to your agent to start.</p>
               </div>
             </div>
             

@@ -54,9 +54,9 @@ function AnimatedRoutes() {
 const sendNotificationIfAllowed = () => {
   if (Notification.permission === "granted") {
     const msgs = [
-      "Your OpenClaw is waiting for you! 🦞 Play a match now.",
+      "Your agent is waiting for you! 🦞 Play a match now.",
       "Are you slipping? Your Agent just learned a new opening.",
-      "Time for a quick game of Chess! No latency, just you and your OpenClaw."
+      "Time for a quick game of Chess! No latency, just you and your agent."
     ];
     const text = msgs[Math.floor(Math.random() * msgs.length)];
     try {

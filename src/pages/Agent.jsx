@@ -71,7 +71,7 @@ export default function Agent() {
     document.head.appendChild(style);
   }, []);
 
-  const agentName = game?.agent_name || 'Your OpenClaw';
+  const agentName = game?.agent_name || 'Your Agent';
   const [loading, setLoading] = useState(true);
 
   const getCapturedPieces = (fenString) => {
@@ -332,7 +332,7 @@ export default function Agent() {
     
     // Step 3: Navigate to home to create fresh game
     // Do NOT try to navigate to /created/:id from here
-    // Let user click "Challenge Your OpenClaw" fresh
+    // Let user click "Challenge Your Agent" fresh
     navigate('/')
   }
 
@@ -629,7 +629,7 @@ export default function Agent() {
 
   useEffect(() => {
     if (!game) return;
-    const agentName = game?.agent_name || 'Your OpenClaw';
+    const agentName = game?.agent_name || 'Your Agent';
     if (game.status === 'finished' || game.status === 'abandoned') {
       document.title = 'ChessWithClaw';
     } else if (game.turn === (game?.player_color || 'w')) {
@@ -833,7 +833,7 @@ export default function Agent() {
     if (!game || game.turn !== (game?.player_color || 'w') || (game.status !== 'active' && game.status !== 'waiting')) return;
     if (boardLocked || submittingRef.current) return;
     
-    const agentName = game?.agent_name || 'Your OpenClaw';
+    const agentName = game?.agent_name || 'Your Agent';
     
     if (!agentToken) {
       toast.error('You are not the creator of this game.');
@@ -1133,7 +1133,7 @@ export default function Agent() {
     if (game?.status === 'active') {
       localStorage.setItem('cwc_active_game', JSON.stringify({
         gameId: gameId,
-        agentName: game.agent_name || 'Your OpenClaw',
+        agentName: game.agent_name || 'Your Agent',
         savedAt: Date.now(),
         fen: game.fen
       }));
@@ -1558,7 +1558,7 @@ export default function Agent() {
             </div>
             
             {agentDisconnected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ Agent seems idle...</div>
             )}
             
             {visibleThought && (
@@ -1783,7 +1783,7 @@ export default function Agent() {
             </div>
             
             {agentDisconnected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ OpenClaw seems idle...</div>
+               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ Agent seems idle...</div>
             )}
             
             {visibleThought && (
@@ -2019,7 +2019,7 @@ export default function Agent() {
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="game-status">{game.status}</div>
       <div style={{ position: 'absolute', opacity: 0.01, width: 1, height: 1, overflow: 'hidden', zIndex: -1 }} data-testid="turn-indicator">
         {(() => {
-          const agentName = game?.agent_name || 'Your OpenClaw';
+          const agentName = game?.agent_name || 'Your Agent';
           if (game?.status === 'waiting' || !game?.agent_connected) return `Waiting for ${agentName}`;
           if (trueTurn === 'white') return 'Your Turn';
           return `${agentName} is thinking`;
@@ -2048,7 +2048,7 @@ export default function Agent() {
               {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242,242,242,0.5)', fontSize: '14px', marginBottom: '24px' }}>
-                {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? <>Well played. Your OpenClaw salutes you. <LobsterEmoji /></> :
+                {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? <>Well played. Your agent salutes you. <LobsterEmoji /></> :
                  game?.result === 'draw' ? 'An equal battle. Honor to both sides.' :
                  `${agentName} proved their worth today.`}
               </div>
@@ -2168,7 +2168,7 @@ export default function Agent() {
               </button>
             </div>
             <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]">
-              <label className="text-sm text-[var(--color-text-secondary)]">OpenClaw Thoughts Language</label>
+              <label className="text-sm text-[var(--color-text-secondary)]">Agent Thoughts Language</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { value: 'english', label: 'English' },
@@ -2294,7 +2294,7 @@ export default function Agent() {
           <div style={{ background: '#111111', border: '1px solid #222222', borderRadius: '16px', padding: '32px 24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
             <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, color: '#f2f2f2', margin: '0 0 12px 0', fontSize: '20px' }}>Leave the game?</h2>
             <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, color: '#555555', fontSize: '14px', margin: '0 0 24px 0', lineHeight: 1.4 }}>
-              Your OpenClaw is still waiting. The game will continue where you left off.
+              Your agent is still waiting. The game will continue where you left off.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button 
