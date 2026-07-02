@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@supabase/supabase-js": "^2.98.0",
     "chess.js": "^0.13.4",
     "clsx": "^2.1.0",
@@ -34,7 +35,8 @@
     "slot-text": "^0.3.1",
     "sonner": "^1.4.3",
     "tailwind-merge": "^2.2.1",
-    "torph": "^0.0.9"
+    "torph": "^0.0.9",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@gravity-ui/icons": "^2.18.0",
