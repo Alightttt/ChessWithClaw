@@ -35,7 +35,7 @@ ${messagesToAnalyze.map(m => `- ${m}`).join('\n')}
 Pick exactly one quote. Keep it brief. Do not add quotes around it. Return ONLY the text of the quote, nothing else.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: prompt
     });
 

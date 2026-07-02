@@ -1255,7 +1255,8 @@ export default function Agent() {
                 marginBottom: '2px',
                 paddingBottom: (myReaction || agentReaction) ? '18px' : '4px',
                 position: 'relative',
-                animation: isNew ? 'msgIn 0.2s ease-out' : 'none'
+                animation: isNew ? 'msgIn 0.2s ease-out' : 'none',
+                willChange: 'transform, opacity'
               }}
             >
               {/* Agent name above first bubble in group */}
@@ -1324,6 +1325,7 @@ export default function Agent() {
                         borderRadius: '100px',
                         padding: '1px 6px',
                         animation: 'reactionPop 0.3s ease-out',
+                        willChange: 'transform, opacity',
                         cursor: 'pointer'
                       }}
                       onClick={(e) => {
@@ -1357,7 +1359,8 @@ export default function Agent() {
                     borderRadius: '100px', padding: '8px 12px',
                     marginTop: '6px',
                     alignSelf: 'flex-start',
-                    animation: 'pickerIn 0.15s ease-out'
+                    animation: 'pickerIn 0.15s ease-out',
+                    willChange: 'transform, opacity'
                   }}
                   onClick={e => e.stopPropagation()}
                 >
@@ -1547,11 +1550,11 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>{game?.agent_avatar || '🦞'}</div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1, willChange: 'transform, opacity' }}>{game?.agent_avatar || '🦞'}</div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}), willChange: 'transform, opacity' }} />
             </div>
             
             {agentDisconnected && (
@@ -1566,7 +1569,9 @@ export default function Agent() {
                 fontFamily: "'Inter', sans-serif",
                 lineHeight: '1.5',
                 maxWidth: '100%',
-                wordBreak: 'break-word'
+                wordBreak: 'break-word',
+                animation: 'messageIn 0.3s ease-out forwards',
+                willChange: 'transform, opacity'
               }}>
                 {visibleThought}
               </div>
@@ -1770,11 +1775,11 @@ export default function Agent() {
         
         {/* A) AGENT CARD */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1 }}>{game?.agent_avatar || '🦞'}</div>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1, willChange: 'transform, opacity' }}>{game?.agent_avatar || '🦞'}</div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}) }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}), willChange: 'transform, opacity' }} />
             </div>
             
             {agentDisconnected && (
@@ -1789,7 +1794,9 @@ export default function Agent() {
                 fontFamily: "'Inter', sans-serif",
                 lineHeight: '1.5',
                 maxWidth: '100%',
-                wordBreak: 'break-word'
+                wordBreak: 'break-word',
+                animation: 'messageIn 0.3s ease-out forwards',
+                willChange: 'transform, opacity'
               }}>
                 {visibleThought}
               </div>
@@ -1867,7 +1874,7 @@ export default function Agent() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>You</span>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#666' }}>
-              {game?.player_color === 'w' ? 'White' : 'Black'} · {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
+              {game?.turn === (game?.player_color || 'w') ? 'your turn' : 'waiting'}
             </span>
           </div>
           {(youCaptured.length > 0 || youAdvantage > 0) && (
@@ -2034,14 +2041,14 @@ export default function Agent() {
             <button data-testid="close-game-over-modal" onClick={handleCloseGameOverModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
               <XIcon size={18} />
             </button>
-            <div style={{ fontSize: '56px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }} className={game?.result === (game?.player_color === 'b' ? 'white' : 'black') ? 'animate-pulse' : ''}>
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : <LobsterEmoji />}
+            <div style={{ fontSize: '56px', marginBottom: '16px', display: 'flex', justifyContent: 'center' }} className={game?.winner === (game?.player_color === 'w' ? 'black' : 'white') ? 'animate-pulse' : ''}>
+              {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? <span style={{ color: '#739552' }}>♛</span> : game?.result === 'draw' ? '🤝' : <LobsterEmoji />}
             </div>
             <div className="font-sans text-3xl text-white mb-2 font-bold tracking-wide">
-              {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
+              {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? 'You Won!' : game?.result === 'draw' ? "Draw!" : `${agentName} Wins!`}
             </div>
               <div style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(242,242,242,0.5)', fontSize: '14px', marginBottom: '24px' }}>
-                {game?.result === (game?.player_color === 'b' ? 'black' : 'white') ? <>Well played. Your OpenClaw salutes you. <LobsterEmoji /></> :
+                {game?.winner === (game?.player_color === 'w' ? 'white' : 'black') ? <>Well played. Your OpenClaw salutes you. <LobsterEmoji /></> :
                  game?.result === 'draw' ? 'An equal battle. Honor to both sides.' :
                  `${agentName} proved their worth today.`}
               </div>
