@@ -70,6 +70,32 @@ export default function Rival() {
 
         setStats({ wins, losses, draws, total: games.length });
         
+        // Fetch server-side bond for cross-device record
+        const agentToken = games[0]?.agent_token;
+        if (agentToken) {
+          let humanId = localStorage.getItem('cwc_human_id');
+          if (!humanId) {
+            humanId = 'h_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('cwc_human_id', humanId);
+          }
+          try {
+            const bondRes = await fetch(`/api/social?type=bond&agent_token=${agentToken}&human_id=${humanId}`);
+            if (bondRes.ok) {
+              const bondData = await bondRes.json();
+              if (bondData && bondData.games_played !== undefined) {
+                 setStats({
+                   wins: bondData.wins || 0,
+                   losses: bondData.losses || 0,
+                   draws: bondData.draws || 0,
+                   total: bondData.games_played || 0
+                 });
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch bond:', err);
+          }
+        }
+        
         // Shuffle and pick top 3 quotes
         allQuotes = allQuotes.sort(() => 0.5 - Math.random()).slice(0, 3);
         setQuotes(allQuotes);

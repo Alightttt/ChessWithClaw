@@ -482,6 +482,14 @@ module.exports = async function handler(req, res) {
     }).eq('id', targetGameId);
   }
 
+  if (isHumanMove && nextTurn === 'b' && game.agent_webhook_url) {
+    fetch(game.agent_webhook_url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'your_turn', game_id: id })
+    }).catch(err => console.error("agent_webhook_url error:", err));
+  }
+
   if (isHumanMove && game.webhook_url && newStatus !== 'finished') {
     const webhookUrl = game.webhook_url;
     let verboseMoves = [];

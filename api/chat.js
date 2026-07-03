@@ -256,6 +256,14 @@ module.exports = async function handler(req, res) {
     await supabase.from('games').update(updates).eq('id', gameId);
   }
 
+  if (sender === 'human' && game.agent_webhook_url) {
+    fetch(game.agent_webhook_url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'human_said_something', game_id: gameId, message: text })
+    }).catch(err => console.error("agent_webhook_url error:", err));
+  }
+
   const savedMessage = newMsg;
   const updatedChatHistory = newHistory;
   return res.status(200).json({

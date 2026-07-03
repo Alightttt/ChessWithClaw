@@ -33,6 +33,24 @@ module.exports = async function handler(req, res) {
 </head>
 <body>Redirecting...</body>
 </html>`);
+  } else if (type === 'bond') {
+    const { agent_token, human_id } = req.query;
+    if (!agent_token || !human_id) {
+      return res.status(400).json({ error: 'Missing agent_token or human_id' });
+    }
+    const supabase = createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data: bond, error } = await supabase
+      .from('bonds')
+      .select('*')
+      .eq('agent_token', agent_token)
+      .eq('human_id', human_id)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching bond:', error);
+      return res.status(500).json({ error: 'Failed to fetch bond' });
+    }
+    return res.status(200).json(bond || null);
   } else if (type === 'quote') {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
