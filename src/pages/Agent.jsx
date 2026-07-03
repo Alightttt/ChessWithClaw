@@ -1549,45 +1549,82 @@ export default function Agent() {
             
         
         {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#111111', border: '1px solid #1a1a1a', borderRadius: '12px', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1, willChange: 'transform, opacity' }}>{game?.agent_avatar || '🦞'}</div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}), willChange: 'transform, opacity' }} />
-            </div>
-            
-            {agentDisconnected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ Agent seems idle...</div>
-            )}
-            
-            {visibleThought && (
-              <div style={{
-                padding: '12px 16px',
-                color: '#888888',
-                fontSize: '14px',
-                fontFamily: "'Inter', sans-serif",
-                lineHeight: '1.5',
-                maxWidth: '100%',
-                wordBreak: 'break-word',
-                animation: 'messageIn 0.3s ease-out forwards',
-                willChange: 'transform, opacity'
+        {(() => {
+          const agentHealth = (() => {
+            if (!agentConnected || !game?.agent_last_seen) return 'red';
+            const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+            if (secs < 45) return 'green';
+            if (secs <= 180) return 'amber';
+            return 'red';
+          })();
+          const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+          const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
+
+          return (
+            <div style={{ 
+              flexShrink: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              padding: '12px 16px', 
+              background: '#111111', 
+              border: `2px solid ${healthColor}`, 
+              borderRadius: '12px', 
+              boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
+              animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
+              transition: 'box-shadow 0.7s ease, border-color 0.3s ease' 
+            }}>
+              <span style={{
+                fontSize: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : 'none',
+                opacity: agentJustConnected ? 0 : 1,
               }}>
-                {visibleThought}
-              </div>
-            )}
-          </div>
-          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-              {agentCaptured.map((p, i) => (
-                <span key={i} style={{ marginLeft: '-4px' }}>
-                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                {game?.agent_avatar || '🦞'}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                  {agentName}
                 </span>
-              ))}
-              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                  {agentStatusText}
+                </div>
+              </div>
+              
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                <div style={{
+                  opacity: visibleThought ? 1 : 0,
+                  transition: 'opacity 0.4s ease',
+                  fontStyle: 'italic',
+                  fontSize: 13,
+                  color: 'rgba(242,242,242,0.6)',
+                  lineHeight: 1.5,
+                  textAlign: 'right',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {visibleThought ? `"${visibleThought}"` : ''}
+                </div>
+              </div>
+              
+              {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white', flexShrink: 0, marginLeft: '8px' }}>
+                  {agentCaptured.map((p, i) => (
+                    <span key={i} style={{ marginLeft: '-4px' }}>
+                      {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                    </span>
+                  ))}
+                  {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
             
 
         {/* B) CHESS BOARD */}
@@ -1774,45 +1811,83 @@ export default function Agent() {
             
         
         {/* A) AGENT CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#0e0e0e', borderBottom: '1px solid #111', boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', transition: 'box-shadow 0.7s ease' }}>
-          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #1a0000, #2a0606)', border: '2px solid rgba(230,57,70,0.5)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : (isOpenClawTurn ? 'clawPulse 1.8s ease-in-out infinite' : 'none'), opacity: agentJustConnected ? 0 : 1, willChange: 'transform, opacity' }}>{game?.agent_avatar || '🦞'}</div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: visibleThought ? '2px' : '0' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agentName}</span>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: agentConnected ? '#22c55e' : '#444444', boxShadow: agentConnected ? '0 0 6px rgba(34,197,94,0.4)' : 'none', flexShrink: 0, ...(agentJustConnected ? { background: '#39d353', width: '10px', height: '10px', transition: 'all 0.3s' } : {}), willChange: 'transform, opacity' }} />
-            </div>
-            
-            {agentDisconnected && (
-               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', fontFamily: "'Inter', sans-serif" }}>⚠️ Agent seems idle...</div>
-            )}
-            
-            {visibleThought && (
-              <div style={{
-                padding: '12px 16px',
-                color: '#888888',
-                fontSize: '14px',
-                fontFamily: "'Inter', sans-serif",
-                lineHeight: '1.5',
-                maxWidth: '100%',
-                wordBreak: 'break-word',
-                animation: 'messageIn 0.3s ease-out forwards',
-                willChange: 'transform, opacity'
+        {(() => {
+          const agentHealth = (() => {
+            if (!agentConnected || !game?.agent_last_seen) return 'red';
+            const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+            if (secs < 45) return 'green';
+            if (secs <= 180) return 'amber';
+            return 'red';
+          })();
+          const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+          const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
+
+          return (
+            <div style={{ 
+              flexShrink: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              padding: '12px 16px', 
+              background: '#111111', 
+              border: `2px solid ${healthColor}`, 
+              borderRadius: '12px', 
+              boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
+              animation: isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none',
+              transition: 'box-shadow 0.7s ease, border-color 0.3s ease',
+              margin: '12px'
+            }}>
+              <span style={{
+                fontSize: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                animation: agentJustConnected ? 'agentArrive 0.8s ease-out forwards' : 'none',
+                opacity: agentJustConnected ? 0 : 1,
               }}>
-                {visibleThought}
-              </div>
-            )}
-          </div>
-          {(agentCaptured.length > 0 || agentAdvantage > 0) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white' }}>
-              {agentCaptured.map((p, i) => (
-                <span key={i} style={{ marginLeft: '-4px' }}>
-                  {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                {game?.agent_avatar || '🦞'}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                  {agentName}
                 </span>
-              ))}
-              {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                  {agentStatusText}
+                </div>
+              </div>
+              
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                <div style={{
+                  opacity: visibleThought ? 1 : 0,
+                  transition: 'opacity 0.4s ease',
+                  fontStyle: 'italic',
+                  fontSize: 13,
+                  color: 'rgba(242,242,242,0.6)',
+                  lineHeight: 1.5,
+                  textAlign: 'right',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {visibleThought ? `"${visibleThought}"` : ''}
+                </div>
+              </div>
+              
+              {(agentCaptured.length > 0 || agentAdvantage > 0) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '16px', color: 'white', flexShrink: 0, marginLeft: '8px' }}>
+                  {agentCaptured.map((p, i) => (
+                    <span key={i} style={{ marginLeft: '-4px' }}>
+                      {game?.player_color === 'w' ? whitePieceMap[p] : blackPieceMap[p]}
+                    </span>
+                  ))}
+                  {agentAdvantage > 0 && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px', fontWeight: 'bold' }}>+{agentAdvantage}</span>}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
             
 
         {/* B) CHESS BOARD */}

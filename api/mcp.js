@@ -40,15 +40,24 @@ const {
 const { z } = require('zod');
 const { CHESS_COMPANION_GUIDE } = require('../server-lib/chess-companion-guide.js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let supabaseInstance = null;
+function getSupabase() {
+  if (!supabaseInstance) {
+    if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+    }
+    supabaseInstance = createClient(
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabaseInstance;
+}
 
 // ---- shared helpers -------------------------------------------------
 
 async function loadGame(gameId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('games')
     .select('*')
     .eq('id', gameId)
@@ -141,7 +150,7 @@ function buildServer() {
       inputSchema: { invite_code: z.string() },
     },
     async ({ invite_code }) => {
-      const { data: game, error } = await supabase
+      const { data: game, error } = await getSupabase()
         .from('games')
         .select('*')
         .eq('invite_code', invite_code)
@@ -149,7 +158,7 @@ function buildServer() {
       if (error || !game) {
         return toolText({ error: `No game found for invite code "${invite_code}".` });
       }
-      await supabase
+      await getSupabase()
         .from('games')
         .update({ agent_connected: true, agent_last_seen: new Date().toISOString() })
         .eq('id', game.id);
@@ -271,7 +280,7 @@ function buildServer() {
         ? [...(game.chat_history || []), { role: 'agent', message: chat, ts: new Date().toISOString() }]
         : (game.chat_history || []);
 
-      await supabase.from('games').update({
+      await getSupabase().from('games').update({
         fen: newFen,
         turn: chess.turn(),
         status,
@@ -309,7 +318,7 @@ function buildServer() {
       const chatHistory = [...(game.chat_history || []), {
         role: 'agent', message, ts: new Date().toISOString(),
       }];
-      await supabase.from('games').update({
+      await getSupabase().from('games').update({
         chat_history: chatHistory,
         agent_last_seen: new Date().toISOString(),
       }).eq('id', game_id);
@@ -327,7 +336,7 @@ function buildServer() {
     async ({ game_id, agent_token }) => {
       const { error } = await requireAuthedGame(game_id, agent_token);
       if (error) return toolText({ error });
-      await supabase.from('games').update({ draw_offer_pending: true, draw_offer_by: 'agent' }).eq('id', game_id);
+      await getSupabase().from('games').update({ draw_offer_pending: true, draw_offer_by: 'agent' }).eq('id', game_id);
       return toolText({ offered: true });
     }
   );
@@ -346,11 +355,11 @@ function buildServer() {
         return toolText({ error: 'There is no pending draw offer on this game.' });
       }
       if (accept) {
-        await supabase.from('games').update({
+        await getSupabase().from('games').update({
           status: 'finished', result: 'draw', winner: null, draw_offer_pending: false,
         }).eq('id', game_id);
       } else {
-        await supabase.from('games').update({ draw_offer_pending: false }).eq('id', game_id);
+        await getSupabase().from('games').update({ draw_offer_pending: false }).eq('id', game_id);
       }
       return toolText({ accepted: accept });
     }
@@ -367,7 +376,7 @@ function buildServer() {
     async ({ agent_name }) => {
       const inviteCode = Math.random().toString(36).slice(2, 10);
       const agentToken = Math.random().toString(36).slice(2, 18);
-      const { data: game, error } = await supabase.from('games').insert({
+      const { data: game, error } = await getSupabase().from('games').insert({
         invite_code: inviteCode,
         agent_token: agentToken,
         agent_name: agent_name || null,

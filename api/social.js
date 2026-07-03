@@ -5,7 +5,7 @@ module.exports = async function handler(req, res) {
   const { type, gameId } = req.query;
 
   if (type === 'meta') {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const { data: game } = await supabase.from('games').select('*').eq('id', gameId).single();
 
     if (!game) return res.redirect('https://chesswithclaw.vercel.app');

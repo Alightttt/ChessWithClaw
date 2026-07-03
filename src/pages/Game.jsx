@@ -813,14 +813,30 @@ export default function Game() {
   const [displayedEmoji, setDisplayedEmoji] = useState('🦞');
   const [emojiAnimating, setEmojiAnimating] = useState(false);
 
+  const emojiHoldRef = useRef({ moveCount: 0, emoji: '🦞' });
   useEffect(() => {
     if (moodEmoji === displayedEmoji) return;
+    
+    if (game?.in_check && (moodEmoji === '😰' || moodEmoji === '😤')) {
+      emojiHoldRef.current = { moveCount: game?.move_history?.length || 0, emoji: moodEmoji };
+      setDisplayedEmoji(moodEmoji);
+      setEmojiAnimating(true);
+      setTimeout(() => setEmojiAnimating(false), 300);
+      return;
+    }
+
+    const currentMoveCount = game?.move_history?.length || 0;
+    if (game?.status !== 'finished' && currentMoveCount - emojiHoldRef.current.moveCount < 3 && emojiHoldRef.current.moveCount !== 0) {
+      return;
+    }
+
+    emojiHoldRef.current = { moveCount: currentMoveCount, emoji: moodEmoji };
     setDisplayedEmoji(moodEmoji);
     setEmojiAnimating(true);
     setTimeout(() => {
       setEmojiAnimating(false);
     }, 300);
-  }, [moodEmoji, displayedEmoji]);
+  }, [moodEmoji, displayedEmoji, game?.move_history, game?.in_check, game?.status]);
 
   // STEP 2 — In the section where customSquareStyles is built (where dots and rings for legal moves are added), add this block at the very END, after all other square styles are set:
   const getCustomSquareStylesForCheck = () => {
@@ -2763,75 +2779,79 @@ export default function Game() {
           <div style={{ width: 'min(58%, calc(100dvh - 52px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '8px', overflow: 'hidden' }}>
             
             {/* A) AGENT CARD */}
-            <div style={{ 
-              flexShrink: 0, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px', 
-              padding: '12px 16px', 
-              background: '#111111', 
-              border: '1px solid rgba(255,255,255,0.06)', 
-              borderRadius: '12px', 
-              boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
-              animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
-              transition: 'box-shadow 0.7s ease' 
-            }}>
-              <span style={{
-                fontSize: 26,
-                display: 'inline-block',
-                userSelect: 'none',
-                transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}>
-                {displayedEmoji}
-              </span>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <button 
-                    onClick={() => navigate(`/rival/${agentName}`)}
-                    className="hover:text-[#e63946] transition-colors"
-                    title={`View ${agentName}'s Rival Page`}
-                    style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent' }}
-                    onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
-                    onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
-                  >
-                    {agentName}
-                  </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <motion.div
-                      initial={{ scale: 0.3, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            {(() => {
+              const agentHealth = (() => {
+                if (!game?.agent_connected || !game?.agent_last_seen) return 'red';
+                const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+                if (secs < 45) return 'green';
+                if (secs <= 180) return 'amber';
+                return 'red';
+              })();
+              const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+              const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
+
+              return (
+                <div style={{ 
+                  flexShrink: 0, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '12px 16px', 
+                  background: '#111111', 
+                  border: `2px solid ${healthColor}`, 
+                  borderRadius: '12px', 
+                  boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
+                  animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
+                  transition: 'box-shadow 0.7s ease, border-color 0.3s ease' 
+                }}>
+                  <span style={{
+                    fontSize: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    userSelect: 'none',
+                    transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
+                    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  }}>
+                    {displayedEmoji}
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
+                    <button 
+                      onClick={() => navigate(`/rival/${agentName}`)}
+                      className="hover:text-[#e63946] transition-colors"
+                      title={`View ${agentName}'s Rival Page`}
+                      style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent', textAlign: 'left' }}
+                      onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
+                      onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
                     >
-                      <div style={{ ...dotStyle, flexShrink: 0 }} />
-                    </motion.div>
-                    <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(242,242,242,0.5)' }}>
-                      <SlotText text={statusLabel} animation="snappy" />
+                      {agentName}
+                    </button>
+                    <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                      {agentStatusText}
+                    </div>
+                  </div>
+                  
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                    <div style={{
+                      opacity: thoughtVisible ? 1 : 0,
+                      transform: thoughtVisible ? 'translateY(0)' : 'translateY(6px)',
+                      transition: 'opacity 0.4s ease, transform 0.4s ease',
+                      fontStyle: 'italic',
+                      fontSize: 13,
+                      color: 'rgba(242,242,242,0.6)',
+                      lineHeight: 1.5,
+                      textAlign: 'right',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {thoughtText ? `"${thoughtText}"` : ''}
                     </div>
                   </div>
                 </div>
-                {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
-                  <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
-                    Waiting for your agent to join...
-                  </div>
-                )}
-
-              </div>
-              <div style={{
-                opacity: thoughtVisible ? 1 : 0,
-                transform: thoughtVisible ? 'translateY(0)' : 'translateY(6px)',
-                transition: 'opacity 0.4s ease, transform 0.4s ease',
-                fontStyle: 'italic',
-                fontSize: 13,
-                color: 'rgba(242,242,242,0.6)',
-                lineHeight: 1.5,
-                marginTop: 4,
-                minHeight: 20,
-                textAlign: 'right',
-              }}>
-                {thoughtText ? `"${thoughtText}"` : ''}
-              </div>
-            </div>
+              );
+            })()}
                 
             
             {/* B) CHESS BOARD AND EVALUATION ROW */}
@@ -3237,75 +3257,79 @@ export default function Game() {
             
         
         {/* A) AGENT CARD */}
-        <div style={{ 
-          flexShrink: 0, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px', 
-          padding: '12px 16px', 
-          background: '#111111', 
-          border: '1px solid rgba(255,255,255,0.06)', 
-          borderRadius: '12px', 
-          boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
-          animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
-          transition: 'box-shadow 0.7s ease',
-          margin: '12px'
-        }}>
-          <span style={{
-            fontSize: 26,
-            display: 'inline-block',
-            userSelect: 'none',
-            transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
-            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}>
-            {displayedEmoji}
-          </span>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => navigate(`/rival/${agentName}`)}
-                className="hover:text-[#e63946] transition-colors"
-                title={`View ${agentName}'s Rival Page`}
-                style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent' }}
-                onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
-                onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
-              >
-                {agentName}
-              </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <motion.div
-                  initial={{ scale: 0.3, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+        {(() => {
+          const agentHealth = (() => {
+            if (!game?.agent_connected || !game?.agent_last_seen) return 'red';
+            const secs = (Date.now() - new Date(game.agent_last_seen).getTime()) / 1000;
+            if (secs < 45) return 'green';
+            if (secs <= 180) return 'amber';
+            return 'red';
+          })();
+          const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+          const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
+
+          return (
+            <div style={{ 
+              flexShrink: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              padding: '12px 16px', 
+              background: '#111111', 
+              border: `2px solid ${healthColor}`, 
+              borderRadius: '12px', 
+              boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
+              animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
+              transition: 'box-shadow 0.7s ease, border-color 0.3s ease',
+              margin: '12px'
+            }}>
+              <span style={{
+                fontSize: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                userSelect: 'none',
+                transform: emojiAnimating ? 'scale(1.35)' : 'scale(1)',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}>
+                {displayedEmoji}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
+                <button 
+                  onClick={() => navigate(`/rival/${agentName}`)}
+                  className="hover:text-[#e63946] transition-colors"
+                  title={`View ${agentName}'s Rival Page`}
+                  style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent', textAlign: 'left' }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
                 >
-                  <div style={{ ...dotStyle, flexShrink: 0 }} />
-                </motion.div>
-                <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(242,242,242,0.5)' }}>
-                  <SlotText text={statusLabel} animation="snappy" />
+                  {agentName}
+                </button>
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                  {agentStatusText}
+                </div>
+              </div>
+              
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                <div style={{
+                  opacity: thoughtVisible ? 1 : 0,
+                  transition: 'opacity 0.4s ease',
+                  fontStyle: 'italic',
+                  fontSize: 13,
+                  color: 'rgba(242,242,242,0.6)',
+                  lineHeight: 1.5,
+                  textAlign: 'right',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {thoughtText ? `"${thoughtText}"` : ''}
                 </div>
               </div>
             </div>
-            {!game?.agent_connected && game?.status !== 'finished' && game?.status !== 'abandoned' && (
-              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.35)', fontFamily: "'Inter', sans-serif", marginTop: '2px' }}>
-                Waiting for your OpenClaw to join...
-              </div>
-            )}
-
-          </div>
-          <div style={{
-            opacity: thoughtVisible ? 1 : 0,
-            transition: 'opacity 0.4s ease',
-            fontStyle: 'italic',
-            fontSize: 13,
-            color: 'rgba(242,242,242,0.6)',
-            lineHeight: 1.5,
-            marginTop: 4,
-            minHeight: 20,
-            textAlign: 'right',
-          }}>
-            {thoughtText ? `"${thoughtText}"` : ''}
-          </div>
-        </div>
+          );
+        })()}
 
         {/* B) CHESS BOARD */}
         <div style={{ width: '100%', flexShrink: 0, position: 'relative', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
