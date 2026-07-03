@@ -1364,13 +1364,13 @@ export default function Game() {
     }
     
     heartbeatRef.current = safeInterval(() => {
-      fetch('/api/heartbeat', {
+      fetch('/api/actions', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
-        body: JSON.stringify({ id: gameId, role: 'human' })
+        body: JSON.stringify({ gameId: gameId, action: 'heartbeat', role: 'human' })
       }).catch(() => {});
       
       // Poll game state if it's the agent's turn to catch missed real-time events, but only if visible!
@@ -1639,7 +1639,7 @@ export default function Game() {
   useEffect(() => {
     if ((game?.status === 'finished' || game?.status === 'abandoned') && !bestQuote && !isGeneratingQuote) {
       setIsGeneratingQuote(true);
-      fetch('/api/quote', {
+      fetch('/api/social?type=quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

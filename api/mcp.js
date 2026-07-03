@@ -38,7 +38,7 @@ const {
   WebStandardStreamableHTTPServerTransport,
 } = require('@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js');
 const { z } = require('zod');
-const { CHESS_COMPANION_GUIDE } = require('./chess-companion-guide.js');
+const { CHESS_COMPANION_GUIDE } = require('../server-lib/chess-companion-guide.js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

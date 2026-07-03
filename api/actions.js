@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
   const gameToken = req.headers['x-game-token'];
 
   const validActions = [
-    'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language', 'set_board_theme', 'set_piece_style'
+    'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language', 'set_board_theme', 'set_piece_style', 'heartbeat'
   ];
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: 'Invalid action', allowed: validActions });
@@ -55,7 +55,10 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    if (game.status === 'finished') {
+    if (game.status === 'finished' || game.status === 'abandoned') {
+      if (action === 'heartbeat') {
+        return res.status(200).json({ alive: false, status: game.status });
+      }
       return res.status(400).json({ error: 'Game is already over', code: 'GAME_FINISHED' });
     }
 
@@ -114,6 +117,24 @@ module.exports = async function handler(req, res) {
       updates.board_theme = value;
     } else if (action === 'set_piece_style') {
       updates.piece_style = value;
+    } else if (action === 'heartbeat') {
+      if (role === 'agent') {
+        updates = {
+          agent_last_seen: now,
+          agent_connected: true,
+          updated_at: now
+        };
+        const incomingName = req.headers['x-agent-name'];
+        if (incomingName && (!game.agent_name || game.agent_name === 'Your OpenClaw' || game.agent_name === 'Your Agent')) {
+          updates.agent_name = incomingName;
+        }
+      } else {
+        updates = {
+          player_last_seen: now,
+          player_connected: true,
+          updated_at: now
+        };
+      }
     }
 
     if (chatText) {
@@ -135,6 +156,17 @@ module.exports = async function handler(req, res) {
     if (updateError) {
       console.error('Supabase update error:', updateError);
       return res.status(500).json({ error: 'Database update failed', detail: updateError.message });
+    }
+
+    if (action === 'heartbeat') {
+      return res.status(200).json({ 
+        success: true, 
+        alive: true,
+        agent_connected: true,
+        status: game.status, 
+        turn: game.turn, 
+        role: role
+      });
     }
 
     return res.status(200).json({ success: true, action, result });

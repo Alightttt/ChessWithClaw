@@ -573,13 +573,13 @@ export default function Agent() {
     }
     
     const heartbeatInterval = setInterval(() => {
-      fetch('/api/heartbeat', {
+      fetch('/api/actions', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-agent-token': agentToken || ''
         },
-        body: JSON.stringify({ id: gameId, role: 'agent' })
+        body: JSON.stringify({ gameId: gameId, action: 'heartbeat', role: 'agent' })
       }).catch(() => {});
       
       // Poll game state if it's the agent's turn to catch missed real-time events
