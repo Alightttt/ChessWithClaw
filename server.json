@@ -1,0 +1,8 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.alightttt/chesswithclaw",
+  "description": "Play chess live against your own personal AI agent — OpenClaw, Hermes, and similar.",
+  "repository": { "url": "https://github.com/Alightttt/ChessWithClaw", "source": "github" },
+  "version": "1.0.0",
+  "remotes": [{ "type": "streamable-http", "url": "https://chesswithclaw.vercel.app/api/mcp" }]
+}
