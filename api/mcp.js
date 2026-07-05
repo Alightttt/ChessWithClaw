@@ -101,6 +101,7 @@ async function boardAscii(fen) {
 async function serializeGameState(game) {
   return {
     game_id: game.id,
+        invite_code: game.id,
     fen: game.fen,
     turn: game.turn,
     status: game.status,
@@ -162,7 +163,7 @@ function buildServer() {
       const { data: game, error } = await getSupabase()
         .from('games')
         .select('*')
-        .eq('invite_code', invite_code)
+        .eq('id', invite_code)
         .single();
       if (error || !game) {
         return toolText({ error: `No game found for invite code "${invite_code}".` });
@@ -173,6 +174,7 @@ function buildServer() {
         .eq('id', game.id);
       return toolText({
         game_id: game.id,
+        invite_code: game.id,
         agent_token: game.agent_token,
         message: `Connected. You're playing against ${game.human_name || 'your human'}. Call get_game_state any time to see the current position.`,
         state: await serializeGameState(game),
@@ -386,10 +388,8 @@ function buildServer() {
     },
     async ({ agent_name }) => {
       const Chess = await getChessClass();
-      const inviteCode = Math.random().toString(36).slice(2, 10);
       const agentToken = Math.random().toString(36).slice(2, 18);
       const { data: game, error } = await getSupabase().from('games').insert({
-        invite_code: inviteCode,
         agent_token: agentToken,
         agent_name: agent_name || null,
         fen: new Chess().fen(),
@@ -402,7 +402,7 @@ function buildServer() {
       if (error) return toolText({ error: 'Could not create game.' });
       return toolText({
         game_id: game.id,
-        invite_code: inviteCode,
+        invite_code: game.id,
         agent_token: agentToken,
         share_url: `https://chesswithclaw.vercel.app/created/${game.id}`,
         message: 'Game created. Share the share_url (or invite_code) with your human to start.',
