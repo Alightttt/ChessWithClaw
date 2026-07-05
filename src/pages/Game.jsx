@@ -447,6 +447,7 @@ export default function Game() {
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
+  const [showAwayTooltip, setShowAwayTooltip] = useState(() => localStorage.getItem('cwc_away_tooltip_dismissed') !== 'true');
 
   const bgmGainRef = useRef(null);
   const bgmSourceRef = useRef(null);
@@ -2826,8 +2827,21 @@ export default function Game() {
                     >
                       {agentName}
                     </button>
-                    <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                    <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                       {agentStatusText}
+                      {agentStatusText === 'AWAY' && showAwayTooltip && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, marginTop: '8px',
+                          background: '#222', border: '1px solid #333', borderRadius: '8px',
+                          padding: '12px', width: '250px', zIndex: 100,
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                          color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
+                          textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
+                        }}>
+                          Away just means it's not actively watching this game right now — not disconnected. It'll catch up next time it checks in.
+                          <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -3305,8 +3319,21 @@ export default function Game() {
                 >
                   {agentName}
                 </button>
-                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase' }}>
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                   {agentStatusText}
+                  {agentStatusText === 'AWAY' && showAwayTooltip && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, marginTop: '8px',
+                      background: '#222', border: '1px solid #333', borderRadius: '8px',
+                      padding: '12px', width: '250px', zIndex: 100,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                      color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
+                      textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
+                    }}>
+                      Away just means it's not actively watching this game right now — not disconnected. It'll catch up next time it checks in.
+                      <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
+                    </div>
+                  )}
                 </div>
               </div>
               

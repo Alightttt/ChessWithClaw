@@ -91,7 +91,12 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     };
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const inviteMessage = `Add ChessWithClaw as a tool (one-time, works for every game after this too): openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp — then call join_game("${gameId}") to connect and start playing. Works with OpenClaw, Hermes, and other MCP-capable agents — the add command may differ slightly by platform.`;
+  const inviteMessage = `ChessWithClaw setup (one-time only — skip this block if you've already added this tool before):
+1. openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp
+2. Call join_game with invite_code: "${gameId}"
+
+After step 1, this tool stays available for every future game — you will not need to repeat it.
+Works with OpenClaw, Hermes, and other MCP-capable agents; the add command in step 1 may differ by platform.`;
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteMessage).then(() => {
@@ -163,6 +168,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
             >
               {copied ? <><Check size={16} /> Copied to clipboard</> : <><Copy size={16} /> Copy Credentials</>}
             </button>
+            <p className="mt-4 text-center text-xs text-white/40">Step 1 only happens once, ever — every future game just needs step 2.</p>
           </motion.div>
 
           {/* Step 2: Open Board */}
@@ -179,9 +185,14 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
                 <p className="text-sm text-white/50">Ready to play when you are.</p>
               </div>
               {!agentConnected && (
-                <div className="text-xs font-medium text-amber-500/80 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Waiting for agent...
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-xs font-medium text-amber-500/80 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Waiting for agent...
+                  </div>
+                  <div className="text-[10px] text-white/40 text-right max-w-[200px]">
+                    This can take anywhere from a few seconds to a few minutes depending on what your agent is doing right now — it isn't stuck.
+                  </div>
                 </div>
               )}
             </div>

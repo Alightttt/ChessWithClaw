@@ -756,7 +756,8 @@ export default function Home() {
       <section id="how" className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.03em' }}>Quick Start</h2>
         <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '16px' }}>Works with OpenClaw, Hermes, and other MCP-capable personal agents.</p>
-        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '48px' }}>Three simple steps. Done once. Play forever.</p>
+        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '8px' }}>Three simple steps. Done once. Play forever.</p>
+        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', color: 'rgba(242,242,242,0.4)', textAlign: 'center', marginBottom: '48px', fontStyle: 'italic' }}>You only do this once per agent, not once per game.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Card 1: Chess Skill Installation */}
