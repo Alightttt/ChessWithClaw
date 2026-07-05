@@ -34,8 +34,8 @@
 const { createClient } = require('@supabase/supabase-js');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const {
-  WebStandardStreamableHTTPServerTransport,
-} = require('@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js');
+  StreamableHTTPServerTransport,
+} = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { z } = require('zod');
 const { CHESS_COMPANION_GUIDE } = require('../server-lib/chess-companion-guide.js');
 
@@ -413,21 +413,21 @@ function buildServer() {
   return server;
 }
 
-// ---- Vercel handler (Web Standard Fetch API — no framework needed) ---
+// ---- Vercel handler (Node.js Serverless API — no framework needed) ---
 
-module.exports = async function handler(req) {
+module.exports = async function handler(req, res) {
   const server = buildServer();
   // Stateless mode (sessionIdGenerator: undefined) + JSON responses:
   // each Vercel invocation is a fresh, short-lived function call, so we
   // don't try to hold an SSE stream open across invocations — every tool
   // call is a normal request/response, which is what Vercel functions are
   // actually good at.
-  const transport = new WebStandardStreamableHTTPServerTransport({
+  const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
   await server.connect(transport);
-  return transport.handleRequest(req);
+  await transport.handleRequest(req, res, req.body);
 };
 
 // Vercel Edge/Node runtime config — Web Standard Request/Response works on
