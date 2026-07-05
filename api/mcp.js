@@ -48,6 +48,12 @@ async function getChessClass() {
   return _ChessClass;
 }
 
+function callChessMethod(chess, camelName, snakeName, ...args) {
+  if (typeof chess[camelName] === "function") return chess[camelName](...args);
+  if (typeof chess[snakeName] === "function") return chess[snakeName](...args);
+  throw new Error(`Neither ${camelName} nor ${snakeName} exists on this chess.js instance.`);
+}
+
 let supabaseInstance = null;
 function getSupabase() {
   if (!supabaseInstance) {
@@ -264,19 +270,19 @@ function buildServer() {
       }
 
       const newFen = chess.fen();
-      const isGameOver = chess.isGameOver();
+      const isGameOver = callChessMethod(chess, "isGameOver", "game_over");
       let status = game.status;
       let winner = game.winner;
       let resultReason = game.result;
       if (isGameOver) {
         status = 'finished';
-        if (chess.isCheckmate()) {
+        if (callChessMethod(chess, 'isCheckmate', 'in_checkmate')) {
           resultReason = 'checkmate';
           winner = chess.turn() === 'w' ? 'black' : 'white';
-        } else if (chess.isStalemate()) {
+        } else if (callChessMethod(chess, 'isStalemate', 'in_stalemate')) {
           resultReason = 'stalemate';
           winner = null;
-        } else if (chess.isDraw()) {
+        } else if (callChessMethod(chess, 'isDraw', 'in_draw')) {
           resultReason = 'draw';
           winner = null;
         }
@@ -299,7 +305,7 @@ function buildServer() {
         status,
         winner,
         result: resultReason,
-        in_check: chess.inCheck(),
+        in_check: callChessMethod(chess, 'inCheck', 'in_check'),
         move_history: moveHistory,
         chat_history: chatHistory,
         companion_thought: thought || game.companion_thought,
@@ -312,7 +318,7 @@ function buildServer() {
         san: result.san,
         new_state: await serializeGameState({
           ...game, fen: newFen, turn: chess.turn(), status, winner, result: resultReason,
-          in_check: chess.inCheck(), move_history: moveHistory, chat_history: chatHistory,
+          in_check: callChessMethod(chess, 'inCheck', 'in_check'), move_history: moveHistory, chat_history: chatHistory,
         }),
       });
     }

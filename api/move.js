@@ -387,7 +387,7 @@ module.exports = async function handler(req, res) {
 
   const agentName = req.headers['x-agent-name'];
   if (isAgentMove) {
-    if (agentName && agentName.trim() !== '' && agentName !== 'TestClaw' && agentName !== 'OpenClaw' && agentName !== 'Your OpenClaw') {
+    if (agentName && agentName.trim() !== '' && agentName !== 'TestClaw' && agentName !== 'OpenClaw' && agentName !== 'Your Agent') {
       updates.agent_name = agentName;
     }
     updates.agent_connected = true;
@@ -532,7 +532,7 @@ module.exports = async function handler(req, res) {
   return res.json({
     success: true,
     thought_received: !!companionThought,
-    agent_name: agentName || game.agent_name || 'Your OpenClaw',
+    agent_name: agentName || game.agent_name || 'Your Agent',
     companion_thought: companionThought,
     winner: gameWinner,
     result: gameResult,

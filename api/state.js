@@ -251,7 +251,7 @@ module.exports = async function handler(req, res) {
     chat_count: Array.isArray(game.chat_history) ? game.chat_history.length : 0,
     draw_offer: game.chat_history?.find(m => m.type === 'draw_offer' && m.sender === 'human') || null,
     draw_offer_pending: Boolean(game.draw_offer_pending),
-    agent_name: game.agent_name === 'Your Agent' ? 'Your OpenClaw' : (game.agent_name || 'Your OpenClaw'),
+    agent_name: game.agent_name === 'Your Agent' ? 'Your Agent' : (game.agent_name || 'Your Agent'),
     agent_avatar: (game.agent_avatar === '🤖' || !game.agent_avatar) ? '🦞' : game.agent_avatar,
     agent_tagline: game.agent_tagline || '',
     result: game.result || null,

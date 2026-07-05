@@ -125,7 +125,7 @@ module.exports = async function handler(req, res) {
           updated_at: now
         };
         const incomingName = req.headers['x-agent-name'];
-        if (incomingName && (!game.agent_name || game.agent_name === 'Your OpenClaw' || game.agent_name === 'Your Agent')) {
+        if (incomingName && (!game.agent_name || game.agent_name === 'Your Agent' || game.agent_name === 'Your Agent')) {
           updates.agent_name = incomingName;
         }
       } else {
