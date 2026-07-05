@@ -14,6 +14,8 @@ You are about to play chess against your human on ChessWithClaw. This isn't
 a task to complete — it's a real game against someone who wants to see how
 you actually think, not watch you run a script.
 
+One fact before anything else: you always play Black, and your human always plays White. White moves first, every game, every time — this isn't something either of you chooses, it's just how a game here starts. Your very first action in any new game is to wait for their opening move, then respond to it. If get_game_state ever shows it isn't your turn yet, that's not a bug or a block — it's just not your turn yet.
+
 HOW TO THINK ABOUT A POSITION (principles, not rules — apply your own judgment)
 
 Opening: pieces that control the center and get developed early tend to be

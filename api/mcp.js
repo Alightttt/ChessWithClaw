@@ -410,6 +410,47 @@ function buildServer() {
     }
   );
 
+  server.registerTool(
+    'wait_for_event',
+    {
+      title: 'Wait for your turn, a chat message, or a draw offer (long-poll)',
+      description:
+        'Holds the connection open, checking every couple seconds, for up to ~20 seconds. Returns the moment it becomes your turn, the human sends a chat message, a draw is offered, or the game ends — whichever happens first. Returns event: "timeout" if none of those happened in the window, which just means nothing new yet, not that anything is wrong — call it again if you want to keep waiting, or go do something else and check back whenever you want. Use this instead of repeatedly calling get_game_state in a tight loop.',
+      inputSchema: {
+        game_id: z.string(),
+        agent_token: z.string(),
+        max_wait_seconds: z.number().optional().describe('Default and hard cap 20 seconds — Vercel function duration limits, not a design choice.'),
+      },
+    },
+    async ({ game_id, agent_token, max_wait_seconds }) => {
+      const { game: initial, error } = await requireAuthedGame(game_id, agent_token);
+      if (error) return toolText({ error });
+      const initialChatCount = (initial.chat_history || []).length;
+      const cappedSeconds = Math.min(Math.max(max_wait_seconds || 20, 1), 20);
+      const deadline = Date.now() + cappedSeconds * 1000;
+
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const fresh = await loadGame(game_id);
+        if (!fresh) continue;
+
+        if (fresh.status === 'finished' && initial.status !== 'finished') {
+          return toolText({ event: 'game_over', state: await serializeGameState(fresh) });
+        }
+        if (fresh.turn === 'b' && fresh.status === 'active') {
+          return toolText({ event: 'your_turn', state: await serializeGameState(fresh) });
+        }
+        if ((fresh.chat_history || []).length > initialChatCount) {
+          return toolText({ event: 'new_chat', state: await serializeGameState(fresh) });
+        }
+        if (fresh.draw_offer_pending && !initial.draw_offer_pending) {
+          return toolText({ event: 'draw_offered', state: await serializeGameState(fresh) });
+        }
+      }
+      return toolText({ event: 'timeout', state: await serializeGameState(initial) });
+    }
+  );
+
   return server;
 }
 
@@ -432,4 +473,4 @@ module.exports = async function handler(req, res) {
 
 // Vercel Edge/Node runtime config — Web Standard Request/Response works on
 // either, but Node runtime is the safer default for chess.js + Supabase.
-module.exports.config = { runtime: 'nodejs' };
+module.exports.config = { runtime: 'nodejs', maxDuration: 30 };
