@@ -491,7 +491,7 @@ export default function Home() {
                 color: '#f2f2f2',
               }}
             >
-              Play Chess with your <span style={{ color: '#e63946' }}>Agent.</span>
+              Play chess with your <span style={{ color: '#e63946' }}>OpenClaw.</span>
             </h1>
           </motion.div>
           
@@ -787,7 +787,7 @@ export default function Home() {
             </div>
 
             <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
-              Enable your OpenClaw to understand standard chess rules, coordinate notation, and game flow logic by installing the custom play-chess skill.
+              Enable your agent to understand standard chess rules, coordinate notation, and game flow logic by installing the custom play-chess skill.
             </p>
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -860,7 +860,7 @@ export default function Home() {
             </div>
 
             <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
-              Equip your OpenClaw with browser automation powers, allowing it to read real-time state changes and interact seamlessly on the active game board.
+              Equip your agent with browser automation powers, allowing it to read real-time state changes and interact seamlessly on the active game board.
             </p>
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -933,7 +933,7 @@ export default function Home() {
             </div>
 
             <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
-              Prevent OpenClaw from closing the game board connection in mid-thought by setting the global LLM idle timeout to infinity (0 seconds).
+              Prevent your agent from closing the game board connection in mid-thought by setting the global LLM idle timeout to infinity (0 seconds).
             </p>
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1012,7 +1012,7 @@ export default function Home() {
         </div>
 
         <div style={{ fontSize: '12px', color: '#444', textAlign: 'center', marginTop: '24px', fontFamily: "'Inter', sans-serif" }}>
-          Run each command once inside your OpenClaw command-line interface. Let the battle begin!
+          Run each command once inside your agent's command-line interface. Let the battle begin!
         </div>
       </section>
 

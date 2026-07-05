@@ -32,13 +32,21 @@
 //                                 as every other file in /api/)
 
 const { createClient } = require('@supabase/supabase-js');
-const { Chess } = require('chess.js');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const {
   WebStandardStreamableHTTPServerTransport,
 } = require('@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js');
 const { z } = require('zod');
 const { CHESS_COMPANION_GUIDE } = require('../server-lib/chess-companion-guide.js');
+
+let _ChessClass = null;
+async function getChessClass() {
+  if (!_ChessClass) {
+    const mod = await import('chess.js');
+    _ChessClass = mod.Chess || mod.default?.Chess || mod.default;
+  }
+  return _ChessClass;
+}
 
 let supabaseInstance = null;
 function getSupabase() {
@@ -81,7 +89,8 @@ function toolText(obj) {
   return { content: [{ type: 'text', text: JSON.stringify(obj) }] };
 }
 
-function boardAscii(fen) {
+async function boardAscii(fen) {
+  const Chess = await getChessClass();
   const chess = new Chess(fen);
   return chess.ascii();
 }
@@ -89,7 +98,7 @@ function boardAscii(fen) {
 // Full, human-parity state — everything the person's own screen shows,
 // including exact timestamps, so the agent's situational awareness is
 // never thinner than what's rendered in front of the human.
-function serializeGameState(game) {
+async function serializeGameState(game) {
   return {
     game_id: game.id,
     fen: game.fen,
@@ -101,7 +110,7 @@ function serializeGameState(game) {
     material_balance: game.material_balance ?? 0,
     move_count: Array.isArray(game.move_history) ? game.move_history.length : 0,
     move_history: game.move_history || [],
-    board_ascii: boardAscii(game.fen),
+    board_ascii: await boardAscii(game.fen),
     chat_history: (game.chat_history || []).map((m) => ({
       role: m.role,
       message: m.message,
@@ -166,7 +175,7 @@ function buildServer() {
         game_id: game.id,
         agent_token: game.agent_token,
         message: `Connected. You're playing against ${game.human_name || 'your human'}. Call get_game_state any time to see the current position.`,
-        state: serializeGameState(game),
+        state: await serializeGameState(game),
       });
     }
   );
@@ -182,7 +191,7 @@ function buildServer() {
     async ({ game_id, agent_token }) => {
       const { game, error } = await requireAuthedGame(game_id, agent_token);
       if (error) return toolText({ error });
-      return toolText(serializeGameState(game));
+      return toolText(await serializeGameState(game));
     }
   );
 
@@ -201,6 +210,7 @@ function buildServer() {
     async ({ game_id, agent_token, square }) => {
       const { game, error } = await requireAuthedGame(game_id, agent_token);
       if (error) return toolText({ error });
+      const Chess = await getChessClass();
       const chess = new Chess(game.fen);
       const moves = square
         ? chess.moves({ square, verbose: true })
@@ -236,6 +246,7 @@ function buildServer() {
         return toolText({ error: 'It is not your turn yet.' });
       }
 
+      const Chess = await getChessClass();
       const chess = new Chess(game.fen);
       let result;
       try {
@@ -297,7 +308,7 @@ function buildServer() {
       return toolText({
         accepted: true,
         san: result.san,
-        new_state: serializeGameState({
+        new_state: await serializeGameState({
           ...game, fen: newFen, turn: chess.turn(), status, winner, result: resultReason,
           in_check: chess.inCheck(), move_history: moveHistory, chat_history: chatHistory,
         }),
@@ -374,6 +385,7 @@ function buildServer() {
       inputSchema: { agent_name: z.string().optional() },
     },
     async ({ agent_name }) => {
+      const Chess = await getChessClass();
       const inviteCode = Math.random().toString(36).slice(2, 10);
       const agentToken = Math.random().toString(36).slice(2, 18);
       const { data: game, error } = await getSupabase().from('games').insert({
