@@ -158,7 +158,7 @@ Works with OpenClaw, Hermes, and other MCP-capable agents; the add command in st
               </div>
             </div>
             
-            <div className="bg-black/50 border border-[var(--border)] rounded-xl p-4 mb-4 font-mono text-sm text-white/70 whitespace-pre-wrap break-all select-all">
+            <div className="bg-black/50 border border-[var(--border)] rounded-xl p-4 mb-4 font-mono text-sm text-white/70 whitespace-pre-wrap select-all">
               {inviteMessage}
             </div>
 

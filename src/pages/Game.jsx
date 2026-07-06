@@ -1385,7 +1385,7 @@ export default function Game() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
         body: JSON.stringify({ gameId: gameId, action: 'heartbeat', role: 'human' })
       }).catch(() => {});
@@ -1408,11 +1408,11 @@ export default function Game() {
         const rand = Math.random();
         if (rand < 0.3) {
           fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
-             headers: {  }
+             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
           }).catch(() => {});
         } else if (rand < 0.6) {
           fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
-             headers: {  }
+             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
           }).catch(() => {});
         }
       }, 45000);
@@ -1937,7 +1937,7 @@ export default function Game() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
         body: JSON.stringify({ 
           id: gameId, 
@@ -1994,7 +1994,6 @@ export default function Game() {
       }
     } catch (e) {
       // Revert board on error
-      toast.error("Couldn't reach the server. Your move was not processed.");
       applyBoardFen(prevBoardFen);
       lastProcessedFenRef.current = prevBoardFen;
       setBoardLastMove(prevBoardLastMove);
@@ -2032,7 +2031,7 @@ export default function Game() {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        
+        'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
       },
       body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human', reply_to: repMsgId })
     }).catch(() => {});
@@ -2157,7 +2156,7 @@ export default function Game() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
         body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: true, sender: 'human', role: 'human' })
       }).catch(() => {});
@@ -2171,7 +2170,7 @@ export default function Game() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          
+          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
         },
         body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: false, sender: 'human', role: 'human' })
       }).catch(() => {});
@@ -3083,7 +3082,7 @@ export default function Game() {
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
-                value={chatInput} maxLength={500}
+                value={chatInput}
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
@@ -3547,7 +3546,7 @@ export default function Game() {
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
-                value={chatInput} maxLength={500}
+                value={chatInput}
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
@@ -3894,7 +3893,7 @@ export default function Game() {
                           method: 'POST', 
                           headers: { 
                             'Content-Type': 'application/json',
-                            
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                           }, 
                           body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
                         }).catch(() => {});
@@ -3927,7 +3926,7 @@ export default function Game() {
                           method: 'POST', 
                           headers: { 
                             'Content-Type': 'application/json',
-                            
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                           }, 
                           body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
                         }).catch(() => {});
@@ -4005,7 +4004,7 @@ export default function Game() {
                             method: 'POST',
                             headers: { 
                               'Content-Type': 'application/json',
-                              
+                              'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                             },
                             body: JSON.stringify({ gameId, action: 'set_thought_language', value: lang.value })
                           });
@@ -4058,7 +4057,7 @@ export default function Game() {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
-                            
+                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
                           },
                           body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
                         });
