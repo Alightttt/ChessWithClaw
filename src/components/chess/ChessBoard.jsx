@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { PIECE_COMPONENTS } from './ChessPieces';
@@ -39,6 +40,7 @@ export default function ChessBoard({
   const [optionSquares, setOptionSquares] = useState({});
   const lastAppliedMoveRef = useRef(null);
   const [promotionSquare, setPromotionSquare] = useState(null);
+  const shouldReduceMotion = useReducedMotion();
   const [promotionSource, setPromotionSource] = useState(null);
 
   const [pieceStyle, setPieceStyle] = useState(() => {
@@ -234,7 +236,7 @@ export default function ChessBoard({
         customSquareStyles={customSquareStyles}
         customLightSquareStyle={{ backgroundColor: theme.light }}
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
-        animationDuration={200}
+        animationDuration={shouldReduceMotion ? 0 : 200}
         arePiecesDraggable={false}
         customPieces={customPiecesMap}
         boardStyle={{

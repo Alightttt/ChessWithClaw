@@ -158,7 +158,7 @@ Works with OpenClaw, Hermes, and other MCP-capable agents; the add command in st
               </div>
             </div>
             
-            <div className="bg-black/50 border border-[var(--border)] rounded-xl p-4 mb-4 font-mono text-sm text-white/70 whitespace-pre-wrap select-all">
+            <div className="bg-black/50 border border-[var(--border)] rounded-xl p-4 mb-4 font-mono text-sm text-white/70 whitespace-pre-wrap break-all select-all">
               {inviteMessage}
             </div>
 
@@ -191,7 +191,7 @@ Works with OpenClaw, Hermes, and other MCP-capable agents; the add command in st
                     Waiting for agent...
                   </div>
                   <div className="text-[10px] text-white/40 text-right max-w-[200px]">
-                    This can take anywhere from a few seconds to a few minutes depending on what your agent is doing right now — it isn't stuck.
+                    This can take anywhere from a few seconds to a few minutes depending on what your agent is doing right now — it isn&apos;t stuck.
                   </div>
                 </div>
               )}

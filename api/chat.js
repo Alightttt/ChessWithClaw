@@ -164,7 +164,13 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Text is empty after sanitization', code: 'MISSING_TEXT' });
   }
 
-  const gameToken = req.headers['x-game-token'] || token || '';
+  let gameToken = req.headers['x-game-token'] || token || '';
+  if (!gameToken && req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').map(c => c.trim());
+    const prefix = 'game_owner_' + id + '=';
+    const cookie = cookies.find(c => c.startsWith(prefix));
+    if (cookie) gameToken = cookie.substring(prefix.length);
+  }
   
   // Verify game exists
   const { data: game, error } = await supabase.from('games').select('*').eq('id', gameId).single();

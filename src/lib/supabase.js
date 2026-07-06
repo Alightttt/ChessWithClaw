@@ -30,7 +30,7 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_u
 } else {
   try {
     const urlToUse = supabaseUrl.startsWith('http') ? supabaseUrl : `https://${supabaseUrl}`;
-    client = createClient(urlToUse, supabaseAnonKey);
+    client = createClient(urlToUse, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
     isConfigured = true;
   } catch (error) {
     console.error('Failed to initialize Supabase client:', error);

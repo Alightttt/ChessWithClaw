@@ -21,7 +21,13 @@ module.exports = async function handler(req, res) {
   let { gameId, action, message, setting, value } = req.body || {};
 
   const agentToken = req.headers['x-agent-token'];
-  const gameToken = req.headers['x-game-token'];
+  let gameToken = req.headers['x-game-token'];
+  if (!gameToken && req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').map(c => c.trim());
+    const prefix = 'game_owner_' + gameId + '=';
+    const cookie = cookies.find(c => c.startsWith(prefix));
+    if (cookie) gameToken = cookie.substring(prefix.length);
+  }
 
   const validActions = [
     'offer_draw', 'resign', 'accept_draw', 'decline_draw', 'set_thought_language', 'set_board_theme', 'set_piece_style', 'heartbeat'

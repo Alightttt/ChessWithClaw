@@ -75,7 +75,7 @@ export default function Rival() {
         if (agentToken) {
           let humanId = localStorage.getItem('cwc_human_id');
           if (!humanId) {
-            humanId = 'h_' + Math.random().toString(36).substr(2, 9);
+            humanId = 'h_' + crypto.randomUUID();
             localStorage.setItem('cwc_human_id', humanId);
           }
           try {

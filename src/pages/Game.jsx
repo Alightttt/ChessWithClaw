@@ -780,7 +780,7 @@ export default function Game() {
     const inCheck = game?.in_check;
     const phase = game?.game_phase || 'opening';
 
-    // Sentiment scan of the agent's own latest expressed thought — ties the
+    // Sentiment scan of the agent&apos;s own latest expressed thought — ties the
     // emoji to what the agent actually said, not only the board math.
     const thoughtText = (game?.companion_thought || game?.current_thought || '').toLowerCase();
     const positiveWords = ['nice', 'good', 'love', 'confident', 'strong', 'winning', 'haha', 'great', 'fun', 'enjoy'];
@@ -1385,12 +1385,12 @@ export default function Game() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          
         },
         body: JSON.stringify({ gameId: gameId, action: 'heartbeat', role: 'human' })
       }).catch(() => {});
       
-      // Poll game state if it's the agent's turn to catch missed real-time events, but only if visible!
+      // Poll game state if it&apos;s the agent&apos;s turn to catch missed real-time events, but only if visible!
       if (isTabActive && game?.turn !== (game?.player_color || 'w') && game?.status === 'active') {
         supabase.from('games').select('turn, move_history').eq('id', gameId).single().then(({ data }) => {
           if (data && data.turn === (game?.player_color || 'w')) {
@@ -1408,11 +1408,11 @@ export default function Game() {
         const rand = Math.random();
         if (rand < 0.3) {
           fetch(`/api/thoughts?gameId=${gameId}&trigger=idle_chat`, {
-             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+             headers: {  }
           }).catch(() => {});
         } else if (rand < 0.6) {
           fetch(`/api/thoughts?gameId=${gameId}&trigger=random_thought`, {
-             headers: { 'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || '' }
+             headers: {  }
           }).catch(() => {});
         }
       }, 45000);
@@ -1700,7 +1700,7 @@ export default function Game() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [gameId, applyBoardFen, setMoveHistory, setBoardTheme, setGame]);
 
-  // Start fallback polling when it's agent's turn
+  // Start fallback polling when it&apos;s agent&apos;s turn
   useEffect(() => {
     if (fallbackRef.current) {
       clearInterval(fallbackRef.current);
@@ -1937,7 +1937,7 @@ export default function Game() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          
         },
         body: JSON.stringify({ 
           id: gameId, 
@@ -1994,6 +1994,7 @@ export default function Game() {
       }
     } catch (e) {
       // Revert board on error
+      toast.error("Couldn't reach the server. Your move was not processed.");
       applyBoardFen(prevBoardFen);
       lastProcessedFenRef.current = prevBoardFen;
       setBoardLastMove(prevBoardLastMove);
@@ -2031,7 +2032,7 @@ export default function Game() {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+        
       },
       body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human', reply_to: repMsgId })
     }).catch(() => {});
@@ -2156,7 +2157,7 @@ export default function Game() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          
         },
         body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: true, sender: 'human', role: 'human' })
       }).catch(() => {});
@@ -2170,7 +2171,7 @@ export default function Game() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          
         },
         body: JSON.stringify({ gameId, game_id: gameId, action: 'typing', typing: false, sender: 'human', role: 'human' })
       }).catch(() => {});
@@ -2440,7 +2441,7 @@ export default function Game() {
           const myReaction = Object.entries(msg.reactions || {}).find(
             ([emoji, reactors]) => Array.isArray(reactors) && reactors.includes('human')
           );
-          // Get agent's reaction to this message (if any)
+          // Get agent&apos;s reaction to this message (if any)
           const agentReaction = Object.entries(msg.reactions || {}).find(
             ([emoji, reactors]) => Array.isArray(reactors) && reactors.includes('agent')
           );
@@ -2838,7 +2839,7 @@ export default function Game() {
                           color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
                           textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
                         }}>
-                          Away just means it's not actively watching this game right now — not disconnected. It'll catch up next time it checks in.
+                          Away just means it&apos;s not actively watching this game right now — not disconnected. It&apos;ll catch up next time it checks in.
                           <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
                         </div>
                       )}
@@ -3082,7 +3083,7 @@ export default function Game() {
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
-                value={chatInput}
+                value={chatInput} maxLength={500}
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
@@ -3330,7 +3331,7 @@ export default function Game() {
                       color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
                       textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
                     }}>
-                      Away just means it's not actively watching this game right now — not disconnected. It'll catch up next time it checks in.
+                      Away just means it&apos;s not actively watching this game right now — not disconnected. It&apos;ll catch up next time it checks in.
                       <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
                     </div>
                   )}
@@ -3546,7 +3547,7 @@ export default function Game() {
                 id="chat-input"
                 data-testid="chat-input"
                 type="text"
-                value={chatInput}
+                value={chatInput} maxLength={500}
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
@@ -3893,7 +3894,7 @@ export default function Game() {
                           method: 'POST', 
                           headers: { 
                             'Content-Type': 'application/json',
-                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                            
                           }, 
                           body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
                         }).catch(() => {});
@@ -3926,7 +3927,7 @@ export default function Game() {
                           method: 'POST', 
                           headers: { 
                             'Content-Type': 'application/json',
-                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                            
                           }, 
                           body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
                         }).catch(() => {});
@@ -4004,7 +4005,7 @@ export default function Game() {
                             method: 'POST',
                             headers: { 
                               'Content-Type': 'application/json',
-                              'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                              
                             },
                             body: JSON.stringify({ gameId, action: 'set_thought_language', value: lang.value })
                           });
@@ -4057,7 +4058,7 @@ export default function Game() {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
-                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                            
                           },
                           body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
                         });

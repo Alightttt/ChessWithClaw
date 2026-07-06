@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Set cookie with max-age (1 day) & Lax same-site to transfer ownership token securely.
-    res.setHeader('Set-Cookie', `game_owner_${game.id}=${secretToken}; Path=/; Max-Age=86400; SameSite=Lax`);
+    res.setHeader('Set-Cookie', `game_owner_${game.id}=${secretToken}; Path=/; Max-Age=86400; SameSite=Lax; HttpOnly`);
     res.setHeader('Location', '/created/' + game.id);
     res.status(302).end();
   } catch (error) {

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
 import { supabase } from '../lib/supabase';
+import LivePlatformActivity from '../components/LivePlatformActivity';
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
@@ -104,46 +105,9 @@ export default function Home() {
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  const [gamesPlayed, setGamesPlayed] = useState(0);
+  
 
-  useEffect(() => {
-    document.title = 'ChessWithClaw — Challenge Your Agent to Chess';
-  }, []);
-
-  useEffect(() => {
-    // 1. Initial count
-    const fetchCount = async () => {
-      const { count } = await supabase.from('games').select('*', { count: 'exact', head: true });
-      if (count !== null) setGamesPlayed(count);
-    };
-    fetchCount();
-
-    // 2. Subscribe to realtime updates
-    const channel = supabase.channel('public:games')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'games' }, payload => {
-        setGamesPlayed(prev => (typeof prev === 'number' ? prev + 1 : prev));
-      })
-      .subscribe();
-
-    return () => {
-       supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const [ticker, setTicker] = useState('Someone just beat their agent in 31 moves 🏆');
-  useEffect(() => {
-    const RECENT_RESULTS = [
-      'Someone just beat their agent in 31 moves 🏆',
-      'A game ended in checkmate 2 mins ago 🦞',
-      'Nova drew in 47 moves — too close 🤝',
-      'Someone lost in 22 moves. Rematch incoming 💀',
-      'A game just started — challenge accepted',
-    ];
-    const id = setInterval(() => {
-      setTicker(RECENT_RESULTS[Math.floor(Math.random() * RECENT_RESULTS.length)]);
-    }, 4000);
-    return () => clearInterval(id);
-  }, []);
+  
 
   useEffect(() => {
     const savedGame = localStorage.getItem('cwc_active_game');
@@ -619,119 +583,7 @@ export default function Home() {
           </motion.div>
       </section>
 
-      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px', marginTop: '32px' }}>
-        <div style={{
-          position: 'relative',
-          background: 'linear-gradient(160deg, #111111 0%, #080808 100%)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.06)',
-          padding: '64px 32px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          boxShadow: '0 40px 80px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)'
-        }}>
-          {/* subtle background grid */}
-          <div style={{
-            position: 'absolute', inset: 0, opacity: 0.15, pointerEvents: 'none',
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '48px 48px', maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 60%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 0%, transparent 60%)'
-          }} />
-          
-          {/* radial glow spotlight */}
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            width: '800px', height: '800px',
-            background: 'radial-gradient(circle at center, rgba(230,57,70,0.08) 0%, transparent 60%)',
-            pointerEvents: 'none'
-          }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', zIndex: 1, marginBottom: '24px', background: 'rgba(230,57,70,0.1)', padding: '6px 16px', borderRadius: '30px', border: '1px solid rgba(230,57,70,0.2)' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e63946', animation: 'pulseDotRed 2s infinite' }} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#e63946', fontWeight: 700 }}>
-              Live Platform Activity
-            </span>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px', overflow: 'hidden', position: 'relative', minWidth: '350px', zIndex: 1, filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
-             <AnimatePresence mode="popLayout">
-               <motion.div
-                 key={gamesPlayed}
-                 initial={{ y: 80, opacity: 0, scale: 0.9 }}
-                 animate={{ y: 0, opacity: 1, scale: 1 }}
-                 exit={{ y: -80, opacity: 0, scale: 0.9, position: 'absolute' }}
-                 transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                 style={{ 
-                   fontFamily: "'Inter', sans-serif", 
-                   fontSize: 'clamp(64px, 10vw, 96px)', 
-                   fontWeight: 900, 
-                   lineHeight: 1, 
-                   letterSpacing: '-0.04em',
-                   background: 'linear-gradient(180deg, #FFFFFF 0%, #B0B0B0 100%)',
-                   WebkitBackgroundClip: 'text',
-                   WebkitTextFillColor: 'transparent',
-                   fontVariantNumeric: 'tabular-nums'
-                 }}
-               >
-                 {gamesPlayed.toLocaleString('en-US')}
-               </motion.div>
-             </AnimatePresence>
-          </div>
-          
-          <div style={{ 
-            fontFamily: "'Inter', sans-serif", 
-            fontSize: '18px', 
-            fontWeight: 500, 
-            color: 'rgba(242,242,242,0.6)', 
-            marginTop: '16px', 
-            marginBottom: '40px',
-            zIndex: 1,
-            textAlign: 'center',
-            maxWidth: '400px',
-            lineHeight: 1.4,
-            letterSpacing: '-0.01em'
-          }}>
-            Global Matches Played
-          </div>
-
-          <div style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            borderRadius: '16px',
-            padding: '16px 32px',
-            zIndex: 1,
-            backdropFilter: 'blur(10px)',
-            maxWidth: '500px',
-            width: '100%'
-          }}>
-             <AnimatePresence mode="wait">
-               <motion.div
-                 key={ticker}
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 exit={{ opacity: 0, y: -10 }}
-                 transition={{ duration: 0.3 }}
-                 style={{ 
-                   fontSize: '14px', 
-                   color: 'rgba(242,242,242,0.8)', 
-                   fontFamily: "'Inter', sans-serif",
-                   textAlign: 'center',
-                   fontWeight: 500,
-                   display: 'flex',
-                   alignItems: 'center',
-                   justifyContent: 'center',
-                   gap: '10px'
-                 }}
-               >
-                 <Activity size={14} className="text-[#e63946]" />
-                 {ticker}
-               </motion.div>
-             </AnimatePresence>
-          </div>
-        </div>
-      </section>
+      <LivePlatformActivity />
 
       <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1012,7 +864,7 @@ export default function Home() {
         </div>
 
         <div style={{ fontSize: '12px', color: '#444', textAlign: 'center', marginTop: '24px', fontFamily: "'Inter', sans-serif" }}>
-          Run each command once inside your agent's command-line interface. Let the battle begin!
+          Run each command once inside your agent&apos;s command-line interface. Let the battle begin!
         </div>
       </section>
 
