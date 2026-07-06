@@ -389,7 +389,7 @@ export default function Home() {
             <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
           </div>
           <a
-            href="/api/new"
+            href="#" onClick={handlePlayNow}
             className="design-btn-nav"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
@@ -492,7 +492,7 @@ export default function Home() {
             >
               <div className="flex flex-row items-center justify-start w-auto" style={{ gap: '16px' }}>
                 <a
-                  href="/api/new"
+                  href="#" onClick={handlePlayNow}
                   className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
                   style={{
                     display: 'inline-flex',
@@ -555,7 +555,7 @@ export default function Home() {
             className="flex md:hidden flex-col items-center justify-center w-full z-10 gap-4"
           >
             <a
-              href="/api/new"
+              href="#" onClick={handlePlayNow}
               className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full text-center"
               style={{
                 display: 'inline-flex',
@@ -583,7 +583,7 @@ export default function Home() {
           </motion.div>
       </section>
 
-      <LivePlatformActivity />
+      <LivePlatformActivity onPlayNow={handlePlayNow} />
 
       <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -910,7 +910,7 @@ export default function Home() {
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge your agent?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
           <a
-             href="/api/new"
+             href="#" onClick={handlePlayNow}
              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg text-center"
              style={{
                display: 'inline-flex',

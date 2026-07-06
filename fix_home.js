@@ -1,27 +1,37 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/Home.jsx', 'utf8');
 
-// Add import for LivePlatformActivity
-if (!code.includes("import LivePlatformActivity from '../components/LivePlatformActivity';")) {
-  code = code.replace("import { Activity, Shield, Terminal, ArrowRight, Play, Server, Layers } from 'lucide-react';", 
-    "import { Activity, Shield, Terminal, ArrowRight, Play, Server, Layers } from 'lucide-react';\nimport LivePlatformActivity from '../components/LivePlatformActivity';");
-}
+const hookTarget = `export default function Home() {
+  const navigate = useNavigate();`;
 
-// Remove old state and effects for gamesPlayed and ticker
-code = code.replace(/const \[gamesPlayed, setGamesPlayed\] = useState\(0\);[\s\S]*?fetchCount\(\);[\s\S]*?const channel = supabase.channel\('public:games'\)[\s\S]*?\.subscribe\(\);[\s\S]*?return \(\) => \{[\s\S]*?supabase\.removeChannel\(channel\);[\s\S]*?\};[\s\S]*?\}, \[\]\);/, "");
+const hookReplacement = `export default function Home() {
+  const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
+  const toast = useToast();
 
-code = code.replace(/const \[ticker, setTicker\] = useState\('Someone just beat their agent in 31 moves 🏆'\);[\s\S]*?const RECENT_RESULTS = \[[\s\S]*?\];[\s\S]*?const id = setInterval\(\(\) => \{[\s\S]*?setTicker\(RECENT_RESULTS\[Math\.floor\(Math\.random\(\) \* RECENT_RESULTS\.length\)\]\);[\s\S]*?\}, 4000\);[\s\S]*?return \(\) => clearInterval\(id\);[\s\S]*?\}, \[\]\);/, "");
+  const handlePlayNow = async (e) => {
+    e.preventDefault();
+    if (creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch('/api/new', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to create game');
+      const data = await res.json();
+      if (data.gameId) {
+        document.cookie = \`game_owner_\${data.gameId}=\${data.secretToken}; Path=/; Max-Age=86400; SameSite=Lax\`;
+        localStorage.setItem(\`game_owner_\${data.gameId}\`, data.secretToken);
+        navigate(\`/created/\${data.gameId}\`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create a new game. Please try again.');
+      setCreating(false);
+    }
+  };`;
 
-// Replace the section HTML
-const startMarker = '<section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: \'64px\', padding: \'0 20px\', marginTop: \'32px\' }}>';
-const endMarker = '      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: \'64px\', padding: \'0 20px\' }}>';
+code = code.replace(hookTarget, hookReplacement);
 
-const startIndex = code.indexOf(startMarker);
-const endIndex = code.indexOf(endMarker, startIndex);
-
-if (startIndex !== -1 && endIndex !== -1) {
-  const replacement = `<LivePlatformActivity />\n\n`;
-  code = code.substring(0, startIndex) + replacement + code.substring(endIndex);
-}
+// Replace href="/api/new"
+code = code.replace(/href="\/api\/new"/g, 'href="#" onClick={handlePlayNow}');
 
 fs.writeFileSync('src/pages/Home.jsx', code);

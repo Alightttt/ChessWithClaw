@@ -135,7 +135,7 @@ const EventTicker = ({ events }) => {
       <div className={styles.tickerList}>
         <div className={styles.tickerRow} style={{ justifyContent: 'center' }}>
           <span style={{ color: 'rgba(242,242,242,0.5)', fontStyle: 'italic' }}>Quiet on the board right now — be the first to play.</span>
-          <a href="/api/new" style={{ color: '#E63946', textDecoration: 'none', fontWeight: 600, marginLeft: '8px' }}>Challenge Mine Now →</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); if (onPlayNow) onPlayNow(e); else window.location.href = '/api/new'; }} style={{ color: '#E63946', textDecoration: 'none', fontWeight: 600, marginLeft: '8px' }}>Challenge Mine Now →</a>
         </div>
       </div>
     );
@@ -233,7 +233,7 @@ const MicroStats = ({ activeNow, lastCheckmate, recentEvents, deltaHour }) => {
   );
 };
 
-export default function LivePlatformActivity() {
+export default function LivePlatformActivity({ onPlayNow }) {
   const { count, activeNow, lastCheckmate, recentEvents, deltaHour, deltaMin, elementRef } = useLiveActivity();
 
   return (

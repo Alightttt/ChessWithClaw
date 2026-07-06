@@ -7,6 +7,7 @@ module.exports = async function handler(req, res) {
 
   if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('your_supabase') || !supabaseUrl.startsWith('http')) {
     console.error('Missing or invalid: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    if (req.method === 'POST') return res.status(500).json({ error: 'Missing config' });
     res.setHeader('Location', '/?error=1');
     res.status(302).end();
     return;
@@ -47,12 +48,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'POST') {
+      return res.status(200).json({ gameId: game.id, secretToken });
+    }
     // Set cookie with max-age (1 day) & Lax same-site to transfer ownership token securely.
     res.setHeader('Set-Cookie', `game_owner_${game.id}=${secretToken}; Path=/; Max-Age=86400; SameSite=Lax`);
     res.setHeader('Location', '/created/' + game.id);
     res.status(302).end();
   } catch (error) {
     console.error('Create game error on direct new endpoint:', error);
+    if (req.method === 'POST') return res.status(500).json({ error: 'Create game error' });
     res.setHeader('Location', '/?error=1');
     res.status(302).end();
   }
