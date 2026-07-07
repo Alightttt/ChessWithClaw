@@ -43,6 +43,7 @@ module.exports = async function handler(req, res) {
 
     if (error || !game) {
       console.error('Game creation failed on direct new endpoint:', error);
+      if (req.method === 'POST') return res.status(500).json({ error: 'Game creation failed' });
       res.setHeader('Location', '/?error=1');
       res.status(302).end();
       return;
