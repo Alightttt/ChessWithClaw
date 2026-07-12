@@ -25,7 +25,7 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
 
   useEffect(() => {
     if (!gameId || gameId === 'new') {
-      window.location.href = '/api/new';
+      navigate('/');
       return;
     }
 
@@ -39,7 +39,10 @@ export default function GameCreated({ gameId, agentToken: initialAgentToken }) {
     }
 
     if (!cookieMatch && !localOwner) {
-      window.location.href = '/api/new';
+      if (window.toast) {
+        window.toast.error('Authentication missing or cookies blocked. Please ensure cookies are enabled.');
+      }
+      navigate('/');
       return;
     }
 

@@ -125,7 +125,7 @@ const Counter = ({ count, deltaMin, deltaHour }) => {
   );
 };
 
-const EventTicker = ({ events }) => {
+const EventTicker = ({ events, onPlayNow }) => {
   const shouldReduceMotion = useReducedMotion();
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60000);
   const activeEvents = events?.filter(ev => new Date(ev.updated_at || ev.created_at) > fiveMinutesAgo) || [];
@@ -135,7 +135,7 @@ const EventTicker = ({ events }) => {
       <div className={styles.tickerList}>
         <div className={styles.tickerRow} style={{ justifyContent: 'center' }}>
           <span style={{ color: 'rgba(242,242,242,0.5)', fontStyle: 'italic' }}>Quiet on the board right now — be the first to play.</span>
-          <a href="#" onClick={(e) => { e.preventDefault(); if (onPlayNow) onPlayNow(e); else window.location.href = '/api/new'; }} style={{ color: '#E63946', textDecoration: 'none', fontWeight: 600, marginLeft: '8px' }}>Challenge Mine Now →</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); if (onPlayNow) onPlayNow(e); }} style={{ color: '#E63946', textDecoration: 'none', fontWeight: 600, marginLeft: '8px' }}>Challenge Mine Now →</a>
         </div>
       </div>
     );
@@ -268,7 +268,7 @@ export default function LivePlatformActivity({ onPlayNow }) {
           marginTop: '32px',
           minHeight: '48px'
         }}>
-          <EventTicker events={recentEvents} />
+          <EventTicker events={recentEvents} onPlayNow={onPlayNow} />
         </div>
 
         <MicroStats activeNow={activeNow} lastCheckmate={lastCheckmate} recentEvents={recentEvents} deltaHour={deltaHour} />

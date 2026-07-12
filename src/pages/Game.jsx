@@ -1598,7 +1598,7 @@ export default function Game() {
         setDrawOfferPending(false);
       }
     }
-  }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought, drawOfferPending, toast]);
+  }, [boardTheme, pieceStyle, playSound, setMoveHistory, setBoardTheme, setPieceStyle, setChatMessages, applyBoardFen, showThought, drawOfferPending, toast, game?.agent_name]);
 
   useEffect(() => {
     if (!gameId) {
@@ -1837,7 +1837,7 @@ export default function Game() {
     // Draw logic removed
     setShowSettings(false);
     setConfirmDraw(false);
-  }, [confirmDraw, gameId]);
+  }, [confirmDraw]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
