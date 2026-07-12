@@ -47,7 +47,7 @@ export default function NotFound() {
             4
           </h1>
           <div className="relative mx-4 flex items-center justify-center w-32 h-32 rounded-3xl bg-[#111] border border-[#333] shadow-[0_0_60px_rgba(230,57,70,0.2)]">
-             <Bot size={64} className="text-[#e63946]" />
+             <span className="text-[64px]">🦞</span>
              <motion.div
                animate={{ opacity: [0.5, 1, 0.5] }}
                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
