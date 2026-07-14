@@ -462,20 +462,16 @@ function buildServer() {
 
 // ---- Vercel handler (Node.js Serverless API — no framework needed) ---
 
-module.exports = async function handler(req) {
-  if (req.method === 'GET') {
-    return new Response(
-      JSON.stringify({ error: 'This server does not support long-lived SSE streams. Use POST for tool calls, and the wait_for_event tool for waiting on changes.' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+module.exports.GET = async function (req) {
+  return new Response(
+    JSON.stringify({ error: 'This server does not support long-lived SSE streams. Use POST for tool calls, and the wait_for_event tool for waiting on changes.' }),
+    { status: 405, headers: { 'Content-Type': 'application/json' } }
+  );
+};
+
+module.exports.POST = async function (req) {
   const server = buildServer();
 
-  // Stateless mode (sessionIdGenerator: undefined) + JSON responses:
-  // each Vercel invocation is a fresh, short-lived function call, so we
-  // don't try to hold an SSE stream open across invocations — every tool
-  // call is a normal request/response, which is what Vercel functions are
-  // actually good at.
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
