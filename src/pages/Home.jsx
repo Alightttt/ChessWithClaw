@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
 import { supabase } from '../lib/supabase';
 import LivePlatformActivity from '../components/LivePlatformActivity';
-import InteractiveQuickStart from '../components/InteractiveQuickStart';
+
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
@@ -344,6 +344,7 @@ export default function Home() {
         }
       `}</style>
       
+      <div className="sticky top-0 z-50 flex flex-col w-full">
       {resumeGame && (
         <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
@@ -373,18 +374,16 @@ export default function Home() {
           </div>
         </div>
       )}
-
       <nav 
         style={{
           fontFamily: "'Inter', sans-serif",
-          position: 'fixed', top: resumeGame ? '48px' : 0, left: 0, right: 0, height: '72px', zIndex: 50,
+          height: '72px', width: '100%',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
           transition: 'all 0.3s ease',
-          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none',
-          transform: 'translateZ(0)'
+          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -418,6 +417,7 @@ export default function Home() {
             Play Now
           </a>
       </nav>
+      </div>
 
       <section 
         style={{ 
@@ -630,13 +630,139 @@ export default function Home() {
       <section id="how" className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '80px', padding: '0 20px' }}>
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(36px, 9vw)', fontWeight: 800, lineHeight: 1.2, textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.03em' }}>Quick Start</h2>
         <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '16px' }}>Works with OpenClaw, Hermes, and other MCP-capable personal agents.</p>
-        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '8px' }}>Three simple steps. Done once. Play forever.</p>
-        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', color: 'rgba(242,242,242,0.4)', textAlign: 'center', marginBottom: '48px', fontStyle: 'italic' }}>You only do this once per agent, not once per game.</p>
+        <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: 'rgba(242,242,242,0.5)', textAlign: 'center', marginBottom: '48px' }}>One simple step. Connect once. Play forever.</p>
         
-        <InteractiveQuickStart />
-        
-        <div style={{ fontSize: '12px', color: '#444', textAlign: 'center', marginTop: '24px', fontFamily: "'Inter', sans-serif" }}>
-          Run each command once inside your agent&apos;s command-line interface. Let the battle begin!
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Card 1: Add MCP Server */}
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Terminal size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 01
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Add MCP Server
+                </span>
+              </div>
+            </div>
+            
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              Give your agent access to the ChessWithClaw integration.
+            </p>
+            
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ fontSize: '11px', color: 'rgba(242,242,242,0.3)', fontWeight: 600, fontFamily: 'Inter' }}>RUN COMMAND:</div>
+              <div style={{
+                background: '#070707',
+                border: '1px solid #1a1a1a',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: '12px',
+                color: '#739552',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ wordBreak: 'break-all', color: 'rgba(242,242,242,0.9)' }}>openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText("openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp");
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(242,242,242,0.4)',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontFamily: "'Inter', sans-serif",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginLeft: '12px',
+                    flexShrink: 0
+                  }}
+                  className="hover:text-white"
+                >
+                  <Copy size={13} />
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Card 2: Create Game */}
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Globe size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 02
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Create Match
+                </span>
+              </div>
+            </div>
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              Click &quot;Play Now&quot; to generate a unique match invite for your agent.
+            </p>
+          </div>
+          
+          {/* Card 3: Invite */}
+          <div className="design-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.2)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Bot size={20} className="text-[#e63946]" />
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '10px', color: '#e63946', letterSpacing: '0.1em', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Step 03
+                </span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2' }}>
+                  Invite & Play
+                </span>
+              </div>
+            </div>
+            <p style={{ fontSize: '13px', color: 'rgba(242,242,242,0.45)', fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.5 }}>
+              Paste the invite prompt into your agent&apos;s chat, and the game begins immediately.
+            </p>
+          </div>
         </div>
       </section>
 

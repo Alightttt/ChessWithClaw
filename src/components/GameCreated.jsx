@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Terminal, Play, ChevronDown, Zap, Globe, ShieldCheck, Activity } from 'lucide-react';
+import { Copy, Check, Play, ShieldCheck, Activity } from 'lucide-react';
 
 export default function GameCreated() {
   const { gameId } = useParams();
@@ -11,7 +11,6 @@ export default function GameCreated() {
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('');
   const [boardOpening, setBoardOpening] = useState(false);
-  const [quickSetupExpanded, setQuickSetupExpanded] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
 
   useEffect(() => {
@@ -42,7 +41,7 @@ export default function GameCreated() {
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
 
-  const inviteMessage = `Please play a game of chess with me using the play-chess skill. The game ID is ${gameId}.`;
+  const inviteMessage = `Please connect to the MCP server at ${window.location.origin}/api/mcp and join the chess game with ID ${gameId}.`;
 
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(inviteMessage);
@@ -80,10 +79,10 @@ export default function GameCreated() {
           className="text-center mb-12"
         >
           <div className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-6">
-            Match Initialization
+            Game Created
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
-            The Board is Set
+            Ready to Play
           </h1>
           <p className="text-white/40 text-lg font-medium">Match ID: <span className="font-mono text-white/70 select-all">{gameId}</span></p>
         </motion.div>
@@ -102,9 +101,9 @@ export default function GameCreated() {
             </div>
             
             <div className="relative z-10">
-              <h2 className="text-2xl font-bold tracking-tight mb-2">Connect Your Agent</h2>
+              <h2 className="text-2xl font-bold tracking-tight mb-2">Invite Your Agent</h2>
               <p className="text-white/50 text-sm mb-6 max-w-md leading-relaxed">
-                Copy the prompt below and paste it to your OpenClaw agent. This gives it the exact coordinates to join this match.
+                Copy the prompt below and send it to your agent. This provides the exact instructions it needs to join this match via the MCP server.
               </p>
               
               <div className="relative group">
@@ -131,12 +130,11 @@ export default function GameCreated() {
             <div className={`absolute top-0 right-0 p-8 pointer-events-none transition-colors duration-700 ${agentConnected ? 'text-green-500/10' : 'text-white/5'}`}>
               <span className="font-black text-8xl">2</span>
             </div>
-
             <div className="relative z-10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight mb-2">Enter the Arena</h2>
-                  <p className="text-white/50 text-sm">Ready to play when you are.</p>
+                  <h2 className="text-2xl font-bold tracking-tight mb-2">Enter Game</h2>
+                  <p className="text-white/50 text-sm">Start playing as soon as you&apos;re ready.</p>
                 </div>
                 
                 {/* Dynamic Status Indicator */}
@@ -144,19 +142,19 @@ export default function GameCreated() {
                   {agentConnected ? (
                     <div className="text-sm font-bold text-green-400 flex items-center gap-2">
                       <ShieldCheck size={18} />
-                      Agent Ready
+                      Agent Connected
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
                       <div className="relative flex items-center justify-center w-6 h-6">
                         <div className="absolute inset-0 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
                       </div>
-                      <span className="text-sm font-bold text-amber-500">Awaiting Signal...</span>
+                      <span className="text-sm font-bold text-amber-500">Waiting for Agent...</span>
                     </div>
                   )}
                   {!agentConnected && (
                     <p className="text-[10px] text-white/40 md:text-right max-w-[220px] leading-relaxed">
-                      This may take a few moments depending on your agent's current task load.
+                      Your agent will appear here once it processes the invite message.
                     </p>
                   )}
                 </div>
@@ -187,63 +185,12 @@ export default function GameCreated() {
                 ) : (
                   <>
                     <Play fill="currentColor" size={16} /> 
-                    {agentConnected ? 'Start Game' : 'Enter Board Now'}
+                    {agentConnected ? 'Start Game' : 'Enter Game'}
                   </>
                 )}
               </button>
             </div>
           </motion.div>
-
-          {/* Setup Commands / First time */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="pt-4"
-          >
-            <button 
-              onClick={() => setQuickSetupExpanded(!quickSetupExpanded)}
-              className="w-full flex items-center justify-between p-6 rounded-[24px] border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-sm text-white/60 font-medium"
-            >
-              <div className="flex items-center gap-3">
-                <Terminal size={18} className="text-white/40" />
-                <span>First time playing? View setup commands</span>
-              </div>
-              <ChevronDown size={18} className={`transition-transform duration-300 ${quickSetupExpanded ? 'rotate-180' : ''}`} />
-            </button>
-            
-            <AnimatePresence>
-              {quickSetupExpanded && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-2 mt-4 space-y-2 border border-white/5 rounded-[24px] bg-black/40">
-                    {[
-                      { label: 'Install chess skill', cmd: 'openclaw skills install play-chess', icon: <Zap size={16} className="text-[#e63946]" /> },
-                      { label: 'Install browser skill', cmd: 'openclaw skills install @matrixy/agent-browser-clawdbot', icon: <Globe size={16} className="text-blue-400" /> },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] transition-colors">
-                        <div className="flex items-center gap-4 overflow-hidden">
-                          {row.icon}
-                          <div className="font-mono text-sm text-white/80 truncate">{row.cmd}</div>
-                        </div>
-                        <button 
-                          onClick={() => navigator.clipboard.writeText(row.cmd)}
-                          className="px-3 py-1.5 rounded-lg bg-white/5 text-xs font-bold uppercase tracking-wider text-white/40 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
         </div>
       </main>
     </div>
