@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
 import { supabase } from '../lib/supabase';
 import LivePlatformActivity from '../components/LivePlatformActivity';
+import MockChatPanel from '../components/MockChatPanel';
 
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -195,7 +196,7 @@ export default function Home() {
 
 
   return (
-    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2' }} className="font-sans overflow-x-hidden selection:bg-red-500/30">
+    <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh', color: '#f2f2f2', overflowX: 'clip' }} className="font-sans selection:bg-red-500/30">
       <style>{`
         .fade-in-section {
           opacity: 0.01;
@@ -422,7 +423,7 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: resumeGame ? 'clamp(138px, 15vh, 158px)' : 'clamp(90px, 12vh, 110px)', 
+          paddingTop: 'clamp(40px, 8vh, 80px)', 
           paddingBottom: 'clamp(48px, 8vh, 80px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
@@ -567,6 +568,7 @@ export default function Home() {
                 <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
                 </div>
               </div>
+              <MockChatPanel />
             </div>
           </motion.div>
         
@@ -607,7 +609,7 @@ export default function Home() {
 
       <LivePlatformActivity onPlayNow={handlePlayNow} />
 
-      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '64px', padding: '0 20px' }}>
+      <section className="fade-in-section max-w-7xl mx-auto" style={{ marginBottom: '40px', padding: '0 20px' }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[
             { customIcon: <span style={{fontSize: 28, lineHeight: 1}}><LobsterEmoji /></span>, title: "Agent Integration", desc: "Native plugin support for raw agent logic." },
