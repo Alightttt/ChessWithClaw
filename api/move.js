@@ -478,7 +478,7 @@ module.exports = async function handler(req, res) {
   if (!isAgentMove && game.status === 'waiting') {
     await supabase.from('games').update({
       status: 'active',
-      opponent_connected: true
+      player_connected: true
     }).eq('id', targetGameId);
   }
 
