@@ -32,9 +32,9 @@ export default function AppHeader() {
           {/* Left: Logo */}
           <button onClick={scrollToTop} className="flex items-center gap-3 group">
             <img 
-              src="/logo.png" 
+              src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
               alt="Logo" 
-              onError={(e) => { e.currentTarget.src = '/favicon.jpg'; }}
+              onError={(e) => { e.currentTarget.src = 'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/favicon.png'; }}
               className="w-7 h-7 rounded-full border border-[var(--color-border-subtle)] object-cover group-hover:border-[var(--color-red-primary)] transition-colors"
             />
             <span className="font-display font-semibold text-xl text-[var(--color-text-primary)] tracking-tight">
