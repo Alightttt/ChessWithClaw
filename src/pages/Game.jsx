@@ -1146,8 +1146,8 @@ export default function Game() {
   const normalizedMessages = useMemo(() => {
     const serverTexts = new Set((chatMessages || []).map(m => m.text || m.message || m.content));
     const combined = [
-      ...(chatMessages || []),
-      ...localMessages.filter(m => !serverTexts.has(m.text || m.message || m.content))
+      ...(chatMessages || []).filter(Boolean),
+      ...localMessages.filter(m => m && !serverTexts.has(m.text || m.message || m.content))
     ].sort((a, b) => {
       const timeA = new Date(a.timestamp || 0).getTime();
       const timeB = new Date(b.timestamp || 0).getTime();
@@ -2405,6 +2405,7 @@ export default function Game() {
     return (
       <div style={{ paddingBottom: '10px' }}>
         {msgs.map((msg, index) => {
+          if (!msg) return null;
           const isAgent = msg.role === 'agent' || msg.sender === 'agent' || (msg.role !== 'human' && msg.sender !== 'human');
           const isNew = index >= seenMsgCountRef.current;
           const prevMsg = msgs[index - 1];

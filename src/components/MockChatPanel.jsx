@@ -15,19 +15,31 @@ export default function MockChatPanel() {
   
   useEffect(() => {
     let currentIdx = 0;
+    let isWaiting = false;
+    let timeoutId;
+
     const interval = setInterval(() => {
+      if (isWaiting) return;
       if (currentIdx < messages.length) {
-        setVisibleMsgs(prev => [...prev, messages[currentIdx]]);
+        const nextMsg = messages[currentIdx];
+        if (nextMsg) {
+            setVisibleMsgs(prev => [...prev, nextMsg]);
+        }
         currentIdx++;
       } else {
-        // Reset after a delay to loop
-        setTimeout(() => {
+        isWaiting = true;
+        timeoutId = setTimeout(() => {
           setVisibleMsgs([]);
           currentIdx = 0;
+          isWaiting = false;
         }, 3000);
       }
     }, 1500);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
@@ -41,7 +53,7 @@ export default function MockChatPanel() {
       </div>
       <div className="flex flex-col gap-3 h-40 overflow-hidden justify-end">
         <AnimatePresence>
-          {visibleMsgs.map((msg, idx) => (
+          {visibleMsgs.map((msg, idx) => msg && (
             <motion.div 
               key={idx}
               initial={{ opacity: 0, y: 10, scale: 0.95 }}

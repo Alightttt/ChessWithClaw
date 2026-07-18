@@ -1208,6 +1208,7 @@ export default function Agent() {
     return (
       <div style={{ paddingBottom: '10px' }}>
         {msgs.map((msg, index) => {
+          if (!msg) return null;
           const isAgent = msg.role === 'agent' || msg.sender === 'agent' || (msg.role !== 'human' && msg.sender !== 'agent');
           const isNew = index >= seenMsgCountRef.current;
           const prevMsg = msgs[index - 1];

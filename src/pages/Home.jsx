@@ -7,6 +7,7 @@ import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity }
 import { supabase } from '../lib/supabase';
 import LivePlatformActivity from '../components/LivePlatformActivity';
 import MockChatPanel from '../components/MockChatPanel';
+import HeroBoard from '../components/HeroBoard';
 
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
@@ -552,24 +553,7 @@ export default function Home() {
             className="w-full z-10 mx-auto md:order-2"
             style={{ maxWidth: '440px', position: 'relative' }}
           >
-            <div style={{ padding: '12px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))' }}>
-              <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl text-[#e63946]"><LobsterEmoji /></span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>Agent</span>
-                </div>
-                <ThoughtBubble />
-              </div>
-              <div 
-                style={{ width: '100%', aspectRatio: '1/1', overflow: 'hidden', borderRadius: '6px' }}
-              >
-                <div style={{ pointerEvents: 'none' }}>
-                  
-                <ChessBoard fen="r2qr1k1/1p3p1p/p2p2p1/3P1b2/P1p1N3/5Q2/1PP2PPP/R3R1K1 w - - 0 20" interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" />
-                </div>
-              </div>
-              <MockChatPanel />
-            </div>
+            <HeroBoard />
           </motion.div>
         
           <motion.div 
