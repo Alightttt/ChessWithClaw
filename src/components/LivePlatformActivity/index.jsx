@@ -57,7 +57,7 @@ export default function LivePlatformActivity() {
         <div 
           className="relative z-10 rounded-[32px] overflow-hidden py-16 sm:py-24 px-4 sm:px-8 flex flex-col items-center justify-center text-center group"
           style={{
-            background: 'linear-gradient(135deg, #312e2b 0%, #161512 100%)',
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #050505 100%)',
             boxShadow: 'inset 0 1.5px 0 rgba(230,57,70,0.5), inset 0 0 60px rgba(0,0,0,0.8), 0 20px 40px rgba(0,0,0,0.5)',
           }}
         >
