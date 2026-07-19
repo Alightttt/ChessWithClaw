@@ -33,7 +33,7 @@ export default function HeroBoard() {
 
   useEffect(() => {
     if (reducedMotion.current) {
-      setBeatIdx(SEQUENCE.length - 1);
+      setBeatIdx(-1);
       return;
     }
 

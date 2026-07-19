@@ -176,7 +176,12 @@ function buildServer() {
       }
       await getSupabase()
         .from('games')
-        .update({ agent_connected: true, agent_last_seen: new Date().toISOString() })
+        .update({ 
+          agent_connected: true, 
+          agent_last_seen: new Date().toISOString(),
+          status: 'active',
+          player_connected: true
+        })
         .eq('id', game.id);
       return toolText({
         game_id: game.id,

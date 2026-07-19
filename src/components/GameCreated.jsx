@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, ShieldCheck, Activity, Terminal, ExternalLink, ArrowRight } from 'lucide-react';
@@ -10,14 +10,13 @@ const LobsterEmoji = ({ className = "" }) => (
   </span>
 );
 
-export default function GameCreated() {
-  const { gameId } = useParams();
+export default function GameCreated({ gameId }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
   const [agentName, setAgentName] = useState('');
   const [boardOpening, setBoardOpening] = useState(false);
-  const [legalAccepted, setLegalAccepted] = useState(true);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   useEffect(() => {
     const fetchGame = async () => {
@@ -77,7 +76,7 @@ export default function GameCreated() {
       />
 
       {/* Header */}
-      <header className="h-20 flex items-center justify-between px-8 relative z-20 border-b border-white/5 backdrop-blur-md">
+      <header className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:py-0 md:h-20 relative z-20 border-b border-white/5 backdrop-blur-md gap-4 md:gap-0">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -91,31 +90,33 @@ export default function GameCreated() {
           />
         </motion.div>
 
-        <AnimatePresence mode="wait">
-          {agentConnected ? (
-            <motion.div
-              key="connected"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-            >
-              <ShieldCheck size={16} />
-              <span>{agentName || 'Agent'} Connected</span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="waiting"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-sm font-semibold shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-            >
-              <Activity size={16} className="animate-pulse" />
-              <span>Awaiting Signal</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="w-full md:w-auto">
+          <AnimatePresence mode="wait">
+            {agentConnected ? (
+              <motion.div
+                key="connected"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex items-center justify-center gap-2 px-4 py-3 md:py-2 rounded-xl md:rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+              >
+                <ShieldCheck size={18} className="md:w-4 md:h-4" />
+                <span>{agentName || 'Agent'} Connected</span>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="waiting"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex items-center justify-center gap-2 px-4 py-3 md:py-2 rounded-xl md:rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+              >
+                <Activity size={18} className="animate-pulse md:w-4 md:h-4" />
+                <span>Awaiting Signal</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -148,7 +149,7 @@ export default function GameCreated() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-5xl mx-auto">
           {/* Card 1: Summon Agent */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -179,7 +180,7 @@ export default function GameCreated() {
               </div>
 
               <div className="relative mt-auto group/copy">
-                <div className="bg-[#030303] border border-white/5 rounded-2xl p-6 font-mono text-[13px] text-emerald-400/90 whitespace-pre-wrap select-all pr-24 leading-relaxed min-h-[160px] shadow-inner">
+                <div className="bg-[#030303] border border-white/5 rounded-2xl p-5 sm:p-6 font-mono text-[15px] sm:text-[13px] text-emerald-300 sm:text-emerald-400/90 whitespace-pre-wrap select-all pr-24 leading-relaxed min-h-[160px] shadow-inner">
                   <div className="flex items-center gap-2 mb-3 text-white/30 text-[10px] font-sans tracking-widest uppercase">
                     <Terminal size={12} /> Payload
                   </div>
@@ -280,15 +281,32 @@ export default function GameCreated() {
                 )}
               </div>
 
+              <div className="flex items-center gap-3 px-2">
+                <input
+                  type="checkbox"
+                  id="legalCheckbox"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 focus:ring-1 cursor-pointer"
+                />
+                <label htmlFor="legalCheckbox" className="text-sm text-zinc-400 cursor-pointer select-none">
+                  I agree to the <a href="/legal" target="_blank" rel="noopener noreferrer" className="text-white hover:text-emerald-400 underline decoration-white/20 underline-offset-4">privacy policy and terms</a>
+                </label>
+              </div>
+
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleOpenBoard}
-                disabled={boardOpening}
+                whileHover={legalAccepted && !boardOpening ? { scale: 1.02, y: -2 } : {}}
+                whileTap={legalAccepted && !boardOpening ? { scale: 0.98 } : {}}
+                onClick={(e) => {
+                  if (legalAccepted) handleOpenBoard();
+                }}
+                disabled={boardOpening || !legalAccepted}
                 className={`w-full h-16 rounded-2xl font-bold text-[15px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all duration-300 relative overflow-hidden group ${
-                  agentConnected 
-                    ? 'bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]' 
-                    : 'bg-white text-black hover:bg-zinc-200'
+                  !legalAccepted
+                    ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500'
+                    : agentConnected 
+                      ? 'bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]' 
+                      : 'bg-white text-black hover:bg-zinc-200'
                 }`}
               >
                 <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"></div>
