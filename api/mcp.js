@@ -127,6 +127,8 @@ async function serializeGameState(game) {
     agent_connected: !!game.agent_connected,
     agent_last_seen: game.agent_last_seen || null,
     player_color: game.player_color || 'w',
+    you_are_playing: 'black',
+    role_reminder: 'You are always Black. The human is always White and always moves first. Only submit moves when it is your turn.',
     draw_offer_pending: !!game.draw_offer_pending,
     board_theme: game.board_theme || 'green',
     piece_style: game.piece_style || 'neo',

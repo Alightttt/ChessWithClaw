@@ -98,7 +98,14 @@ export default function GameCreated({ gameId }) {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="flex items-center justify-center gap-2 px-4 py-3 md:py-2 rounded-xl md:rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                className="flex items-center justify-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                style={{
+                  borderRadius: '9999px',
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: "'Inter', sans-serif"
+                }}
               >
                 <ShieldCheck size={18} className="md:w-4 md:h-4" />
                 <span>{agentName || 'Agent'} Connected</span>
@@ -109,7 +116,14 @@ export default function GameCreated({ gameId }) {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="flex items-center justify-center gap-2 px-4 py-3 md:py-2 rounded-xl md:rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                className="flex items-center justify-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                style={{
+                  borderRadius: '9999px',
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: "'Inter', sans-serif"
+                }}
               >
                 <Activity size={18} className="animate-pulse md:w-4 md:h-4" />
                 <span>Awaiting Signal</span>
@@ -131,7 +145,17 @@ export default function GameCreated({ gameId }) {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 text-xs font-bold tracking-widest uppercase mb-8"
+            className="inline-flex items-center gap-2 rounded-full uppercase mb-8"
+            style={{
+              background: 'rgba(230,57,70,0.1)',
+              border: '1px solid rgba(230,57,70,0.2)',
+              borderRadius: '9999px',
+              padding: '6px 16px',
+              color: '#f2f2f2',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
           >
             <span className="w-2 h-2 rounded-full bg-[#e63946] animate-pulse"></span>
             Match Initialized
@@ -155,7 +179,12 @@ export default function GameCreated({ gameId }) {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col bg-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl relative group hover:border-white/20 transition-all duration-500"
+            className="flex flex-col overflow-hidden shadow-2xl relative group transition-all duration-500"
+            style={{
+              backgroundColor: '#111111',
+              border: '1px solid #1e1e1e',
+              borderRadius: '16px'
+            }}
           >
             {/* MacOS-style Window Header */}
             <div className="h-12 border-b border-white/10 bg-white/5 flex items-center px-6 gap-2">
@@ -203,11 +232,12 @@ export default function GameCreated({ gameId }) {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className={`flex flex-col rounded-[32px] p-8 overflow-hidden relative shadow-2xl transition-all duration-700 border ${
-              agentConnected 
-                ? 'bg-gradient-to-br from-emerald-950/30 to-[#0a0a0a] border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.1)]' 
-                : 'bg-[#0a0a0a] border-white/10'
-            }`}
+            className={`flex flex-col p-8 overflow-hidden relative shadow-2xl transition-all duration-700`}
+            style={{
+              backgroundColor: '#111111',
+              border: '1px solid #1e1e1e',
+              borderRadius: '16px'
+            }}
           >
             {/* Glow background for connected state */}
             <div className={`absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none transition-opacity duration-1000 ${agentConnected ? 'opacity-100' : 'opacity-0'}`}></div>

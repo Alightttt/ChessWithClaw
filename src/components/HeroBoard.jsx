@@ -91,47 +91,12 @@ export default function HeroBoard() {
         filter: 'drop-shadow(0 0 50px rgba(230,57,70,0.2))',
       }}
     >
-      <div className="flex items-center justify-between mb-4 px-2" style={{ position: 'relative' }}>
+      <div className="flex items-center mb-4 px-2" style={{ position: 'relative' }}>
         <div className="flex items-center gap-2">
           <span className="text-2xl text-[#e63946]"><LobsterEmoji /></span>
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: '#f2f2f2' }}>
             Agent
           </span>
-        </div>
-        <div className="flex items-center gap-2" style={{ minHeight: 24 }}>
-          <AnimatePresence mode="wait">
-            {thinking ? (
-              <motion.span
-                key="thinking"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.2 }}
-                style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, color: 'rgba(230,57,70,0.85)', letterSpacing: '0.02em' }}
-              >
-                thinking…
-              </motion.span>
-            ) : (
-              <motion.span
-                key={mood}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-                transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
-                style={mood === 'ready' ? { display: 'flex', alignItems: 'center', gap: '3px', height: '24px' } : { fontSize: '20px', lineHeight: 1 }}
-              >
-                {mood === 'ready' ? (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.2s' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.4s' }} />
-                  </>
-                ) : (
-                  mood
-                )}
-              </motion.span>
-            )}
-          </AnimatePresence>
         </div>
       </div>
 
@@ -162,22 +127,102 @@ export default function HeroBoard() {
         </div>
       </motion.div>
 
-      <div style={{ minHeight: '44px', padding: '10px 4px 2px', display: 'flex', alignItems: 'center' }}>
-        <AnimatePresence mode="wait">
-          {activeLine && (
-            <motion.div
-              key={activeLine}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.25 }}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(242,242,242,0.75)', lineHeight: 1.4 }}
-            >
-              <span style={{ fontSize: '13px', flexShrink: 0 }}><LobsterEmoji /></span>
-              <span>{activeLine}</span>
-            </motion.div>
+      {/* Modern speech-bubble chat element below the board */}
+      <div
+        style={{
+          position: 'relative',
+          marginTop: '16px',
+          background: '#161616',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '14px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minHeight: '48px',
+        }}
+      >
+        {/* Triangular speech-bubble tail pointing up */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: '24px',
+            width: '10px',
+            height: '10px',
+            backgroundColor: '#161616',
+            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            transform: 'translateY(-50%) rotate(45deg)',
+          }}
+        />
+
+        {/* Left side: mood emoji (at 18px size) */}
+        <div style={{ fontSize: '18px', display: 'flex', alignItems: 'center', flexShrink: 0, width: '24px', justifyContent: 'center' }}>
+          {mood === 'ready' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.2s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.4s' }} />
+            </div>
+          ) : (
+            <span>{mood}</span>
           )}
-        </AnimatePresence>
+        </div>
+
+        {/* Right side: dynamic text with plain opacity cross-fade (over 0.2s) */}
+        <div style={{ flexGrow: 1 }}>
+          <AnimatePresence mode="wait">
+            {thinking ? (
+              <motion.div
+                key="thinking"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ display: 'flex', alignItems: 'center' }}
+              >
+                <div className="flex items-center gap-1.5 h-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] opacity-70 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] opacity-70 animate-pulse" style={{ animationDelay: '0.15s' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] opacity-70 animate-pulse" style={{ animationDelay: '0.3s' }} />
+                </div>
+              </motion.div>
+            ) : activeLine ? (
+              <motion.div
+                key={activeLine}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '13px',
+                  color: 'rgba(242,242,242,0.85)',
+                  lineHeight: 1.4,
+                }}
+              >
+                {activeLine}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="watching"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '13px',
+                  color: 'rgba(242,242,242,0.4)',
+                  lineHeight: 1.4,
+                }}
+              >
+                watching the position…
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
