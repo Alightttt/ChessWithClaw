@@ -25,18 +25,8 @@ export default function HeroBoard() {
   const [beatIdx, setBeatIdx] = useState(-1);
   const [thinking, setThinking] = useState(false);
   const [visible, setVisible] = useState(true);
-  const reducedMotion = useRef(
-    typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false
-  );
 
   useEffect(() => {
-    if (reducedMotion.current) {
-      setBeatIdx(-1);
-      return;
-    }
-
     let cancelled = false;
     let timeoutId;
 
@@ -86,7 +76,7 @@ export default function HeroBoard() {
   const current = beatIdx >= 0 ? SEQUENCE[beatIdx] : null;
   const displayFen = current ? current.fen : START_FEN;
   const lastMove = current ? { from: current.from, to: current.to } : null;
-  const mood = current?.mood || '🦞';
+  const mood = current?.mood || 'ready';
   const inCheck = !!current?.check;
   const checkedKingSquare = current?.checkedKing || null;
   const activeLine = current?.line || null;
@@ -128,9 +118,17 @@ export default function HeroBoard() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
-                style={{ fontSize: '20px', lineHeight: 1 }}
+                style={mood === 'ready' ? { display: 'flex', alignItems: 'center', gap: '3px', height: '24px' } : { fontSize: '20px', lineHeight: 1 }}
               >
-                {mood}
+                {mood === 'ready' ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f2f2f2] opacity-40 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  </>
+                ) : (
+                  mood
+                )}
               </motion.span>
             )}
           </AnimatePresence>

@@ -174,7 +174,7 @@ export default function GameCreated({ gameId }) {
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-2">1. Summon Agent</h2>
                   <p className="text-zinc-400 text-sm leading-relaxed max-w-[90%]">
-                    Copy this tactical prompt and paste it into your agent's terminal to establish the connection via MCP.
+                    Copy this tactical prompt and paste it into your agent&apos;s terminal to establish the connection via MCP.
                   </p>
                 </div>
               </div>
@@ -254,13 +254,17 @@ export default function GameCreated({ gameId }) {
                       className="absolute inset-0 flex items-center justify-center"
                     >
                       <motion.div
-                        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                        animate={{ y: [0, -6, 0] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         className="absolute inset-0 bg-amber-500/10 rounded-full flex items-center justify-center"
                       >
-                        <LobsterEmoji className="text-5xl opacity-50 grayscale mix-blend-luminosity" />
+                        <LobsterEmoji className="text-5xl opacity-[0.85] grayscale mix-blend-luminosity" />
                       </motion.div>
-                      <div className="absolute -inset-4 border border-white/10 rounded-full border-dashed animate-[spin_10s_linear_infinite]"></div>
+                      <motion.div
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -inset-4 border border-white/10 rounded-full border-dashed animate-[spin_10s_linear_infinite]"
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
