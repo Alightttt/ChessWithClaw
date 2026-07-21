@@ -76,7 +76,7 @@ export default function GameCreated({ gameId }) {
       />
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:py-0 md:h-20 relative z-20 border-b border-white/5 backdrop-blur-md gap-4 md:gap-0">
+      <header className="flex items-center px-4 md:px-8 h-16 relative z-20 border-b border-white/5 backdrop-blur-md">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -86,55 +86,71 @@ export default function GameCreated({ gameId }) {
           <img
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png"
             alt="ChessWithClaw"
-            className="w-[140px] object-contain transition-transform hover:scale-105 opacity-90 hover:opacity-100"
+            className="w-[120px] md:w-[130px] object-contain transition-transform hover:scale-105 opacity-90 hover:opacity-100"
           />
         </motion.div>
+      </header>
 
-        <div className="w-full md:w-auto">
+      {/* Connection Status Banner */}
+      <div className="w-full h-[44px] border-b border-white/10 flex items-center justify-between px-4 md:px-8 relative z-20 text-sm font-semibold select-none overflow-hidden"
+        style={{
+          backgroundColor: agentConnected ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)',
+          borderColor: agentConnected ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+        }}
+      >
+        <div className="flex items-center">
+          <div
+            className="flex items-center gap-1.5 rounded-full uppercase"
+            style={{
+              background: 'rgba(230,57,70,0.12)',
+              border: '1px solid rgba(230,57,70,0.25)',
+              borderRadius: '9999px',
+              padding: '2px 10px',
+              color: '#ffffff',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] animate-pulse"></span>
+            Match Initialized
+          </div>
+        </div>
+
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
           <AnimatePresence mode="wait">
             {agentConnected ? (
               <motion.div
-                key="connected"
-                initial={{ opacity: 0, y: -10 }}
+                key="connected-banner"
+                initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="flex items-center justify-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-                style={{
-                  borderRadius: '9999px',
-                  padding: '6px 16px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  fontFamily: "'Inter', sans-serif"
-                }}
+                exit={{ opacity: 0, y: 5 }}
+                className="flex items-center gap-2 text-emerald-400 text-xs md:text-sm font-bold tracking-wide"
               >
-                <ShieldCheck size={18} className="md:w-4 md:h-4" />
+                <ShieldCheck size={16} className="text-emerald-400" />
                 <span>{agentName || 'Agent'} Connected</span>
               </motion.div>
             ) : (
               <motion.div
-                key="waiting"
-                initial={{ opacity: 0, y: -10 }}
+                key="waiting-banner"
+                initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="flex items-center justify-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-base md:text-sm font-bold md:font-semibold shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-                style={{
-                  borderRadius: '9999px',
-                  padding: '6px 16px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  fontFamily: "'Inter', sans-serif"
-                }}
+                exit={{ opacity: 0, y: 5 }}
+                className="flex items-center gap-2 text-amber-500 text-xs md:text-sm font-bold tracking-wide"
               >
-                <Activity size={18} className="animate-pulse md:w-4 md:h-4" />
+                <Activity size={16} className="animate-pulse text-amber-500" />
                 <span>Awaiting Signal</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-      </header>
+
+        <div className="w-[125px] hidden sm:block pointer-events-none" />
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center pt-10 pb-24 px-6 relative z-10 w-full max-w-6xl mx-auto">
+      <main className="flex-1 flex flex-col items-center pt-8 pb-24 px-6 relative z-10 w-full max-w-6xl mx-auto">
         {/* Soft, centered red radial glow blur matching the landing page hero */}
         <div style={{
           position: 'absolute',
@@ -152,35 +168,15 @@ export default function GameCreated({ gameId }) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center w-full max-w-3xl mx-auto mb-10 relative z-10"
+          className="text-center w-full max-w-3xl mx-auto mb-8 relative z-10"
         >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 rounded-full uppercase mb-8"
-            style={{
-              background: 'rgba(230,57,70,0.1)',
-              border: '1px solid rgba(230,57,70,0.2)',
-              borderRadius: '9999px',
-              padding: '6px 16px',
-              color: '#f2f2f2',
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '13px',
-              fontWeight: 600,
-            }}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#e63946] animate-pulse"></span>
-            Match Initialized
-          </motion.div>
-
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-white mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white mb-4 leading-tight">
             The Arena is <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e63946] to-orange-400">Ready.</span>
           </h1>
           
-          <div className="flex items-center justify-center gap-3 text-lg md:text-xl text-zinc-400">
+          <div className="flex items-center justify-center gap-3 text-base md:text-lg text-zinc-400">
             <span>Match ID:</span>
-            <code className="font-mono px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 text-zinc-200 select-all">
+            <code className="font-mono px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-zinc-200 select-all">
               {gameId}
             </code>
           </div>

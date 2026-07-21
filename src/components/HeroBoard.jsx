@@ -26,6 +26,8 @@ export default function HeroBoard() {
   const [thinking, setThinking] = useState(false);
   const [visible, setVisible] = useState(true);
   const [chatLog, setChatLog] = useState([]);
+  const [agentMood, setAgentMood] = useState(SEQUENCE[0].mood || '🦞');
+  const [agentThought, setAgentThought] = useState(SEQUENCE[0].thought || '');
 
   const pushChat = (entry) => {
     if (!entry) return;
@@ -48,6 +50,8 @@ export default function HeroBoard() {
             setChatLog([]);
             setBeatIdx(0);
             const first = SEQUENCE[0];
+            setAgentMood(first.mood || '🦞');
+            setAgentThought(first.thought || '');
             pushChat(first.chat);
             setVisible(true);
             timeoutId = setTimeout(() => runBeat(1), 900);
@@ -59,17 +63,23 @@ export default function HeroBoard() {
       const beat = SEQUENCE[idx];
       const holdMs = beat.check ? 2800 : beat.capture ? 2200 : 1800;
 
-      if (beat.mover === 'agent') {
+      const hasAgentChat = beat.mover === 'agent' && !!beat.chat;
+
+      if (hasAgentChat) {
         setThinking(true);
         timeoutId = setTimeout(() => {
           if (cancelled) return;
           setThinking(false);
           setBeatIdx(idx);
+          if (beat.mood) setAgentMood(beat.mood);
+          if (beat.thought) setAgentThought(beat.thought);
           pushChat(beat.chat);
           timeoutId = setTimeout(() => runBeat(idx + 1), holdMs);
-        }, 650);
+        }, 500);
       } else {
         setBeatIdx(idx);
+        if (beat.mood) setAgentMood(beat.mood);
+        if (beat.thought) setAgentThought(beat.thought);
         pushChat(beat.chat);
         timeoutId = setTimeout(() => runBeat(idx + 1), holdMs);
       }
@@ -86,7 +96,7 @@ export default function HeroBoard() {
 
   const current = SEQUENCE[beatIdx];
   const lastMove = { from: current.from, to: current.to };
-  const mood = current.mood || '🦞';
+  const mood = agentMood;
   const latestChat = chatLog[chatLog.length - 1];
 
   return (
@@ -106,9 +116,9 @@ export default function HeroBoard() {
               </motion.div>
             ) : (
               <motion.div key={beatIdx} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={SPRING} style={{ display: 'flex', alignItems: 'center', gap: '6px', textAlign: 'right' }}>
-                <span style={{ fontSize: '16px' }}>{mood}</span>
+                <span style={{ fontSize: '16px' }}>{agentMood}</span>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.75)', maxWidth: '180px' }}>
-                  {current.thought || ''}
+                  {agentThought}
                 </span>
               </motion.div>
             )}
