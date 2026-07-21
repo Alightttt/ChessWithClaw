@@ -37,7 +37,7 @@ function ThoughtBubble() {
     const t = setInterval(() => {
       setThoughtIdx(i => (i + 1) % DEMO_THOUGHTS.length);
       setDisplayedThought('');
-    }, 2200);
+    }, 3800);
     return () => clearInterval(t);
   }, []);
 
@@ -424,8 +424,8 @@ export default function Home() {
       <section 
         style={{ 
           background: 'none', 
-          paddingTop: 'clamp(40px, 8vh, 80px)', 
-          paddingBottom: 'clamp(48px, 8vh, 80px)', 
+          paddingTop: 'clamp(8px, 1.5vh, 16px)', 
+          paddingBottom: 'clamp(40px, 6vh, 64px)', 
           paddingLeft: '20px', 
           paddingRight: '20px', 
           marginBottom: '0px',
@@ -448,20 +448,27 @@ export default function Home() {
 
         <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left z-10 w-full" style={{ gap: '16px', position: 'relative', zIndex: 1 }}>
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              background: 'rgba(230,57,70,0.1)',
-              border: '1px solid rgba(230,57,70,0.2)',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '9999px',
-              padding: '6px 16px',
-              color: '#f2f2f2',
+              padding: '4px 12px',
+              color: 'rgba(242,242,242,0.65)',
               fontFamily: "'Inter', sans-serif",
-              fontSize: '13px',
-              fontWeight: 600,
+              fontSize: '12px',
+              fontWeight: 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            <span style={{ color: '#e63946' }}>●</span> LIVE · REAL-TIME CHESS
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e63946] opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#e63946]"></span>
+            </span>
+            <span style={{ letterSpacing: '0.02em' }}>Realtime chess</span>
           </motion.div>
           
           <motion.div

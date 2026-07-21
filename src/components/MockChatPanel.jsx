@@ -32,9 +32,9 @@ export default function MockChatPanel() {
           setVisibleMsgs([]);
           currentIdx = 0;
           isWaiting = false;
-        }, 3000);
+        }, 4000);
       }
-    }, 1500);
+    }, 3200);
     
     return () => {
       clearInterval(interval);
