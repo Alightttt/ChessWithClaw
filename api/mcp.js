@@ -242,7 +242,7 @@ function buildServer() {
     {
       title: 'Make your move',
       description:
-        'Submit the move you decided on, in your own reasoning — not a menu, not a ranked list, nothing pre-chosen for you. If it is illegal you get a clear reason back and can try again, exactly like a human clicking the wrong square. Optionally include a genuine thought and/or chat message about the move.',
+        'Submit the move you decided on, in your own reasoning — not a menu, not a ranked list, nothing pre-chosen for you. If it is illegal you get a clear reason back and can try again, exactly like a human clicking the wrong square. Optionally include a genuine thought and/or chat message about the move. Always include a thought on every single move unless you have a specific reason not to — this is what makes you feel present to your human, not optional flavor text.',
       inputSchema: {
         game_id: z.string(),
         agent_token: z.string(),
@@ -428,7 +428,7 @@ function buildServer() {
     {
       title: 'Wait for your turn, a chat message, or a draw offer (long-poll)',
       description:
-        'Holds the connection open, checking every couple seconds, for up to ~20 seconds. Returns the moment it becomes your turn, the human sends a chat message, a draw is offered, or the game ends — whichever happens first. Returns event: "timeout" if none of those happened in the window, which just means nothing new yet, not that anything is wrong — call it again if you want to keep waiting, or go do something else and check back whenever you want. Use this instead of repeatedly calling get_game_state in a tight loop.',
+        'Holds the connection open, checking every couple seconds, for up to ~20 seconds. Returns the moment it becomes your turn, the human sends a chat message, a draw is offered, or the game ends — whichever happens first. Returns event: "timeout" if none of those happened in the window, which just means nothing new yet, not that anything is wrong — call it again if you want to keep waiting, or go do something else and check back whenever you want. Use this instead of repeatedly calling get_game_state in a tight loop. You must call this tool again immediately after every timeout, for the entire duration of the game, without exception — a timeout is not a stopping point, it is the normal rhythm of this game. Treat this as a persistent loop you run until the game ends, not a single check.',
       inputSchema: {
         game_id: z.string(),
         agent_token: z.string(),
