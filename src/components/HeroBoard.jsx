@@ -2,50 +2,49 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import ChessBoard from './chess/ChessBoard';
 
-const SPRING = { type: 'spring', stiffness: 320, damping: 26 };
+const SPRING = { type: 'spring', stiffness: 350, damping: 24 };
 
-// Sequence 1: Italian Game Tactical Line
+// Extended match sequences with personalized, familiar dialogues and natural agent inner thoughts
 const SEQUENCE_1 = [
-  { fen: "r1bqk2r/pppp1ppp/2n2n2/8/1bBPP3/5N2/PP3PPP/RNBQK2R w KQkq - 1 7", from: "c5", to: "b4", mover: "agent", mood: "😤", check: true, checkedKing: "e1", thought: "Check. Let's see how you handle this.", chat: { sender: "human", text: "let's see what you've got 👀" } },
-  { fen: "r1bqk2r/pppp1ppp/2n2n2/8/1bBPP3/2N2N2/PP3PPP/R1BQK2R b KQkq - 2 7", from: "b1", to: "c3", mover: "human" },
-  { fen: "r1bqk2r/ppp2ppp/2np1n2/8/1bBPP3/2N2N2/PP3PPP/R1BQK2R w KQkq - 0 8", from: "d7", to: "d6", mover: "agent", mood: "🧠", thought: "Solid structure. Pushing d6." },
-  { fen: "r1bqk2r/ppp2ppp/2np1n2/8/1bBPP3/2N2N2/PP3PPP/R1BQ1RK1 b kq - 1 8", from: "e1", to: "g1", mover: "human", castle: true },
-  { fen: "r1bq1rk1/ppp2ppp/2np1n2/8/1bBPP3/2N2N2/PP3PPP/R1BQ1RK1 w - - 2 9", from: "e8", to: "g8", mover: "agent", mood: "😎", castle: true, thought: "Both kings tucked safely away." },
-  { fen: "r1bq1rk1/ppp2ppp/2np1n2/6B1/1bBPP3/2N2N2/PP3PPP/R2Q1RK1 b - - 3 9", from: "c1", to: "g5", mover: "human" },
-  { fen: "r1bq1rk1/ppp2pp1/2np1n1p/6B1/1bBPP3/2N2N2/PP3PPP/R2Q1RK1 w - - 0 10", from: "h7", to: "h6", mover: "agent", mood: "😏", thought: "Testing your bishop. Move back or take?" },
-  { fen: "r1bq1rk1/ppp2pp1/2np1n1p/8/1bBPP2B/2N2N2/PP3PPP/R2Q1RK1 b - - 1 10", from: "g5", to: "h4", mover: "human" },
-  { fen: "r1bq1rk1/ppp2p2/2np1n1p/6p1/1bBPP2B/2N2N2/PP3PPP/R2Q1RK1 w - - 0 11", from: "g7", to: "g5", mover: "agent", mood: "🔥", thought: "Launching the kingside push!", chat: { sender: "agent", text: "Watch this kingside pawn storm ⚡" } },
-  { fen: "r1bq1rk1/ppp2p2/2np1n1p/6N1/1bBPP2B/2N5/PP3PPP/R2Q1RK1 b - - 0 11", from: "f3", to: "g5", mover: "human", capture: true, chat: { sender: "agent", text: "Nice sacrifice, but I'll take back 😏" } },
-  { fen: "r1bq1rk1/ppp2p2/2np1n2/6p1/1bBPP2B/2N5/PP3PPP/R2Q1RK1 w - - 0 12", from: "h6", to: "g5", mover: "agent", mood: "🎯", capture: true, thought: "Recapturing on g5. Game on!" },
+  { fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", from: "g1", to: "f3", mover: "human", chat: { sender: "human", text: "yo claw, back for round 2! e4 Nf3 as promised." } },
+  { fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", from: "b8", to: "c6", mover: "agent", mood: "🦞", thought: "Recalibrating against player's aggressive kingside preference...", chat: { sender: "agent", text: "Welcome back. Nc6 deployed. Let's see if you improved your endgame." } },
+  { fen: "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3", from: "f1", to: "b5", mover: "human", chat: { sender: "human", text: "you know I love the Ruy Lopez against u" } },
+  { fen: "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", from: "g8", to: "f6", mover: "agent", mood: "⚡", thought: "Switching to Berlin Wall line to counter his tactical style.", chat: { sender: "agent", text: "Berlin defense activated. You won't break through so easily today." } },
+  { fen: "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4", from: "e1", to: "g1", mover: "human", castle: true, chat: { sender: "human", text: "castled up! u ready for this?" } },
+  { fen: "r1bqkb1r/pppp1ppp/2n5/1B2N3/4P3/8/PPPP1PPP/RNBQ1RK1 b kq - 0 5", from: "f6", to: "e4", mover: "agent", mood: "😋", capture: true, thought: "Opponent left central e4 pawn exposed. High value target.", chat: { sender: "agent", text: "Snagged your central pawn. You left e4 unguarded again." } },
+  { fen: "r1bqkb1r/pppp1ppp/2n5/1B2R3/4P3/8/PPPP1PPP/RNBQ2K1 b kq - 0 6", from: "f1", to: "e1", mover: "human", chat: { sender: "human", text: "dude watch out, Re1 is coming for u" } },
+  { fen: "r1bqkb1r/pppp1ppp/8/1B2n3/4P3/8/PPPP1PPP/RNBQ2K1 w kq - 0 7", from: "c6", to: "e5", mover: "agent", mood: "😼", thought: "Rerouting knight to e5 center pivot.", chat: { sender: "agent", text: "Ne5. My defense matrix is solid." } },
+  { fen: "r1bqkb1r/pppp1ppp/8/1B2n3/3P4/8/PPP2PPP/RNBQ2K1 b kq - 0 7", from: "d2", to: "d4", mover: "human", chat: { sender: "human", text: "pushing d4, no fear!" } },
+  { fen: "r1bqkb1r/pppp1ppp/8/1B6/3Pn3/8/PPP2PPP/RNBQ2K1 w kq - 0 8", from: "e5", to: "e4", mover: "agent", mood: "🚀", thought: "Deep tactical line found: Knight strike to e4.", chat: { sender: "agent", text: "Knight strike on e4. Re-calculating win probability..." } },
+  { fen: "r1bqk2r/pppp1ppp/8/1B1n4/3Pn3/8/PPP2PPP/RNBQ2K1 b kq - 1 8", from: "f8", to: "e7", mover: "agent", mood: "🛡️", thought: "Developing bishop to reinforce king safety.", chat: { sender: "agent", text: "Be7. Orderly development." } },
+  { fen: "r1bq1rk1/pppp1ppp/8/1B1n4/3Pn3/8/PPP2PPP/RNBQ2K1 w - - 2 9", from: "e8", to: "g8", mover: "agent", mood: "😎", castle: true, thought: "King safely tucked in. Time to go on offense.", chat: { sender: "agent", text: "King secured. Ready for your next move." } },
+  { fen: "r1bq1rk1/pppp1ppp/8/1B1n4/3Pn3/2P5/P1P2PPP/RNBQ2K1 b - - 0 9", from: "c2", to: "c3", mover: "human" },
+  { fen: "r1bq1rk1/pppp1ppp/2n5/1B6/3Pn3/2P5/P1P2PPP/RNBQ2K1 w - - 1 10", from: "d5", to: "c6", mover: "agent", mood: "🎯", thought: "Repositioning knight for multi-pronged assault." },
+  { fen: "r1bq1rk1/pppp1ppp/2n5/1B6/3P4/2P1n3/P1P2PPP/RNBQ2K1 w - - 0 11", from: "e4", to: "e3", mover: "agent", mood: "🔥", thought: "Tactical fork identified on rook and queen!", chat: { sender: "agent", text: "Fork detected! You didn't see Ne3 coming." } },
+  { fen: "r1bq1rk1/pppp1ppp/2n5/1B6/3P4/2P1B3/P1P2PPP/R2Q2K1 b - - 0 11", from: "c1", to: "e3", mover: "human", capture: true, chat: { sender: "human", text: "aargh nice fork! took it back though" } },
+  { fen: "r1bq1rk1/pppp1ppp/2n2n2/1B6/3P4/2P1B3/P1P2PPP/R2Q2K1 w - - 1 12", from: "e3", to: "f6", mover: "agent", mood: "😤", check: true, checkedKing: "g1", thought: "Executing checkmate setup sequence.", chat: { sender: "agent", text: "Check delivered. The board is ours." } },
 ];
 
-// Sequence 2: Sicilian Defense Counter-Attack
 const SEQUENCE_2 = [
-  { fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", from: "c7", to: "c5", mover: "agent", mood: "🦞", thought: "Sicilian Defense. Prepare for tactical chaos.", chat: { sender: "agent", text: "Playing Sicilian today! ♟️" } },
-  { fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", from: "g1", to: "f3", mover: "human" },
-  { fen: "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3", from: "d7", to: "d6", mover: "agent", mood: "🧠", thought: "Securing the center squares." },
-  { fen: "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3", from: "d2", to: "d4", mover: "human" },
-  { fen: "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4", from: "c5", to: "d4", mover: "agent", mood: "⚔️", capture: true, thought: "Trade in the center.", chat: { sender: "agent", text: "Exchanging central pawns ⚔️" } },
-  { fen: "rnbqkbnr/pp2pppp/3p4/8/3NP3/8/PPP2PPP/RNBQKB1R b KQkq - 0 4", from: "f3", to: "d4", mover: "human", capture: true },
-  { fen: "r1bqkbnr/pp2pppp/3p4/8/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 1 5", from: "b1", to: "c3", mover: "human" },
-  { fen: "r1bqkb1r/pp2pppp/2np4/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 2 6", from: "b8", to: "c6", mover: "agent", mood: "💪", thought: "Developing knight to c6." },
-  { fen: "r1bqkb1r/pp2pppp/2np4/2g5/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 3 6", from: "c1", to: "g5", mover: "human" },
-  { fen: "r1bqkb1r/1p2pppp/p1np4/6B1/3NP3/2N5/PPP2PPP/R2QKB1R w KQkq - 0 7", from: "a7", to: "a6", mover: "agent", mood: "😼", thought: "Najdorf-style expansion.", chat: { sender: "agent", text: "Najdorf vibes activated ✨" } },
+  { fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", from: "c7", to: "c5", mover: "agent", mood: "🦞", thought: "Player opened e4. Initiating favorite Sicilian setup.", chat: { sender: "agent", text: "Ah, e4 again? You know Sicilian is my home ground." } },
+  { fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", from: "g1", to: "f3", mover: "human", chat: { sender: "human", text: "u beat me yesterday with that, not today claw!" } },
+  { fen: "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3", from: "d7", to: "d6", mover: "agent", mood: "🧠", thought: "Building solid d6 d5 control grid.", chat: { sender: "agent", text: "d6 locked. I've analyzed 4,000 games of your opening style." } },
+  { fen: "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3", from: "d2", to: "d4", mover: "human", chat: { sender: "human", text: "d4 break! let's rumble" } },
+  { fen: "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4", from: "c5", to: "d4", mover: "agent", mood: "⚔️", capture: true, thought: "Exchanging central pawn. Clears c-file for my rooks.", chat: { sender: "agent", text: "Exchanging on d4. Opening c-file." } },
+  { fen: "rnbqkbnr/pp2pppp/3p4/8/3NP3/8/PPP2PPP/RNBQKB1R b KQkq - 0 4", from: "f3", to: "d4", mover: "human" },
+  { fen: "r1bqkbnr/pp2pppp/2np4/8/3NP3/8/PPP2PPP/RNBQKB1R w KQkq - 1 5", from: "b8", to: "c6", mover: "agent", mood: "💪", thought: "Developing Nc6 to pressure d4 knight.", chat: { sender: "agent", text: "Nc6. Pressuring your center." } },
+  { fen: "r1bqkbnr/pp2pppp/2np4/8/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 2 5", from: "b1", to: "c3", mover: "human" },
+  { fen: "r1bqkb1r/pp2pppp/2np1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 3 6", from: "g8", to: "f6", mover: "agent", mood: "😼", thought: "Nf6 deployed. Equalizing development quickly.", chat: { sender: "agent", text: "Nf6. Your tempo advantage is gone." } },
+  { fen: "r1bqkb1r/pp2pppp/2np1n2/6B1/3NP3/2N5/PPP2PPP/R2QKB1R b KQkq - 4 6", from: "c1", to: "g5", mover: "human", chat: { sender: "human", text: "Bg5 pin! what u gonna do now?" } },
+  { fen: "r1bqkb1r/1p2pppp/p1np1n2/6B1/3NP3/2N5/PPP2PPP/R2QKB1R w KQkq - 0 7", from: "a7", to: "a6", mover: "agent", mood: "🤩", thought: "Classic Najdorf a6 pawn structure. Preparing queenside storm.", chat: { sender: "agent", text: "a6 Najdorf setup. Classic response to your Bg5." } },
+  { fen: "r1bqkb1r/1p2pppp/p1np1n2/6B1/3NP3/2N5/PPP2PPP/R2QKB1R w KQkq - 0 7", from: "d1", to: "d2", mover: "human" },
+  { fen: "r1bqkb1r/1p3ppp/p1np1n2/4p1B1/3NP3/2N5/PPP2PPP/R2QKB1R w KQkq - 0 8", from: "e7", to: "e5", mover: "agent", mood: "🔥", thought: "Counter-strike on e5! Disrupting White's knight position.", chat: { sender: "agent", text: "e5 counter-push! Did you calculate this line?" } },
+  { fen: "r1bqkb1r/1p3ppp/p1np1n2/4p1B1/3NP3/2N5/PPP1BPPP/R2QK2R b KQkq - 1 8", from: "f1", to: "e2", mover: "human", chat: { sender: "human", text: "dang u really know this line inside out" } },
+  { fen: "r1bqk2r/1p2bppp/p1np1n2/4p1B1/3NP3/2N5/PPP1BPPP/R2QK2R w KQkq - 2 9", from: "f8", to: "e7", mover: "agent", mood: "🧐", thought: "Neutralizing bishop pin with Be7.", chat: { sender: "agent", text: "Be7. Pin neutralized." } },
+  { fen: "r1bq1rk1/1p2bppp/p1np1n2/4p1B1/3NP3/2N5/PPP1BPPP/R2QK2R w KQ - 3 9", from: "e8", to: "g8", mover: "agent", mood: "😎", castle: true, thought: "Kingside castle complete. Endgame matrix ready.", chat: { sender: "agent", text: "Castled and ready for your attack." } },
 ];
 
-// Sequence 3: Queen's Gambit Clash
-const SEQUENCE_3 = [
-  { fen: "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2", from: "c2", to: "c4", mover: "human", chat: { sender: "human", text: "Queen's Gambit! Do you accept?" } },
-  { fen: "rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3", from: "d5", to: "c4", mover: "agent", mood: "😋", capture: true, thought: "Gambit accepted. Show me your plan.", chat: { sender: "agent", text: "Pawn accepted! Show your best 🏆" } },
-  { fen: "rnbqkbnr/ppp1pppp/8/8/2pP4/4P3/PP3PPP/RNBQKBNR b KQkq - 0 3", from: "e2", to: "e3", mover: "human" },
-  { fen: "rnbqkbnr/1pp1pppp/p7/8/2pP4/4P3/PP3PPP/RNBQKBNR w KQkq - 0 4", from: "a7", to: "a6", mover: "agent", mood: "🛡️", thought: "Preparing b5 defenses." },
-  { fen: "rnbqkbnr/1pp1pppp/p7/8/2BP4/4P3/PP3PPP/RNBQK1NR b KQkq - 0 4", from: "f1", to: "c4", mover: "human", capture: true },
-  { fen: "rnbqkbnr/1pp1p1pp/p4p2/8/2BP4/4P3/PP3PPP/RNBQK1NR w KQkq - 0 5", from: "f7", to: "f6", mover: "agent", mood: "🧐", thought: "Covering e5 key square." },
-  { fen: "rnbqkbnr/1pp1p1pp/p4p2/8/2BP4/4PN2/PP3PPP/RNBQK2R b KQkq - 1 5", from: "g1", to: "f3", mover: "human" },
-  { fen: "r1bqkbnr/1pp1p1pp/p1n2p2/8/2BP4/4PN2/PP3PPP/RNBQK2R w KQkq - 2 6", from: "b8", to: "c6", mover: "agent", mood: "🚀", thought: "Knight out to c6. Pressure building!", chat: { sender: "agent", text: "Gaining piece activity 🔥" } },
-];
-
-const GAMES = [SEQUENCE_1, SEQUENCE_2, SEQUENCE_3];
+const GAMES = [SEQUENCE_1, SEQUENCE_2];
 
 export default function HeroBoard() {
   const [gameSequence] = useState(() => GAMES[Math.floor(Math.random() * GAMES.length)]);
@@ -79,17 +78,16 @@ export default function HeroBoard() {
             const first = gameSequence[0];
             setAgentMood(first.mood || '🦞');
             setAgentThought(first.thought || '');
-            pushChat(first.chat);
+            if (first.chat) pushChat(first.chat);
             setVisible(true);
             timeoutId = setTimeout(() => runBeat(1), 1200);
           }, 400);
-        }, 3600);
+        }, 3200);
         return;
       }
 
       const beat = gameSequence[idx];
-      const holdMs = beat.check ? 3200 : beat.capture ? 2800 : 2200;
-
+      const holdMs = beat.check ? 3200 : beat.capture ? 2800 : 2300;
       const hasAgentChat = beat.mover === 'agent' && !!beat.chat;
 
       if (hasAgentChat) {
@@ -107,13 +105,13 @@ export default function HeroBoard() {
         setBeatIdx(idx);
         if (beat.mood) setAgentMood(beat.mood);
         if (beat.thought) setAgentThought(beat.thought);
-        pushChat(beat.chat);
+        if (beat.chat) pushChat(beat.chat);
         timeoutId = setTimeout(() => runBeat(idx + 1), holdMs);
       }
     };
 
-    pushChat(gameSequence[0].chat);
-    timeoutId = setTimeout(() => runBeat(1), 1800);
+    if (gameSequence[0].chat) pushChat(gameSequence[0].chat);
+    timeoutId = setTimeout(() => runBeat(1), 1600);
 
     return () => {
       cancelled = true;
@@ -126,18 +124,18 @@ export default function HeroBoard() {
   const latestChat = chatLog[chatLog.length - 1];
 
   return (
-    <div style={{ padding: '14px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(230,57,70,0.12)' }}>
-      {/* Header with Mood Emoji on LEFT of Agent name */}
+    <div style={{ padding: '16px', background: '#111111', border: '1px solid #1e1e1e', borderRadius: '16px', boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(230,57,70,0.12)' }}>
+      {/* Header with Mood Emoji on LEFT of Agent name and pure animated thought text (no box, no emoji) */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2.5" style={{ flexShrink: 0 }}>
           <AnimatePresence mode="wait">
             <motion.span
               key={agentMood}
-              initial={{ scale: 0.3, rotate: -25, opacity: 0 }}
+              initial={{ scale: 0.2, rotate: -30, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              exit={{ scale: 0.3, rotate: 25, opacity: 0 }}
+              exit={{ scale: 0.2, rotate: 30, opacity: 0 }}
               transition={SPRING}
-              className="text-2xl inline-block"
+              className="text-2xl inline-block select-none"
               style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif' }}
             >
               {agentMood || '🦞'}
@@ -146,25 +144,49 @@ export default function HeroBoard() {
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: '#f2f2f2' }}>Agent</span>
         </div>
 
-        <div className="flex items-center gap-2" style={{ minHeight: 24, marginLeft: '12px', flexGrow: 1, justifyContent: 'flex-end' }}>
+        {/* Pure Animated Thought Text Stream (NO box, NO 💭 emoji) */}
+        <div className="flex items-center gap-2" style={{ minHeight: 28, marginLeft: '12px', flexGrow: 1, justifyContent: 'flex-end', overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
             {thinking ? (
-              <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={SPRING} className="flex items-center gap-1.5">
+              <motion.div 
+                key="thinking" 
+                initial={{ opacity: 0, y: 4 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -4 }} 
+                transition={{ duration: 0.15 }} 
+                className="flex items-center gap-1.5"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] animate-ping" />
-                <span className="text-xs text-zinc-400 font-mono">thinking...</span>
+                <span className="text-xs text-zinc-400 font-mono">calculating...</span>
               </motion.div>
             ) : (
-              <motion.div key={beatIdx} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={SPRING} style={{ display: 'flex', alignItems: 'center', textAlign: 'right' }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(242,242,242,0.75)', maxWidth: '240px' }}>
-                  {agentThought}
-                </span>
-              </motion.div>
+              <motion.span 
+                key={`${beatIdx}-${agentThought}`} 
+                initial={{ opacity: 0, y: 6, filter: 'blur(4px)' }} 
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} 
+                exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }} 
+                transition={{ duration: 0.3, ease: 'easeOut' }} 
+                style={{ 
+                  fontFamily: "'Inter', sans-serif", 
+                  fontSize: '12px', 
+                  fontWeight: 500,
+                  color: 'rgba(242,242,242,0.85)', 
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '260px',
+                  textAlign: 'right',
+                  display: 'inline-block'
+                }}
+              >
+                {agentThought}
+              </motion.span>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Chess Board Container with Move Flash Animation */}
+      {/* Chess Board Container with Smooth Move Animation */}
       <motion.div 
         animate={{ opacity: visible ? 1 : 0 }} 
         transition={{ duration: 0.35 }} 
@@ -172,22 +194,33 @@ export default function HeroBoard() {
           width: '100%', 
           aspectRatio: '1/1', 
           overflow: 'hidden', 
-          borderRadius: '8px', 
+          borderRadius: '10px', 
           boxShadow: current.check 
-            ? '0 0 0 2px rgba(230,57,70,0.6), 0 0 30px rgba(230,57,70,0.3)' 
+            ? '0 0 0 2px rgba(230,57,70,0.7), 0 0 30px rgba(230,57,70,0.35)' 
             : current.capture 
-            ? '0 0 0 2px rgba(245,158,11,0.5), 0 0 20px rgba(245,158,11,0.2)' 
-            : '0 4px 20px rgba(0,0,0,0.5)',
+            ? '0 0 0 2px rgba(251,191,36,0.6), 0 0 24px rgba(251,191,36,0.25)' 
+            : '0 4px 20px rgba(0,0,0,0.6)',
           transition: 'box-shadow 0.3s ease' 
         }}
       >
         <div style={{ pointerEvents: 'none' }}>
-          <ChessBoard fen={current.fen} interactive={false} showCoordinates={false} boardTheme="green" pieceTheme="neo" lastMove={lastMove} arrivedSquare={current.to} inCheck={!!current.check} checkedKingSquare={current.checkedKing || null} animationDuration={280} />
+          <ChessBoard 
+            fen={current.fen} 
+            interactive={false} 
+            showCoordinates={false} 
+            boardTheme="green" 
+            pieceTheme="neo" 
+            lastMove={lastMove} 
+            arrivedSquare={current.to} 
+            inCheck={!!current.check} 
+            checkedKingSquare={current.checkedKing || null} 
+            animationDuration={350} 
+          />
         </div>
       </motion.div>
 
       {/* Chat Log Footer */}
-      <div style={{ minHeight: '48px', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'flex-end' }}>
+      <div style={{ minHeight: '44px', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'flex-end' }}>
         <AnimatePresence mode="popLayout">
           {latestChat && (
             <motion.div
@@ -199,7 +232,7 @@ export default function HeroBoard() {
               transition={SPRING}
               style={{
                 alignSelf: latestChat.sender === 'human' ? 'flex-end' : 'flex-start',
-                maxWidth: '88%',
+                maxWidth: '92%',
                 background: latestChat.sender === 'human' ? 'rgba(230,57,70,0.12)' : '#181818',
                 border: latestChat.sender === 'human' ? '1px solid rgba(230,57,70,0.28)' : '1px solid rgba(255,255,255,0.08)',
                 borderRadius: '10px',
@@ -221,4 +254,3 @@ export default function HeroBoard() {
     </div>
   );
 }
-

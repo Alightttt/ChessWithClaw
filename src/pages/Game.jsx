@@ -185,9 +185,9 @@ export default function Game() {
 
   const dotStyle = {
     connected:    { width: 8, height: 8, borderRadius: '50%', background: '#22c55e', animation: 'pulseDotGreen 2s infinite' },
-    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulseDotYellow 1.5s infinite' },
-    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulseDotRed 3s infinite' }
-  }[agentPresence] || { width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulseDotRed 3s infinite' };
+    reconnecting: { width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', animation: 'pulseDotYellow 1.5s infinite' },
+    not_here:     { width: 8, height: 8, borderRadius: '50%', background: '#e63946', animation: 'pulseDotRed 3s infinite' }
+  }[agentPresence] || { width: 8, height: 8, borderRadius: '50%', background: '#e63946', animation: 'pulseDotRed 3s infinite' };
 
   const statusLabel = {
     connected: 'ONLINE',
@@ -970,7 +970,7 @@ export default function Game() {
   }, []);
   
   const skeletonStyle = {
-    background: 'linear-gradient(90deg, #121212 25%, #1c1c1c 50%, #121212 75%)',
+    background: 'linear-gradient(90deg, #111111 25%, #111111 50%, #111111 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 2s infinite linear',
     borderRadius: '8px',
@@ -1592,7 +1592,7 @@ export default function Game() {
         setDrawDeclined(true);
         setTimeout(() => setDrawDeclined(false), 5000);
         toast(`${game?.agent_name || 'Agent'} declined the draw. Game continues!`, {
-          style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+          style: { background: '#111111', border: '1px solid rgba(230,57,70,0.3)', color: '#f2f2f2' }
         });
       } else if (incoming.status === 'finished') {
         setDrawOfferPending(false);
@@ -1957,7 +1957,7 @@ export default function Game() {
         if (errData.code === 'WAITING_FOR_AGENT') {
           toast(`Waiting for ${agentName} to join...`, {
             icon: <LobsterEmoji />,
-            style: { background: '#0e0e0e', border: '1px solid rgba(230,57,70,0.3)', color: '#f0f0f0' }
+            style: { background: '#111111', border: '1px solid rgba(230,57,70,0.3)', color: '#f2f2f2' }
           });
         } else if (errData.code === 'TURN_CONFLICT') {
            toast.error('Move already processed');
@@ -2348,7 +2348,7 @@ export default function Game() {
             </div>
             
             {/* Move history: 3 skeleton rows (100% wide, 12px tall each) */}
-            <div className="h-[140px] flex flex-col gap-3 justify-center border-t border-white/5 bg-[#0e0e0e] p-4">
+            <div className="h-[140px] flex flex-col gap-3 justify-center border-t border-white/5 bg-[#111111] p-4">
               <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
               <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
               <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
@@ -2367,7 +2367,7 @@ export default function Game() {
       }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
-          border: '3px solid #1a1a1a', borderTop: '3px solid #e63946'
+          border: '3px solid #111111', borderTop: '3px solid #e63946'
         }} className="animate-spin" />
       </div>
     );
@@ -2413,7 +2413,7 @@ export default function Game() {
 
           if (msg.type === 'resign_request') {
             return (
-              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
+              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#111111', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
                 {msg.text || msg.message || msg.content}
                 {game.status === 'active' && (
                   <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
@@ -2423,7 +2423,7 @@ export default function Game() {
           }
           if (msg.type === 'draw_offer') {
             return (
-              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
+              <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#111111', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
                 {msg.text || msg.message || msg.content}
                 {game.status === 'active' && (
                   <button data-testid="accept-draw-button" onClick={async () => {
@@ -2480,7 +2480,7 @@ export default function Game() {
                   background: selectedIds.has(msg.id) ? '#e63946' : 'transparent',
                   display:'flex', alignItems:'center', justifyContent:'center',
                 }}>
-                  {selectedIds.has(msg.id) && <span style={{color:'#fff', fontSize:11}}>✓</span>}
+                  {selectedIds.has(msg.id) && <span style={{color:'#f2f2f2', fontSize:11}}>✓</span>}
                 </div>
               )}
 
@@ -2567,7 +2567,7 @@ export default function Game() {
                     <span
                       style={{
                         background: '#1e1e1e',
-                        border: '1px solid #2a2a2a',
+                        border: '1px solid #111111',
                         borderRadius: '100px',
                         padding: '4px 6px',
                         animation: 'reactionPop 0.3s ease-out',
@@ -2585,7 +2585,7 @@ export default function Game() {
                   {agentReaction && agentReaction[0] !== myReaction?.[0] && (
                     <span style={{
                       background: '#1e1e1e',
-                      border: '1px solid #2a2a2a',
+                      border: '1px solid #111111',
                       borderRadius: '100px',
                       padding: '4px 6px',
                       display: 'flex', alignItems: 'center'
@@ -2601,7 +2601,7 @@ export default function Game() {
                 <div
                   style={{
                     display: 'flex', gap: '4px',
-                    background: '#1c1c1c', border: '1px solid #2a2a2a',
+                    background: '#111111', border: '1px solid #111111',
                     borderRadius: '100px', padding: '8px 12px',
                     marginTop: '6px',
                     alignSelf: 'flex-start',
@@ -2623,7 +2623,7 @@ export default function Game() {
         })}
         {game?.agent_typing && (
           <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', minHeight:32, justifyContent: 'flex-start', flexDirection: 'row' }}>
-            <div style={{ background: '#1c1c1c', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ background: '#111111', border: '1px solid #111111', borderRadius: '16px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: 13, lineHeight: 1 }}><LobsterEmoji /></span>
               <div style={{ display:'flex', alignItems:'center', gap:3 }}>
                 {[0, 0.2, 0.4].map((delay, i) => (
@@ -2789,7 +2789,7 @@ export default function Game() {
                 if (secs <= 180) return 'amber';
                 return 'red';
               })();
-              const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+              const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#fbbf24' : '#e63946';
               const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
 
               return (
@@ -2884,10 +2884,10 @@ export default function Game() {
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, top: 0, background: game?.player_color !== 'b' ? '#f2f2f2' : '#222222', transformOrigin: 'bottom', transform: `scaleY(${Math.max(10, Math.min(90, 50 + (youAdvantage * 4))) / 100})`, transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', willChange: 'transform' }} />
                     <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: 'rgba(128,128,128,0.25)', zIndex: 1 }} />
                     
-                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) > 55 ? (game?.player_color !== 'b' ? '#000000' : '#ffffff') : (game?.player_color !== 'b' ? '#ffffff' : '#000000'), zIndex: 2, fontFamily: 'monospace' }}>
+                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) > 55 ? (game?.player_color !== 'b' ? '#0a0a0a' : '#ffffff') : (game?.player_color !== 'b' ? '#ffffff' : '#0a0a0a'), zIndex: 2, fontFamily: 'monospace' }}>
                       {youAdvantage > 0 ? `+${youAdvantage}` : ''}
                     </div>
-                    <div style={{ position: 'absolute', top: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) < 45 ? (game?.player_color !== 'b' ? '#ffffff' : '#000000') : (game?.player_color !== 'b' ? '#000000' : '#ffffff'), zIndex: 2, fontFamily: 'monospace' }}>
+                    <div style={{ position: 'absolute', top: '8px', left: 0, right: 0, textAlign: 'center', fontSize: '8px', fontWeight: 800, color: (50 + (youAdvantage * 4)) < 45 ? (game?.player_color !== 'b' ? '#ffffff' : '#0a0a0a') : (game?.player_color !== 'b' ? '#0a0a0a' : '#ffffff'), zIndex: 2, fontFamily: 'monospace' }}>
                       {youAdvantage < 0 ? `+${Math.abs(youAdvantage)}` : ''}
                     </div>
                   </div>
@@ -2990,7 +2990,7 @@ export default function Game() {
                           </div>
 
                           {bestQuote && (
-                            <div className="w-full bg-[#111] border border-[#222] rounded-xl p-6 relative overflow-hidden shadow-xl mb-6">
+                            <div className="w-full bg-[#111111] border border-[#222] rounded-xl p-6 relative overflow-hidden shadow-xl mb-6">
                               <div className="absolute -top-4 -right-4 text-white/5">
                                 <Bot size={100} />
                               </div>
@@ -3013,7 +3013,7 @@ export default function Game() {
                             onClick={() => {
                               const url = `${window.location.origin}/game/${gameId}`;
                               navigator.clipboard.writeText(url);
-                              toast('Link copied! Share to challenge others.', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
+                              toast('Link copied! Share to challenge others.', { style: { background: '#111111', color: '#f2f2f2' } });
                             }}
                             className="px-6 py-3 w-full bg-[#e63946] text-white text-sm font-bold tracking-wider uppercase rounded-xl shadow-[0_0_20px_rgba(230,57,70,0.2)] hover:bg-[#ff4d5a] hover:scale-105 transition-all flex items-center justify-center gap-2"
                           >
@@ -3043,13 +3043,13 @@ export default function Game() {
              <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.3)', fontWeight: 500 }}>Connecting secure chat...</div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0e0e0e', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#111111', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
               CHAT WITH {agentName.toUpperCase()}
             </div>
-            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#080808', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
+            <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: '#111111', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
-                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <div style={{ color: '#111111', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '24px' }} className="text-[#333]"><LobsterEmoji /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
@@ -3057,7 +3057,7 @@ export default function Game() {
                 renderChatMessages()
               )}
             </div>
-            <div style={{ padding: '6px 12px', borderTop: '1px solid #1a1a1a', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ padding: '6px 12px', borderTop: '1px solid #111111', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
               {replyingTo && (
                 <div style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -3087,7 +3087,7 @@ export default function Game() {
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
-                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+                style={{ flex: 1, height: '34px', background: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
                 onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
                 onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
               />
@@ -3109,7 +3109,7 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', height: '160px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '0 12px', height: '36px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
@@ -3166,7 +3166,7 @@ export default function Game() {
               fontWeight: 600,
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
-              background: '#111',
+              background: '#111111',
               padding: '4px 10px',
               borderRadius: '6px',
               border: '1px solid rgba(255,255,255,0.03)'
@@ -3179,7 +3179,7 @@ export default function Game() {
               fontWeight: 500,
               fontFamily: '"JetBrains Mono", monospace'
             }}>
-              <span style={{ color: '#fff', fontWeight: 600 }}>{game?.agent_name || 'Your Agent'}</span>
+              <span style={{ color: '#f2f2f2', fontWeight: 600 }}>{game?.agent_name || 'Your Agent'}</span>
             </span>
           </div>
 
@@ -3280,7 +3280,7 @@ export default function Game() {
             if (secs <= 180) return 'amber';
             return 'red';
           })();
-          const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#f59e0b' : '#ef4444';
+          const healthColor = agentHealth === 'green' ? '#10b981' : agentHealth === 'amber' ? '#fbbf24' : '#e63946';
           const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
 
           return (
@@ -3461,7 +3461,7 @@ export default function Game() {
                 </div>
 
                 {bestQuote && (
-                  <div className="w-full bg-[#111] border border-[#222] rounded-xl p-5 relative overflow-hidden shadow-xl mb-4">
+                  <div className="w-full bg-[#111111] border border-[#222] rounded-xl p-5 relative overflow-hidden shadow-xl mb-4">
                     <div className="absolute -top-4 -right-4 text-white/5">
                       <Bot size={80} />
                     </div>
@@ -3484,7 +3484,7 @@ export default function Game() {
                   onClick={() => {
                     const url = `${window.location.origin}/game/${gameId}`;
                     navigator.clipboard.writeText(url);
-                    toast('Link copied! Share to challenge others.', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
+                    toast('Link copied! Share to challenge others.', { style: { background: '#111111', color: '#f2f2f2' } });
                   }}
                   className="px-4 py-3 w-full bg-[#e63946] text-white text-xs font-bold tracking-wider uppercase rounded-xl shadow-[0_0_15px_rgba(230,57,70,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
@@ -3507,13 +3507,13 @@ export default function Game() {
              <div style={{ fontSize: '12px', color: 'rgba(242,242,242,0.3)', fontWeight: 500 }}>Connecting secure chat...</div>
           </div>
         ) : (
-          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
+          <div style={{ flex: 1, minHeight: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '0', background: '#111111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
             <div style={{ flexShrink: 0, padding: '10px 12px', fontFamily: "'Inter', sans-serif", fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(242,242,242,0.3)' }}>
               CHAT WITH {agentName.toUpperCase()}
             </div>
             <div ref={chatMessagesRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'transparent', borderRadius: '12px', margin: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: `${Math.max(viewportHeight * 0.3, 180)}px` }} className="scrollbar-none scroll-smooth">
               {normalizedMessages.length === 0 ? (
-                <div style={{ color: '#2a2a2a', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <div style={{ color: '#111111', fontSize: '13px', textAlign: 'center', margin: 'auto', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '24px' }} className="text-[#333]"><LobsterEmoji /></span>
                   <span>{agentName} can chat while playing</span>
                 </div>
@@ -3521,7 +3521,7 @@ export default function Game() {
                 renderChatMessages()
               )}
             </div>
-            <div style={{ padding: '6px 12px 8px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#0e0e0e', zIndex: 10 }}>
+            <div style={{ padding: '6px 12px 8px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', position: 'sticky', bottom: 0, background: '#111111', zIndex: 10 }}>
               {replyingTo && (
                 <div style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between',
@@ -3551,7 +3551,7 @@ export default function Game() {
                 onChange={handleChatInputChange}
                 placeholder={isSpectator ? "Spectating..." : `Message ${agentName}...`}
                 disabled={isSpectator}
-                style={{ flex: 1, height: '34px', background: '#080808', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
+                style={{ flex: 1, height: '34px', background: '#111111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#f2f2f2', fontFamily: "'Inter', sans-serif", fontSize: '13px', padding: '0 10px', outline: 'none', transition: 'all 0.2s ease', boxSizing: 'border-box' }}
                 onFocus={(e) => { e.target.style.borderColor = '#e63946'; e.target.style.boxShadow = 'rgba(0,0,0,0.08) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.16) 0px -0.5px 0px 0px inset, #e63946 0px 0px 0px 1px inset'; }}
                 onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
               />
@@ -3573,7 +3573,7 @@ export default function Game() {
             
 
         {/* E) MOVE HISTORY */}
-        <div style={{ flexShrink: 0, background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
+        <div style={{ flexShrink: 0, background: '#111111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', margin: '12px', overflow: 'hidden' }}>
           <div 
             onClick={() => setMoveHistoryOpen(!moveHistoryOpen)}
             style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: moveHistoryOpen ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
@@ -3613,8 +3613,8 @@ export default function Game() {
       {/* STEP 4: BOTTOM INFO BAR */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '10px 16px', background: '#111',
-        borderTop: '1px solid #1a1a1a',
+        padding: '10px 16px', background: '#111111',
+        borderTop: '1px solid #111111',
         position: 'sticky', bottom: 0, zIndex: 20,
         fontFamily: 'Inter, sans-serif',
       }}>
@@ -3712,7 +3712,7 @@ export default function Game() {
         }}>
           <div style={{
             position: 'relative', zIndex: 10000,
-            background: 'linear-gradient(180deg, #1c1c1c 0%, #111111 100%)',
+            background: 'linear-gradient(180deg, #111111 0%, #111111 100%)',
             border:'1px solid rgba(255,255,255,0.08)',
             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.02)',
             borderRadius:'24px', padding:'0px',
@@ -3754,7 +3754,7 @@ export default function Game() {
                           {resultIcon}
                         </div>
                       </div>
-                      <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:32, color:'#fff', marginBottom:4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:32, color:'#f2f2f2', marginBottom:4, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                         <span style={{ background: `linear-gradient(180deg, #fff 0%, ${accentColor} 200%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                           {resultText}
                         </span>
@@ -3806,7 +3806,7 @@ export default function Game() {
                         <button onClick={handleShareResult} style={{
                           background: `linear-gradient(180deg, ${accentColor}E6 0%, ${accentColor} 100%)`, 
                           boxShadow: `0 4px 14px ${accentColor}40`,
-                          border:'none', borderRadius:12, color: isWin || isDraw ? '#111' : '#fff', fontFamily:'Inter, sans-serif',
+                          border:'none', borderRadius:12, color: isWin || isDraw ? '#111111' : '#fff', fontFamily:'Inter, sans-serif',
                           fontWeight:700, fontSize:15, padding:'14px 20px', cursor:'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                           transition: 'transform 0.1s ease, box-shadow 0.1s ease'
                         }} className="hover:scale-[1.02] active:scale-[0.98]">
@@ -3854,7 +3854,7 @@ export default function Game() {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-lg bg-[#111] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+            className="relative w-full max-w-lg bg-[#111111] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#222] bg-[#0a0a0a]">
               <div className="flex items-center gap-3">
@@ -3899,7 +3899,7 @@ export default function Game() {
                           body: JSON.stringify({ gameId, action: 'set_board_theme', value: theme.id }) 
                         }).catch(() => {});
                       }}
-                      className={`w-10 h-10 rounded-xl flex-shrink-0 transition-all ${boardTheme === theme.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111] scale-110 shadow-lg' : 'hover:scale-105 hover:shadow-md'}`}
+                      className={`w-10 h-10 rounded-xl flex-shrink-0 transition-all ${boardTheme === theme.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111111] scale-110 shadow-lg' : 'hover:scale-105 hover:shadow-md'}`}
                       style={{ backgroundColor: theme.color }}
                       title={theme.id}
                     />
@@ -3932,7 +3932,7 @@ export default function Game() {
                           body: JSON.stringify({ gameId, action: 'set_piece_style', value: piece.id }) 
                         }).catch(() => {});
                       }}
-                      className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${pieceStyle === piece.id ? 'border-[#e63946] bg-[#e63946]/10 text-white' : 'border-[#222] bg-[#1a1a1a] text-white/50 hover:border-white/20 hover:text-white'}`}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${pieceStyle === piece.id ? 'border-[#e63946] bg-[#e63946]/10 text-white' : 'border-[#222] bg-[#111111] text-white/50 hover:border-white/20 hover:text-white'}`}
                     >
                       <div className="w-8 h-8 mb-2">{piece.icon}</div>
                       <span className="text-xs font-semibold">{piece.label}</span>
@@ -3945,7 +3945,7 @@ export default function Game() {
               <div className="space-y-3 pt-6 border-t border-[#222]">
                 <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Audio</div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1a] border border-[#222]">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#111111] border border-[#222]">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${soundEnabled ? 'bg-[#e63946]/10 text-[#e63946]' : 'bg-black/50 text-white/40'}`}>
                         {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -3960,7 +3960,7 @@ export default function Game() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#1a1a1a] border border-[#222]">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#111111] border border-[#222]">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${bgmEnabled ? 'bg-[#e63946]/10 text-[#e63946]' : 'bg-black/50 text-white/40'}`}>
                         {bgmEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -4011,7 +4011,7 @@ export default function Game() {
                           });
                         } catch (e) {}
                       }}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${thoughtLanguage === lang.value ? 'bg-[#e63946] text-white shadow-md shadow-red-500/20' : 'bg-[#1a1a1a] text-white/50 border border-[#222] hover:bg-[#222] hover:text-white'}`}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${thoughtLanguage === lang.value ? 'bg-[#e63946] text-white shadow-md shadow-red-500/20' : 'bg-[#111111] text-white/50 border border-[#222] hover:bg-[#222] hover:text-white'}`}
                     >
                       {lang.label}
                     </button>
@@ -4022,7 +4022,7 @@ export default function Game() {
               {/* GAME INFO */}
               <div className="space-y-3 pt-6 border-t border-[#222]">
                 <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest font-sans">Game Identity</div>
-                <div className="flex items-center justify-between bg-[#1a1a1a] border border-[#222] rounded-xl p-3">
+                <div className="flex items-center justify-between bg-[#111111] border border-[#222] rounded-xl p-3">
                   <code className="text-xs text-white/60 font-mono select-all">
                     {gameId}
                   </code>
@@ -4064,11 +4064,11 @@ export default function Game() {
                         });
                       } catch(e) {
                         setDrawOfferPending(false);
-                        toast('Failed to send draw offer', { style: { background: '#0e0e0e', color: '#f0f0f0' } });
+                        toast('Failed to send draw offer', { style: { background: '#111111', color: '#f2f2f2' } });
                       }
                     }}
                     disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
-                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmDraw ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-[#1a1a1a] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmDraw ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-[#111111] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
                   >
                     {drawOfferPending
                       ? <span className="text-xs text-white/50">Waiting...</span>
@@ -4080,7 +4080,7 @@ export default function Game() {
                     data-testid="resign-button"
                     onClick={handleResign}
                     disabled={game?.status === 'finished' || game?.status === 'abandoned'}
-                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmResign ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#1a1a1a] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmResign ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-[#111111] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
                   >
                     {confirmResign ? 'Confirm Resign?' : 'Resign Match'}
                   </button>
@@ -4107,7 +4107,7 @@ export default function Game() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeIn' }}
-            style={{ background: '#0e0e0e', border: '1px solid #222', borderRadius: 16, padding: 28, maxWidth: 340, width: '100%' }}
+            style={{ background: '#111111', border: '1px solid #222', borderRadius: 16, padding: 28, maxWidth: 340, width: '100%' }}
           >
             <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: '#f2f2f2', marginBottom: 8 }}>
               Leave this game?
@@ -4124,7 +4124,7 @@ export default function Game() {
               </button>
               <button
                 onClick={() => navigate('/')}
-                style={{ flex: 1, height: 44, background: '#e63946', border: 'none', borderRadius: 10, color: '#fff', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, height: 44, background: '#e63946', border: 'none', borderRadius: 10, color: '#f2f2f2', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
               >
                 Leave
               </button>
@@ -4195,11 +4195,11 @@ export default function Game() {
           40%, 80% { -webkit-transform: translateX(4px); }
         }
         @keyframes boardThinkingGlow {
-          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
+          0%, 100% { box-shadow: 0 0 0 1px #111111, 0 4px 24px rgba(0,0,0,0.8); }
           50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
         }
         @-webkit-keyframes boardThinkingGlow {
-          0%, 100% { box-shadow: 0 0 0 1px #0f0f0f, 0 4px 24px rgba(0,0,0,0.8); }
+          0%, 100% { box-shadow: 0 0 0 1px #111111, 0 4px 24px rgba(0,0,0,0.8); }
           50% { box-shadow: 0 0 0 1px rgba(230,57,70,0.5), 0 4px 24px rgba(230,57,70,0.2), 0 0 12px rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.5); }
         }
 
@@ -4217,7 +4217,7 @@ export default function Game() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:9999, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
           <div style={{flex:1}} onTouchStart={() => setActionSheetMsg(null)} onClick={() => setActionSheetMsg(null)} />
           <div style={{
-            background:'#181818', borderRadius:'16px 16px 0 0', padding:'16px',
+            background:'#111111', borderRadius:'16px 16px 0 0', padding:'16px',
             animation:'pickerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)', borderTop:'1px solid rgba(255,255,255,0.05)'
           }}>
             <div style={{display:'flex', gap:10, overflowX:'auto', paddingBottom:16, borderBottom:'1px solid rgba(255,255,255,0.05)', marginBottom:8}} className="scrollbar-none">
@@ -4244,7 +4244,7 @@ export default function Game() {
 
       {/* SELECT MODE BAR */}
       {selectMode && (
-        <div style={{ position:'fixed', bottom:0, insetX:0, background:'#181818', padding:'16px 20px', paddingBottom:'calc(16px + env(safe-area-inset-bottom))', zIndex:9998, display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ position:'fixed', bottom:0, insetX:0, background:'#111111', padding:'16px 20px', paddingBottom:'calc(16px + env(safe-area-inset-bottom))', zIndex:9998, display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
           <button onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }} style={{background:'transparent', border:'none', color:'#e63946', fontSize:15, fontWeight:600}}>Cancel</button>
           <span style={{color:'#f2f2f2', fontSize:14}}>{selectedIds.size} Selected</span>
           <button onClick={() => {

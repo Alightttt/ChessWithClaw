@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import { PIECE_COMPONENTS } from './ChessPieces';
 
 const BOARD_THEMES = {
   green:      { light: '#EEEED2', dark: '#769656' },
@@ -16,8 +15,6 @@ const BOARD_THEMES = {
   dark_green: { light: '#EEEED2', dark: '#2E6B34' },
   'dark green': { light: '#EEEED2', dark: '#2E6B34' },
 };
-
-// Pieces sets removed
 
 export default function ChessBoard({
   fen,
@@ -34,15 +31,13 @@ export default function ChessBoard({
   gameStatus = 'waiting',
   onMove,
   disabled = false,
+  animationDuration = 350,
 }) {
   const [selectedSquare, setSelectedSquare] = useState(null);
-  const [optionSquares, setOptionSquares] = useState({});
-  const lastAppliedMoveRef = useRef(null);
   const [promotionSquare, setPromotionSquare] = useState(null);
   const [promotionSource, setPromotionSource] = useState(null);
 
-  const [pieceStyle, setPieceStyle] = useState(() => {
-    // Initial fetch from local storage with fallback
+  const [pieceStyle] = useState(() => {
     const saved = localStorage.getItem('cwc_piece_style');
     if (!saved || saved === 'standard' || saved === 'tournament') {
       localStorage.setItem('cwc_piece_style', 'neo');
@@ -84,11 +79,6 @@ export default function ChessBoard({
   }, [lastMove]);
 
   const customPiecesMap = useMemo(() => {
-    const SETS = {
-      neo:        'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/neo',
-      ocean:      'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/ocean',
-      neo_wood:   'https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/pieces/neo_wood'
-    };
     const EXTS = { neo:'png', ocean:'png', neo_wood:'png' };
     const FILES_CC = { wP:'wp',wN:'wn',wB:'wb',wR:'wr',wQ:'wq',wK:'wk',
                        bP:'bp',bN:'bn',bB:'bb',bR:'br',bQ:'bq',bK:'bk' };
@@ -150,8 +140,8 @@ export default function ChessBoard({
     // Check glow on king square
     if (checkedKingSquare) {
       styles[checkedKingSquare] = {
-        boxShadow: 'inset 0 0 0 6px #ef4444, inset 0 0 20px #ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.45)',
+        boxShadow: 'inset 0 0 0 6px #e63946, inset 0 0 20px #e63946',
+        backgroundColor: 'rgba(230, 57, 70, 0.45)',
         borderRadius: '50%',
       };
     }
@@ -162,13 +152,9 @@ export default function ChessBoard({
   const handleSquareClick = useCallback((square) => {
     if (disabled || (gameStatus !== 'active' && gameStatus !== 'waiting') || turn !== playerColor) return;
 
-    // If a square is already selected
     if (selectedSquare) {
       const moves = legalMoveMap[selectedSquare] || [];
       if (moves.includes(square)) {
-        // Valid move — execute it
-        const moveStr = selectedSquare + square;
-        // Handle pawn promotion
         let isPromotion = false;
         try {
           const tempChess = new Chess(fen);
@@ -188,12 +174,10 @@ export default function ChessBoard({
 
         onMove?.(selectedSquare, square);
         setSelectedSquare(null);
-        setOptionSquares({});
         return;
       }
     }
 
-    // Select a new piece if it's ours
     if (legalMoveMap[square]) {
       setSelectedSquare(square);
     } else {
@@ -234,7 +218,7 @@ export default function ChessBoard({
         customSquareStyles={customSquareStyles}
         customLightSquareStyle={{ backgroundColor: theme.light }}
         customDarkSquareStyle={{ backgroundColor: theme.dark }}
-        animationDuration={200}
+        animationDuration={animationDuration}
         arePiecesDraggable={false}
         customPieces={customPiecesMap}
         boardStyle={{
