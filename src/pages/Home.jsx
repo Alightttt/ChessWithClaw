@@ -819,7 +819,13 @@ export default function Home() {
       <footer style={{ borderTop: '1px solid #1a1a1a', paddingTop: '24px', paddingBottom: '0', background: '#0a0a0a', overflow: 'hidden' }}>
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="flex items-center justify-between font-['Inter'] text-sm text-[rgba(242,242,242,0.5)] mb-6">
-            <span style={{ fontWeight: 500 }}>© 2026 ChessWithClaw</span>
+            <span 
+              onClick={() => navigate('/legal')}
+              style={{ fontWeight: 500, cursor: 'pointer' }} 
+              className="hover:text-white transition-colors"
+            >
+              © 2026 ChessWithClaw
+            </span>
             <a 
               href="https://x.com/0xalyt" 
               target="_blank" 
@@ -830,27 +836,19 @@ export default function Home() {
             </a>
           </div>
         </div>
-        <div style={{ width: '100%', overflow: 'hidden' }} className="mt-8">
-          <svg 
-            viewBox="0 0 1000 120" 
-            style={{ width: '100%', height: 'auto', display: 'block' }} 
-            className="text-[#e63946]"
+        <div style={{ width: '100%', overflow: 'hidden', padding: '0 24px', marginBottom: '40px' }} className="mt-8 max-w-7xl mx-auto md:px-8">
+          <div
+            style={{
+              fontFamily: "'Inter', sans-serif", 
+              fontWeight: "700", 
+              color: "#f2f2f2", 
+              letterSpacing: "-0.02em",
+              fontSize: "clamp(48px, 8vw, 96px)",
+              textAlign: "left"
+            }}
           >
-            <text 
-              x="50%" 
-              y="100" 
-              textAnchor="middle"
-              fontFamily="'Inter', sans-serif" 
-              fontWeight="900" 
-              fill="currentColor" 
-              letterSpacing="-0.03em"
-              fontSize="120"
-              textLength="1000"
-              lengthAdjust="spacingAndGlyphs"
-            >
-              ChessWithClaw
-            </text>
-          </svg>
+            Have fun with your agent
+          </div>
         </div>
       </footer>
     </div>

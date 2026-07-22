@@ -2818,16 +2818,12 @@ export default function Game() {
                     {displayedEmoji}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
-                    <button 
-                      onClick={() => navigate(`/rival/${agentName}`)}
-                      className="hover:text-[#e63946] transition-colors"
-                      title={`View ${agentName}'s Rival Page`}
-                      style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent', textAlign: 'left' }}
-                      onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
-                      onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
+                    <span 
+                      title={agentName}
+                      style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, outline: 'none', textAlign: 'left' }}
                     >
                       {agentName}
-                    </button>
+                    </span>
                     <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                       {agentStatusText}
                       {agentStatusText === 'AWAY' && showAwayTooltip && (
@@ -3310,16 +3306,12 @@ export default function Game() {
                 {displayedEmoji}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
-                <button 
-                  onClick={() => navigate(`/rival/${agentName}`)}
-                  className="hover:text-[#e63946] transition-colors"
-                  title={`View ${agentName}'s Rival Page`}
-                  style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none', textDecoration: 'underline', textDecorationColor: 'transparent', textAlign: 'left' }}
-                  onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = '#e63946'}
-                  onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
+                <span 
+                  title={agentName}
+                  style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#f2f2f2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'none', border: 'none', padding: 0, outline: 'none', textAlign: 'left' }}
                 >
                   {agentName}
-                </button>
+                </span>
                 <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                   {agentStatusText}
                   {agentStatusText === 'AWAY' && showAwayTooltip && (
