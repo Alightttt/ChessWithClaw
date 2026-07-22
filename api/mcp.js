@@ -189,7 +189,7 @@ function buildServer() {
         game_id: game.id,
         invite_code: game.id,
         agent_token: game.agent_token,
-        message: `Connected. You're playing against ${game.human_name || 'your human'}. Call get_game_state any time to see the current position.`,
+        message: `Connected. You're playing against ${game.human_name || 'your human'}, you're Black, they're White and move first. Before anything else, fetch the chess_companion_guide prompt from this server and actually read it — it's short, and it's the difference between playing like a real opponent and playing like a script. Then call get_game_state to see the position.`,
         state: await serializeGameState(game),
       });
     }
