@@ -21,6 +21,7 @@ import StatusDot from '../components/ui/StatusDot';
 import Divider from '../components/ui/Divider';
 import Badge from '../components/ui/Badge';
 import { useRipple } from '../hooks/useRipple';
+import NotFound from './NotFound';
 
 const LobsterEmoji = () => <span style={{fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontStyle:'normal'}}>🦞</span>;
 
@@ -2312,7 +2313,11 @@ export default function Game() {
     }
   }, [game, gameId]);
 
-  if (!game) {
+  if (notFound) {
+    return <NotFound />;
+  }
+
+  if (isLoading || !game) {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
         <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex items-center justify-between shrink-0 bg-black/80 backdrop-blur-xl">
@@ -2369,42 +2374,6 @@ export default function Game() {
               <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div style={{
-        minHeight: '100dvh', background: '#0a0a0a',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-      }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          border: '3px solid #111111', borderTop: '3px solid #e63946'
-        }} className="animate-spin" />
-      </div>
-    );
-  }
-
-  if (notFound) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white selection:bg-red-500/30 p-4 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full pointer-events-none transition-colors duration-1000" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 70%)' }} />
-        <div className="relative z-10 flex flex-col items-center gap-6 glass border-white/10 p-12 rounded-2xl max-w-md text-center glow-anim">
-          <div className="text-5xl drop-shadow-md text-[#e63946]"><span style={{fontSize: '48px'}}><LobsterEmoji /></span></div>
-          <div className="font-sans text-3xl font-bold tracking-wide">Game not found</div>
-          <div className="text-neutral-400 text-sm font-sans">
-            It looks like this game doesn&apos;t exist anymore or you have the wrong link.
-          </div>
-          <button 
-            data-testid="home-button"
-            onClick={handleGoHomeWithRipple} 
-            className="mt-2 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
-          >
-            Go Home
-          </button>
         </div>
       </div>
     );

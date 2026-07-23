@@ -1143,32 +1143,50 @@ export default function Agent() {
   }, [game?.status, game?.fen, gameId, game?.agent_name]);
 
   if (loading) {
+    const skeletonStyle = {
+      background: 'linear-gradient(90deg, #161616 25%, #222222 50%, #161616 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.5s infinite linear',
+      borderRadius: '8px',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)'
+    };
+
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
         <div style={{background: '#0f0f0f', borderBottom: '1px solid #1a1a1a', fontSize: '10px', color: '#333', textAlign: 'center', padding: '5px'}}>AGENT INTERFACE · AUTOMATED USE ONLY</div>
-      <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex flex-col shrink-0 bg-black/80 backdrop-blur-xl">
+        <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex flex-col shrink-0 bg-black/80 backdrop-blur-xl">
         </header>
 
         <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
           <div className="flex-none lg:flex-1 flex flex-col lg:overflow-hidden relative z-10">
             <div className="h-[60px] border-b border-white/5 flex items-center px-4 gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 animate-pulse shrink-0" />
+              <div style={{ ...skeletonStyle, width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0 }} />
               <div className="flex-1 flex gap-2 flex-col">
-                 <div className="w-24 h-4 rounded px-2 bg-white/5 animate-pulse" />
-                 <div className="w-32 h-3 rounded px-2 bg-white/5 animate-pulse" />
+                 <div style={{ ...skeletonStyle, width: '96px', height: '16px', borderRadius: '4px' }} />
+                 <div style={{ ...skeletonStyle, width: '128px', height: '12px', borderRadius: '4px' }} />
               </div>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
-              <div className="w-full max-w-[400px] aspect-square rounded-md bg-white/5 animate-pulse border border-white/5" />
+              <div className="w-full max-w-[400px] aspect-square" style={{ ...skeletonStyle }} />
             </div>
           </div>
 
           <div className="w-full lg:w-[360px] shrink-0 flex flex-col bg-black/60 backdrop-blur-md border-t lg:border-t-0 lg:border-l border-white/5 relative z-10 transition-all">
-            <div className="lg:h-1/2 flex flex-col shrink-0 lg:border-t-0 lg:order-2 bg-black/40 border-t border-white/5 relative z-10 p-4">
-               <div className="w-full h-24 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            <div className="flex-1 flex flex-col p-4 gap-4 justify-end mb-4 min-h-[220px]">
+              <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '60%', height: '48px', borderRadius: '12px 12px 12px 4px' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '50%', height: '36px', borderRadius: '12px 12px 4px 12px' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+                <div style={{ ...skeletonStyle, width: '70%', height: '40px', borderRadius: '12px 12px 12px 4px' }} />
+              </div>
             </div>
-            <div className="flex flex-col bg-[#111] border-t border-white/5 lg:flex-1 lg:overflow-hidden lg:order-1 relative z-10 w-full p-4 mb-12 lg:mb-0">
-               <div className="w-full h-12 rounded-lg bg-white/5 animate-pulse border border-white/5" />
+            <div className="h-[140px] flex flex-col gap-3 justify-center border-t border-white/5 bg-[#111111] p-4">
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
+              <div style={{ ...skeletonStyle, width: '100%', height: '12px' }} />
             </div>
           </div>
         </div>
