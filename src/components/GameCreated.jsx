@@ -9,12 +9,13 @@ export default function GameCreated({ gameId }) {
   const [boardOpening, setBoardOpening] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [showError, setShowError] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 10 : false);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -179,54 +180,53 @@ export default function GameCreated({ gameId }) {
           fontFamily: "'Inter', sans-serif",
           height: '72px',
           alignItems: 'center',
-          padding: '0 24px',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
-          transition: 'all 0.3s ease',
-          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none',
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr'
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          borderBottom: `1px solid ${scrolled ? '#1a1a1a' : 'transparent'}`,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <button 
-            onClick={() => navigate('/')} 
-            className="hover:text-white transition-colors"
-            style={{ 
-              cursor: 'pointer', 
-              background: 'transparent',
-              border: 'none',
-              padding: '8px',
-              color: 'rgba(242,242,242,0.6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginLeft: '-8px'
-            }}
-            title="Back"
-          >
-            <ChevronLeft size={24} strokeWidth={2.5} />
-          </button>
-        </div>
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 grid items-center" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <button 
+              onClick={() => navigate('/')} 
+              className="hover:text-white transition-colors"
+              style={{ 
+                cursor: 'pointer', 
+                background: 'transparent',
+                border: 'none',
+                padding: '8px',
+                color: 'rgba(242,242,242,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: '-8px'
+              }}
+              title="Back"
+            >
+              <ChevronLeft size={24} strokeWidth={2.5} />
+            </button>
+          </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <img 
-            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
-            alt="ChessWithClaw Logo" 
-            draggable={false}
-            onClick={() => navigate('/')}
-            style={{ 
-              width: '175px', 
-              height: 'auto', 
-              objectFit: 'contain', 
-              cursor: 'pointer',
-              filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
-            }} 
-          />
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <img 
+              src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+              alt="ChessWithClaw Logo" 
+              draggable={false}
+              onClick={() => navigate('/')}
+              style={{ 
+                width: '175px', 
+                height: 'auto', 
+                objectFit: 'contain', 
+                cursor: 'pointer',
+                filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
+              }} 
+            />
+          </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }} />
+        </div>
       </header>
 
       {/* Main Content */}
@@ -355,6 +355,7 @@ export default function GameCreated({ gameId }) {
               checked={legalAccepted} 
               onChange={(e) => setLegalAccepted(e.target.checked)} 
               className="custom-checkbox"
+              style={{ borderColor: showError ? '#e63946' : 'rgba(255,255,255,0.2)' }}
             />
             <label 
               htmlFor="legal" 

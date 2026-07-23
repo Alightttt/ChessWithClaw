@@ -95,7 +95,7 @@ function ThoughtBubble() {
 
 
 export default function Home() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 20 : false);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
 
@@ -350,34 +350,32 @@ export default function Home() {
       <div className="sticky top-0 z-50 flex flex-col w-full">
       {resumeGame && (
         <div 
-          className="w-full relative group"
+          className="w-full relative group transition-all duration-300 hover:bg-white/[0.02]"
           style={{ 
-            background: 'linear-gradient(90deg, #161514 0%, #1b1a19 100%)', 
-            borderBottom: '1px solid rgba(230,57,70,0.15)', 
+            background: 'rgba(230,57,70,0.08)', 
+            borderBottom: '1px solid rgba(230,57,70,0.2)', 
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             height: 'auto',
-            minHeight: '52px',
+            minHeight: '48px',
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            padding: '8px 16px', 
             zIndex: 100,
             cursor: 'pointer'
           }}
           onClick={() => navigate(`/game/${resumeGame.gameId}`)}
         >
-          <div 
-            className="absolute inset-0 bg-[#e63946]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" 
-          />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '900px', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="w-full max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between flex-wrap gap-3 py-2">
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.4 }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px rgba(16,185,129,0.5)', animation: 'pulse 2s infinite' }} />
-              Active game with <strong style={{ color: 'white', fontWeight: 700 }}>{resumeGame.agentName}</strong>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e63946', boxShadow: '0 0 10px rgba(230,57,70,0.5)', animation: 'pulse 2s infinite' }} />
+              Active match with <strong style={{ color: 'white', fontWeight: 700 }}>{resumeGame.agentName}</strong>
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
               <button 
                 onClick={(e) => { e.stopPropagation(); navigate(`/game/${resumeGame.gameId}`); }}
-                className="design-btn-nav"
-                style={{ padding: '6px 14px', fontSize: '12px', height: 'auto' }}
+                className="design-btn-primary"
+                style={{ padding: '6px 16px', fontSize: '13px', height: 'auto', borderRadius: '100px' }}
               >
                 Resume Match
               </button>
@@ -398,47 +396,52 @@ export default function Home() {
         </div>
       )}
       <nav 
+        className="w-full"
         style={{
           fontFamily: "'Inter', sans-serif",
-          height: '72px', width: '100%',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px',
+          height: '72px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
           backdropFilter: scrolled ? 'blur(16px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
-          transition: 'all 0.3s ease',
-          borderBottom: scrolled ? '1px solid #1a1a1a' : 'none'
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
+          borderBottom: `1px solid ${scrolled ? '#1a1a1a' : 'transparent'}`
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img 
-            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
-            alt="ChessWithClaw Logo" 
-            draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
-            style={{ 
-              width: '175px', 
-              height: 'auto', 
-              objectFit: 'contain', 
-              flexShrink: 0, 
-              display: 'block',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              pointerEvents: 'none',
-              filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
-            }} 
-          />
-        </div>
-        <div className="hidden md:flex items-center gap-3 mr-4">
-            <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
+        <div className="w-full max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between">
+          <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img 
+              src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+              alt="ChessWithClaw Logo" 
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ 
+                width: '175px', 
+                height: 'auto', 
+                objectFit: 'contain', 
+                flexShrink: 0, 
+                display: 'block',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                WebkitTouchCallout: 'none',
+                pointerEvents: 'none',
+                filter: 'drop-shadow(0 2px 10px rgba(230,57,70,0.15))'
+              }} 
+            />
           </div>
-          <a
-            href="#" onClick={handlePlayNow}
-            className="design-btn-nav"
-            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            Play Now
-          </a>
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3 mr-4">
+              <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
+            </div>
+            <a
+              href="#" onClick={handlePlayNow}
+              className="design-btn-nav"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              Play Now
+            </a>
+          </div>
+        </div>
       </nav>
       </div>
 
@@ -837,9 +840,9 @@ export default function Home() {
         </div>
       </section>
 
-      <footer style={{ borderTop: '1px solid #1a1a1a', paddingTop: '24px', paddingBottom: '24px', background: '#0a0a0a', overflow: 'hidden' }}>
+      <footer style={{ borderTop: '1px solid #1a1a1a', padding: '16px 0', background: '#0a0a0a', overflow: 'hidden' }}>
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-between font-['Inter'] text-sm text-[rgba(242,242,242,0.5)] mb-6">
+          <div className="flex items-center justify-between font-['Inter'] text-sm text-[rgba(242,242,242,0.5)] mb-4">
             <span 
               onClick={() => navigate('/legal')}
               style={{ fontWeight: 500, cursor: 'pointer' }} 
@@ -863,9 +866,10 @@ export default function Home() {
               fontStyle: "italic",
               color: "#f2f2f2", 
               letterSpacing: "-0.02em",
-              fontSize: "clamp(24px, 5vw, 64px)",
+              fontSize: "clamp(18px, 6vw, 64px)",
               textAlign: "left",
-              whiteSpace: "nowrap"
+              whiteSpace: "nowrap",
+              lineHeight: 1
             }}
           >
             Have fun with your agent

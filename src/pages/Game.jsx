@@ -2316,7 +2316,22 @@ export default function Game() {
     return (
       <div className="flex flex-col relative min-h-screen bg-black text-white selection:bg-red-500/30">
         <header className="h-16 sticky top-0 z-50 glass border-b border-white/5 py-3 px-4 lg:px-8 flex items-center justify-between shrink-0 bg-black/80 backdrop-blur-xl">
-          <div style={{ fontFamily: 'Inter', fontSize: '18px', fontWeight: 700, color: '#f2f2f2' }}>ChessWithClaw</div>
+          <img 
+            src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
+            alt="ChessWithClaw Logo" 
+            draggable={false}
+            style={{ 
+              width: '150px', 
+              height: 'auto', 
+              objectFit: 'contain', 
+              flexShrink: 0, 
+              display: 'block',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              pointerEvents: 'none'
+            }} 
+          />
         </header>
 
         <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden pb-12 lg:pb-0">
