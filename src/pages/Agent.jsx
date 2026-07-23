@@ -232,8 +232,8 @@ export default function Agent() {
       ...(game?.chat_history || []),
       ...localMessages.filter(m => !serverTexts.has(m.text || m.message || m.content))
     ].sort((a, b) => {
-      const timeA = new Date(a.timestamp || 0).getTime();
-      const timeB = new Date(b.timestamp || 0).getTime();
+      const timeA = new Date(a.timestamp || a.ts || 0).getTime();
+      const timeB = new Date(b.timestamp || b.ts || 0).getTime();
       return timeA - timeB;
     });
     return combined.map((msg, idx) => ({

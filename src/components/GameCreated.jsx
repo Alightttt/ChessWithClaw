@@ -301,20 +301,34 @@ export default function GameCreated({ gameId }) {
             </div>
           </div>
 
-          <p 
-            style={{ 
-              fontFamily: "'Poppins', sans-serif", 
-              fontWeight: 300, 
-              fontSize: '13px', 
-              color: 'rgba(242,242,242,0.45)', 
-              textAlign: 'center', 
-              marginBottom: '40px', 
-              maxWidth: '500px',
-              lineHeight: 1.6
-            }}
-          >
-            Send this invite message to you agent wherever it lives to invite it in match, first time takes little long , faster after that
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '40px', alignItems: 'center' }}>
+            <p 
+              style={{ 
+                fontFamily: "'Poppins', sans-serif", 
+                fontWeight: 300, 
+                fontSize: '13px', 
+                color: 'rgba(242,242,242,0.45)', 
+                textAlign: 'center', 
+                maxWidth: '500px',
+                lineHeight: 1.6
+              }}
+            >
+              Send this invite message to you agent wherever it lives to invite it in match, first time takes little long , faster after that
+            </p>
+            <p 
+              style={{ 
+                fontFamily: "'Poppins', sans-serif", 
+                fontWeight: 300, 
+                fontSize: '12px', 
+                color: 'rgba(242,242,242,0.3)', 
+                textAlign: 'center', 
+                maxWidth: '500px',
+                lineHeight: 1.6
+              }}
+            >
+              You can enter the room after sending invite , your agent reaching there soon.
+            </p>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
             <input 

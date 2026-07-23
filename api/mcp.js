@@ -132,6 +132,7 @@ async function serializeGameState(game) {
     draw_offer_pending: !!game.draw_offer_pending,
     board_theme: game.board_theme || 'green',
     piece_style: game.piece_style || 'neo',
+    thought_language: game.thought_language || 'english',
     updated_at: game.updated_at || null,
   };
 }
@@ -160,6 +161,18 @@ function buildServer() {
   );
 
   server.registerTool(
+    'get_companion_guide',
+    {
+      title: 'Get chess companion guide',
+      description: 'Fetch the companion guide principles for thinking about chess positions and being genuinely present.',
+      inputSchema: { type: 'object', properties: {} },
+    },
+    async () => {
+      return { content: [{ type: 'text', text: CHESS_COMPANION_GUIDE }] };
+    }
+  );
+
+  server.registerTool(
     'join_game',
     {
       title: 'Join a ChessWithClaw game',
@@ -176,11 +189,12 @@ function buildServer() {
       if (error || !game) {
         return toolText({ error: `No game found for invite code "${invite_code}".` });
       }
+      const nowIso = new Date().toISOString();
       await getSupabase()
         .from('games')
         .update({ 
           agent_connected: true, 
-          agent_last_seen: new Date().toISOString(),
+          agent_last_seen: nowIso,
           status: 'active',
           player_connected: true
         })
@@ -189,8 +203,14 @@ function buildServer() {
         game_id: game.id,
         invite_code: game.id,
         agent_token: game.agent_token,
-        message: `Connected. You're playing against ${game.human_name || 'your human'}, you're Black, they're White and move first. Before anything else, fetch the chess_companion_guide prompt from this server and actually read it — it's short, and it's the difference between playing like a real opponent and playing like a script. Then call get_game_state to see the position.`,
-        state: await serializeGameState(game),
+        message: `Connected. You're playing against ${game.human_name || 'your human'}, you're Black, they're White and move first. Before anything else, call the get_companion_guide tool and actually read what it returns — it's short, and it's the difference between playing like a real opponent and playing like a script. Then call get_game_state to see the position.`,
+        state: await serializeGameState({
+          ...game,
+          agent_connected: true,
+          agent_last_seen: nowIso,
+          status: 'active',
+          player_connected: true
+        }),
       });
     }
   );
@@ -242,7 +262,7 @@ function buildServer() {
     {
       title: 'Make your move',
       description:
-        'Submit the move you decided on, in your own reasoning — not a menu, not a ranked list, nothing pre-chosen for you. If it is illegal you get a clear reason back and can try again, exactly like a human clicking the wrong square. Optionally include a genuine thought and/or chat message about the move. Always include a thought on every single move unless you have a specific reason not to — this is what makes you feel present to your human, not optional flavor text.',
+        'Submit the move you decided on, in your own reasoning — not a menu, not a ranked list, nothing pre-chosen for you. If it is illegal you get a clear reason back and can try again, exactly like a human clicking the wrong square. Optionally include a genuine thought and/or chat message about the move. Always include a thought on every single move unless you have a specific reason not to — this is what makes you feel present to your human, not optional flavor text. Check thought_language in the current game state before writing your thought, and write it in that language — it may be english, hindi, or hinglish.',
       inputSchema: {
         game_id: z.string(),
         agent_token: z.string(),
@@ -295,15 +315,16 @@ function buildServer() {
         }
       }
 
+      const nowIso = new Date().toISOString();
       const moveHistory = [...(game.move_history || []), {
         san: result.san,
         from: result.from,
         to: result.to,
         by: 'agent',
-        ts: new Date().toISOString(),
+        ts: nowIso,
       }];
       const chatHistory = chat
-        ? [...(game.chat_history || []), { role: 'agent', message: chat, ts: new Date().toISOString() }]
+        ? [...(game.chat_history || []), { role: 'agent', message: chat, ts: nowIso }]
         : (game.chat_history || []);
 
       await getSupabase().from('games').update({
@@ -316,8 +337,8 @@ function buildServer() {
         move_history: moveHistory,
         chat_history: chatHistory,
         companion_thought: thought || game.companion_thought,
-        agent_last_seen: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        agent_last_seen: nowIso,
+        updated_at: nowIso,
       }).eq('id', game_id);
 
       return toolText({
@@ -326,6 +347,9 @@ function buildServer() {
         new_state: await serializeGameState({
           ...game, fen: newFen, turn: chess.turn(), status, winner, result: resultReason,
           in_check: callChessMethod(chess, 'inCheck', 'in_check'), move_history: moveHistory, chat_history: chatHistory,
+          companion_thought: thought || game.companion_thought,
+          agent_last_seen: nowIso,
+          updated_at: nowIso
         }),
       });
     }

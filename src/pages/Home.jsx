@@ -839,11 +839,12 @@ export default function Home() {
         <div style={{ width: '100%', overflow: 'hidden', padding: '0 24px', marginBottom: '40px' }} className="mt-8 max-w-7xl mx-auto md:px-8">
           <div
             style={{
-              fontFamily: "'Inter', sans-serif", 
+              fontFamily: "'Poppins', sans-serif", 
               fontWeight: "700", 
+              fontStyle: "italic",
               color: "#f2f2f2", 
               letterSpacing: "-0.02em",
-              fontSize: "clamp(48px, 8vw, 96px)",
+              fontSize: "clamp(28px, 6vw, 84px)",
               textAlign: "left"
             }}
           >
