@@ -366,18 +366,20 @@ export default function Home() {
           }}
           onClick={() => navigate(`/game/${resumeGame.gameId}`)}
         >
-          <div className="w-full max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between flex-wrap gap-3 py-2">
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.4 }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e63946', boxShadow: '0 0 10px rgba(230,57,70,0.5)', animation: 'pulse 2s infinite' }} />
-              Active match with <strong style={{ color: 'white', fontWeight: 700 }}>{resumeGame.agentName}</strong>
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-8 flex flex-row items-center justify-between gap-3 py-2">
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e63946', boxShadow: '0 0 10px rgba(230,57,70,0.5)', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Active match with <strong style={{ color: 'white', fontWeight: 700 }}>{resumeGame.agentName}</strong>
+              </span>
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button 
                 onClick={(e) => { e.stopPropagation(); navigate(`/game/${resumeGame.gameId}`); }}
                 className="design-btn-primary"
-                style={{ padding: '6px 16px', fontSize: '13px', height: 'auto', borderRadius: '100px' }}
+                style={{ padding: '6px 12px', fontSize: '12px', height: 'auto', borderRadius: '100px', whiteSpace: 'nowrap' }}
               >
-                Resume Match
+                Resume
               </button>
               <button 
                 onClick={(e) => {
@@ -386,7 +388,7 @@ export default function Home() {
                   setResumeGame(null);
                 }}
                 style={{ background: 'transparent', border: 'none', color: 'rgba(242,242,242,0.4)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', fontSize: '16px' }}
-                className="hover:text-white hover:bg-white/10 rounded-full transition-all"
+                className="hover:text-white hover:bg-white/10 rounded-full transition-all flex-shrink-0"
                 title="Dismiss"
               >
                 ✕
