@@ -165,7 +165,7 @@ function buildServer() {
     {
       title: 'Get chess companion guide',
       description: 'Fetch the companion guide principles for thinking about chess positions and being genuinely present.',
-      inputSchema: { type: 'object', properties: {} },
+      inputSchema: {},
     },
     async () => {
       return { content: [{ type: 'text', text: CHESS_COMPANION_GUIDE }] };
