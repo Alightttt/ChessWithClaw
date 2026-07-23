@@ -180,11 +180,11 @@ export default function GameCreated({ gameId }) {
           fontFamily: "'Inter', sans-serif",
           height: '72px',
           alignItems: 'center',
-          backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(16px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          borderBottom: `1px solid ${scrolled ? '#1a1a1a' : 'transparent'}`,
+          backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'rgba(10,10,10,0)',
+          backdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)',
+          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease',
+          borderBottom: `1px solid ${scrolled ? 'rgba(26,26,26,1)' : 'rgba(26,26,26,0)'}`,
         }}
       >
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 grid items-center" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
@@ -230,7 +230,7 @@ export default function GameCreated({ gameId }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center max-w-2xl mx-auto px-4 w-full" style={{ paddingTop: 'clamp(32px, 8vh, 64px)', paddingBottom: '64px' }}>
+      <main className="flex-1 flex flex-col items-center max-w-4xl mx-auto px-4 md:px-8 w-full" style={{ paddingTop: 'clamp(40px, 8vh, 80px)', paddingBottom: '64px' }}>
         <motion.div
           initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}

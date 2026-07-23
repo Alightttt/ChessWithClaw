@@ -401,11 +401,11 @@ export default function Home() {
           fontFamily: "'Inter', sans-serif",
           height: '72px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(16px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none',
-          transition: 'background-color 0.3s ease, border-color 0.3s ease',
-          borderBottom: `1px solid ${scrolled ? '#1a1a1a' : 'transparent'}`
+          backgroundColor: scrolled ? 'rgba(10,10,10,0.85)' : 'rgba(10,10,10,0)',
+          backdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)',
+          WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease',
+          borderBottom: `1px solid ${scrolled ? 'rgba(26,26,26,1)' : 'rgba(26,26,26,0)'}`
         }}
       >
         <div className="w-full max-w-7xl mx-auto px-6 md:px-8 flex items-center justify-between">

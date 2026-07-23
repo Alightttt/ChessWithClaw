@@ -970,9 +970,9 @@ export default function Game() {
   }, []);
   
   const skeletonStyle = {
-    background: 'linear-gradient(90deg, #111111 25%, #111111 50%, #111111 75%)',
+    background: 'linear-gradient(90deg, #161616 25%, #222222 50%, #161616 75%)',
     backgroundSize: '200% 100%',
-    animation: 'shimmer 2s infinite linear',
+    animation: 'shimmer 1.5s infinite linear',
     borderRadius: '8px',
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)'
   };
@@ -2791,9 +2791,10 @@ export default function Game() {
       </header>
       {/* MAIN CONTENT AREA - RESPONSIVE */}
       {isDesktop ? (
-        <div style={{ display: 'flex', flexDirection: 'row', height: 'calc(100dvh - 52px)', overflow: 'hidden', gap: '0' }}>
-          {/* LEFT DESKTOP COLUMN */}
-          <div style={{ width: 'min(58%, calc(100dvh - 52px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '8px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', height: 'calc(100dvh - 52px)', overflow: 'hidden', background: '#000000' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', height: '100%', width: '100%', maxWidth: '1280px', gap: '8px' }}>
+            {/* LEFT DESKTOP COLUMN */}
+            <div style={{ flex: 1, maxWidth: 'min(65%, calc(100dvh - 52px))', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '16px 8px 16px 16px', gap: '8px', overflow: 'hidden' }}>
             
             {/* A) AGENT CARD */}
             {(() => {
@@ -3275,6 +3276,7 @@ export default function Game() {
           </div>
         </div>
         
+      </div>
       </div>
     </div>
   ) : (
