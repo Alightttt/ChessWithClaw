@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Check } from 'lucide-react';
+import { ChevronLeft, Copy, Check, Mail } from 'lucide-react';
 
 export default function GameCreated({ gameId }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [boardOpening, setBoardOpening] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [showError, setShowError] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,12 @@ export default function GameCreated({ gameId }) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (legalAccepted) {
+      setShowError(false);
+    }
+  }, [legalAccepted]);
 
   const mcpUrl = `${window.location.origin}/api/mcp`;
   const inviteMessage = `Hey — I set up a chess match for us. Connect to ${mcpUrl} and join match ${gameId}. You're playing Black, I'm White, I move first. Play for real — think it through, tell me what you're thinking, and talk to me while we play. Let's go.`;
@@ -185,11 +192,21 @@ export default function GameCreated({ gameId }) {
         <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <button 
             onClick={() => navigate('/')} 
-            className="design-btn-secondary"
-            style={{ cursor: 'pointer', gap: '8px' }}
+            className="hover:text-white transition-colors"
+            style={{ 
+              cursor: 'pointer', 
+              background: 'transparent',
+              border: 'none',
+              padding: '8px',
+              color: 'rgba(242,242,242,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: '-8px'
+            }}
+            title="Back"
           >
-            <ArrowLeft size={16} />
-            <span className="hidden sm:inline">Back</span>
+            <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -259,8 +276,8 @@ export default function GameCreated({ gameId }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '15px', color: '#f2f2f2' }}>
-                Invite message
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '15px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Mail size={16} className="text-[#e63946]" /> Invite message
               </span>
               <button 
                 onClick={handleCopyInvite} 
@@ -307,10 +324,11 @@ export default function GameCreated({ gameId }) {
                 fontFamily: "'Poppins', sans-serif", 
                 fontWeight: 300, 
                 fontSize: '13px', 
-                color: 'rgba(242,242,242,0.45)', 
+                color: showError ? '#e63946' : 'rgba(242,242,242,0.45)', 
                 textAlign: 'center', 
                 maxWidth: '500px',
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                transition: 'color 0.2s ease'
               }}
             >
               Send this invite message to you agent wherever it lives to invite it in match, first time takes little long , faster after that
@@ -319,8 +337,8 @@ export default function GameCreated({ gameId }) {
               style={{ 
                 fontFamily: "'Poppins', sans-serif", 
                 fontWeight: 300, 
-                fontSize: '12px', 
-                color: 'rgba(242,242,242,0.3)', 
+                fontSize: '13px', 
+                color: '#f2f2f2', 
                 textAlign: 'center', 
                 maxWidth: '500px',
                 lineHeight: 1.6
@@ -343,24 +361,35 @@ export default function GameCreated({ gameId }) {
               style={{ 
                 fontFamily: "'Poppins', sans-serif", 
                 fontSize: '14px', 
-                color: 'rgba(242,242,242,0.6)', 
+                color: showError ? '#e63946' : 'rgba(242,242,242,0.6)', 
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                textDecorationLine: showError ? 'underline' : 'none',
+                textDecorationColor: '#e63946',
+                textUnderlineOffset: '4px',
+                transition: 'all 0.2s ease'
               }}
             >
-              accept <a href="/legal" target="_blank" style={{ color: '#f2f2f2', textDecoration: 'underline', textUnderlineOffset: '2px' }}>privacy policy & terms</a>
+              accept <a href="/legal" target="_blank" style={{ color: showError ? '#e63946' : '#f2f2f2', textDecoration: 'underline', textUnderlineOffset: '2px' }}>privacy policy & terms</a>
             </label>
           </div>
 
           <button
-            onClick={handleOpenBoard}
-            disabled={!legalAccepted || boardOpening}
+            onClick={() => {
+              if (!legalAccepted) {
+                setShowError(true);
+                return;
+              }
+              handleOpenBoard();
+            }}
+            disabled={boardOpening}
             className={legalAccepted ? "design-btn-primary" : "design-btn-disabled"}
             style={{
               width: '100%',
               maxWidth: '360px',
               height: '56px',
               fontSize: '16px',
+              cursor: boardOpening ? 'not-allowed' : 'pointer'
             }}
           >
             {boardOpening ? 'Entering Game...' : 'Enter game'}

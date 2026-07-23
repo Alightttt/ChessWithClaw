@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 export default function Legal() {
   const navigate = useNavigate();
@@ -43,16 +43,17 @@ export default function Legal() {
         <button 
           onClick={() => { if (window.history.length > 2) { navigate(-1); } else { navigate('/'); } }} 
           style={{ 
-            display: 'flex', alignItems: 'center', gap: '6px', 
-            background: 'transparent', border: '1px solid #222', 
-            borderRadius: '8px', color: 'rgba(242,242,242,0.7)', 
-            fontFamily: 'Inter, sans-serif', fontSize: '13px', 
-            fontWeight: 500, padding: '6px 14px', cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none',
+            color: 'rgba(242,242,242,0.6)', 
+            padding: '8px', cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            marginLeft: '-8px'
           }}
-          className="hover:bg-[#111] hover:text-[#f2f2f2]"
+          className="hover:text-[#f2f2f2]"
+          title="Back"
         >
-          <ArrowLeft size={16} /> Back
+          <ChevronLeft size={24} strokeWidth={2.5} />
         </button>
         
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={() => navigate('/')} className="active:scale-95">

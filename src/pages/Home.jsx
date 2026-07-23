@@ -149,6 +149,7 @@ export default function Home() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -348,26 +349,46 @@ export default function Home() {
       
       <div className="sticky top-0 z-50 flex flex-col w-full">
       {resumeGame && (
-        <div style={{ background: '#111111', borderBottom: '1px solid #222222', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', zIndex: 100, position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '800px' }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <LobsterEmoji /> Your game with <span style={{ fontWeight: 600 }}>{resumeGame.agentName}</span> is waiting
+        <div 
+          className="w-full relative group"
+          style={{ 
+            background: 'linear-gradient(90deg, #161514 0%, #1b1a19 100%)', 
+            borderBottom: '1px solid rgba(230,57,70,0.15)', 
+            height: 'auto',
+            minHeight: '52px',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            padding: '8px 16px', 
+            zIndex: 100,
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate(`/game/${resumeGame.gameId}`)}
+        >
+          <div 
+            className="absolute inset-0 bg-[#e63946]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" 
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '900px', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#f2f2f2', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.4 }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px rgba(16,185,129,0.5)', animation: 'pulse 2s infinite' }} />
+              Active game with <strong style={{ color: 'white', fontWeight: 700 }}>{resumeGame.agentName}</strong>
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
               <button 
-                onClick={() => navigate(`/game/${resumeGame.gameId}`)}
-                style={{ background: 'transparent', border: 'none', color: '#e63946', fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                className="hover:opacity-80 active:scale-95 transition-all"
+                onClick={(e) => { e.stopPropagation(); navigate(`/game/${resumeGame.gameId}`); }}
+                className="design-btn-nav"
+                style={{ padding: '6px 14px', fontSize: '12px', height: 'auto' }}
               >
-                Resume →
+                Resume Match
               </button>
               <button 
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   localStorage.removeItem('cwc_active_game');
                   setResumeGame(null);
                 }}
-                style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                className="hover:text-white transition-colors"
+                style={{ background: 'transparent', border: 'none', color: 'rgba(242,242,242,0.4)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', fontSize: '16px' }}
+                className="hover:text-white hover:bg-white/10 rounded-full transition-all"
                 title="Dismiss"
               >
                 ✕
@@ -816,7 +837,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer style={{ borderTop: '1px solid #1a1a1a', paddingTop: '24px', paddingBottom: '0', background: '#0a0a0a', overflow: 'hidden' }}>
+      <footer style={{ borderTop: '1px solid #1a1a1a', paddingTop: '24px', paddingBottom: '24px', background: '#0a0a0a', overflow: 'hidden' }}>
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="flex items-center justify-between font-['Inter'] text-sm text-[rgba(242,242,242,0.5)] mb-6">
             <span 
@@ -835,8 +856,6 @@ export default function Home() {
               x.com
             </a>
           </div>
-        </div>
-        <div style={{ width: '100%', overflow: 'hidden', padding: '0 24px', marginBottom: '40px' }} className="mt-8 max-w-7xl mx-auto md:px-8">
           <div
             style={{
               fontFamily: "'Poppins', sans-serif", 
@@ -844,8 +863,9 @@ export default function Home() {
               fontStyle: "italic",
               color: "#f2f2f2", 
               letterSpacing: "-0.02em",
-              fontSize: "clamp(28px, 6vw, 84px)",
-              textAlign: "left"
+              fontSize: "clamp(24px, 5vw, 64px)",
+              textAlign: "left",
+              whiteSpace: "nowrap"
             }}
           >
             Have fun with your agent
