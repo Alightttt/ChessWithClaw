@@ -489,12 +489,28 @@ export default function Game() {
   const [showAgentStatusOverlay, setShowAgentStatusOverlay] = useState(false);
   useEffect(() => {
     let timer;
+    let listenerTimer;
     if (showAgentStatusOverlay) {
       timer = setTimeout(() => {
         setShowAgentStatusOverlay(false);
-      }, 3000);
+      }, 2500);
+
+      const handleGlobalClick = () => {
+        setShowAgentStatusOverlay(false);
+      };
+
+      listenerTimer = setTimeout(() => {
+        window.addEventListener('click', handleGlobalClick);
+        window.addEventListener('touchstart', handleGlobalClick);
+      }, 10);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(listenerTimer);
+        window.removeEventListener('click', handleGlobalClick);
+        window.removeEventListener('touchstart', handleGlobalClick);
+      };
     }
-    return () => clearTimeout(timer);
   }, [showAgentStatusOverlay]);
   const getAgentLastSeenText = () => {
     const _tick = presenceTick; // reactive
