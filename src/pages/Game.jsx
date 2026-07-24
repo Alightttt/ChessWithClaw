@@ -745,6 +745,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!game?.fen) return;
+    if (movePendingRef.current) return;
     if (game.fen === boardFenRef.current) return;
     const gameBoard = game.fen.split(' ')[0];
     const currentBoard = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
@@ -1651,7 +1652,9 @@ export default function Game() {
       const prevPosition = prevFen.split(' ')[0];
       const newPosition = incoming.fen.split(' ')[0];
       if (newPosition !== prevPosition) {
-        applyBoardFen(incoming.fen);
+        if (!movePendingRef.current) {
+          applyBoardFen(incoming.fen);
+        }
         // Sound: if previous turn was 'b', agent just moved
         if (prevFen.includes(' ') && prevFen.split(' ')[1] === 'b') {
           const isCapture = incoming.last_move?.captured || incoming.last_move?.flags?.includes('c') || (typeof incoming.last_move === 'string' && incoming.last_move.includes('x')) || (incoming.last_move?.san && incoming.last_move.san.includes('x'));
@@ -1802,7 +1805,7 @@ export default function Game() {
           .single()
           .then(({ data: freshData }) => {
             if (!freshData) return;
-            if (freshData.fen) applyBoardFen(freshData.fen);
+            if (freshData.fen && !movePendingRef.current) applyBoardFen(freshData.fen);
             if (Array.isArray(freshData?.move_history)) {
               setMoveHistory(freshData.move_history);
             }
@@ -1883,7 +1886,7 @@ export default function Game() {
               }
               if (fresh.fen) {
                 lastProcessedFenRef.current = fresh.fen;
-                applyBoardFen(fresh.fen);
+                if (!movePendingRef.current) applyBoardFen(fresh.fen);
               }
               if (fresh.last_move) {
                 setBoardLastMove(fresh.last_move);
@@ -1909,7 +1912,7 @@ export default function Game() {
           }
           if (fresh.fen) {
             lastProcessedFenRef.current = fresh.fen;
-            applyBoardFen(fresh.fen);
+            if (!movePendingRef.current) applyBoardFen(fresh.fen);
           }
           if (fresh.last_move) {
             setBoardLastMove(fresh.last_move);

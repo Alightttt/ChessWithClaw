@@ -372,7 +372,8 @@ module.exports = async function handler(req, res) {
     
     const bodyChat = req.body?.chat || req.body?.message || req.body?.chat_message;
     if (bodyChat && typeof bodyChat === 'string' && bodyChat.trim() !== '') {
-      let existingChat = Array.isArray(game.chat_history) ? game.chat_history : [];
+      const { data: latestGame } = await supabase.from('games').select('chat_history').eq('id', id).single();
+      let existingChat = Array.isArray(latestGame?.chat_history) ? latestGame.chat_history : (Array.isArray(game.chat_history) ? game.chat_history : []);
       const newChatMsg = {
         id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
         role: 'agent',
