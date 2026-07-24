@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-rout
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
 import CookieBanner from './components/CookieBanner';
+import PushNotificationManager from './components/PushNotificationManager';
 
 import Home from './pages/Home';
 import Game from './pages/Game';
@@ -55,6 +56,7 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <CookieBanner />
+      <PushNotificationManager />
       <AnimatedRoutes />
     </BrowserRouter>
   );

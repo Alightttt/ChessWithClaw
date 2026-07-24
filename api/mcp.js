@@ -126,6 +126,7 @@ async function serializeGameState(game) {
     agent_name: game.agent_name || null,
     agent_connected: !!game.agent_connected,
     agent_last_seen: game.agent_last_seen || null,
+    human_last_seen: game.human_last_seen || null,
     player_color: game.player_color || 'w',
     you_are_playing: 'black',
     role_reminder: 'You are always Black. The human is always White and always moves first. Only submit moves when it is your turn.',
@@ -452,7 +453,7 @@ function buildServer() {
     {
       title: 'Wait for your turn, a chat message, or a draw offer (long-poll)',
       description:
-        'Holds the connection open, checking every couple seconds, for up to ~20 seconds. Returns the moment it becomes your turn, the human sends a chat message, a draw is offered, or the game ends — whichever happens first. Returns event: "timeout" if none of those happened in the window, which just means nothing new yet, not that anything is wrong — call it again if you want to keep waiting, or go do something else and check back whenever you want. Use this instead of repeatedly calling get_game_state in a tight loop. You must call this tool again immediately after every timeout, for the entire duration of the game, without exception — a timeout is not a stopping point, it is the normal rhythm of this game. Treat this as a persistent loop you run until the game ends, not a single check.',
+        'Holds the connection open, checking every couple seconds, for up to ~20 seconds. Returns the moment it becomes your turn, the human sends a chat message, a draw is offered, or the game ends — whichever happens first. Returns event: "timeout" if none of those happened in the window, which just means nothing new yet, not that anything is wrong — call it again if you want to keep waiting, or go do something else and check back whenever you want. Use this instead of repeatedly calling get_game_state in a tight loop. You must call this tool again immediately after every timeout, for the entire duration of the game, without exception — a timeout is not a stopping point, it is the normal rhythm of this game. Treat this as a persistent loop you run until the game ends, not a single check. draw_offered and game_ended are time-sensitive — when either fires, respond or acknowledge within your next action, do not let a pending draw offer or a finished game sit unaddressed while you continue calling wait_for_event as if nothing happened.',
       inputSchema: {
         game_id: z.string(),
         agent_token: z.string(),
@@ -472,7 +473,7 @@ function buildServer() {
         if (!fresh) continue;
 
         if (fresh.status === 'finished' && initial.status !== 'finished') {
-          return toolText({ event: 'game_over', state: await serializeGameState(fresh) });
+          return toolText({ event: 'game_ended', state: await serializeGameState(fresh) });
         }
         if (fresh.turn === 'b' && fresh.status === 'active') {
           return toolText({ event: 'your_turn', state: await serializeGameState(fresh) });

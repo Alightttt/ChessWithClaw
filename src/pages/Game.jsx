@@ -203,6 +203,44 @@ export default function Game() {
   const [isGeneratingQuote, setIsGeneratingQuote] = useState(false);
   const pendingMoveFenRef = useRef(null);
   const skipNextRealtimeRef = useRef(false);
+  const hasFinishedRef = useRef(false);
+
+  useEffect(() => {
+    let intervalId;
+    const sendHeartbeat = () => {
+      const isSpec = !localStorage.getItem(`game_owner_${gameId}`);
+      if (document.visibilityState === 'visible' && !isSpec) {
+        fetch('/api/game', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+          },
+          body: JSON.stringify({ gameId, human_last_seen: new Date().toISOString() })
+        }).catch(() => {});
+      }
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        sendHeartbeat();
+        intervalId = setInterval(sendHeartbeat, 20000);
+      } else {
+        clearInterval(intervalId);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    if (document.visibilityState === 'visible') {
+      handleVisibilityChange();
+    }
+    
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [gameId]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -997,6 +1035,11 @@ export default function Game() {
         lastKnownFenRef.current = data.fen;
         setGame(prev => {
           const updated = { ...data };
+          if (updated.status === 'finished') {
+            hasFinishedRef.current = true;
+          } else if (hasFinishedRef.current) {
+            updated.status = 'finished';
+          }
           if (prev?.chat_history && data?.chat_history) {
             const dbIds = new Set(data.chat_history.map(m => m.id));
             const trueOptimistic = prev.chat_history.filter(m => String(m.id).startsWith('opt-') && !dbIds.has(m.id));
@@ -1008,11 +1051,6 @@ export default function Game() {
         const fetchedGame = data;
         if (Array.isArray(fetchedGame?.move_history) && fetchedGame.move_history.length > 0) {
           setMoveHistory(fetchedGame.move_history);
-        }
-        if (Array.isArray(fetchedGame?.chat_history) && fetchedGame.chat_history.length > 0) {
-          setChatMessages(fetchedGame.chat_history);
-        } else {
-          setChatMessages([]);
         }
 
         if (fetchedGame?.board_theme) {
@@ -1031,9 +1069,27 @@ export default function Game() {
         setOptimisticFen(null);
         
         // Restore chat messages
+        let finalChats = [];
         if (data.chat_history && Array.isArray(data.chat_history)) {
-          setChatMessages(data.chat_history.slice(-50));
+          finalChats = data.chat_history.slice(-50);
         }
+        try {
+          const pendingRaw = localStorage.getItem(`pending_chat_${gameId}`);
+          if (pendingRaw) {
+             const pending = JSON.parse(pendingRaw);
+             const serverTexts = new Set(finalChats.map(m => m.text || m.message || m.content));
+             if (!serverTexts.has(pending.text || pending.message || pending.content)) {
+               finalChats.push(pending);
+               setLocalMessages(prev => {
+                 if (!prev.find(m => m.id === pending.id)) return [...prev, pending];
+                 return prev;
+               });
+             } else {
+               localStorage.removeItem(`pending_chat_${gameId}`);
+             }
+          }
+        } catch(e) {}
+        setChatMessages(finalChats);
 
         // Restore last move highlight
         if (data.last_move?.from && data.last_move?.to) {
@@ -1314,7 +1370,12 @@ export default function Game() {
   // Auto-scroll chat
   useEffect(() => {
     if (chatMessagesRef.current) {
-      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+      const isNearBottom = chatMessagesRef.current.scrollHeight - chatMessagesRef.current.scrollTop - chatMessagesRef.current.clientHeight < 100;
+      const lastMsg = normalizedMessages[normalizedMessages.length - 1];
+      const isMyMessage = lastMsg?.sender === 'human' && (Date.now() - (lastMsg.ts || 0) < 2000);
+      if (isNearBottom || isMyMessage) {
+        chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+      }
     }
   }, [normalizedMessages]);
 
@@ -1528,7 +1589,13 @@ export default function Game() {
       if (incoming.move_history && prev.move_history && incoming.move_history.length < prev.move_history.length) {
         return prev;
       }
-      return { ...prev, ...incoming };
+      let newStatus = incoming.status;
+      if (newStatus === 'finished') {
+        hasFinishedRef.current = true;
+      } else if (hasFinishedRef.current) {
+        newStatus = 'finished';
+      }
+      return { ...prev, ...incoming, status: newStatus };
     });
     
     // 1. Update board position with sound (fixes frozen board + no sound)
@@ -2027,6 +2094,7 @@ export default function Game() {
     };
     
     setLocalMessages(prev => [...prev, optimisticMsg]);
+    localStorage.setItem(`pending_chat_${gameId}`, JSON.stringify(optimisticMsg));
 
     fetch('/api/chat', {
       method: 'POST',
@@ -2035,6 +2103,8 @@ export default function Game() {
         'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
       },
       body: JSON.stringify({ gameId: gameId, game_id: gameId, text: msgText, sender: 'human', role: 'human', reply_to: repMsgId })
+    }).then(() => {
+      localStorage.removeItem(`pending_chat_${gameId}`);
     }).catch(() => {});
   };
 
@@ -2409,14 +2479,6 @@ export default function Game() {
             return (
               <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#111111', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
                 {msg.text || msg.message || msg.content}
-                {game.status === 'active' && (
-                  <button data-testid="accept-draw-button" onClick={async () => {
-                    setGame(prev => ({ ...prev, status: 'finished', result: 'draw', result_reason: 'agreement' }));
-                    await getSupabaseWithToken(localStorage.getItem(`game_owner_${gameId}`)).from('games').update({
-                      status: 'finished', result: 'draw', result_reason: 'agreement'
-                    }).eq('id', gameId);
-                  }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
-                )}
               </div>
             );
           }
@@ -4025,28 +4087,36 @@ export default function Game() {
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     data-testid="draw-button"
-                    onClick={async () => {
+                    onClick={() => {
                       if (drawOfferPending || game?.status !== 'active') return;
-                      const confirmed = window.confirm(`Offer a draw to ${game?.agent_name || 'Your Agent'}? They can accept or decline.`);
-                      if (!confirmed) return;
-                      setDrawOfferPending(true);
-                      setDrawDeclined(false);
-                      try {
-                        await fetch('/api/actions', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
-                          },
-                          body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
-                        });
-                      } catch(e) {
-                        setDrawOfferPending(false);
-                        toast('Failed to send draw offer', { style: { background: '#111111', color: '#f2f2f2' } });
-                      }
+                      toast('Offer a draw?', {
+                        action: {
+                          label: 'Offer',
+                          onClick: async () => {
+                            setDrawOfferPending(true);
+                            setDrawDeclined(false);
+                            try {
+                              await fetch('/api/actions', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'x-game-token': localStorage.getItem(`game_owner_${gameId}`) || ''
+                                },
+                                body: JSON.stringify({ gameId, action: 'offer_draw', role: 'human' })
+                              });
+                            } catch(e) {
+                              setDrawOfferPending(false);
+                            }
+                          }
+                        },
+                        cancel: {
+                          label: 'Cancel'
+                        },
+                        style: { background: '#111111', border: '1px solid #333', color: '#f2f2f2' }
+                      });
                     }}
-                    disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned'}
-                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmDraw ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-[#111111] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned') ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
+                    disabled={drawOfferPending || game?.status === 'finished' || game?.status === 'abandoned' || isSpectator}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all border ${confirmDraw ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-[#111111] border-[#222] text-white/60'} ${(game?.status === 'finished' || game?.status === 'abandoned' || isSpectator) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#222] hover:text-white'}`}
                   >
                     {drawOfferPending
                       ? <span className="text-xs text-white/50">Waiting...</span>
