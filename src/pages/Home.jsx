@@ -284,7 +284,8 @@ export default function Home() {
           background: rgba(255,255,255,0.04);
         }
         .design-btn-secondary:active:not(:disabled) {
-          transform: scale(0.98);
+          transform: translateY(1px);
+          transition-duration: 0.1s;
         }
 
         .x-link-lovable {
@@ -563,7 +564,7 @@ export default function Home() {
                 </a>
                 <a 
                   href="#how"
-                  className="design-btn-secondary w-auto"
+                  className="design-btn-secondary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center rounded-lg w-auto text-center"
                 >
                   Quick Start
                 </a>
@@ -610,7 +611,7 @@ export default function Home() {
             </a>
             <a 
               href="#how"
-              className="design-btn-secondary w-full text-center"
+              className="design-btn-secondary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center rounded-lg w-full text-center"
             >
               Quick Start
             </a>
@@ -701,20 +702,7 @@ export default function Home() {
                   onClick={() => {
                     navigator.clipboard.writeText("openclaw mcp add --url https://chesswithclaw.vercel.app/api/mcp");
                   }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'rgba(242,242,242,0.4)',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    fontFamily: "'Inter', sans-serif",
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    marginLeft: '12px',
-                    flexShrink: 0
-                  }}
-                  className="hover:text-white"
+                  className="design-btn-secondary-compact" style={{ marginLeft: "12px", flexShrink: 0 }}
                 >
                   <Copy size={13} />
                   <span>Copy</span>

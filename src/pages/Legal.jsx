@@ -56,7 +56,7 @@ export default function Legal() {
           <ChevronLeft size={24} strokeWidth={2.5} />
         </button>
         
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={() => navigate('/')} className="active:scale-95">
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={() => navigate('/')} className="active:translate-y-[1px] active:scale-[0.98]">
           <img 
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
             alt="ChessWithClaw Logo" 

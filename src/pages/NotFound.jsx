@@ -76,7 +76,7 @@ export default function NotFound() {
           
           <button
             onClick={() => navigate('/')}
-            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-white text-black font-bold tracking-wider uppercase text-sm transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]"
+            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-white text-black font-bold tracking-wider uppercase text-sm transition-all hover:scale-105 active:translate-y-[1px] active:scale-[0.98] shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]"
           >
             <ChevronLeft size={18} className="transition-transform group-hover:-translate-x-1" /> 
             Resign & Return

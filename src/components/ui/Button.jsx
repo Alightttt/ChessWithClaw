@@ -13,7 +13,7 @@ export default function Button({
   className = '',
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-widest transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-red-primary)] focus:ring-offset-2 focus:ring-offset-black active:scale-[0.97] rounded-md uppercase';
+  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-widest transition-all duration-100 focus:outline-none focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 active:translate-y-[1px] active:scale-[0.98] rounded-md uppercase';
   
   const variants = {
     primary: 'design-btn-primary',

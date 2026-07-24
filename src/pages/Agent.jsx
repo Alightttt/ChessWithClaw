@@ -1207,7 +1207,7 @@ export default function Agent() {
           <button 
             data-testid="home-button"
             onClick={handleGoHomeWithRipple} 
-            className="mt-2 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
+            className="mt-2 text-white font-semibold flex items-center justify-center py-3 px-8 rounded-xl w-full transition-all active:translate-y-[1px] active:scale-[0.98] design-btn-primary"
           >
             Go Home
           </button>
@@ -1237,7 +1237,7 @@ export default function Agent() {
               <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#161616', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
                 {msg.text || msg.message || msg.content}
                 {game.status === 'active' && (
-                  <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
+                  <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:translate-y-[1px] active:scale-[0.98] transition-all design-btn-primary">Accept Resignation</button>
                 )}
               </div>
             );
@@ -1249,7 +1249,7 @@ export default function Agent() {
                 {game.status === 'active' && (
                   <button data-testid="accept-draw-button" onClick={async () => {
                     await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken }, body: JSON.stringify({ action: 'end_game', result: 'draw', reason: 'agreement', gameId }) });
-                  }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-success">Accept Draw</button>
+                  }} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:translate-y-[1px] active:scale-[0.98] transition-all design-btn-success">Accept Draw</button>
                 )}
               </div>
             );
@@ -1531,7 +1531,7 @@ export default function Agent() {
       
       {/* HEADER (Fixed) */}
       <header style={{ height: isDesktop ? '52px' : '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
+        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:translate-y-[1px] active:scale-[0.98]">
           <img 
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
             alt="ChessWithClaw Logo" 
@@ -1554,7 +1554,7 @@ export default function Agent() {
         <button 
           data-testid="settings-button"
           onClick={handleOpenSettings}
-          className="text-neutral-400 hover:text-white transition-all active:scale-95"
+          className="text-neutral-400 hover:text-white transition-all active:translate-y-[1px] active:scale-[0.98]"
           style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Settings size={20} />
@@ -2156,14 +2156,14 @@ export default function Agent() {
                     setClosingGameOver(true);
                     setTimeout(() => navigate('/'), 300);
                   }}
-                  className="text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:scale-95 design-btn-primary"
+                  className="text-white font-semibold flex items-center justify-center py-3.5 rounded-xl w-full transition-all active:translate-y-[1px] active:scale-[0.98] design-btn-primary"
                 >
                   Play Again
                 </button>
                 <button 
                   data-testid="share-result-button"
                   onClick={handleShareResult}
-                  className="bg-white/5 text-neutral-400 border border-white/10 font-semibold py-3.5 rounded-xl w-full transition-all hover:bg-white/10 hover:text-white active:scale-95"
+                  className="bg-white/5 text-neutral-400 border border-white/10 font-semibold py-3.5 rounded-xl w-full transition-all hover:bg-white/10 hover:text-white active:translate-y-[1px] active:scale-[0.98]"
                 >
                   Share Result
                 </button>
@@ -2401,7 +2401,7 @@ export default function Agent() {
               <button 
                 onClick={() => navigate('/')} 
                 style={{ padding: '12px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', background: 'transparent', color: '#888', border: 'none' }}
-                className="hover:bg-white/5 active:scale-95 transition-all"
+                className="hover:bg-white/5 active:translate-y-[1px] active:scale-[0.98] transition-all"
               >
                 Leave
               </button>

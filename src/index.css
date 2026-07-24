@@ -162,7 +162,8 @@
   }
   .design-btn-primary:active, .design-btn-success:active {
     filter: brightness(0.95);
-    transform: translateY(0px);
+    transform: translateY(1px);
+    box-shadow: rgba(255,255,255,0.15) 0px 1px 0px 0px inset, rgba(0,0,0,0.25) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 0px 0px 0.5px inset, rgba(230,57,70,0) 0px 4px 12px, rgba(0,0,0,0.1) 0px 1px 2px;
   }
 
   .design-card {
@@ -192,6 +193,24 @@
     transition: all 0.2s ease;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   }
+  
+  .design-btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: white;
+    transition: all 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .design-btn-secondary:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+  }
+  .design-btn-secondary:active {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(1px);
+  }
+
   .design-btn-success:hover {
     filter: brightness(1.08);
     box-shadow: rgba(255,255,255,0.25) 0px 1px 0px 0px inset, rgba(0,0,0,0.25) 0px -1px 0px 0px inset, rgba(0,0,0,0.25) 0px 0px 0px 0.5px inset, rgba(22,163,74,0.5) 0px 6px 16px, rgba(0,0,0,0.4) 0px 4px 8px;
@@ -218,7 +237,13 @@ button {
   backface-visibility: hidden;
 }
 button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98) translateY(1px);
+  transition-duration: 0.1s;
+}
+
+button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 @keyframes gameOverIn {
@@ -238,3 +263,36 @@ div[data-piece] {
 
 
 
+
+.design-btn-secondary-compact {
+  background: transparent;
+  color: rgba(242,242,242,0.7);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  height: 32px;
+  padding: 0 12px;
+  font-family: "'Inter', sans-serif";
+  font-weight: 500;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  gap: 6px;
+}
+.design-btn-secondary-compact:hover:not(:disabled) {
+  color: white;
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.06);
+}
+.design-btn-secondary-compact:active:not(:disabled) {
+  transform: translateY(1px);
+  transition-duration: 0.1s;
+}
+
+.design-btn-primary:focus-visible, .design-btn-secondary:focus-visible, .design-btn-secondary-compact:focus-visible, button:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}

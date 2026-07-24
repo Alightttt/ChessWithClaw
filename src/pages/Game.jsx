@@ -2470,7 +2470,7 @@ export default function Game() {
               <div key={msg.id} style={{ alignSelf: 'flex-start', background: '#111111', border: '1px solid #222', color: 'rgba(242,242,242,0.85)', borderRadius: '10px 10px 10px 3px', padding: '7px 12px', maxWidth: '75%', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: 1.5 }}>
                 {msg.text || msg.message || msg.content}
                 {game.status === 'active' && (
-                  <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:scale-95 transition-all design-btn-primary">Accept Resignation</button>
+                  <button data-testid="accept-resignation-button" onClick={acceptAgentResignation} className="block w-full mt-2 text-white border-none rounded py-2 font-sans text-xs font-bold cursor-pointer active:translate-y-[1px] active:scale-[0.98] transition-all design-btn-primary">Accept Resignation</button>
                 )}
               </div>
             );
@@ -2791,7 +2791,7 @@ export default function Game() {
       
       {/* HEADER (Fixed) */}
       <header style={{ height: isDesktop ? '52px' : '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid #111111', background: '#0a0a0a', zIndex: 50, position: 'sticky', top: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:scale-95">
+        <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease' }} onClick={handleGoHome} className="active:translate-y-[1px] active:scale-[0.98]">
           <img 
             src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" 
             alt="ChessWithClaw Logo" 
@@ -2814,7 +2814,7 @@ export default function Game() {
         <button 
           data-testid="settings-button"
           onClick={handleOpenSettings}
-          className="text-neutral-400 hover:text-white transition-all active:scale-95"
+          className="text-neutral-400 hover:text-white transition-all active:translate-y-[1px] active:scale-[0.98]"
           style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <Settings size={20} />
@@ -3526,7 +3526,7 @@ export default function Game() {
                     navigator.clipboard.writeText(url);
                     toast('Link copied! Share to challenge others.', { style: { background: '#111111', color: '#f2f2f2' } });
                   }}
-                  className="px-4 py-3 w-full bg-[#e63946] text-white text-xs font-bold tracking-wider uppercase rounded-xl shadow-[0_0_15px_rgba(230,57,70,0.2)] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="px-4 py-3 w-full bg-[#e63946] text-white text-xs font-bold tracking-wider uppercase rounded-xl shadow-[0_0_15px_rgba(230,57,70,0.2)] active:translate-y-[1px] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <Share2 size={14} />
                   Copy Match Link

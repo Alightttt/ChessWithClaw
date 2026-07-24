@@ -127,7 +127,8 @@ export default function GameCreated({ gameId }) {
           background: rgba(255,255,255,0.04);
         }
         .design-btn-secondary:active:not(:disabled) {
-          transform: scale(0.98);
+          transform: translateY(1px);
+          transition-duration: 0.1s;
         }
 
         .invite-focus-glow {
