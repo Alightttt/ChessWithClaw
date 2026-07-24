@@ -487,6 +487,14 @@ export default function Game() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
   const [showAgentStatusOverlay, setShowAgentStatusOverlay] = useState(false);
+  useEffect(() => {
+    if (showAgentStatusOverlay) {
+      const timer = setTimeout(() => {
+        setShowAgentStatusOverlay(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showAgentStatusOverlay]);
   const getAgentLastSeenText = () => {
     const _tick = presenceTick; // reactive
     if (!game?.agent_last_seen) return 'Agent not joined yet';

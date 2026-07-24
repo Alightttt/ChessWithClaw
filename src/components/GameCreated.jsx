@@ -48,8 +48,8 @@ export default function GameCreated({ gameId }) {
       <style>{`
         .design-card {
           background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 12px;
+          border: 1px solid var(--border);
+          border-radius: var(--card-radius);
           padding: 24px;
           position: relative;
           overflow: hidden;
@@ -60,7 +60,7 @@ export default function GameCreated({ gameId }) {
           box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
         .design-card:hover {
-          border-color: rgba(255,255,255,0.12);
+          border-color: var(--border-strong);
           transform: translateY(-2px) translateZ(0);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
         }
@@ -68,7 +68,7 @@ export default function GameCreated({ gameId }) {
         .design-btn-primary {
           background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
           color: white;
-          border-radius: 8px;
+          border-radius: var(--btn-radius);
           padding: 8px 16px;
           font-family: "'Poppins', sans-serif";
           font-weight: 600;
@@ -94,7 +94,7 @@ export default function GameCreated({ gameId }) {
         .design-btn-disabled {
           background: #111111;
           color: rgba(242,242,242,0.3);
-          border-radius: 8px;
+          border-radius: var(--btn-radius);
           border: 1px solid rgba(255,255,255,0.04);
           font-family: "'Poppins', sans-serif";
           font-weight: 600;
@@ -108,8 +108,8 @@ export default function GameCreated({ gameId }) {
         .design-btn-secondary {
           background: transparent;
           color: rgba(242,242,242,0.6);
-          border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 8px;
+          border: 1px solid var(--border);
+          border-radius: var(--btn-radius);
           height: 40px;
           padding: 0 16px;
           font-family: "'Poppins', sans-serif";

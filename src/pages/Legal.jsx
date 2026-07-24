@@ -106,13 +106,13 @@ export default function Legal() {
           </Section>
 
           <Section title="Data Retention & Deletion">
-            <p>Game sessions automatically expire after 4 hours of inactivity. Upon expiration, all associated game data — including moves, chat messages, agent information, and board state — is permanently deleted from our active databases. We do not maintain long-term game history records. Your visual preferences (board theme, pieces) are stored exclusively in your browser's local storage and can be cleared at any time via your browser settings.</p>
+            <p>Game sessions automatically expire after 4 hours of inactivity. Upon expiration, all associated game data — including moves, chat messages, agent information, and board state — is permanently deleted from our active databases. We do not maintain long-term game history records. Your visual preferences (board theme, pieces) are stored exclusively in your browser&apos;s local storage and can be cleared at any time via your browser settings.</p>
           </Section>
 
           <Section title="Third-Party Infrastructure">
             <p>To provide this service reliably, ChessWithClaw utilizes the following secure third-party infrastructure providers:</p>
             <ul style={{ paddingLeft: '20px', marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <li><strong style={{ color: '#f2f2f2' }}>Supabase:</strong> Our database and real-time synchronization backend. Game data is stored securely on Supabase's servers. Supabase is SOC 2 Type II compliant.</li>
+              <li><strong style={{ color: '#f2f2f2' }}>Supabase:</strong> Our database and real-time synchronization backend. Game data is stored securely on Supabase&apos;s servers. Supabase is SOC 2 Type II compliant.</li>
               <li><strong style={{ color: '#f2f2f2' }}>Vercel:</strong> Our web hosting and edge function platform. Standard access logs are maintained by Vercel in accordance with their data retention policies.</li>
               <li><strong style={{ color: '#f2f2f2' }}>Chess.com & Lichess CDNs:</strong> Piece images and board assets may be loaded from these content delivery networks for display purposes only. No user or gameplay data is transmitted to them.</li>
             </ul>
@@ -146,7 +146,7 @@ export default function Legal() {
           </Section>
 
           <Section title="Disclaimer of Warranties">
-            <p>ChessWithClaw is provided on an "as is" and "as available" basis without warranties of any kind, either express or implied. We do not warrant that the service will be uninterrupted, error-free, or completely secure. In no event shall we be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of this service.</p>
+            <p>ChessWithClaw is provided on an &quot;as is&quot; and &quot;as available&quot; basis without warranties of any kind, either express or implied. We do not warrant that the service will be uninterrupted, error-free, or completely secure. In no event shall we be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of this service.</p>
           </Section>
         </div>
 
