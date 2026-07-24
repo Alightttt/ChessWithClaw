@@ -429,9 +429,18 @@ export default function Game() {
 
   const boardFenRef = useRef('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [boardFen, setBoardFen] = useState(boardFenRef.current);
+  const lastAppliedFenRef = useRef(null);
 
   const applyBoardFen = useCallback((fen) => {
     if (!fen || !fen.includes(' ')) return;
+    
+    const incomingPieces = fen.split(' ')[0];
+    const lastAppliedPieces = lastAppliedFenRef.current ? lastAppliedFenRef.current.split(' ')[0] : null;
+    
+    if (incomingPieces === lastAppliedPieces) {
+      return;
+    }
+
     // Compare only piece placement (first field of FEN), not full FEN
     // This prevents re-animation when only metadata (clocks, en passant) changed
     const currentPosition = boardFenRef.current ? boardFenRef.current.split(' ')[0] : '';
@@ -439,10 +448,13 @@ export default function Game() {
     if (newPosition === currentPosition) {
       // Board layout identical — just update ref for metadata, no re-render
       boardFenRef.current = fen;
+      lastAppliedFenRef.current = fen;
       return;
     }
     boardFenRef.current = fen;
     setBoardFen(fen);
+    
+    lastAppliedFenRef.current = fen;
   }, []);
 
   const lastProcessedFenRef = useRef('start');
