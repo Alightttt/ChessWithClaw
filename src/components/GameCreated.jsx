@@ -285,19 +285,18 @@ export default function GameCreated({ gameId }) {
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '6px', 
+                  justifyContent: 'center',
                   background: 'transparent', 
                   border: 'none', 
                   color: copied ? '#10b981' : '#e63946', 
                   cursor: 'pointer', 
-                  fontFamily: "'Inter', sans-serif", 
-                  fontSize: '13px', 
-                  fontWeight: 600,
-                  transition: 'color 0.2s ease'
+                  transition: 'color 0.2s ease, transform 0.2s ease',
+                  padding: '4px',
+                  borderRadius: '4px'
                 }}
+                title="Copy invite"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? <Check size={20} /> : <Copy size={20} />}
               </button>
             </div>
             

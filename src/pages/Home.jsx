@@ -436,13 +436,14 @@ export default function Home() {
             <div className="hidden md:flex items-center gap-3 mr-4">
               <a href="https://x.com/0xalyt" target="_blank" rel="noopener noreferrer" className="design-btn-secondary" style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)' }}>x.com/0xalyt</a>
             </div>
-            <a
-              href="#" onClick={handlePlayNow}
+            <button
+              onClick={handlePlayNow}
+              disabled={creating}
               className="design-btn-nav"
-              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1 }}
             >
-              Play Now
-            </a>
+              {creating ? 'Creating your match...' : 'Play Now'}
+            </button>
           </div>
         </div>
       </nav>
@@ -549,19 +550,21 @@ export default function Home() {
               style={{ gap: '0px', marginTop: '24px' }}
             >
               <div className="flex flex-row items-center justify-start w-auto" style={{ gap: '16px' }}>
-                <a
-                  href="#" onClick={handlePlayNow}
+                <button
+                  onClick={handlePlayNow}
+                  disabled={creating}
                   className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-auto text-center"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     textDecoration: 'none',
-                    cursor: 'pointer'
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    opacity: creating ? 0.7 : 1
                   }}
                 >
-                  Challenge Mine Now →
-                </a>
+                  {creating ? 'Creating your match...' : 'Challenge Mine Now →'}
+                </button>
                 <a 
                   href="#how"
                   className="design-btn-secondary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center rounded-lg w-auto text-center"
@@ -596,19 +599,21 @@ export default function Home() {
             transition={{ delay: 0.4 }}
             className="flex md:hidden flex-col items-center justify-center w-full z-10 gap-4"
           >
-            <a
-              href="#" onClick={handlePlayNow}
+            <button
+              onClick={handlePlayNow}
+              disabled={creating}
               className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg w-full text-center"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textDecoration: 'none',
-                cursor: 'pointer'
+                cursor: creating ? 'not-allowed' : 'pointer',
+                opacity: creating ? 0.7 : 1
               }}
             >
-              Challenge Mine Now →
-            </a>
+              {creating ? 'Creating your match...' : 'Challenge Mine Now →'}
+            </button>
             <a 
               href="#how"
               className="design-btn-secondary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center rounded-lg w-full text-center"
@@ -814,19 +819,21 @@ export default function Home() {
         <div className="max-w-2xl mx-auto flex flex-col items-center" style={{ gap: '24px' }}>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'min(48px, 11vw)', fontWeight: 800, lineHeight: 1.1, color: '#f2f2f2', letterSpacing: '-0.03em' }}>Ready to challenge your agent?</h2>
           <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: '18px', color: 'rgba(242,242,242,0.6)', marginBottom: '8px' }}>Start a match instantly. No sign-up required.</p>
-          <a
-             href="#" onClick={handlePlayNow}
+          <button
+             onClick={handlePlayNow}
+             disabled={creating}
              className="design-btn-primary h-14 px-8 font-['Poppins'] text-base flex items-center justify-center gap-3 rounded-lg text-center"
              style={{
                display: 'inline-flex',
                alignItems: 'center',
                justifyContent: 'center',
                textDecoration: 'none',
-               cursor: 'pointer'
+               cursor: creating ? 'not-allowed' : 'pointer',
+               opacity: creating ? 0.7 : 1
              }}
           >
-             Enter the Arena
-          </a>
+             {creating ? 'Creating your match...' : 'Enter the Arena'}
+          </button>
         </div>
       </section>
 

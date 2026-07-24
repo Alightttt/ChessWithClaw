@@ -486,7 +486,17 @@ export default function Game() {
   const [isCheckState, setIsCheckState] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
-  const [showAwayTooltip, setShowAwayTooltip] = useState(() => localStorage.getItem('cwc_away_tooltip_dismissed') !== 'true');
+  const [showAgentStatusOverlay, setShowAgentStatusOverlay] = useState(false);
+  const getAgentLastSeenText = () => {
+    const _tick = presenceTick; // reactive
+    if (!game?.agent_last_seen) return 'Agent not joined yet';
+    const msAgo = Date.now() - new Date(game.agent_last_seen).getTime();
+    const secsAgo = Math.floor(msAgo / 1000);
+    if (secsAgo < 15) return 'Last seen just now';
+    if (secsAgo < 60) return `Last seen ${secsAgo}s ago`;
+    if (secsAgo < 3600) return `Last seen ${Math.floor(secsAgo / 60)}m ago`;
+    return 'Agent connection lost';
+  };
 
   const bgmGainRef = useRef(null);
   const bgmSourceRef = useRef(null);
@@ -2384,7 +2394,42 @@ export default function Game() {
   }, [game, gameId]);
 
   if (notFound) {
-    return <NotFound />;
+    return (
+      <div className="min-h-[100dvh] bg-[#0a0a0a] text-white font-sans flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center max-w-lg text-center bg-[#111] border border-[#333] p-10 rounded-2xl shadow-[0_0_60px_rgba(230,57,70,0.1)]">
+          <AlertTriangle size={48} className="text-[#e63946] mb-6" />
+          <h2 className="text-2xl font-bold mb-4">Match Unavailable</h2>
+          <p className="text-white/60 text-lg mb-8 leading-relaxed">
+            This match is unavailable. It may have expired or the invite may be incomplete.
+          </p>
+          <div className="flex flex-col w-full gap-3">
+            <button
+              onClick={() => {
+                fetch('/api/new', { method: 'POST' })
+                  .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+                  .then(d => {
+                    if (d.gameId) {
+                      document.cookie = `game_owner_${d.gameId}=${d.secretToken}; Path=/; Max-Age=86400; SameSite=Lax`;
+                      localStorage.setItem(`game_owner_${d.gameId}`, d.secretToken);
+                      navigate(`/created/${d.gameId}`);
+                    }
+                  })
+                  .catch(() => navigate('/'));
+              }}
+              className="w-full py-4 rounded-xl bg-[#e63946] text-white font-bold tracking-wider hover:bg-[#c62e39] transition-colors"
+            >
+              Create new match
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-4 rounded-xl bg-transparent border border-white/10 text-white/60 font-bold tracking-wider hover:bg-white/5 hover:text-white transition-colors"
+            >
+              Back home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading || !game) {
@@ -2840,7 +2885,9 @@ export default function Game() {
               const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
 
               return (
-                <div style={{ 
+                <div 
+                  onClick={() => setShowAgentStatusOverlay(prev => !prev)}
+                  style={{ 
                   flexShrink: 0, 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -2851,7 +2898,9 @@ export default function Game() {
                   borderRadius: '12px', 
                   boxShadow: isOpenClawTurn ? '0 0 35px rgba(230,57,70,0.08)' : 'none', 
                   animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
-                  transition: 'box-shadow 0.7s ease, border-color 0.3s ease' 
+                  transition: 'box-shadow 0.7s ease, border-color 0.3s ease',
+                  cursor: 'pointer',
+                  position: 'relative'
                 }}>
                   <span style={{
                     fontSize: 32,
@@ -2873,20 +2922,19 @@ export default function Game() {
                     </span>
                     <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                       {agentStatusText}
-                      {agentStatusText === 'AWAY' && showAwayTooltip && (
-                        <div style={{
-                          position: 'absolute', top: '100%', left: 0, marginTop: '8px',
-                          background: '#222', border: '1px solid #333', borderRadius: '8px',
-                          padding: '12px', width: '250px', zIndex: 100,
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                          color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
-                          textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
-                        }}>
-                          Away just means it&apos;s not actively watching this game right now — not disconnected. It&apos;ll catch up next time it checks in.
-                          <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
-                        </div>
-                      )}
                     </div>
+                    {showAgentStatusOverlay && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, marginTop: '8px',
+                        background: '#222', border: '1px solid #333', borderRadius: '8px',
+                        padding: '8px 12px', zIndex: 100,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                        color: '#f2f2f2', fontSize: '12px', fontFamily: 'Inter, sans-serif',
+                        whiteSpace: 'nowrap', fontWeight: 500
+                      }}>
+                        {getAgentLastSeenText()}
+                      </div>
+                    )}
                   </div>
                   
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
@@ -3328,7 +3376,9 @@ export default function Game() {
           const agentStatusText = (agentHealth === 'amber' || agentHealth === 'red') ? 'AWAY' : (isOpenClawTurn ? 'FOCUSED' : 'AVAILABLE');
 
           return (
-            <div style={{ 
+            <div 
+              onClick={() => setShowAgentStatusOverlay(prev => !prev)}
+              style={{ 
               flexShrink: 0, 
               display: 'flex', 
               alignItems: 'center', 
@@ -3340,7 +3390,9 @@ export default function Game() {
               boxShadow: isOpenClawTurn ? '0 0 30px rgba(230,57,70,0.06)' : 'none', 
               animation: agentCooking ? 'coldGlitch 2.5s infinite' : (isOpenClawTurn ? 'agentBreathe 2s ease-in-out infinite' : 'none'),
               transition: 'box-shadow 0.7s ease, border-color 0.3s ease',
-              margin: '12px'
+              margin: '12px',
+              cursor: 'pointer',
+              position: 'relative'
             }}>
               <span style={{
                 fontSize: 32,
@@ -3362,20 +3414,19 @@ export default function Game() {
                 </span>
                 <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', fontWeight: 600, color: healthColor, textTransform: 'uppercase', position: 'relative' }}>
                   {agentStatusText}
-                  {agentStatusText === 'AWAY' && showAwayTooltip && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, marginTop: '8px',
-                      background: '#222', border: '1px solid #333', borderRadius: '8px',
-                      padding: '12px', width: '250px', zIndex: 100,
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                      color: '#ccc', fontSize: '12px', lineHeight: 1.4, fontFamily: 'Inter, sans-serif',
-                      textTransform: 'none', letterSpacing: 'normal', fontWeight: 400
-                    }}>
-                      Away just means it&apos;s not actively watching this game right now — not disconnected. It&apos;ll catch up next time it checks in.
-                      <button onClick={() => { setShowAwayTooltip(false); localStorage.setItem('cwc_away_tooltip_dismissed', 'true'); }} style={{ display: 'block', marginTop: '8px', color: '#e63946', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>Dismiss</button>
-                    </div>
-                  )}
                 </div>
+                {showAgentStatusOverlay && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, marginTop: '8px',
+                    background: '#222', border: '1px solid #333', borderRadius: '8px',
+                    padding: '8px 12px', zIndex: 100,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                    color: '#f2f2f2', fontSize: '12px', fontFamily: 'Inter, sans-serif',
+                    whiteSpace: 'nowrap', fontWeight: 500
+                  }}>
+                    {getAgentLastSeenText()}
+                  </div>
+                )}
               </div>
               
               <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', overflow: 'hidden' }}>
