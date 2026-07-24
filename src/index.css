@@ -21,12 +21,6 @@
     --green-light: #739552;
     --green-dark: #577047;
 
-    --card-radius: 12px;
-    --btn-radius: 8px;
-    --pill-radius: 9999px;
-    --content-max-width: 1280px;
-    --focus-ring-color: #ffffff;
-
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
     --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -174,8 +168,8 @@
 
   .design-card {
     background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
     padding: 24px;
     position: relative;
     overflow: hidden;
@@ -186,7 +180,7 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   }
   .design-card:hover {
-    border-color: var(--border-strong);
+    border-color: rgba(255,255,255,0.12);
     transform: translateY(-2px) translateZ(0);
     box-shadow: 0 6px 24px rgba(0,0,0,0.5);
   }
@@ -248,7 +242,7 @@ button:active:not(:disabled) {
 }
 
 button:focus-visible {
-  outline: 2px solid var(--focus-ring-color);
+  outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
 
@@ -299,12 +293,12 @@ div[data-piece] {
 }
 
 .design-btn-primary:focus-visible, .design-btn-secondary:focus-visible, .design-btn-secondary-compact:focus-visible, button:focus-visible {
-  outline: 2px solid var(--focus-ring-color);
+  outline: 2px solid white;
   outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

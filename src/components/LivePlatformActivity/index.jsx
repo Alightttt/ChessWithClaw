@@ -12,7 +12,7 @@ const NumberCounter = ({ count }) => {
   useEffect(() => {
     if (!isInView) return;
 
-    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
       setDisplayValue(count);
       setIsFinished(true);

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useToast } from '../components/Toast';
-import { ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
+import { Loader2, ChevronDown, Zap, Shield, Terminal, Copy, Check, Globe, Bot, Activity } from "lucide-react";
 import { supabase } from '../lib/supabase';
 import LivePlatformActivity from '../components/LivePlatformActivity';
 import MockChatPanel from '../components/MockChatPanel';
@@ -219,8 +219,8 @@ export default function Home() {
         
         .design-card {
           background: linear-gradient(145deg, #1b1a19 0%, #161514 100%);
-          border: 1px solid var(--border);
-          border-radius: var(--card-radius);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 12px;
           padding: 24px;
           position: relative;
           overflow: hidden;
@@ -231,7 +231,7 @@ export default function Home() {
           box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
         .design-card:hover {
-          border-color: var(--border-strong);
+          border-color: rgba(255,255,255,0.12);
           transform: translateY(-2px) translateZ(0);
           box-shadow: 0 6px 24px rgba(0,0,0,0.5);
         }
@@ -239,7 +239,7 @@ export default function Home() {
         .design-btn-nav {
           background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(0,0,0,0.04) 100%), #e63946;
           color: white;
-          border-radius: var(--btn-radius);
+          border-radius: 8px;
           padding: 8px 16px;
           font-family: "'Poppins', sans-serif";
           font-weight: 600;
@@ -265,8 +265,8 @@ export default function Home() {
         .design-btn-secondary {
           background: transparent;
           color: rgba(242,242,242,0.6);
-          border: 1px solid var(--border);
-          border-radius: var(--btn-radius);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 8px;
           height: 56px;
           padding: 0 32px;
           font-family: "'Poppins', sans-serif";
@@ -280,7 +280,7 @@ export default function Home() {
         }
         .design-btn-secondary:hover:not(:disabled) {
           color: rgba(242,242,242,0.9);
-          border-color: var(--border-strong);
+          border-color: rgba(255,255,255,0.25);
           background: rgba(255,255,255,0.04);
         }
         .design-btn-secondary:active:not(:disabled) {
@@ -337,8 +337,8 @@ export default function Home() {
 
         .social-proof-card {
           background: rgba(17,17,17,0.9);
-          border: 1px solid var(--border);
-          border-radius: var(--card-radius);
+          border: 1px solid #1e1e1e;
+          border-radius: 16px;
           padding: 28px;
           transition: all 0.2s ease;
           text-align: left;
@@ -440,15 +440,9 @@ export default function Home() {
               onClick={handlePlayNow}
               disabled={creating}
               className="design-btn-nav"
-              style={{ minWidth: '160px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1 }}
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1, gap: '8px' }}
             >
-              {creating ? (
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : null}
-              {creating ? 'Loading...' : 'Play Now'}
+              {creating ? <Loader2 size={16} className="animate-spin" /> : 'Play Now'}
             </button>
           </div>
         </div>
@@ -566,8 +560,7 @@ export default function Home() {
                     justifyContent: 'center',
                     textDecoration: 'none',
                     cursor: creating ? 'not-allowed' : 'pointer',
-                    opacity: creating ? 0.7 : 1,
-                    minWidth: '260px'
+                    opacity: creating ? 0.7 : 1
                   }}
                 >
                   {creating ? 'Creating your match...' : 'Challenge Mine Now →'}
@@ -836,8 +829,7 @@ export default function Home() {
                justifyContent: 'center',
                textDecoration: 'none',
                cursor: creating ? 'not-allowed' : 'pointer',
-               opacity: creating ? 0.7 : 1,
-               minWidth: '260px'
+               opacity: creating ? 0.7 : 1
              }}
           >
              {creating ? 'Creating your match...' : 'Enter the Arena'}
@@ -887,21 +879,10 @@ export default function Home() {
 
 function FAQAccordion({ question, answer, open, onToggle }) {
   return (
-    <div 
-      className="cursor-pointer group" 
-      onClick={onToggle}
-      style={{
-        background: open ? 'rgba(255,255,255,0.04)' : 'transparent',
-        border: `1px solid ${open ? 'var(--border-strong)' : 'var(--border)'}`,
-        borderRadius: 'var(--card-radius)',
-        padding: '24px',
-        marginBottom: '16px',
-        transition: 'all 0.2s ease'
-      }}
-    >
+    <div className="py-6 cursor-pointer group" onClick={onToggle}>
       <div className="flex justify-between items-center text-left">
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '16px', color: '#f2f2f2', letterSpacing: '-0.02em' }} className="pr-8">{question}</h3>
-        <ChevronDown className={`shrink-0 text-[#555555] transition-transform duration-300 ${open ? 'rotate-180 text-[#e63946]' : 'group-hover:text-white'}`} size={20} />
+        <ChevronDown className={`shrink-0 text-[#555555] transition-transform duration-300 ${open ? 'rotate-180 text-[#e63946]' : ''}`} size={20} />
       </div>
       <AnimatePresence>
         {open && (

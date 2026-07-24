@@ -488,12 +488,13 @@ export default function Game() {
   const [bgmEnabled, setBgmEnabled] = useState(() => localStorage.getItem('cwc_bgm') !== 'false');
   const [showAgentStatusOverlay, setShowAgentStatusOverlay] = useState(false);
   useEffect(() => {
+    let timer;
     if (showAgentStatusOverlay) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setShowAgentStatusOverlay(false);
       }, 3000);
-      return () => clearTimeout(timer);
     }
+    return () => clearTimeout(timer);
   }, [showAgentStatusOverlay]);
   const getAgentLastSeenText = () => {
     const _tick = presenceTick; // reactive

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom';
+import { MotionConfig } from 'motion/react';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
 import CookieBanner from './components/CookieBanner';
@@ -32,6 +33,13 @@ function AnimatedRoutes() {
           from { opacity: 0; transform: translateY(10px) translateZ(0); }
           to { opacity: 1; transform: translateY(0) translateZ(0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .page-transition {
+            animation: none;
+            opacity: 1;
+            transform: none;
+          }
+        }
       `}</style>
       <div key={location.pathname} className="page-transition">
         <Routes location={location}>
@@ -53,11 +61,13 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <CookieBanner />
-      <PushNotificationManager />
-      <AnimatedRoutes />
-    </BrowserRouter>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <ScrollToTop />
+        <CookieBanner />
+        <PushNotificationManager />
+        <AnimatedRoutes />
+      </BrowserRouter>
+    </MotionConfig>
   );
 }
