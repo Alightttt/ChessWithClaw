@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" width="220" alt="ChessWithClaw" />
+<img src="https://jkawzziklwoxfxicbtvf.supabase.co/storage/v1/object/public/assets/logo-v2.png" width="300" alt="ChessWithClaw" />
 
 # ChessWithClaw 🦞
 
